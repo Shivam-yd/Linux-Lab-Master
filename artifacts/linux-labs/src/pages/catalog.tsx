@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { Link } from "wouter"
+import { Link, useLocation } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -11,7 +11,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -73,15 +75,13 @@ export default function Catalog() {
   }, [labs])
 
   const [activeTrack, setActiveTrack] = useState<string>("linux")
-  const [activeLevel, setActiveLevel] = useState<string>("all")
+  const [, navigate] = useLocation()
 
   // Ensure activeTrack stays valid once data loads
   const resolvedTrack = tracks.includes(activeTrack) ? activeTrack : (tracks[0] ?? "linux")
 
-  // Reset level filter when switching tracks
   const handleTrackChange = (track: string) => {
     setActiveTrack(track)
-    setActiveLevel("all")
   }
 
   // Progress map
@@ -234,20 +234,42 @@ export default function Catalog() {
                 </div>
               </div>
               <div className="flex items-center gap-4 shrink-0">
-                {/* Level filter dropdown */}
+                {/* Jump-to-lab dropdown: lists every lab in the track grouped by level */}
                 {levels.length > 0 && (
-                  <Select value={activeLevel} onValueChange={setActiveLevel}>
-                    <SelectTrigger className="w-44 h-8 text-xs bg-card border-border">
-                      <SelectValue placeholder="All Levels" />
+                  <Select
+                    value=""
+                    onValueChange={(labId) => { if (labId) navigate(`/labs/${labId}`) }}
+                  >
+                    <SelectTrigger className="w-52 h-8 text-xs bg-card border-border">
+                      <SelectValue placeholder="Jump to lab…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all" className="text-xs">All Levels</SelectItem>
-                      {levels.map(({ level }) => {
+                      {levels.map(({ level, labs: lvlLabs }) => {
                         const lm = LEVEL_META[level] ?? LEVEL_META[1]
                         return (
-                          <SelectItem key={level} value={String(level)} className="text-xs">
-                            Level {level} — {lm.name}
-                          </SelectItem>
+                          <SelectGroup key={level}>
+                            <SelectLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5">
+                              Level {level} — {lm.name}
+                            </SelectLabel>
+                            {lvlLabs.map(lab => {
+                              const prog = progressByLabId[lab.id]
+                              const isPassed = prog?.status === "passed"
+                              const isInProgress = prog?.status === "in_progress"
+                              return (
+                                <SelectItem key={lab.id} value={lab.id} className="text-xs pl-4">
+                                  <span className="flex items-center gap-2">
+                                    {isPassed
+                                      ? <CheckCircle2 className="w-3 h-3 text-teal-400 shrink-0" />
+                                      : isInProgress
+                                      ? <PlayCircle className="w-3 h-3 text-blue-400 shrink-0" />
+                                      : <span className="w-3 h-3 rounded-full border border-muted-foreground/40 shrink-0 inline-block" />
+                                    }
+                                    {lab.title}
+                                  </span>
+                                </SelectItem>
+                              )
+                            })}
+                          </SelectGroup>
                         )
                       })}
                     </SelectContent>
@@ -292,9 +314,7 @@ export default function Catalog() {
               <p className="text-muted-foreground">No labs in this track yet.</p>
             </div>
           ) : (
-            levels
-            .filter(({ level }) => activeLevel === "all" || String(level) === activeLevel)
-            .map(({ level, labs: lvlLabs, locked, passed, total }) => {
+            levels.map(({ level, labs: lvlLabs, locked, passed, total }) => {
               const lm = LEVEL_META[level] ?? LEVEL_META[1]
               const pct = total ? Math.round((passed / total) * 100) : 0
 
