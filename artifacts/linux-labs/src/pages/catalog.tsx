@@ -6,8 +6,15 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
-  Clock, ChevronRight, Trophy, Star, Cpu
+  Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown
 } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────
@@ -66,9 +73,16 @@ export default function Catalog() {
   }, [labs])
 
   const [activeTrack, setActiveTrack] = useState<string>("linux")
+  const [activeLevel, setActiveLevel] = useState<string>("all")
 
   // Ensure activeTrack stays valid once data loads
   const resolvedTrack = tracks.includes(activeTrack) ? activeTrack : (tracks[0] ?? "linux")
+
+  // Reset level filter when switching tracks
+  const handleTrackChange = (track: string) => {
+    setActiveTrack(track)
+    setActiveLevel("all")
+  }
 
   // Progress map
   const progressByLabId = useMemo(() => {
@@ -148,7 +162,7 @@ export default function Catalog() {
                 return (
                   <button
                     key={track}
-                    onClick={() => setActiveTrack(track)}
+                    onClick={() => handleTrackChange(track)}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150 group",
                       isActive
@@ -219,17 +233,38 @@ export default function Catalog() {
                   <p className="text-sm text-muted-foreground mt-0.5">{meta.description}</p>
                 </div>
               </div>
-              {trackSummary[resolvedTrack] && (
-                <div className="text-right">
-                  <p className="text-2xl font-bold tabular-nums" style={{ color: meta.accentHex }}>
-                    {trackSummary[resolvedTrack].passed}
-                    <span className="text-muted-foreground text-lg font-normal">
-                      /{trackSummary[resolvedTrack].total}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">labs completed</p>
-                </div>
-              )}
+              <div className="flex items-center gap-4 shrink-0">
+                {/* Level filter dropdown */}
+                {levels.length > 0 && (
+                  <Select value={activeLevel} onValueChange={setActiveLevel}>
+                    <SelectTrigger className="w-44 h-8 text-xs bg-card border-border">
+                      <SelectValue placeholder="All Levels" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">All Levels</SelectItem>
+                      {levels.map(({ level }) => {
+                        const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                        return (
+                          <SelectItem key={level} value={String(level)} className="text-xs">
+                            Level {level} — {lm.name}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
+                {trackSummary[resolvedTrack] && (
+                  <div className="text-right">
+                    <p className="text-2xl font-bold tabular-nums" style={{ color: meta.accentHex }}>
+                      {trackSummary[resolvedTrack].passed}
+                      <span className="text-muted-foreground text-lg font-normal">
+                        /{trackSummary[resolvedTrack].total}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">labs completed</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </header>
@@ -257,7 +292,9 @@ export default function Catalog() {
               <p className="text-muted-foreground">No labs in this track yet.</p>
             </div>
           ) : (
-            levels.map(({ level, labs: lvlLabs, locked, passed, total }) => {
+            levels
+            .filter(({ level }) => activeLevel === "all" || String(level) === activeLevel)
+            .map(({ level, labs: lvlLabs, locked, passed, total }) => {
               const lm = LEVEL_META[level] ?? LEVEL_META[1]
               const pct = total ? Math.round((passed / total) * 100) : 0
 
