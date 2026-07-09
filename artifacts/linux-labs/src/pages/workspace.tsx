@@ -125,6 +125,50 @@ export default function Workspace() {
   const hints = (lab as any)?.hints as string[] | undefined
   const totalHints = hints?.length ?? 0
 
+  // Some labs embed a "## Steps" heading directly in the instructions
+  // markdown. Split that section out so it can be hidden behind the same
+  // reveal control as Objectives, instead of always being visible.
+  //
+  // Line-oriented (not a single regex over the raw string) so it: matches
+  // "## Steps" whether or not it's the very first line, tolerates up to
+  // three leading spaces (still a valid Markdown heading), and ignores any
+  // "##"-looking text inside fenced code blocks.
+  const { mainInstructions, stepsMarkdown } = useMemo(() => {
+    const text = lab?.instructions || ""
+    const lines = text.split("\n")
+    const headingRe = /^ {0,3}##\s+(.*)$/
+    const stepsHeadingRe = /^ {0,3}##\s+Steps\b/i
+
+    let inFence = false
+    let stepsStart = -1
+    let stepsEnd = lines.length
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (/^\s*```/.test(line)) {
+        inFence = !inFence
+        continue
+      }
+      if (inFence) continue
+
+      if (stepsStart === -1) {
+        if (stepsHeadingRe.test(line)) stepsStart = i
+      } else if (headingRe.test(line)) {
+        stepsEnd = i
+        break
+      }
+    }
+
+    if (stepsStart === -1) {
+      return { mainInstructions: text, stepsMarkdown: null as string | null }
+    }
+
+    return {
+      mainInstructions: lines.slice(0, stepsStart).join("\n").trim(),
+      stepsMarkdown: lines.slice(stepsStart, stepsEnd).join("\n").trim(),
+    }
+  }, [lab?.instructions])
+
   if (labLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -226,8 +270,27 @@ export default function Workspace() {
         <div className="w-[450px] shrink-0 border-r border-border bg-card flex flex-col">
           <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
             <div className="prose prose-invert prose-sm max-w-none">
-              <ReactMarkdown>{lab.instructions || "No instructions provided."}</ReactMarkdown>
+              <ReactMarkdown>{mainInstructions || "No instructions provided."}</ReactMarkdown>
             </div>
+
+            {/* ── Steps Panel (hidden until revealed) ── */}
+            {stepsMarkdown && (
+              <div className="mt-6">
+                {stepsRevealed ? (
+                  <div className="prose prose-invert prose-sm max-w-none animate-in fade-in slide-in-from-top-2 duration-300">
+                    <ReactMarkdown>{stepsMarkdown}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setStepsRevealed(true)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-md border border-dashed border-border text-muted-foreground text-sm font-medium hover:bg-secondary/50 hover:text-foreground transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Reveal the steps for this lab
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* ── Hints Panel ── */}
             {totalHints > 0 && (
