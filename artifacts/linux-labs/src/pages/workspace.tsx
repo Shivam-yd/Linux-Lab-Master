@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Terminal, Play, Square, RotateCcw, ArrowLeft, 
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity,
-  Lightbulb, ChevronDown, ChevronRight, Eye, EyeOff
+  Lightbulb, ChevronDown, ChevronRight, Eye
 } from "lucide-react"
 
 export default function Workspace() {
@@ -359,40 +359,18 @@ export default function Workspace() {
             
             {lab.tasks && lab.tasks.length > 0 && (
               <div className="mt-8">
-                <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-                  <h3 className="text-lg font-semibold">Objectives</h3>
-                  <button
-                    onClick={() => setStepsRevealed(r => !r)}
-                    className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                  >
-                    {stepsRevealed ? (
-                      <><EyeOff className="w-3.5 h-3.5" /> Hide steps</>
-                    ) : (
-                      <><Eye className="w-3.5 h-3.5" /> Show steps</>
-                    )}
-                  </button>
-                </div>
+                <h3 className="text-lg font-semibold mb-4 border-b border-border pb-2">Objectives</h3>
 
-                {stepsRevealed ? (
-                  <ul className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                    {lab.tasks.map(task => (
-                      <li key={task.id} className="flex items-start text-sm bg-background p-3 rounded border border-border/50">
-                        <div className="w-5 h-5 shrink-0 rounded-full border border-primary/50 bg-primary/10 text-primary flex items-center justify-center mr-3 mt-0.5 text-xs">
-                          {task.id}
-                        </div>
-                        <span className="text-muted-foreground">{task.description}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <button
-                    onClick={() => setStepsRevealed(true)}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-md border border-dashed border-border text-muted-foreground text-sm font-medium hover:bg-secondary/50 hover:text-foreground transition-colors"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Reveal the {lab.tasks.length} step{lab.tasks.length === 1 ? "" : "s"} for this lab
-                  </button>
-                )}
+                <ul className="space-y-3">
+                  {lab.tasks.map((task, i) => (
+                    <li key={task.id} className="flex items-start text-sm bg-background p-3 rounded border border-border/50">
+                      <div className="w-5 h-5 shrink-0 rounded-full border border-primary/50 bg-primary/10 text-primary flex items-center justify-center mr-3 mt-0.5 text-xs font-semibold">
+                        {i + 1}
+                      </div>
+                      <span className="text-muted-foreground">{task.description}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
