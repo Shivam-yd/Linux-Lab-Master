@@ -277,41 +277,47 @@ export default function Catalog() {
                 <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{meta.description}</p>
               </div>
 
-              {/* Jump-to-lab dropdown */}
+              {/* Per-level jump dropdowns */}
               {levels.length > 0 && (
-                <Select value="" onValueChange={(id) => { if (id) navigate(`/labs/${id}`) }}>
-                  <SelectTrigger className="w-44 h-8 text-xs bg-background border-border shrink-0">
-                    <SelectValue placeholder="Jump to lab…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {levels.map(({ level, labs: lvlLabs }) => {
-                      const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                      return (
-                        <SelectGroup key={level}>
-                          <SelectLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                            Level {level} — {lm.name}
-                          </SelectLabel>
-                          {lvlLabs.map(lab => {
-                            const s = progressByLabId[lab.id]?.status
-                            return (
-                              <SelectItem key={lab.id} value={lab.id} className="text-xs pl-5">
-                                <span className="flex items-center gap-2">
-                                  {s === "passed"
-                                    ? <CheckCircle2 className="w-3 h-3 text-teal-400 shrink-0" />
-                                    : s === "in_progress"
-                                    ? <PlayCircle className="w-3 h-3 text-blue-400 shrink-0" />
-                                    : <span className="w-3 h-3 rounded-full border border-muted-foreground/40 shrink-0 inline-block" />
-                                  }
-                                  {lab.title}
-                                </span>
-                              </SelectItem>
-                            )
-                          })}
-                        </SelectGroup>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {levels.map(({ level, labs: lvlLabs }) => {
+                    const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                    return (
+                      <Select key={level} value="" onValueChange={(id) => { if (id) navigate(`/labs/${id}`) }}>
+                        <SelectTrigger
+                          className="h-8 text-xs bg-background border-border px-2.5"
+                          style={{ borderColor: `${lm.accentHex}50`, minWidth: "4.5rem" }}
+                        >
+                          <span className="font-medium" style={{ color: lm.accentHex }}>L{level}</span>
+                          <ChevronDown className="w-3 h-3 ml-1 text-muted-foreground" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                              Level {level} — {lm.name}
+                            </SelectLabel>
+                            {lvlLabs.map(lab => {
+                              const s = progressByLabId[lab.id]?.status
+                              return (
+                                <SelectItem key={lab.id} value={lab.id} className="text-xs">
+                                  <span className="flex items-center gap-2">
+                                    {s === "passed"
+                                      ? <CheckCircle2 className="w-3 h-3 text-teal-400 shrink-0" />
+                                      : s === "in_progress"
+                                      ? <PlayCircle className="w-3 h-3 text-blue-400 shrink-0" />
+                                      : <span className="w-3 h-3 rounded-full border border-muted-foreground/40 shrink-0 inline-block" />
+                                    }
+                                    {lab.title}
+                                  </span>
+                                </SelectItem>
+                              )
+                            })}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    )
+                  })}
+                </div>
               )}
 
               {/* Start / Continue button */}
