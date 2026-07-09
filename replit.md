@@ -4,9 +4,11 @@ A KodeKloud-style platform where students work through real Linux sandbox labs (
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server
-- `pnpm --filter @workspace/linux-labs run dev` — run the frontend
+- Runs via two Replit workflows: `artifacts/api-server: API Server` (port 8080, path `/api`) and `artifacts/linux-labs: web` (port 21398, path `/`). Restart them after code changes.
+- `pnpm --filter @workspace/api-server run dev` — run the API server manually
+- `pnpm --filter @workspace/linux-labs run dev` — run the frontend manually
 - `pnpm run typecheck` — full typecheck across all packages
+- Replit's built-in Postgres database is provisioned; schema is pushed via `pnpm --filter @workspace/db run push`.
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
