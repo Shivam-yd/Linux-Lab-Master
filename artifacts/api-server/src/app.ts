@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -25,7 +26,15 @@ app.use(
     },
   }),
 );
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  throw new Error(
+    "SESSION_SECRET environment variable is required but was not provided.",
+  );
+}
+
 app.use(cors());
+app.use(cookieParser(sessionSecret));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

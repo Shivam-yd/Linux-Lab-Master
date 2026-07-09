@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: labs
+    description: Lab catalog and detail
+  - name: sessions
+    description: Lab sandbox session lifecycle
+  - name: progress
+    description: Student progress tracking
 paths:
   /healthz:
     get:
@@ -24,6 +30,155 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /labs:
+    get:
+      operationId: listLabs
+      tags: [labs]
+      summary: List all labs
+      responses:
+        "200":
+          description: List of labs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lab"
+
+  /labs/{labId}:
+    get:
+      operationId: getLab
+      tags: [labs]
+      summary: Get lab detail
+      parameters:
+        - name: labId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lab detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LabDetail"
+        "404":
+          description: Not found
+
+  /progress:
+    get:
+      operationId: listProgress
+      tags: [progress]
+      summary: List progress for the current student across all labs
+      responses:
+        "200":
+          description: Progress entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProgressEntry"
+
+  /labs/{labId}/session:
+    get:
+      operationId: getLabSession
+      tags: [sessions]
+      summary: Get the current sandbox session for a lab, if any
+      parameters:
+        - name: labId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session (or null status if none exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Lab not found
+    post:
+      operationId: startLabSession
+      tags: [sessions]
+      summary: Start (or resume) a sandbox session for a lab
+      parameters:
+        - name: labId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Running session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Lab not found
+    delete:
+      operationId: stopLabSession
+      tags: [sessions]
+      summary: Stop and destroy the sandbox session for a lab
+      parameters:
+        - name: labId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Stopped
+
+  /labs/{labId}/session/reset:
+    post:
+      operationId: resetLabSession
+      tags: [sessions]
+      summary: Destroy and recreate a fresh sandbox session for a lab
+      parameters:
+        - name: labId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Fresh session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Lab not found
+
+  /labs/{labId}/verify:
+    post:
+      operationId: verifyLab
+      tags: [sessions]
+      summary: Run the automated checks for a lab against its active session
+      parameters:
+        - name: labId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyResult"
+        "409":
+          description: No active session to verify
+        "404":
+          description: Lab not found
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +189,120 @@ components:
       required:
         - status
 
+    Lab:
+      type: object
+      required:
+        [id, title, category, difficulty, summary, estimatedMinutes, order]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        summary:
+          type: string
+        estimatedMinutes:
+          type: integer
+        order:
+          type: integer
+
+    LabTask:
+      type: object
+      required: [id, description]
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+
+    LabDetail:
+      allOf:
+        - $ref: "#/components/schemas/Lab"
+        - type: object
+          required: [instructions, objectives, tasks, terminals]
+          properties:
+            instructions:
+              type: string
+              description: Markdown instructions for the lab
+            objectives:
+              type: array
+              items:
+                type: string
+            tasks:
+              type: array
+              items:
+                $ref: "#/components/schemas/LabTask"
+            terminals:
+              type: array
+              description: Terminal targets this lab exposes (e.g. ["server1","server2"])
+              items:
+                type: string
+
+    Session:
+      type: object
+      required: [labId, status, terminals]
+      properties:
+        labId:
+          type: string
+        status:
+          type: string
+          enum: [none, starting, running, stopped, error]
+        terminals:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: ["string", "null"]
+          format: date-time
+        errorMessage:
+          type: ["string", "null"]
+
+    CheckResult:
+      type: object
+      required: [id, label, passed, message]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        passed:
+          type: boolean
+        message:
+          type: string
+
+    VerifyResult:
+      type: object
+      required: [labId, passed, score, checks, verifiedAt]
+      properties:
+        labId:
+          type: string
+        passed:
+          type: boolean
+        score:
+          type: integer
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/CheckResult"
+        verifiedAt:
+          type: string
+          format: date-time
+
+    ProgressEntry:
+      type: object
+      required: [labId, status, bestScore]
+      properties:
+        labId:
+          type: string
+        status:
+          type: string
+          enum: [not_started, in_progress, passed]
+        bestScore:
+          type: integer
+        lastAttemptAt:
+          type: ["string", "null"]
+          format: date-time

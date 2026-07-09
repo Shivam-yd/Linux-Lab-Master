@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Linux Labs"
+version = "1.0.0"
+id = "artifacts/linux-labs"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21398
+
+[services.development]
+run = "pnpm --filter @workspace/linux-labs run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/linux-labs", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/linux-labs/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21398"
+BASE_PATH = "/"
