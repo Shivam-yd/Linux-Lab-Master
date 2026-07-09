@@ -165,6 +165,40 @@ export default function Catalog() {
   const toggleLevel = (lvl: number) =>
     setOpenLevels(prev => ({ ...prev, [lvl]: !prev[lvl] }))
 
+  // View mode: by-level shows one card per track+level combo
+  const [viewMode, setViewMode] = useState<"by-level" | "by-course">("by-level")
+  const [levelFilter, setLevelFilter] = useState<string>("all")
+
+  // All track+level combos for "By Level" view
+  type LabItem = NonNullable<typeof labs>[number]
+  const trackLevelCards = useMemo(() => {
+    if (!labs) return [] as { track: string; level: number; lvlLabs: LabItem[]; passed: number; total: number }[]
+    const cards: { track: string; level: number; lvlLabs: LabItem[]; passed: number; total: number }[] = []
+    const trackOrder = ["linux", "terraform"]
+    const allTracks = [...new Set(labs.map((l: LabItem) => l.track))]
+    const sorted = [...trackOrder.filter(t => allTracks.includes(t)), ...allTracks.filter(t => !trackOrder.includes(t))]
+    sorted.forEach(track => {
+      const tLabs = labs.filter((l: LabItem) => l.track === track)
+      const lvlNums = [...new Set(tLabs.map((l: LabItem) => l.level as number))].sort((a, b) => a - b)
+      lvlNums.forEach(lvl => {
+        const lvlLabs = tLabs.filter((l: LabItem) => (l.level as number) === lvl).sort((a: LabItem, b: LabItem) => (a.order as number) - (b.order as number))
+        const passed = lvlLabs.filter((l: LabItem) => progressByLabId[l.id as string]?.status === "passed").length
+        cards.push({ track, level: lvl, lvlLabs, passed, total: lvlLabs.length })
+      })
+    })
+    return cards
+  }, [labs, progressByLabId])
+
+  const allLevels = useMemo(() => [...new Set(trackLevelCards.map(c => c.level))].sort((a, b) => a - b), [trackLevelCards])
+
+  const filteredCards = useMemo(() =>
+    levelFilter === "all" ? trackLevelCards : trackLevelCards.filter(c => c.level === Number(levelFilter)),
+  [trackLevelCards, levelFilter])
+
+  // Which "By Level" cards are expanded
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
+  const toggleCard = (key: string) => setExpandedCards(prev => ({ ...prev, [key]: !prev[key] }))
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
 
@@ -324,8 +358,169 @@ export default function Catalog() {
       {/* ── Main content ────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
-        {/* ── Track summary card (matches screenshot style) ── */}
-        {loading ? (
+        {/* ── Tab switcher + level filter ── */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-1">
+            {(["by-level", "by-course"] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
+                  viewMode === mode
+                    ? "bg-primary/15 text-foreground border border-primary/20"
+                    : "text-muted-foreground hover:text-foreground/80"
+                )}
+              >
+                {mode === "by-level" ? "By Level" : "By Course"}
+              </button>
+            ))}
+          </div>
+
+          {viewMode === "by-level" && (
+            <Select value={levelFilter} onValueChange={setLevelFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs bg-card border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">All Levels</SelectItem>
+                {allLevels.map(lvl => {
+                  const lm = LEVEL_META[lvl] ?? LEVEL_META[1]
+                  return (
+                    <SelectItem key={lvl} value={String(lvl)} className="text-xs">
+                      Level {lvl} — {lm.name}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        {/* ── By Level view ── */}
+        {viewMode === "by-level" && (
+          <div className="space-y-3">
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-16 rounded-xl bg-card border border-border animate-pulse" />
+                ))
+              : filteredCards.map(({ track, level, lvlLabs, passed, total }) => {
+                  const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8" }
+                  const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                  const cardKey = `${track}-${level}`
+                  const isOpen = !!expandedCards[cardKey]
+                  const allPassed = passed === total && total > 0
+                  const anyInProgress = lvlLabs.some(l => progressByLabId[l.id]?.status === "in_progress")
+
+                  return (
+                    <div key={cardKey} className="rounded-xl border border-border bg-card overflow-hidden">
+                      {/* Card header row */}
+                      <div
+                        className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-muted/20 transition-colors"
+                        onClick={() => toggleCard(cardKey)}
+                      >
+                        {/* Icon */}
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border"
+                          style={{ background: `${tm.accentHex}18`, borderColor: `${tm.accentHex}35` }}
+                        >
+                          <tm.icon className="w-6 h-6" style={{ color: tm.accentHex }} />
+                        </div>
+
+                        {/* Title */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] text-muted-foreground leading-none mb-1">
+                            Level {level} <span style={{ color: lm.accentHex }}>— {lm.name}</span>
+                          </p>
+                          <p className="text-base font-bold leading-tight">{tm.label}</p>
+                        </div>
+
+                        {/* Right: status + progress + chevron */}
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs text-muted-foreground tabular-nums">{passed}/{total}</span>
+                          {allPassed ? (
+                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-teal-500/15 text-teal-400 border border-teal-500/25">
+                              <CheckCircle2 className="w-3 h-3" /> Completed
+                            </span>
+                          ) : anyInProgress ? (
+                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                              <PlayCircle className="w-3 h-3" /> In Progress
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-muted/40 text-muted-foreground border border-border">
+                              Not Started
+                            </span>
+                          )}
+                          <button className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-colors">
+                            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expanded lab rows */}
+                      {isOpen && (
+                        <div className="border-t border-border divide-y divide-border/50">
+                          {lvlLabs.map(lab => {
+                            const prog = progressByLabId[lab.id]
+                            const isPassed     = prog?.status === "passed"
+                            const isInProgress = prog?.status === "in_progress"
+                            const score = prog?.bestScore ?? 0
+                            return (
+                              <div key={lab.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/20 transition-colors group">
+                                <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                                  {isPassed
+                                    ? <CheckCircle2 className="w-4.5 h-4.5 text-teal-400" />
+                                    : isInProgress
+                                    ? <PlayCircle className="w-4.5 h-4.5 text-blue-400" />
+                                    : <div className="w-2.5 h-2.5 rounded-full border-2 border-muted-foreground/40" />
+                                  }
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-sm font-medium group-hover:text-primary transition-colors">{lab.title}</span>
+                                    <Badge variant="outline" className={cn("text-[10px] shrink-0", DIFFICULTY_BADGE[lab.difficulty])}>
+                                      {lab.difficulty}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1"><Terminal className="w-3 h-3" />{lab.category}</span>
+                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{lab.estimatedMinutes}m</span>
+                                    {score > 0 && (
+                                      <span className="flex items-center gap-1">
+                                        <Trophy className="w-3 h-3 text-primary/70" />
+                                        <span className="font-mono">{score}%</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <Link href={`/labs/${lab.id}`}>
+                                  <button className={cn(
+                                    "shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all",
+                                    isPassed
+                                      ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 hover:bg-teal-500/20"
+                                      : isInProgress
+                                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+                                      : "bg-primary text-primary-foreground hover:bg-primary/90"
+                                  )}>
+                                    {isPassed ? <><Star className="w-3 h-3" /> Review</>
+                                      : isInProgress ? <><PlayCircle className="w-3 h-3" /> Continue</>
+                                      : <><PlayCircle className="w-3 h-3" /> Start Lab</>}
+                                  </button>
+                                </Link>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+            }
+          </div>
+        )}
+
+        {/* ── By Course view (existing) ── */}
+        {viewMode === "by-course" && (loading ? (
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
             <div className="flex items-center gap-4">
               <Skeleton className="w-12 h-12 rounded-lg" />
@@ -464,10 +659,10 @@ export default function Catalog() {
               ))}
             </div>
           </div>
-        )}
+        ))}
 
         {/* ── Expandable level + lab cards ── */}
-        {!loading && expanded && (
+        {viewMode === "by-course" && !loading && expanded && (
           <div className="space-y-4">
             {levels.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center border border-dashed border-border rounded-xl">
