@@ -117,6 +117,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
     const container = await docker.createContainer({
       Image: lab.image,
       name,
+      Entrypoint: lab.entrypoint,
       Cmd: ["sleep", "infinity"],
       Tty: false,
       Labels: { [CONTAINER_LABEL]: "true", labId, studentId },

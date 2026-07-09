@@ -5,6 +5,7 @@ import { filePermissions } from "./file-permissions";
 import { cronAutomation } from "./cron-automation";
 import { logForensics } from "./log-forensics";
 import { backupScript } from "./backup-script";
+import { terraformBasics } from "./terraform-basics";
 
 export const LABS: LabDefinition[] = [
   sshPasswordless,
@@ -13,6 +14,7 @@ export const LABS: LabDefinition[] = [
   cronAutomation,
   logForensics,
   backupScript,
+  terraformBasics,
 ].sort((a, b) => a.order - b.order);
 
 const LABS_BY_ID = new Map(LABS.map((lab) => [lab.id, lab]));

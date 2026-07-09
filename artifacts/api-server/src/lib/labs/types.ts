@@ -20,6 +20,12 @@ export interface LabDefinition {
   tasks: { id: string; description: string }[];
   /** Docker image to run the sandbox in. Must already be pulled/pullable without extra setup. */
   image: string;
+  /**
+   * Override the image's default ENTRYPOINT. Required for images whose entrypoint is a CLI binary
+   * (e.g. hashicorp/terraform sets ENTRYPOINT ["/bin/terraform"]) so that the container keeps
+   * running via `sleep infinity` instead of exiting immediately.
+   */
+  entrypoint?: string[];
   /** Interactive login shell available in the image (e.g. "bash" or "sh"). Defaults to "sh" if omitted. */
   shell?: string;
   terminals: LabTerminal[];
