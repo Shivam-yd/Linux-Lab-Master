@@ -14,7 +14,10 @@ export const terraformBasics: LabDefinition = {
   // hashicorp/terraform sets ENTRYPOINT ["/bin/terraform"] so we must override it to /bin/sh
   // so that Cmd ["sleep", "infinity"] keeps the container alive instead of running terraform directly.
   image: "hashicorp/terraform:1.9",
-  entrypoint: ["/bin/sh"],
+  // hashicorp/terraform sets ENTRYPOINT ["/bin/terraform"], which breaks the
+  // sleep-infinity keepalive pattern. Override it directly with the keepalive
+  // command; manager.ts will set Cmd: [] so nothing is appended.
+  entrypoint: ["sleep", "infinity"],
   shell: "sh",
   terminals: [{ name: "main", user: "root", cwd: "/root/tf-lab" }],
   objectives: [

@@ -117,8 +117,17 @@ export async function startSession(studentId: string, labId: string): Promise<La
     const container = await docker.createContainer({
       Image: lab.image,
       name,
-      Entrypoint: lab.entrypoint,
-      Cmd: ["sleep", "infinity"],
+      // Keep the container alive with `sleep infinity`.
+      // Two cases:
+      //   • Normal images (no custom entrypoint): leave Entrypoint unset so
+      //     Docker uses the image default, and set Cmd = ["sleep","infinity"].
+      //   • Images with a custom ENTRYPOINT (e.g. hashicorp/terraform uses
+      //     ["/bin/terraform"]): override Entrypoint with the keepalive command
+      //     directly and leave Cmd empty — otherwise Docker concatenates them
+      //     and runs `sleep infinity sleep infinity`, causing an immediate exit.
+      ...(lab.entrypoint
+        ? { Entrypoint: lab.entrypoint, Cmd: [] }
+        : { Cmd: ["sleep", "infinity"] }),
       Tty: false,
       Labels: { [CONTAINER_LABEL]: "true", labId, studentId },
       HostConfig: {
