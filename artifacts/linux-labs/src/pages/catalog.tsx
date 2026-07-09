@@ -6,7 +6,8 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
-  Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown
+  Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
+  Award, Hourglass, Unlock
 } from "lucide-react"
 import {
   Select,
@@ -125,6 +126,40 @@ export default function Catalog() {
     accentHex: "#94a3b8",
   }
 
+  // Track-wide stats
+  const trackStats = useMemo(() => {
+    if (!labs) return { completed: 0, pending: 0, unlocked: 0, locked: 0, total: 0 }
+    const trackLabs = labs.filter(l => l.track === resolvedTrack)
+    const total = trackLabs.length
+    const completed = trackLabs.filter(l => progressByLabId[l.id]?.status === "passed").length
+    const pending   = trackLabs.filter(l => progressByLabId[l.id]?.status === "in_progress").length
+    const unlocked  = total - completed - pending  // not started but accessible
+    return { completed, pending, unlocked, locked: 0, total }
+  }, [labs, resolvedTrack, progressByLabId])
+
+  // Cumulative lab counts per level (for milestone positioning)
+  const milestones = useMemo(() => {
+    let cum = 0
+    return levels.map(({ level, total, passed }) => {
+      cum += total
+      return { level, cumTotal: cum, passed }
+    })
+  }, [levels])
+
+  const totalLabs   = trackStats.total
+  const totalPassed = trackStats.completed
+
+  // First lab in track that isn't passed — for the Start/Continue button
+  const nextLabId = useMemo(() => {
+    if (!labs) return null
+    const trackLabs = labs
+      .filter(l => l.track === resolvedTrack)
+      .sort((a, b) => a.order - b.order)
+    return trackLabs.find(l => progressByLabId[l.id]?.status !== "passed")?.id ?? trackLabs[0]?.id ?? null
+  }, [labs, resolvedTrack, progressByLabId])
+
+  const [expanded, setExpanded] = useState(true)
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
 
@@ -208,277 +243,341 @@ export default function Catalog() {
       </aside>
 
       {/* ── Main content ────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Track header */}
-        <header className="shrink-0 border-b border-border bg-card/50 px-8 py-5">
-          {loading ? (
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+
+        {/* ── Track summary card (matches screenshot style) ── */}
+        {loading ? (
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
             <div className="flex items-center gap-4">
-              <Skeleton className="w-10 h-10 rounded-lg" />
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-3 w-64" />
-              </div>
+              <Skeleton className="w-12 h-12 rounded-lg" />
+              <div className="flex-1 space-y-2"><Skeleton className="h-5 w-40" /><Skeleton className="h-3 w-64" /></div>
+              <Skeleton className="w-20 h-8 rounded-lg" />
             </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: `${meta.accentHex}18`, border: `1px solid ${meta.accentHex}30` }}
-                >
-                  <meta.icon className="w-5 h-5" style={{ color: meta.accentHex }} />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold leading-tight">{meta.label}</h1>
-                  <p className="text-sm text-muted-foreground mt-0.5">{meta.description}</p>
-                </div>
+            <Skeleton className="h-8 w-full rounded-full" />
+            <div className="grid grid-cols-4 gap-3">
+              {[0,1,2,3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+
+            {/* Header row */}
+            <div className="flex items-center gap-4 px-5 pt-5 pb-4">
+              {/* Track icon badge */}
+              <div
+                className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 border"
+                style={{ background: `${meta.accentHex}15`, borderColor: `${meta.accentHex}35` }}
+              >
+                <meta.icon className="w-6 h-6" style={{ color: meta.accentHex }} />
               </div>
-              <div className="flex items-center gap-4 shrink-0">
-                {/* Jump-to-lab dropdown: lists every lab in the track grouped by level */}
-                {levels.length > 0 && (
-                  <Select
-                    value=""
-                    onValueChange={(labId) => { if (labId) navigate(`/labs/${labId}`) }}
+
+              {/* Title + description */}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base font-bold leading-tight">{meta.label}</h1>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{meta.description}</p>
+              </div>
+
+              {/* Jump-to-lab dropdown */}
+              {levels.length > 0 && (
+                <Select value="" onValueChange={(id) => { if (id) navigate(`/labs/${id}`) }}>
+                  <SelectTrigger className="w-44 h-8 text-xs bg-background border-border shrink-0">
+                    <SelectValue placeholder="Jump to lab…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {levels.map(({ level, labs: lvlLabs }) => {
+                      const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                      return (
+                        <SelectGroup key={level}>
+                          <SelectLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                            Level {level} — {lm.name}
+                          </SelectLabel>
+                          {lvlLabs.map(lab => {
+                            const s = progressByLabId[lab.id]?.status
+                            return (
+                              <SelectItem key={lab.id} value={lab.id} className="text-xs pl-5">
+                                <span className="flex items-center gap-2">
+                                  {s === "passed"
+                                    ? <CheckCircle2 className="w-3 h-3 text-teal-400 shrink-0" />
+                                    : s === "in_progress"
+                                    ? <PlayCircle className="w-3 h-3 text-blue-400 shrink-0" />
+                                    : <span className="w-3 h-3 rounded-full border border-muted-foreground/40 shrink-0 inline-block" />
+                                  }
+                                  {lab.title}
+                                </span>
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectGroup>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Start / Continue button */}
+              {nextLabId && (
+                <Link href={`/labs/${nextLabId}`}>
+                  <button
+                    className="shrink-0 px-5 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
+                    style={{ background: meta.accentHex, color: "#0f172a" }}
                   >
-                    <SelectTrigger className="w-52 h-8 text-xs bg-card border-border">
-                      <SelectValue placeholder="Jump to lab…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {levels.map(({ level, labs: lvlLabs }) => {
-                        const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                        return (
-                          <SelectGroup key={level}>
-                            <SelectLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 py-1.5">
-                              Level {level} — {lm.name}
-                            </SelectLabel>
-                            {lvlLabs.map(lab => {
-                              const prog = progressByLabId[lab.id]
-                              const isPassed = prog?.status === "passed"
-                              const isInProgress = prog?.status === "in_progress"
-                              return (
-                                <SelectItem key={lab.id} value={lab.id} className="text-xs pl-4">
-                                  <span className="flex items-center gap-2">
-                                    {isPassed
-                                      ? <CheckCircle2 className="w-3 h-3 text-teal-400 shrink-0" />
-                                      : isInProgress
-                                      ? <PlayCircle className="w-3 h-3 text-blue-400 shrink-0" />
-                                      : <span className="w-3 h-3 rounded-full border border-muted-foreground/40 shrink-0 inline-block" />
-                                    }
-                                    {lab.title}
-                                  </span>
-                                </SelectItem>
-                              )
-                            })}
-                          </SelectGroup>
-                        )
-                      })}
-                    </SelectContent>
-                  </Select>
-                )}
-                {trackSummary[resolvedTrack] && (
-                  <div className="text-right">
-                    <p className="text-2xl font-bold tabular-nums" style={{ color: meta.accentHex }}>
-                      {trackSummary[resolvedTrack].passed}
-                      <span className="text-muted-foreground text-lg font-normal">
-                        /{trackSummary[resolvedTrack].total}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">labs completed</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </header>
+                    {totalPassed > 0 ? "Continue" : "Start"}
+                  </button>
+                </Link>
+              )}
 
-        {/* Levels */}
-        <main className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
-          {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="px-6 py-4 border-b border-border flex items-center gap-3">
-                  <Skeleton className="h-6 w-6 rounded" />
-                  <Skeleton className="h-5 w-36" />
-                  <Skeleton className="h-5 w-16 ml-auto" />
-                </div>
-                <div className="p-4 space-y-3">
-                  {Array.from({ length: 1 }).map((_, j) => (
-                    <Skeleton key={j} className="h-16 w-full rounded-lg" />
-                  ))}
-                </div>
-              </div>
-            ))
-          ) : levels.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-border rounded-xl">
-              <meta.icon className="w-10 h-10 text-muted-foreground/40 mb-3" />
-              <p className="text-muted-foreground">No labs in this track yet.</p>
+              {/* Collapse chevron */}
+              <button
+                onClick={() => setExpanded(v => !v)}
+                className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-colors shrink-0"
+              >
+                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
             </div>
-          ) : (
-            levels.map(({ level, labs: lvlLabs, locked, passed, total }) => {
-              const lm = LEVEL_META[level] ?? LEVEL_META[1]
-              const pct = total ? Math.round((passed / total) * 100) : 0
 
-              return (
-                <div
-                  key={level}
-                  className={cn(
-                    "rounded-xl border bg-card overflow-hidden transition-all duration-200",
-                    locked ? "border-border opacity-60" : "border-border hover:border-border/80"
-                  )}
-                >
-                  {/* Level header */}
+            {/* Milestone progress bar */}
+            <div className="px-5 pb-4">
+              <p className="text-xs text-muted-foreground mb-3">
+                Progress: {totalPassed}/{totalLabs} Labs
+              </p>
+              <div className="relative h-6 flex items-center">
+                {/* Track */}
+                <div className="absolute inset-x-0 h-2 rounded-full bg-muted/60" />
+                {/* Fill */}
+                {totalLabs > 0 && (
                   <div
-                    className="px-6 py-4 flex items-center gap-3 border-b border-border"
-                    style={{ borderLeftWidth: 3, borderLeftColor: locked ? "#334155" : lm.accentHex }}
-                  >
+                    className="absolute left-0 h-2 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.max(2, (totalPassed / totalLabs) * 100)}%`,
+                      background: `linear-gradient(to right, ${meta.accentHex}, ${meta.accentHex}99)`,
+                    }}
+                  />
+                )}
+                {/* Milestone markers */}
+                {milestones.map(({ level, cumTotal, passed: lvlPassed }) => {
+                  const pos = totalLabs > 0 ? (cumTotal / totalLabs) * 100 : 0
+                  const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                  const isReached = totalPassed >= cumTotal - (levels.find(l => l.level === level)?.total ?? 0)
+                  const isComplete = totalPassed >= cumTotal
+                  return (
                     <div
-                      className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-xs font-bold"
-                      style={locked
-                        ? { background: "#1e293b", color: "#475569" }
-                        : { background: `${lm.accentHex}18`, color: lm.accentHex }
-                      }
+                      key={level}
+                      className="absolute flex flex-col items-center"
+                      style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
                     >
-                      {locked ? <Lock className="w-3.5 h-3.5" /> : level}
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                          isComplete
+                            ? "border-transparent"
+                            : isReached
+                            ? "border-muted bg-background"
+                            : "border-muted/40 bg-background"
+                        )}
+                        style={isComplete ? { background: lm.accentHex, borderColor: lm.accentHex } : {}}
+                      >
+                        {isComplete
+                          ? <Award className="w-3 h-3 text-slate-900" />
+                          : <Lock className="w-2.5 h-2.5 text-muted-foreground/50" />
+                        }
+                      </div>
                     </div>
+                  )
+                })}
+              </div>
+              {/* Level labels */}
+              <div className="relative h-5 mt-1">
+                {milestones.map(({ level, cumTotal }) => {
+                  const pos = totalLabs > 0 ? (cumTotal / totalLabs) * 100 : 0
+                  const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                  return (
+                    <span
+                      key={level}
+                      className="absolute text-[10px] text-muted-foreground whitespace-nowrap"
+                      style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
+                    >
+                      Level {level}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">
-                          Level {level} — {lm.name}
-                        </span>
-                        {!locked && passed === total && total > 0 && (
-                          <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
+            {/* Stat boxes */}
+            <div className="grid grid-cols-4 gap-2 px-5 pb-5">
+              {[
+                { count: trackStats.completed, label: "Completed", color: "#2dd4bf", Icon: CheckCircle2 },
+                { count: trackStats.pending,   label: "Pending",   color: "#f59e0b", Icon: Hourglass   },
+                { count: trackStats.unlocked,  label: "Unlocked",  color: "#818cf8", Icon: Unlock      },
+                { count: trackStats.locked,    label: "Locked",    color: "#94a3b8", Icon: Lock        },
+              ].map(({ count, label, color, Icon }) => (
+                <div key={label} className="rounded-lg bg-background border border-border p-3 flex flex-col gap-1">
+                  <span className="text-2xl font-bold tabular-nums" style={{ color }}>{count}</span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Icon className="w-3 h-3 shrink-0" style={{ color }} />
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Expandable level + lab cards ── */}
+        {!loading && expanded && (
+          <div className="space-y-4">
+            {levels.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 text-center border border-dashed border-border rounded-xl">
+                <meta.icon className="w-8 h-8 text-muted-foreground/40 mb-2" />
+                <p className="text-sm text-muted-foreground">No labs in this track yet.</p>
+              </div>
+            ) : (
+              levels.map(({ level, labs: lvlLabs, locked, passed, total }) => {
+                const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                const pct = total ? Math.round((passed / total) * 100) : 0
+
+                return (
+                  <div
+                    key={level}
+                    className={cn(
+                      "rounded-xl border bg-card overflow-hidden transition-all duration-200",
+                      locked ? "border-border opacity-60" : "border-border"
+                    )}
+                  >
+                    {/* Level header */}
+                    <div
+                      className="px-6 py-4 flex items-center gap-3 border-b border-border"
+                      style={{ borderLeftWidth: 3, borderLeftColor: locked ? "#334155" : lm.accentHex }}
+                    >
+                      <div
+                        className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-xs font-bold"
+                        style={locked
+                          ? { background: "#1e293b", color: "#475569" }
+                          : { background: `${lm.accentHex}18`, color: lm.accentHex }
+                        }
+                      >
+                        {locked ? <Lock className="w-3.5 h-3.5" /> : level}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">Level {level} — {lm.name}</span>
+                          {!locked && passed === total && total > 0 && (
+                            <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
+                          )}
+                        </div>
+                        {locked && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Complete Level {level - 1} to unlock
+                          </p>
                         )}
                       </div>
-                      {locked && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Complete Level {level - 1} to unlock
-                        </p>
-                      )}
-                    </div>
 
-                    {!locked && (
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="flex items-center gap-2">
-                          <Progress
-                            value={pct}
-                            className="w-24 h-1.5"
-                            style={{ "--progress-color": lm.accentHex } as React.CSSProperties}
-                          />
+                      {!locked && (
+                        <div className="flex items-center gap-3 shrink-0">
+                          <Progress value={pct} className="w-24 h-1.5" />
                           <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
                             {passed}/{total}
                           </span>
+                          <Badge variant="outline" className={cn("text-[10px] font-medium", lm.badgeClass)}>
+                            {pct === 100 ? "Cleared" : pct > 0 ? "In Progress" : "Not Started"}
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className={cn("text-[10px] font-medium", lm.badgeClass)}>
-                          {pct === 100 ? "Cleared" : pct > 0 ? "In Progress" : "Not Started"}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
 
-                  {/* Labs within this level */}
-                  <div className="divide-y divide-border/50">
-                    {lvlLabs.map(lab => {
-                      const prog = progressByLabId[lab.id]
-                      const isPassed = prog?.status === "passed"
-                      const isInProgress = prog?.status === "in_progress"
-                      const score = prog?.bestScore ?? 0
+                    {/* Lab rows */}
+                    <div className="divide-y divide-border/50">
+                      {lvlLabs.map(lab => {
+                        const prog = progressByLabId[lab.id]
+                        const isPassed    = prog?.status === "passed"
+                        const isInProgress = prog?.status === "in_progress"
+                        const score = prog?.bestScore ?? 0
 
-                      return (
-                        <div
-                          key={lab.id}
-                          className={cn(
-                            "flex items-center gap-4 px-6 py-4 group",
-                            locked ? "pointer-events-none" : "hover:bg-muted/20 transition-colors"
-                          )}
-                        >
-                          {/* Status icon */}
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                            {isPassed
-                              ? <CheckCircle2 className="w-5 h-5 text-teal-400" />
-                              : isInProgress
-                              ? <PlayCircle className="w-5 h-5 text-blue-400" />
-                              : <div className="w-2.5 h-2.5 rounded-full border-2 border-muted-foreground/40" />
-                            }
-                          </div>
-
-                          {/* Lab info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={cn(
-                                "text-sm font-medium leading-tight",
-                                locked ? "text-muted-foreground" : "text-foreground group-hover:text-primary transition-colors"
-                              )}>
-                                {lab.title}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className={cn("text-[10px] shrink-0", DIFFICULTY_BADGE[lab.difficulty])}
-                              >
-                                {lab.difficulty}
-                              </Badge>
+                        return (
+                          <div
+                            key={lab.id}
+                            className={cn(
+                              "flex items-center gap-4 px-6 py-4 group",
+                              locked ? "pointer-events-none" : "hover:bg-muted/20 transition-colors"
+                            )}
+                          >
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                              {isPassed
+                                ? <CheckCircle2 className="w-5 h-5 text-teal-400" />
+                                : isInProgress
+                                ? <PlayCircle className="w-5 h-5 text-blue-400" />
+                                : <div className="w-2.5 h-2.5 rounded-full border-2 border-muted-foreground/40" />
+                              }
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Terminal className="w-3 h-3" />
-                                {lab.category}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {lab.estimatedMinutes}m
-                              </span>
-                              {score > 0 && (
-                                <span className="flex items-center gap-1">
-                                  <Trophy className="w-3 h-3 text-primary/70" />
-                                  <span className="font-mono">{score}%</span>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={cn(
+                                  "text-sm font-medium leading-tight",
+                                  locked ? "text-muted-foreground" : "text-foreground group-hover:text-primary transition-colors"
+                                )}>
+                                  {lab.title}
                                 </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Score bar */}
-                          {!locked && score > 0 && (
-                            <div className="w-20 shrink-0">
-                              <Progress value={score} className="h-1" />
-                            </div>
-                          )}
-
-                          {/* CTA */}
-                          {!locked && (
-                            <Link href={`/labs/${lab.id}`}>
-                              <button className={cn(
-                                "shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all",
-                                isPassed
-                                  ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 hover:bg-teal-500/20"
-                                  : isInProgress
-                                  ? "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
-                                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-                              )}>
-                                {isPassed ? (
-                                  <><Star className="w-3 h-3" /> Review</>
-                                ) : isInProgress ? (
-                                  <><PlayCircle className="w-3 h-3" /> Continue</>
-                                ) : (
-                                  <><PlayCircle className="w-3 h-3" /> Start Lab</>
+                                <Badge variant="outline" className={cn("text-[10px] shrink-0", DIFFICULTY_BADGE[lab.difficulty])}>
+                                  {lab.difficulty}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Terminal className="w-3 h-3" />{lab.category}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />{lab.estimatedMinutes}m
+                                </span>
+                                {score > 0 && (
+                                  <span className="flex items-center gap-1">
+                                    <Trophy className="w-3 h-3 text-primary/70" />
+                                    <span className="font-mono">{score}%</span>
+                                  </span>
                                 )}
-                              </button>
-                            </Link>
-                          )}
-
-                          {locked && (
-                            <div className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium bg-muted/30 text-muted-foreground/50 border border-border/50">
-                              <Lock className="w-3 h-3" /> Locked
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      )
-                    })}
+
+                            {!locked && score > 0 && (
+                              <div className="w-20 shrink-0">
+                                <Progress value={score} className="h-1" />
+                              </div>
+                            )}
+
+                            {!locked ? (
+                              <Link href={`/labs/${lab.id}`}>
+                                <button className={cn(
+                                  "shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all",
+                                  isPassed
+                                    ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 hover:bg-teal-500/20"
+                                    : isInProgress
+                                    ? "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+                                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                                )}>
+                                  {isPassed
+                                    ? <><Star className="w-3 h-3" /> Review</>
+                                    : isInProgress
+                                    ? <><PlayCircle className="w-3 h-3" /> Continue</>
+                                    : <><PlayCircle className="w-3 h-3" /> Start Lab</>
+                                  }
+                                </button>
+                              </Link>
+                            ) : (
+                              <div className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium bg-muted/30 text-muted-foreground/50 border border-border/50">
+                                <Lock className="w-3 h-3" /> Locked
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )
-            })
-          )}
-        </main>
+                )
+              })
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
