@@ -97,13 +97,7 @@ export default function Catalog() {
       const passed = lvlLabs.filter(l => progressByLabId[l.id]?.status === "passed").length
       const total = lvlLabs.length
 
-      // Level 1 always unlocked; others unlock when ALL labs in previous level are passed
-      let locked = false
-      if (idx > 0) {
-        const prevLvl = levelNums[idx - 1]
-        const prevLabs = trackLabs.filter(l => l.level === prevLvl)
-        locked = !prevLabs.every(l => progressByLabId[l.id]?.status === "passed")
-      }
+      const locked = false
 
       return { level: lvl, labs: lvlLabs, locked, passed, total }
     })
