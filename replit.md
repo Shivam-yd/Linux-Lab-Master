@@ -14,7 +14,7 @@ A KodeKloud-style platform where students work through real Linux sandbox labs (
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
+- pnpm workspaces, Node.js 20, TypeScript 5.9
 - API: Express 5 + raw `http.Server`/`ws` WebSocketServer for the terminal
 - Sandbox: `dockerode` driving real Docker containers per (student, lab)
 - DB: PostgreSQL + Drizzle ORM
