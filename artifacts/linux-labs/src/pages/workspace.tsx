@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import { useParams, Link } from "wouter"
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
+import { useParams, useLocation, Link } from "wouter"
 import { 
   useGetLab, 
   useGetLabSession, 
@@ -28,6 +28,7 @@ export default function Workspace() {
   const params = useParams()
   const labId = params.labId || ""
   const queryClient = useQueryClient()
+  const [, setLocation] = useLocation()
   
   // Data hooks
   const { data: lab, isLoading: labLoading, error: labError } = useGetLab(labId, {
@@ -97,6 +98,73 @@ export default function Workspace() {
   const isStarting = session?.status === 'starting' || startSession.isPending || resetSession.isPending
   const isStopped = session?.status === 'stopped' || !session || session.status === 'none'
   const sessionError = session?.status === 'error'
+
+  // Warn before the sandbox is lost — tab close/refresh (beforeunload) and
+  // browser back button (popstate) both need separate handling since SPA
+  // navigation doesn't trigger beforeunload.
+  const isRunningRef = useRef(isRunning)
+  isRunningRef.current = isRunning
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isRunningRef.current) return
+      e.preventDefault()
+      e.returnValue = ""
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [])
+
+  // Only touch the history stack while a session is actually running — no
+  // sentinel entry (and thus no extra back press) when idle/stopped.
+  const sentinelPushedRef = useRef(false)
+  const allowNextPopRef = useRef(false)
+
+  useEffect(() => {
+    if (isRunning && !sentinelPushedRef.current) {
+      window.history.pushState({ labGuard: true }, "", window.location.href)
+      sentinelPushedRef.current = true
+    }
+  }, [isRunning])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (allowNextPopRef.current) {
+        // We triggered this pop ourselves after a confirmed leave — let it
+        // through without re-prompting or re-pushing the sentinel.
+        allowNextPopRef.current = false
+        sentinelPushedRef.current = false
+        return
+      }
+      if (!isRunningRef.current) return
+
+      const confirmed = window.confirm(
+        "Your lab sandbox is still running. Leaving will keep it running in the background, but any unsaved terminal output will be lost. Leave anyway?"
+      )
+      if (confirmed) {
+        allowNextPopRef.current = true
+        window.history.back()
+      } else {
+        window.history.pushState({ labGuard: true }, "", window.location.href)
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
+
+  const confirmNavigateAway = useCallback((): boolean => {
+    if (!isRunning) return true
+    return window.confirm(
+      "Your lab sandbox is still running. Leaving will keep it running in the background, but any unsaved terminal output will be lost. Leave anyway?"
+    )
+  }, [isRunning])
+
+  const handleCatalogClick = useCallback((e: MouseEvent) => {
+    if (!confirmNavigateAway()) {
+      e.preventDefault()
+    }
+  }, [confirmNavigateAway])
 
   const handleStart = () => startSession.mutate({ labId })
   const handleStop = () => stopSession.mutate({ labId })
@@ -208,7 +276,11 @@ export default function Workspace() {
       {/* Header */}
       <header className="h-14 shrink-0 border-b border-border bg-card flex items-center justify-between px-4">
         <div className="flex items-center space-x-4">
-          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors flex items-center text-sm font-medium">
+          <Link
+            href="/"
+            onClick={handleCatalogClick}
+            className="text-muted-foreground hover:text-foreground transition-colors flex items-center text-sm font-medium"
+          >
             <ArrowLeft className="w-4 h-4 mr-1" />
             Catalog
           </Link>
