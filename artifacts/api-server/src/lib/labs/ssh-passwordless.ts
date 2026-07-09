@@ -33,7 +33,18 @@ Your task: set up **key-based, passwordless SSH** from \`student1@server1\` to \
 3. Make sure the permissions on \`student2\`'s \`.ssh\` directory and \`authorized_keys\` file are correct (SSH is picky: \`700\` for the directory, \`600\` for the file).
 4. From **server1**, run \`ssh student2@server2\` and confirm you land in a shell with no password prompt.
 
-Both terminals are two different Linux user accounts sharing this sandbox, standing in for two separate servers named \`server1\` and \`server2\`.`,
+Both terminals are two different Linux user accounts sharing this sandbox, standing in for two separate servers named \`server1\` and \`server2\`.
+
+## Credentials
+
+| Terminal | User | Password |
+| --- | --- | --- |
+| server1 | \`student1\` | \`student1\` |
+| server2 | \`student2\` | \`student2\` |
+
+You won't normally need these passwords — the terminal tabs above already log you in directly as each user. You'll only be prompted for student2's password the first time you \`ssh student2@server2\` from server1, before your key is installed; after that, the SSH login should require no password at all.
+
+**No text editor is installed** (no vi, vim, or nano) — create or edit files with shell redirection instead, e.g. \`cat > ~/.ssh/authorized_keys <<'EOF' ... EOF\` or \`echo "..." >> file\`.`,
   tasks: [
     { id: "keypair", description: "An SSH keypair exists for student1 on server1" },
     {

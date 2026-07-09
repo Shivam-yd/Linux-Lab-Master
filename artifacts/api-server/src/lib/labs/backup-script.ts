@@ -27,7 +27,17 @@ export const backupScript: LabDefinition = {
    - Creates \`/backups\` if it doesn't exist.
    - Produces a compressed archive of \`/data/important\` named with a timestamp, e.g. \`/backups/important-YYYYmmdd-HHMMSS.tar.gz\` (use \`date +%Y%m%d-%H%M%S\` and \`tar czf\`).
 2. **Retention**: after creating a new archive, the script should ensure only the 3 most recent \`.tar.gz\` files remain in \`/backups\` — delete the oldest ones beyond that. (\`ls -t\`, \`tail -n +4\`, and \`rm\` combine nicely for this.)
-3. Test it: run \`backup.sh\` five or more times (a fast loop like \`for i in 1 2 3 4 5; do backup.sh; sleep 1; done\` works, since the timestamp needs to change between runs) and confirm \`/backups\` never holds more than 3 archives.`,
+3. Test it: run \`backup.sh\` five or more times (a fast loop like \`for i in 1 2 3 4 5; do backup.sh; sleep 1; done\` works, since the timestamp needs to change between runs) and confirm \`/backups\` never holds more than 3 archives.
+
+**No text editor is installed** (no vi, vim, or nano) — write the script with a heredoc instead:
+
+\`\`\`
+cat > /usr/local/bin/backup.sh <<'EOF'
+#!/bin/bash
+...
+EOF
+chmod +x /usr/local/bin/backup.sh
+\`\`\``,
   tasks: [
     { id: "script_executable", description: "backup.sh exists and is executable" },
     { id: "archive_created", description: "Running backup.sh produces a valid timestamped tar.gz of /data/important" },

@@ -23,8 +23,8 @@ Ops wants a lightweight heartbeat: every 5 minutes, a script should append a tim
 
 ## Steps
 
-1. Write a script at \`/usr/local/bin/check-disk.sh\` that appends a line like \`<timestamp> <df output>\` to \`/var/log/disk-check.log\` each time it runs (e.g. \`echo "$(date): $(df -h /)" >> /var/log/disk-check.log\`). Make it executable.
-2. Add a line to root's crontab (\`crontab -e\`, or \`crontab -l\` to inspect) scheduling that script every 5 minutes: \`*/5 * * * * /usr/local/bin/check-disk.sh\`.
+1. Write a script at \`/usr/local/bin/check-disk.sh\` that appends a line like \`<timestamp> <df output>\` to \`/var/log/disk-check.log\` each time it runs (e.g. \`echo "$(date): $(df -h /)" >> /var/log/disk-check.log\`). Make it executable. No text editor is installed besides BusyBox's minimal \`vi\`, so it's easiest to write it with a heredoc: \`cat > /usr/local/bin/check-disk.sh <<'EOF' ... EOF\` then \`chmod +x\`.
+2. Add a line to root's crontab scheduling that script every 5 minutes: \`*/5 * * * * /usr/local/bin/check-disk.sh\`. Avoid \`crontab -e\` (it drops you into \`vi\`, which is hard to use in a browser terminal) — instead pipe the entry straight in: \`(crontab -l 2>/dev/null; echo '*/5 * * * * /usr/local/bin/check-disk.sh') | crontab -\`. Use \`crontab -l\` to inspect the result.
 3. Make sure the cron daemon is actually running (\`crond\` on this system) — a schedule with no daemon running never fires.
 
 This is Alpine Linux, so cron is provided by BusyBox's \`crond\`/\`crontab\`, not the Debian cron package.`,
