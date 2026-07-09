@@ -40,4 +40,9 @@ export interface LabDefinition {
    * CHECK:<taskId>:<PASS|FAIL>:<message>
    */
   verifyScript: string;
+  /**
+   * Progressive hints revealed one at a time when the student is stuck.
+   * Each string is a short markdown hint shown in order.
+   */
+  hints?: string[];
 }

@@ -9,15 +9,6 @@ import {
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
   Award, Hourglass, Unlock
 } from "lucide-react"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────
@@ -160,10 +151,6 @@ export default function Catalog() {
 
   const [expanded, setExpanded] = useState(true)
 
-  // Sidebar: track which levels are open
-  const [openLevels, setOpenLevels] = useState<Record<number, boolean>>({ 1: true })
-  const toggleLevel = (lvl: number) =>
-    setOpenLevels(prev => ({ ...prev, [lvl]: !prev[lvl] }))
 
   // View mode: by-level shows one card per track+level combo
   const [viewMode, setViewMode] = useState<"by-level" | "by-course">("by-level")

@@ -20,7 +20,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Terminal, Play, Square, RotateCcw, ArrowLeft, 
-  CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity 
+  CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity,
+  Lightbulb, ChevronDown, ChevronRight, Eye
 } from "lucide-react"
 
 export default function Workspace() {
@@ -38,7 +39,6 @@ export default function Workspace() {
       enabled: !!labId, 
       queryKey: getGetLabSessionQueryKey(labId),
       refetchInterval: (query) => {
-        // Poll faster if starting, stopping, etc.
         const status = query.state.data?.status
         return (status === 'starting' || status === 'stopped') ? 2000 : false
       }
@@ -57,11 +57,9 @@ export default function Workspace() {
   const stopSession = useStopLabSession({
     mutation: {
       onSuccess: () => {
-        // Optimistically set to stopped, backend might actually delete it or set status to stopped
         queryClient.setQueryData(getGetLabSessionQueryKey(labId), (old: any) => 
           old ? { ...old, status: 'stopped' } : null
         )
-        // Invalidate to get true state
         queryClient.invalidateQueries({ queryKey: getGetLabSessionQueryKey(labId) })
       }
     }
@@ -78,6 +76,17 @@ export default function Workspace() {
 
   const verifyLab = useVerifyLab()
   const [verifyResult, setVerifyResult] = useState<any>(null)
+
+  // Hints state — tracks how many hints have been revealed
+  const [hintsRevealed, setHintsRevealed] = useState(0)
+  const [hintsOpen, setHintsOpen] = useState(false)
+
+  // Reset hints when lab changes
+  useEffect(() => {
+    setHintsRevealed(0)
+    setHintsOpen(false)
+    setVerifyResult(null)
+  }, [labId])
 
   // Derived state
   const isRunning = session?.status === 'running'
@@ -108,6 +117,9 @@ export default function Workspace() {
       setActiveTerminal(lab.terminals[0])
     }
   }, [lab, activeTerminal])
+
+  const hints = (lab as any)?.hints as string[] | undefined
+  const totalHints = hints?.length ?? 0
 
   if (labLoading) {
     return (
@@ -212,6 +224,71 @@ export default function Workspace() {
             <div className="prose prose-invert prose-sm max-w-none">
               <ReactMarkdown>{lab.instructions || "No instructions provided."}</ReactMarkdown>
             </div>
+
+            {/* ── Hints Panel ── */}
+            {totalHints > 0 && (
+              <div className="mt-6 rounded-lg border border-amber-500/25 bg-amber-500/5 overflow-hidden">
+                <button
+                  onClick={() => setHintsOpen(o => !o)}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-amber-500/10 transition-colors"
+                >
+                  <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="flex-1 text-sm font-medium text-amber-300">
+                    Hints
+                    {hintsRevealed > 0 && (
+                      <span className="ml-2 text-xs text-amber-400/70">
+                        ({hintsRevealed} of {totalHints} revealed)
+                      </span>
+                    )}
+                  </span>
+                  {hintsOpen
+                    ? <ChevronDown className="w-3.5 h-3.5 text-amber-400/60 shrink-0" />
+                    : <ChevronRight className="w-3.5 h-3.5 text-amber-400/60 shrink-0" />
+                  }
+                </button>
+
+                {hintsOpen && (
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* Already-revealed hints */}
+                    {hintsRevealed > 0 && (
+                      <div className="space-y-2">
+                        {hints!.slice(0, hintsRevealed).map((hint, i) => (
+                          <div
+                            key={i}
+                            className="flex gap-3 p-3 rounded-md bg-amber-500/10 border border-amber-500/20 animate-in fade-in slide-in-from-top-2 duration-300"
+                          >
+                            <span className="shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                              {i + 1}
+                            </span>
+                            <p className="text-xs text-amber-100/90 leading-relaxed font-mono">
+                              {hint}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reveal next button */}
+                    {hintsRevealed < totalHints ? (
+                      <button
+                        onClick={() => setHintsRevealed(n => n + 1)}
+                        className="w-full flex items-center justify-center gap-2 py-2 rounded-md border border-amber-500/30 text-amber-400 text-xs font-medium hover:bg-amber-500/10 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        {hintsRevealed === 0
+                          ? `Show hint (${totalHints} available)`
+                          : `Show next hint (${totalHints - hintsRevealed} remaining)`
+                        }
+                      </button>
+                    ) : (
+                      <p className="text-center text-xs text-amber-400/50 py-1">
+                        All hints revealed
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             
             {lab.tasks && lab.tasks.length > 0 && (
               <div className="mt-8">
