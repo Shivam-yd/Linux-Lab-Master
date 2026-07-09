@@ -21,8 +21,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Terminal, Play, Square, RotateCcw, ArrowLeft, 
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity,
-  Lightbulb, ChevronDown, ChevronRight, Eye
+  Lightbulb, ChevronDown, ChevronRight, Eye, Server, Loader2, Target
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export default function Workspace() {
   const params = useParams()
@@ -78,14 +79,14 @@ export default function Workspace() {
   const verifyLab = useVerifyLab()
   const [verifyResult, setVerifyResult] = useState<any>(null)
 
-  // Hints state — tracks how many hints have been revealed
+  // Hints state
   const [hintsRevealed, setHintsRevealed] = useState(0)
   const [hintsOpen, setHintsOpen] = useState(false)
 
-  // Steps/objectives state — hidden by default, revealed on demand
+  // Steps state
   const [stepsRevealed, setStepsRevealed] = useState(false)
 
-  // Reset hints when lab changes
+  // Reset when lab changes
   useEffect(() => {
     setHintsRevealed(0)
     setHintsOpen(false)
@@ -99,9 +100,6 @@ export default function Workspace() {
   const isStopped = session?.status === 'stopped' || !session || session.status === 'none'
   const sessionError = session?.status === 'error'
 
-  // Warn before the sandbox is lost — tab close/refresh (beforeunload) and
-  // browser back button (popstate) both need separate handling since SPA
-  // navigation doesn't trigger beforeunload.
   const isRunningRef = useRef(isRunning)
   isRunningRef.current = isRunning
 
@@ -115,8 +113,6 @@ export default function Workspace() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [])
 
-  // Only touch the history stack while a session is actually running — no
-  // sentinel entry (and thus no extra back press) when idle/stopped.
   const sentinelPushedRef = useRef(false)
   const allowNextPopRef = useRef(false)
 
@@ -130,8 +126,6 @@ export default function Workspace() {
   useEffect(() => {
     const handlePopState = () => {
       if (allowNextPopRef.current) {
-        // We triggered this pop ourselves after a confirmed leave — let it
-        // through without re-prompting or re-pushing the sentinel.
         allowNextPopRef.current = false
         sentinelPushedRef.current = false
         return
@@ -182,7 +176,6 @@ export default function Workspace() {
     })
   }
 
-  // Active terminal tab
   const [activeTerminal, setActiveTerminal] = useState<string>("")
   useEffect(() => {
     if (lab?.terminals?.length && !activeTerminal) {
@@ -193,14 +186,6 @@ export default function Workspace() {
   const hints = (lab as any)?.hints as string[] | undefined
   const totalHints = hints?.length ?? 0
 
-  // Some labs embed a "## Steps" heading directly in the instructions
-  // markdown. Split that section out so it can be hidden behind the same
-  // reveal control as Objectives, instead of always being visible.
-  //
-  // Line-oriented (not a single regex over the raw string) so it: matches
-  // "## Steps" whether or not it's the very first line, tolerates up to
-  // three leading spaces (still a valid Markdown heading), and ignores any
-  // "##"-looking text inside fenced code blocks.
   const { mainInstructions, stepsMarkdown } = useMemo(() => {
     const text = lab?.instructions || ""
     const lines = text.split("\n")
@@ -231,9 +216,6 @@ export default function Workspace() {
       return { mainInstructions: text, stepsMarkdown: null as string | null }
     }
 
-    // Keep everything outside the Steps block (before it AND any sections
-    // after it, e.g. "## Credentials") in the always-visible instructions —
-    // only the Steps block itself is gated behind the reveal button.
     const before = lines.slice(0, stepsStart).join("\n").trim()
     const after = lines.slice(stepsEnd).join("\n").trim()
     return {
@@ -244,13 +226,10 @@ export default function Workspace() {
 
   if (labLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <header className="h-14 border-b border-border bg-card flex items-center px-4">
-          <Skeleton className="h-6 w-32" />
-        </header>
-        <div className="flex-1 p-6 flex gap-6">
-          <Skeleton className="h-full w-1/3 rounded-lg" />
-          <Skeleton className="h-full w-2/3 rounded-lg" />
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-primary">
+          <Loader2 className="w-12 h-12 animate-spin" />
+          <p className="font-mono text-sm tracking-widest uppercase">Initializing Interface...</p>
         </div>
       </div>
     )
@@ -259,12 +238,12 @@ export default function Workspace() {
   if (labError || !lab) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
+        <div className="text-center max-w-md border border-destructive/20 bg-destructive/5 p-8 rounded-xl backdrop-blur-sm">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Lab Not Found</h2>
-          <p className="text-muted-foreground mb-6">The requested lab could not be loaded or doesn't exist.</p>
-          <Link href="/" className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Return to Catalog
+          <h2 className="text-xl font-bold mb-2">System Error: Lab Not Found</h2>
+          <p className="text-muted-foreground mb-6 font-mono text-sm">The requested environment profile could not be loaded or doesn't exist.</p>
+          <Link href="/" className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-bold font-mono h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all">
+            <ArrowLeft className="w-4 h-4 mr-2" /> RETURN_TO_BASE
           </Link>
         </div>
       </div>
@@ -272,139 +251,205 @@ export default function Workspace() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
-      {/* Header */}
-      <header className="h-14 shrink-0 border-b border-border bg-card flex items-center justify-between px-4">
+    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden font-sans">
+      {/* ── Control Bar (Header) ── */}
+      <header className="h-14 shrink-0 border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center justify-between px-4 relative z-20">
         <div className="flex items-center space-x-4">
           <Link
             href="/"
             onClick={handleCatalogClick}
-            className="text-muted-foreground hover:text-foreground transition-colors flex items-center text-sm font-medium"
+            className="text-muted-foreground hover:text-primary transition-colors flex items-center text-sm font-semibold tracking-wide"
           >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Catalog
+            <ArrowLeft className="w-4 h-4 mr-1.5" />
+            BACK
           </Link>
-          <div className="w-px h-4 bg-border" />
-          <h1 className="font-semibold flex items-center">
-            <Terminal className="w-4 h-4 mr-2 text-primary" />
+          <div className="w-px h-5 bg-border/80" />
+          <h1 className="font-bold flex items-center text-[15px] tracking-tight text-foreground">
+            <Server className="w-4 h-4 mr-2 text-primary" />
             {lab.title}
           </h1>
-          <Badge variant={lab.difficulty === "advanced" ? "destructive" : lab.difficulty === "intermediate" ? "secondary" : "default"} className="ml-2">
+          <Badge variant="outline" className={cn(
+            "ml-2 font-mono text-[10px] uppercase px-2 h-5 border",
+            lab.difficulty === "advanced" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : 
+            lab.difficulty === "intermediate" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : 
+            "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+          )}>
             {lab.difficulty}
           </Badge>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           {sessionLoading ? (
-            <div className="flex items-center text-sm text-muted-foreground">
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Checking session...
+            <div className="flex items-center text-sm font-mono text-muted-foreground">
+              <RefreshCw className="w-3.5 h-3.5 mr-2 animate-spin" /> PROBING...
             </div>
           ) : (
             <>
               {sessionError && (
-                <div className="flex items-center text-sm text-destructive mr-4">
-                  <AlertCircle className="w-4 h-4 mr-1.5" />
-                  {session.errorMessage || "Session Error"}
+                <div className="flex items-center text-sm font-mono text-destructive bg-destructive/10 px-3 py-1 rounded-md border border-destructive/20 mr-2">
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  {session.errorMessage || "ERR_SESSION_FAIL"}
                 </div>
               )}
               
-              <div className="flex items-center space-x-1 border border-border rounded-md p-1 bg-background">
-                <div className={`px-2 py-1 text-xs font-mono rounded ${isRunning ? 'text-green-400 bg-green-400/10' : isStarting ? 'text-yellow-400 bg-yellow-400/10' : 'text-muted-foreground'}`}>
+              <div className="flex items-center bg-background border border-border/80 rounded-md p-1 shadow-inner">
+                {/* Status Indicator */}
+                <div className={cn(
+                  "px-3 py-1 text-xs font-mono font-bold rounded flex items-center gap-1.5",
+                  isRunning ? "text-[#00ff9d] bg-[#00ff9d]/10" : 
+                  isStarting ? "text-yellow-400 bg-yellow-400/10" : 
+                  "text-muted-foreground"
+                )}>
                   {isStarting ? (
-                    <span className="flex items-center"><RefreshCw className="w-3 h-3 mr-1 animate-spin"/> Starting</span>
+                    <><RefreshCw className="w-3.5 h-3.5 animate-spin"/> BOOTING</>
                   ) : isRunning ? (
-                    <span className="flex items-center"><Activity className="w-3 h-3 mr-1"/> Running</span>
+                    <><Activity className="w-3.5 h-3.5"/> ACTIVE</>
                   ) : (
-                    <span className="flex items-center"><Square className="w-3 h-3 mr-1"/> Stopped</span>
+                    <><Square className="w-3.5 h-3.5"/> OFFLINE</>
                   )}
                 </div>
                 
-                {(!isRunning && !isStarting) && (
-                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2 hover:bg-primary/20 hover:text-primary" onClick={handleStart} disabled={startSession.isPending}>
-                    <Play className="w-3 h-3 mr-1" /> Start
-                  </Button>
-                )}
+                <div className="w-px h-5 bg-border/50 mx-1.5" />
                 
-                {isRunning && (
-                  <>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs px-2 hover:bg-destructive/20 hover:text-destructive" onClick={handleStop} disabled={stopSession.isPending}>
-                      <Square className="w-3 h-3 mr-1" /> Stop
+                {/* Action Buttons */}
+                <div className="flex items-center space-x-1">
+                  {(!isRunning && !isStarting) && (
+                    <Button variant="ghost" size="sm" className="h-7 text-xs px-3 font-semibold hover:bg-primary/20 hover:text-primary text-foreground" onClick={handleStart} disabled={startSession.isPending}>
+                      <Play className="w-3.5 h-3.5 mr-1.5" /> START
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs px-2 hover:bg-yellow-500/20 hover:text-yellow-500" onClick={handleReset} disabled={resetSession.isPending}>
-                      <RotateCcw className="w-3 h-3 mr-1" /> Reset
-                    </Button>
-                  </>
-                )}
+                  )}
+                  
+                  {isRunning && (
+                    <>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs px-3 font-semibold hover:bg-destructive/20 hover:text-destructive text-muted-foreground" onClick={handleStop} disabled={stopSession.isPending}>
+                        <Square className="w-3.5 h-3.5 mr-1.5" /> STOP
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs px-3 font-semibold hover:bg-yellow-500/20 hover:text-yellow-500 text-muted-foreground" onClick={handleReset} disabled={resetSession.isPending}>
+                        <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> RESET
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </>
           )}
         </div>
       </header>
 
-      {/* Main Workspace */}
+      {/* ── Main Workspace ── */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel: Instructions & Checks */}
-        <div className="w-[450px] shrink-0 border-r border-border bg-card flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-            <div className="prose prose-invert prose-sm max-w-none">
-              <ReactMarkdown>{mainInstructions || "No instructions provided."}</ReactMarkdown>
+        
+        {/* ── Left Panel: Instructions & Objectives ── */}
+        <div className="w-[450px] shrink-0 border-r border-border/50 bg-card/40 flex flex-col relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.2)]">
+          <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scroll-smooth">
+            
+            {/* Scenario Header */}
+            <div className="mb-6 pb-4 border-b border-border/40">
+              <h2 className="text-xl font-bold tracking-tight mb-2">Scenario</h2>
+              <div className="prose prose-invert prose-sm max-w-none prose-p:text-muted-foreground prose-headings:text-foreground prose-a:text-primary prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded">
+                <ReactMarkdown>{mainInstructions || "No instructions provided."}</ReactMarkdown>
+              </div>
             </div>
 
-            {/* ── Steps Panel (hidden until revealed) ── */}
+            {/* ── Steps Panel ── */}
             {stepsMarkdown && (
-              <div className="mt-6">
+              <div className="mb-8">
                 {stepsRevealed ? (
-                  <div className="prose prose-invert prose-sm max-w-none animate-in fade-in slide-in-from-top-2 duration-300">
-                    <ReactMarkdown>{stepsMarkdown}</ReactMarkdown>
+                  <div className="p-4 rounded-xl bg-background border border-border/60 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <h3 className="text-sm font-bold font-mono text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" /> Execution Steps
+                    </h3>
+                    <div className="prose prose-invert prose-sm max-w-none prose-p:text-muted-foreground prose-ol:text-muted-foreground prose-ul:text-muted-foreground prose-li:marker:text-primary">
+                      <ReactMarkdown>{stepsMarkdown}</ReactMarkdown>
+                    </div>
                   </div>
                 ) : (
                   <button
                     onClick={() => setStepsRevealed(true)}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-md border border-dashed border-border text-muted-foreground text-sm font-medium hover:bg-secondary/50 hover:text-foreground transition-colors"
+                    className="w-full group flex flex-col items-center justify-center gap-2 py-6 rounded-xl border border-dashed border-border/80 bg-background/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-300"
                   >
-                    <Eye className="w-4 h-4" />
-                    Reveal the steps for this lab
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                      <Eye className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
+                    </div>
+                    <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary">Reveal Step-by-Step Guide</span>
+                    <span className="text-xs font-mono text-muted-foreground/50">Only if you're stuck!</span>
                   </button>
                 )}
               </div>
             )}
 
+            {/* ── Objectives Checklist ── */}
+            {lab.tasks && lab.tasks.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" /> Objectives
+                </h3>
+
+                <ul className="space-y-2.5">
+                  {lab.tasks.map((task, i) => {
+                    const taskResult = verifyResult?.checks?.find((c: any) => c.id === task.id)
+                    const isPassed = taskResult?.passed
+
+                    return (
+                      <li key={task.id} className={cn(
+                        "flex items-start text-sm p-3.5 rounded-lg border transition-all duration-300",
+                        isPassed 
+                          ? "bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]" 
+                          : "bg-background border-border/60"
+                      )}>
+                        <div className={cn(
+                          "w-5 h-5 shrink-0 rounded flex items-center justify-center mr-3 mt-0.5 text-xs font-bold font-mono transition-colors",
+                          isPassed
+                            ? "bg-green-500 text-black"
+                            : "bg-muted text-muted-foreground"
+                        )}>
+                          {isPassed ? <CheckCircle2 className="w-3.5 h-3.5" /> : (i + 1)}
+                        </div>
+                        <span className={cn(
+                          "leading-snug flex-1",
+                          isPassed ? "text-foreground font-medium" : "text-muted-foreground"
+                        )}>
+                          {task.description}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+
             {/* ── Hints Panel ── */}
             {totalHints > 0 && (
-              <div className="mt-6 rounded-lg border border-amber-500/25 bg-amber-500/5 overflow-hidden">
+              <div className="mt-8 rounded-xl border border-yellow-500/20 bg-yellow-500/5 overflow-hidden backdrop-blur-sm">
                 <button
                   onClick={() => setHintsOpen(o => !o)}
-                  className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-amber-500/10 transition-colors"
+                  className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-yellow-500/10 transition-colors"
                 >
-                  <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span className="flex-1 text-sm font-medium text-amber-300">
-                    Hints
+                  <Lightbulb className="w-4 h-4 text-yellow-500 shrink-0" />
+                  <span className="flex-1 text-sm font-bold text-yellow-500/90 font-mono">
+                    HINTS_AVAILABLE
                     {hintsRevealed > 0 && (
-                      <span className="ml-2 text-xs text-amber-400/70">
-                        ({hintsRevealed} of {totalHints} revealed)
+                      <span className="ml-2 text-xs text-yellow-500/60 font-normal">
+                        [{hintsRevealed}/{totalHints} unlocked]
                       </span>
                     )}
                   </span>
-                  {hintsOpen
-                    ? <ChevronDown className="w-3.5 h-3.5 text-amber-400/60 shrink-0" />
-                    : <ChevronRight className="w-3.5 h-3.5 text-amber-400/60 shrink-0" />
-                  }
+                  <ChevronDown className={cn("w-4 h-4 text-yellow-500/60 shrink-0 transition-transform duration-300", hintsOpen && "rotate-180")} />
                 </button>
 
                 {hintsOpen && (
-                  <div className="px-4 pb-4 space-y-3">
-                    {/* Already-revealed hints */}
+                  <div className="px-5 pb-5 space-y-3">
                     {hintsRevealed > 0 && (
                       <div className="space-y-2">
                         {hints!.slice(0, hintsRevealed).map((hint, i) => (
                           <div
                             key={i}
-                            className="flex gap-3 p-3 rounded-md bg-amber-500/10 border border-amber-500/20 animate-in fade-in slide-in-from-top-2 duration-300"
+                            className="flex gap-3 p-3.5 rounded-lg bg-black/40 border border-yellow-500/20 animate-in fade-in slide-in-from-top-2 duration-300"
                           >
-                            <span className="shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold flex items-center justify-center mt-0.5">
-                              {i + 1}
+                            <span className="shrink-0 text-yellow-500/50 text-xs font-mono mt-0.5">
+                              {`>_`}
                             </span>
-                            <p className="text-xs text-amber-100/90 leading-relaxed font-mono">
+                            <p className="text-sm text-yellow-200/80 leading-relaxed font-mono">
                               {hint}
                             </p>
                           </div>
@@ -412,97 +457,101 @@ export default function Workspace() {
                       </div>
                     )}
 
-                    {/* Reveal next button */}
                     {hintsRevealed < totalHints ? (
                       <button
                         onClick={() => setHintsRevealed(n => n + 1)}
-                        className="w-full flex items-center justify-center gap-2 py-2 rounded-md border border-amber-500/30 text-amber-400 text-xs font-medium hover:bg-amber-500/10 transition-colors"
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-yellow-500/30 text-yellow-500 text-xs font-bold font-mono hover:bg-yellow-500/10 transition-colors mt-2"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         {hintsRevealed === 0
-                          ? `Show hint (${totalHints} available)`
-                          : `Show next hint (${totalHints - hintsRevealed} remaining)`
+                          ? `DECRYPT_HINT (1 of ${totalHints})`
+                          : `DECRYPT_NEXT_HINT (${totalHints - hintsRevealed} left)`
                         }
                       </button>
                     ) : (
-                      <p className="text-center text-xs text-amber-400/50 py-1">
-                        All hints revealed
+                      <p className="text-center text-xs font-mono text-yellow-500/40 py-2">
+                        // EOF: ALL HINTS REVEALED
                       </p>
                     )}
                   </div>
                 )}
               </div>
             )}
-            
-            {lab.tasks && lab.tasks.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-4 border-b border-border pb-2">Objectives</h3>
-
-                <ul className="space-y-3">
-                  {lab.tasks.map((task, i) => (
-                    <li key={task.id} className="flex items-start text-sm bg-background p-3 rounded border border-border/50">
-                      <div className="w-5 h-5 shrink-0 rounded-full border border-primary/50 bg-primary/10 text-primary flex items-center justify-center mr-3 mt-0.5 text-xs font-semibold">
-                        {i + 1}
-                      </div>
-                      <span className="text-muted-foreground">{task.description}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
           
-          {/* Action / Verify Panel */}
-          <div className="p-4 border-t border-border bg-background/50">
+          {/* ── Action / Verify Panel ── */}
+          <div className="p-5 border-t border-border/60 bg-card relative z-20">
             <Button 
-              className="w-full font-bold shadow-md shadow-primary/20" 
-              size="lg"
+              className={cn(
+                "w-full h-12 font-bold font-mono tracking-wide text-sm transition-all duration-300 relative overflow-hidden group",
+                verifyLab.isPending ? "bg-primary/80" : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--primary),0.5)]"
+              )}
               onClick={handleVerify}
               disabled={!isRunning || verifyLab.isPending}
             >
+              {/* Button shine effect */}
+              <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12" />
+              
               {verifyLab.isPending ? (
-                <><RefreshCw className="w-5 h-5 mr-2 animate-spin" /> Running Checks...</>
+                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> EXECUTING_TESTS...</>
               ) : (
-                <><CheckCircle2 className="w-5 h-5 mr-2" /> Run Checks</>
+                <><CheckCircle2 className="w-4 h-4 mr-2" /> VERIFY_OBJECTIVES</>
               )}
             </Button>
             
             {/* Verify Results */}
             {verifyResult && (
-              <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className={`p-4 rounded-md border ${verifyResult.passed ? 'bg-green-950/20 border-green-900/50' : 'bg-red-950/20 border-red-900/50'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center">
+              <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className={cn(
+                  "p-4 rounded-xl border relative overflow-hidden",
+                  verifyResult.passed 
+                    ? "bg-green-500/10 border-green-500/40 shadow-[0_0_30px_rgba(34,197,94,0.15)]" 
+                    : "bg-red-500/10 border-red-500/40"
+                )}>
+                  {verifyResult.passed && (
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/20 blur-[40px] -mr-10 -mt-10 rounded-full" />
+                  )}
+                  
+                  <div className="flex items-center justify-between mb-4 relative z-10">
+                    <div className="flex items-center gap-2">
                       {verifyResult.passed ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500 mr-2" />
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        </div>
                       ) : (
-                        <XCircle className="w-5 h-5 text-red-500 mr-2" />
+                        <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        </div>
                       )}
-                      <span className="font-semibold text-base">{verifyResult.passed ? 'Lab Passed!' : 'Checks Failed'}</span>
+                      <span className={cn("font-bold tracking-tight text-lg", verifyResult.passed ? "text-green-400" : "text-red-400")}>
+                        {verifyResult.passed ? 'MISSION_ACCOMPLISHED' : 'CHECKS_FAILED'}
+                      </span>
                     </div>
-                    <div className="font-mono text-xl font-bold">
+                    <div className={cn("font-mono text-2xl font-black", verifyResult.passed ? "text-green-400" : "text-red-400")}>
                       {verifyResult.score}%
                     </div>
                   </div>
                   
-                  <div className="space-y-2 mt-4 pt-4 border-t border-border/50">
+                  <div className="space-y-3 mt-4 pt-4 border-t border-border/50 relative z-10 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
                     {verifyResult.checks?.map((check: any) => (
-                      <div key={check.id} className="text-sm">
-                        <div className="flex items-center mb-1">
+                      <div key={check.id} className="text-sm bg-background/50 rounded-lg p-3 border border-border/50">
+                        <div className="flex items-start">
                           {check.passed ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-green-500 mr-2 shrink-0" />
+                            <CheckCircle2 className="w-4 h-4 text-green-500 mr-2.5 shrink-0 mt-0.5" />
                           ) : (
-                            <XCircle className="w-3.5 h-3.5 text-red-500 mr-2 shrink-0" />
+                            <XCircle className="w-4 h-4 text-red-500 mr-2.5 shrink-0 mt-0.5" />
                           )}
-                          <span className={check.passed ? "text-foreground" : "text-foreground font-medium"}>
-                            {check.label}
-                          </span>
-                        </div>
-                        {check.message && (
-                          <div className={`text-xs ml-5.5 ${check.passed ? "text-muted-foreground" : "text-red-400"}`}>
-                            {check.message}
+                          <div>
+                            <span className={cn("font-medium", check.passed ? "text-foreground" : "text-foreground")}>
+                              {check.label}
+                            </span>
+                            {check.message && (
+                              <div className={cn("text-xs mt-1.5 font-mono", check.passed ? "text-muted-foreground" : "text-red-400")}>
+                                {`> `}{check.message}
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -512,31 +561,43 @@ export default function Workspace() {
           </div>
         </div>
 
-        {/* Right Panel: Terminal */}
-        <div className="flex-1 bg-[#09090b] flex flex-col relative">
+        {/* ── Right Panel: Terminal ── */}
+        <div className="flex-1 bg-[#050505] flex flex-col relative">
+          
+          {/* Grid background effect for the terminal area */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-20" />
+
           {!isRunning && !isStarting && (
-            <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-              <Terminal className="w-16 h-16 text-muted-foreground opacity-50 mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Sandbox Offline</h2>
-              <p className="text-muted-foreground max-w-md mb-6">
-                Start the lab session to provision your isolated Linux environment.
+            <div className="absolute inset-0 z-10 bg-[#050505]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-24 h-24 rounded-full bg-muted/20 border border-border flex items-center justify-center mb-6 shadow-xl">
+                <Terminal className="w-10 h-10 text-muted-foreground/60" />
+              </div>
+              <h2 className="text-2xl font-bold font-mono tracking-tight mb-3">CONNECTION_OFFLINE</h2>
+              <p className="text-muted-foreground max-w-sm mb-8 text-sm">
+                Awaiting manual start to provision your isolated Linux container environment.
               </p>
-              <Button onClick={handleStart} size="lg" disabled={startSession.isPending}>
-                <Play className="w-5 h-5 mr-2" /> Start Sandbox
+              <Button 
+                onClick={handleStart} 
+                size="lg" 
+                className="h-12 px-8 font-bold font-mono text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(var(--primary),0.2)] hover:scale-[1.02] transition-all"
+                disabled={startSession.isPending}
+              >
+                <Play className="w-4 h-4 mr-2" /> INITIALIZE_UPLINK
               </Button>
             </div>
           )}
 
           {isStarting && (
-            <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-              <RefreshCw className="w-16 h-16 text-primary opacity-80 mb-6 animate-spin" />
-              <h2 className="text-2xl font-bold mb-2">Provisioning Environment</h2>
-              <p className="text-muted-foreground max-w-md">
-                Starting containers, attaching networks, and configuring your sandbox. This usually takes 10-30 seconds.
+            <div className="absolute inset-0 z-10 bg-[#050505]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+              <RefreshCw className="w-16 h-16 text-primary opacity-80 mb-8 animate-spin" />
+              <h2 className="text-2xl font-bold font-mono tracking-tight mb-3 text-primary">PROVISIONING_ENVIRONMENT</h2>
+              <p className="text-muted-foreground max-w-sm text-sm font-mono">
+                Allocating containers, attaching virtual networks, and injecting profile configs...
               </p>
-              <div className="w-64 h-2 bg-secondary rounded-full mt-6 overflow-hidden">
-                <div className="h-full bg-primary animate-pulse w-full origin-left" />
+              <div className="w-72 h-1.5 bg-muted rounded-full mt-8 overflow-hidden relative">
+                <div className="absolute top-0 left-0 h-full bg-primary animate-[shimmer_2s_infinite] w-1/2 rounded-full" />
               </div>
+              <p className="text-[10px] text-muted-foreground/50 font-mono mt-4">Estimated time: 10-30s</p>
             </div>
           )}
 
@@ -544,37 +605,52 @@ export default function Workspace() {
             <Tabs 
               value={activeTerminal} 
               onValueChange={setActiveTerminal} 
-              className="flex-1 flex flex-col w-full h-full"
+              className="flex-1 flex flex-col w-full h-full relative z-20"
             >
-              <div className="bg-card border-b border-border px-2 pt-2 shrink-0">
-                <TabsList className="bg-transparent border-none w-full justify-start h-auto p-0 space-x-1">
+              {/* Terminal Tabs Header */}
+              <div className="bg-[#0A0D14] border-b border-border/40 pt-2 px-3 shrink-0 flex justify-between items-end">
+                <TabsList className="bg-transparent border-none w-full justify-start h-auto p-0 space-x-1.5">
                   {lab.terminals.map(term => (
                     <TabsTrigger 
                       key={term} 
                       value={term}
-                      className="data-[state=active]:bg-[#09090b] data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary rounded-none rounded-t-md px-4 py-2 text-sm font-mono border border-transparent border-b-0"
+                      className="data-[state=active]:bg-[#050505] data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
                     >
-                      <Terminal className="w-3.5 h-3.5 mr-2" />
+                      <Terminal className="w-3.5 h-3.5 mr-2 opacity-70" />
                       {term}
+                      {activeTerminal === term && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse ml-3" />
+                      )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
+                
+                {isRunning && (
+                  <div className="pb-2.5 pr-2 hidden md:block text-[10px] font-mono text-muted-foreground/50 flex items-center gap-2">
+                    <span>CONNECTED</span>
+                    <span className="w-2 h-2 rounded-full bg-[#00ff9d] animate-pulse inline-block" />
+                  </div>
+                )}
               </div>
               
-              <div className="flex-1 relative bg-[#09090b]">
+              {/* Terminal Body */}
+              <div className="flex-1 relative bg-[#050505]">
                 {lab.terminals.map(term => (
                   <TabsContent 
                     key={term} 
                     value={term}
-                    className="absolute inset-0 m-0 border-none rounded-none focus-visible:ring-0 focus-visible:outline-none"
+                    className="absolute inset-0 m-0 border-none rounded-none focus-visible:ring-0 focus-visible:outline-none p-4"
                     forceMount
                   >
-                    <div className={activeTerminal === term ? "h-full" : "hidden"}>
+                    <div className={cn(
+                      "h-full w-full rounded-md border border-border/20 overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]",
+                      activeTerminal === term ? "block" : "hidden"
+                    )}>
                       {isRunning && (
                         <TerminalComponent 
                           labId={labId} 
                           terminalName={term} 
-                          className="h-full w-full border-none rounded-none" 
+                          className="h-full w-full bg-transparent" 
                         />
                       )}
                     </div>
@@ -583,8 +659,8 @@ export default function Workspace() {
               </div>
             </Tabs>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground border-t border-border">
-              <p>No terminal targets defined for this lab.</p>
+            <div className="flex-1 flex items-center justify-center text-muted-foreground/50 font-mono text-sm border-t border-border/20">
+              <p>{`>_ NO_TERMINAL_TARGETS_DEFINED`}</p>
             </div>
           )}
         </div>

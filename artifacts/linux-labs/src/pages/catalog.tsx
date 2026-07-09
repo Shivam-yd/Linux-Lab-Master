@@ -7,12 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
-  Award, Hourglass, Unlock
+  Award, Hourglass, Unlock, Zap, Server
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────
-// Track metadata — add new tracks here only
+// Track metadata
 // ─────────────────────────────────────────
 const TRACK_META: Record<string, {
   label: string
@@ -20,33 +20,36 @@ const TRACK_META: Record<string, {
   icon: React.ElementType
   accentClass: string
   accentHex: string
+  gradient: string
 }> = {
   linux: {
     label: "Linux",
     description: "Master the command line, permissions, users, scripting, and automation.",
     icon: Terminal,
-    accentClass: "text-teal-400",
-    accentHex: "#2dd4bf",
+    accentClass: "text-cyan-400",
+    accentHex: "#22d3ee",
+    gradient: "from-cyan-500/20 to-blue-500/10",
   },
   terraform: {
     label: "Terraform",
     description: "Learn Infrastructure as Code — write, plan, and apply real configs.",
     icon: Layers,
-    accentClass: "text-violet-400",
-    accentHex: "#a78bfa",
+    accentClass: "text-purple-400",
+    accentHex: "#c084fc",
+    gradient: "from-purple-500/20 to-pink-500/10",
   },
 }
 
 // Level display names and accent colors
-const LEVEL_META: Record<number, { name: string; accentHex: string; badgeClass: string }> = {
-  1: { name: "Foundation",    accentHex: "#2dd4bf", badgeClass: "bg-teal-500/15 text-teal-300 border-teal-500/30" },
-  2: { name: "Intermediate",  accentHex: "#60a5fa", badgeClass: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
-  3: { name: "Advanced",      accentHex: "#c084fc", badgeClass: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
+const LEVEL_META: Record<number, { name: string; accentHex: string }> = {
+  1: { name: "Foundation",    accentHex: "#22d3ee" },
+  2: { name: "Intermediate",  accentHex: "#818cf8" },
+  3: { name: "Advanced",      accentHex: "#c084fc" },
 }
 
 const DIFFICULTY_BADGE: Record<string, string> = {
-  beginner:     "bg-teal-500/10 text-teal-400 border-teal-500/20",
-  intermediate: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  beginner:     "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+  intermediate: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   advanced:     "bg-rose-500/10 text-rose-400 border-rose-500/20",
 }
 
@@ -59,7 +62,7 @@ export default function Catalog() {
   const tracks = useMemo(() => {
     if (!labs) return []
     const seen = new Set<string>()
-    const order = ["linux", "terraform"] // canonical order; unknown tracks appended after
+    const order = ["linux", "terraform"]
     labs.forEach(l => seen.add(l.track))
     const known = order.filter(t => seen.has(t))
     const rest = [...seen].filter(t => !order.includes(t))
@@ -98,13 +101,11 @@ export default function Catalog() {
     const trackLabs = labs.filter(l => l.track === resolvedTrack)
     const levelNums = [...new Set(trackLabs.map(l => l.level))].sort((a, b) => a - b)
 
-    return levelNums.map((lvl, idx) => {
+    return levelNums.map((lvl) => {
       const lvlLabs = trackLabs.filter(l => l.level === lvl).sort((a, b) => a.order - b.order)
       const passed = lvlLabs.filter(l => progressByLabId[l.id]?.status === "passed").length
       const total = lvlLabs.length
-
-      const locked = false
-
+      const locked = false // For now, all levels unlocked
       return { level: lvl, labs: lvlLabs, locked, passed, total }
     })
   }, [labs, resolvedTrack, progressByLabId])
@@ -115,6 +116,7 @@ export default function Catalog() {
     icon: Cpu,
     accentClass: "text-slate-400",
     accentHex: "#94a3b8",
+    gradient: "from-slate-500/20 to-gray-500/10",
   }
 
   // Track-wide stats
@@ -140,7 +142,7 @@ export default function Catalog() {
   const totalLabs   = trackStats.total
   const totalPassed = trackStats.completed
 
-  // First lab in track that isn't passed — for the Start/Continue button
+  // First lab in track that isn't passed
   const nextLabId = useMemo(() => {
     if (!labs) return null
     const trackLabs = labs
@@ -151,8 +153,7 @@ export default function Catalog() {
 
   const [expanded, setExpanded] = useState(true)
 
-
-  // View mode: by-level shows one card per track+level combo
+  // View mode
   const [viewMode, setViewMode] = useState<"by-level" | "by-course">("by-level")
 
   // All track+level combos for "By Level" view
@@ -163,6 +164,7 @@ export default function Catalog() {
     const trackOrder = ["linux", "terraform"]
     const allTracks = [...new Set(labs.map((l: LabItem) => l.track))]
     const sorted = [...trackOrder.filter(t => allTracks.includes(t)), ...allTracks.filter(t => !trackOrder.includes(t))]
+    
     sorted.forEach(track => {
       const tLabs = labs.filter((l: LabItem) => l.track === track)
       const lvlNums = [...new Set(tLabs.map((l: LabItem) => l.level as number))].sort((a, b) => a - b)
@@ -175,7 +177,6 @@ export default function Catalog() {
     return cards
   }, [labs, progressByLabId])
 
-
   const filteredCards = useMemo(() =>
     trackLevelCards.filter(c => c.track === resolvedTrack),
   [trackLevelCards, resolvedTrack])
@@ -184,539 +185,449 @@ export default function Catalog() {
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
   const toggleCard = (key: string) => setExpandedCards(prev => ({ ...prev, [key]: !prev[key] }))
 
+  // Default expand first card
+  useMemo(() => {
+    if (filteredCards.length > 0 && Object.keys(expandedCards).length === 0) {
+      setExpandedCards({ [`${filteredCards[0].track}-${filteredCards[0].level}`]: true })
+    }
+  }, [filteredCards])
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
 
       {/* ── Sidebar ─────────────────────────────────────── */}
-      <aside className="w-56 shrink-0 flex flex-col bg-card border-r border-border">
+      <aside className="w-64 shrink-0 flex flex-col bg-card border-r border-border relative z-10">
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-              <Terminal className="w-4 h-4 text-primary" />
+        <div className="px-6 py-6 border-b border-border/50 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10" />
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(var(--primary),0.15)]">
+              <Zap className="w-5 h-5 text-primary fill-primary/20" />
             </div>
             <div>
-              <p className="text-sm font-semibold leading-none tracking-tight">DevLabs</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">Skill Validation</p>
+              <p className="text-lg font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">DevLabs</p>
+              <p className="text-xs text-muted-foreground mt-1 font-medium tracking-wide">PRACTICE RANGE</p>
             </div>
           </div>
         </div>
 
         {/* Track list + level dropdowns */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+          <p className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
             Tracks
           </p>
           {loading
             ? Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="h-14 rounded-lg bg-muted/30 animate-pulse mx-1" />
+                <div key={i} className="h-16 rounded-xl bg-muted/30 animate-pulse mx-1" />
               ))
             : tracks.map(track => {
                 const tm = TRACK_META[track]
-                const Icon = tm?.icon ?? Cpu
+                const Icon = tm?.icon ?? Server
                 const isActive = track === resolvedTrack
                 const sum = trackSummary[track]
                 const pct = sum?.total ? Math.round((sum.passed / sum.total) * 100) : 0
-
-                // labs for this track grouped by level (only shown when active)
-                const trackLevelGroups = !labs ? [] : (() => {
-                  const tLabs = labs.filter(l => l.track === track)
-                  const lvlNums = [...new Set(tLabs.map(l => l.level))].sort((a, b) => a - b)
-                  return lvlNums.map(lvl => ({
-                    level: lvl,
-                    labs: tLabs.filter(l => l.level === lvl).sort((a, b) => a.order - b.order),
-                  }))
-                })()
 
                 return (
                   <button
                     key={track}
                     onClick={() => handleTrackChange(track)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150 group",
+                      "w-full flex flex-col gap-2 px-3 py-3 rounded-xl text-left transition-all duration-200 group relative overflow-hidden",
                       isActive
-                        ? "bg-primary/10 border border-primary/20"
-                        : "hover:bg-muted/40 border border-transparent"
+                        ? "bg-muted/40 border border-border/80 shadow-sm"
+                        : "hover:bg-muted/20 border border-transparent"
                     )}
                   >
-                    <div className={cn(
-                      "w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors",
-                      isActive ? "bg-primary/20" : "bg-muted/50 group-hover:bg-muted/70"
-                    )}>
-                      <Icon className={cn("w-3.5 h-3.5", isActive ? "text-primary" : "text-muted-foreground")} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={cn("text-sm font-medium leading-tight",
-                        isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/80"
+                    {isActive && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-md" />
+                    )}
+                    <div className="flex items-center gap-3 w-full relative z-10">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                        isActive ? "bg-background border border-border" : "bg-muted/50 group-hover:bg-muted"
                       )}>
-                        {tm?.label ?? track}
-                      </p>
-                      {sum && (
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <Progress value={pct} className="h-1 flex-1 bg-muted/50" />
-                          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
-                            {sum.passed}/{sum.total}
-                          </span>
-                        </div>
-                      )}
+                        <Icon className={cn("w-4 h-4", isActive ? tm?.accentClass : "text-muted-foreground")} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("text-sm font-semibold leading-tight",
+                          isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/90"
+                        )}>
+                          {tm?.label ?? track}
+                        </p>
+                        {sum && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                            {sum.passed}/{sum.total} Labs
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", isActive ? "text-foreground translate-x-1" : "text-muted-foreground/40")} />
                     </div>
-                    <ChevronRight className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-primary" : "text-muted-foreground/40")} />
+                    
+                    {sum && isActive && (
+                      <div className="w-full pl-11 pr-2 relative z-10">
+                        <Progress value={pct} className="h-1.5 bg-background border border-border/50" />
+                      </div>
+                    )}
                   </button>
                 )
               })}
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-border">
-          <p className="text-[10px] text-muted-foreground">
-            More tracks coming soon
-          </p>
+        <div className="px-6 py-5 border-t border-border/50 bg-muted/10">
+          <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+            <span>SYS_STAT</span>
+            <span className="flex items-center gap-1.5 text-primary"><div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"/> ONLINE</span>
+          </div>
         </div>
       </aside>
 
       {/* ── Main content ────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-
-        {/* ── Tab switcher + level filter ── */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-1">
-            {(["by-level", "by-course"] as const).map(mode => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={cn(
-                  "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-                  viewMode === mode
-                    ? "bg-primary/15 text-foreground border border-primary/20"
-                    : "text-muted-foreground hover:text-foreground/80"
-                )}
-              >
-                {mode === "by-level" ? "By Level" : "By Course"}
-              </button>
-            ))}
-          </div>
-
-        </div>
-
-        {/* ── By Level view ── */}
-        {viewMode === "by-level" && (
-          <div className="space-y-3">
-            {loading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-16 rounded-xl bg-card border border-border animate-pulse" />
-                ))
-              : filteredCards.map(({ track, level, lvlLabs, passed, total }) => {
-                  const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8" }
-                  const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                  const cardKey = `${track}-${level}`
-                  const isOpen = !!expandedCards[cardKey]
-                  const allPassed = passed === total && total > 0
-                  const anyInProgress = lvlLabs.some(l => progressByLabId[l.id]?.status === "in_progress")
-
-                  return (
-                    <div key={cardKey} className="rounded-xl border border-border bg-card overflow-hidden">
-                      {/* Card header row */}
-                      <div
-                        className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-muted/20 transition-colors"
-                        onClick={() => toggleCard(cardKey)}
-                      >
-                        {/* Icon */}
-                        <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border"
-                          style={{ background: `${tm.accentHex}18`, borderColor: `${tm.accentHex}35` }}
-                        >
-                          <tm.icon className="w-6 h-6" style={{ color: tm.accentHex }} />
-                        </div>
-
-                        {/* Title */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] text-muted-foreground leading-none mb-1">
-                            Level {level} <span style={{ color: lm.accentHex }}>— {lm.name}</span>
-                          </p>
-                          <p className="text-base font-bold leading-tight">{tm.label}</p>
-                        </div>
-
-                        {/* Right: status + progress + chevron */}
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs text-muted-foreground tabular-nums">{passed}/{total}</span>
-                          {allPassed ? (
-                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-teal-500/15 text-teal-400 border border-teal-500/25">
-                              <CheckCircle2 className="w-3 h-3" /> Completed
-                            </span>
-                          ) : anyInProgress ? (
-                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/25">
-                              <PlayCircle className="w-3 h-3" /> In Progress
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-muted/40 text-muted-foreground border border-border">
-                              Not Started
-                            </span>
-                          )}
-                          <button className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-colors">
-                            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Expanded lab rows */}
-                      {isOpen && (
-                        <div className="border-t border-border divide-y divide-border/50">
-                          {lvlLabs.map(lab => {
-                            const prog = progressByLabId[lab.id]
-                            const isPassed     = prog?.status === "passed"
-                            const isInProgress = prog?.status === "in_progress"
-                            const score = prog?.bestScore ?? 0
-                            return (
-                              <div key={lab.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/20 transition-colors group">
-                                <div className="w-7 h-7 flex items-center justify-center shrink-0">
-                                  {isPassed
-                                    ? <CheckCircle2 className="w-4.5 h-4.5 text-teal-400" />
-                                    : isInProgress
-                                    ? <PlayCircle className="w-4.5 h-4.5 text-blue-400" />
-                                    : <div className="w-2.5 h-2.5 rounded-full border-2 border-muted-foreground/40" />
-                                  }
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-0.5">
-                                    <span className="text-sm font-medium group-hover:text-primary transition-colors">{lab.title}</span>
-                                    <Badge variant="outline" className={cn("text-[10px] shrink-0", DIFFICULTY_BADGE[lab.difficulty])}>
-                                      {lab.difficulty}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                    <span className="flex items-center gap-1"><Terminal className="w-3 h-3" />{lab.category}</span>
-                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{lab.estimatedMinutes}m</span>
-                                    {score > 0 && (
-                                      <span className="flex items-center gap-1">
-                                        <Trophy className="w-3 h-3 text-primary/70" />
-                                        <span className="font-mono">{score}%</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <Link href={`/labs/${lab.id}`}>
-                                  <button className={cn(
-                                    "shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all",
-                                    isPassed
-                                      ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 hover:bg-teal-500/20"
-                                      : isInProgress
-                                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
-                                      : "bg-primary text-primary-foreground hover:bg-primary/90"
-                                  )}>
-                                    {isPassed ? <><Star className="w-3 h-3" /> Review</>
-                                      : isInProgress ? <><PlayCircle className="w-3 h-3" /> Continue</>
-                                      : <><PlayCircle className="w-3 h-3" /> Start Lab</>}
-                                  </button>
-                                </Link>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })
-            }
-          </div>
-        )}
-
-        {/* ── By Course view (existing) ── */}
-        {viewMode === "by-course" && (loading ? (
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center gap-4">
-              <Skeleton className="w-12 h-12 rounded-lg" />
-              <div className="flex-1 space-y-2"><Skeleton className="h-5 w-40" /><Skeleton className="h-3 w-64" /></div>
-              <Skeleton className="w-20 h-8 rounded-lg" />
-            </div>
-            <Skeleton className="h-8 w-full rounded-full" />
-            <div className="grid grid-cols-4 gap-3">
-              {[0,1,2,3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-
-            {/* Header row */}
-            <div className="flex items-center gap-4 px-5 pt-5 pb-4">
-              {/* Track icon badge */}
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 border"
-                style={{ background: `${meta.accentHex}15`, borderColor: `${meta.accentHex}35` }}
-              >
-                <meta.icon className="w-6 h-6" style={{ color: meta.accentHex }} />
-              </div>
-
-              {/* Title + description */}
-              <div className="flex-1 min-w-0">
-                <h1 className="text-base font-bold leading-tight">{meta.label}</h1>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{meta.description}</p>
-              </div>
-
-
-              {/* Start / Continue button */}
-              {nextLabId && (
-                <Link href={`/labs/${nextLabId}`}>
-                  <button
-                    className="shrink-0 px-5 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-                    style={{ background: meta.accentHex, color: "#0f172a" }}
-                  >
-                    {totalPassed > 0 ? "Continue" : "Start"}
-                  </button>
-                </Link>
-              )}
-
-              {/* Collapse chevron */}
-              <button
-                onClick={() => setExpanded(v => !v)}
-                className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-colors shrink-0"
-              >
-                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {/* Milestone progress bar */}
-            <div className="px-5 pb-4">
-              <p className="text-xs text-muted-foreground mb-3">
-                Progress: {totalPassed}/{totalLabs} Labs
+      <div className="flex-1 overflow-y-auto bg-background/50 relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+        
+        <div className="p-8 max-w-6xl mx-auto space-y-8 relative z-10">
+          
+          {/* Header Area */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border/40">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                {meta.label} Range
+              </h1>
+              <p className="text-muted-foreground mt-2 max-w-xl text-sm leading-relaxed">
+                {meta.description}
               </p>
-              <div className="relative h-6 flex items-center">
-                {/* Track */}
-                <div className="absolute inset-x-0 h-2 rounded-full bg-muted/60" />
-                {/* Fill */}
-                {totalLabs > 0 && (
-                  <div
-                    className="absolute left-0 h-2 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.max(2, (totalPassed / totalLabs) * 100)}%`,
-                      background: `linear-gradient(to right, ${meta.accentHex}, ${meta.accentHex}99)`,
-                    }}
-                  />
-                )}
-                {/* Milestone markers */}
-                {milestones.map(({ level, cumTotal, passed: lvlPassed }) => {
-                  const pos = totalLabs > 0 ? (cumTotal / totalLabs) * 100 : 0
-                  const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                  const isReached = totalPassed >= cumTotal - (levels.find(l => l.level === level)?.total ?? 0)
-                  const isComplete = totalPassed >= cumTotal
-                  return (
-                    <div
-                      key={level}
-                      className="absolute flex flex-col items-center"
-                      style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
-                    >
-                      <div
-                        className={cn(
-                          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                          isComplete
-                            ? "border-transparent"
-                            : isReached
-                            ? "border-muted bg-background"
-                            : "border-muted/40 bg-background"
-                        )}
-                        style={isComplete ? { background: lm.accentHex, borderColor: lm.accentHex } : {}}
-                      >
-                        {isComplete
-                          ? <Award className="w-3 h-3 text-slate-900" />
-                          : <Lock className="w-2.5 h-2.5 text-muted-foreground/50" />
-                        }
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              {/* Level labels */}
-              <div className="relative h-5 mt-1">
-                {milestones.map(({ level, cumTotal }) => {
-                  const pos = totalLabs > 0 ? (cumTotal / totalLabs) * 100 : 0
-                  const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                  return (
-                    <span
-                      key={level}
-                      className="absolute text-[10px] text-muted-foreground whitespace-nowrap"
-                      style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
-                    >
-                      Level {level}
-                    </span>
-                  )
-                })}
-              </div>
             </div>
 
-            {/* Stat boxes */}
-            <div className="grid grid-cols-4 gap-2 px-5 pb-5">
-              {[
-                { count: trackStats.completed, label: "Completed", color: "#2dd4bf", Icon: CheckCircle2 },
-                { count: trackStats.pending,   label: "Pending",   color: "#f59e0b", Icon: Hourglass   },
-                { count: trackStats.unlocked,  label: "Unlocked",  color: "#818cf8", Icon: Unlock      },
-                { count: trackStats.locked,    label: "Locked",    color: "#94a3b8", Icon: Lock        },
-              ].map(({ count, label, color, Icon }) => (
-                <div key={label} className="rounded-lg bg-background border border-border p-3 flex flex-col gap-1">
-                  <span className="text-2xl font-bold tabular-nums" style={{ color }}>{count}</span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Icon className="w-3 h-3 shrink-0" style={{ color }} />
-                    {label}
-                  </span>
-                </div>
+            {/* Tab switcher */}
+            <div className="flex items-center p-1 bg-card/80 backdrop-blur-sm border border-border/80 rounded-lg shadow-sm">
+              {(["by-level", "by-course"] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={cn(
+                    "px-5 py-2 rounded-md text-sm font-semibold transition-all duration-200",
+                    viewMode === mode
+                      ? "bg-muted text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground/80 hover:bg-muted/50"
+                  )}
+                >
+                  {mode === "by-level" ? "By Level" : "By Course"}
+                </button>
               ))}
             </div>
           </div>
-        ))}
 
-        {/* ── Expandable level + lab cards ── */}
-        {viewMode === "by-course" && !loading && expanded && (
-          <div className="space-y-4">
-            {levels.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-center border border-dashed border-border rounded-xl">
-                <meta.icon className="w-8 h-8 text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">No labs in this track yet.</p>
-              </div>
-            ) : (
-              levels.map(({ level, labs: lvlLabs, locked, passed, total }) => {
-                const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                const pct = total ? Math.round((passed / total) * 100) : 0
+          {/* ── By Level view ── */}
+          {viewMode === "by-level" && (
+            <div className="space-y-6">
+              {loading
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-24 rounded-xl bg-card/50 border border-border/50 animate-pulse" />
+                  ))
+                : filteredCards.map(({ track, level, lvlLabs, passed, total }) => {
+                    const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8" }
+                    const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                    const cardKey = `${track}-${level}`
+                    const isOpen = !!expandedCards[cardKey]
+                    const allPassed = passed === total && total > 0
+                    const anyInProgress = lvlLabs.some(l => progressByLabId[l.id]?.status === "in_progress")
 
-                return (
-                  <div
-                    key={level}
-                    className={cn(
-                      "rounded-xl border bg-card overflow-hidden transition-all duration-200",
-                      locked ? "border-border opacity-60" : "border-border"
-                    )}
-                  >
-                    {/* Level header */}
-                    <div
-                      className="px-6 py-4 flex items-center gap-3 border-b border-border"
-                      style={{ borderLeftWidth: 3, borderLeftColor: locked ? "#334155" : lm.accentHex }}
-                    >
-                      <div
-                        className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-xs font-bold"
-                        style={locked
-                          ? { background: "#1e293b", color: "#475569" }
-                          : { background: `${lm.accentHex}18`, color: lm.accentHex }
-                        }
-                      >
-                        {locked ? <Lock className="w-3.5 h-3.5" /> : level}
-                      </div>
+                    return (
+                      <div key={cardKey} className={cn(
+                        "rounded-xl border bg-card/80 backdrop-blur-sm overflow-hidden transition-all duration-300",
+                        isOpen ? "border-border shadow-lg" : "border-border/50 hover:border-border"
+                      )}>
+                        {/* Card header row */}
+                        <div
+                          className="flex items-center gap-5 px-6 py-5 cursor-pointer hover:bg-muted/20 transition-colors"
+                          onClick={() => toggleCard(cardKey)}
+                        >
+                          {/* Level Badge */}
+                          <div
+                            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border"
+                            style={{ background: `${lm.accentHex}10`, borderColor: `${lm.accentHex}30` }}
+                          >
+                            <span className="text-lg font-black font-mono" style={{ color: lm.accentHex }}>L{level}</span>
+                          </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold">Level {level} — {lm.name}</span>
-                          {!locked && passed === total && total > 0 && (
-                            <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                          )}
+                          {/* Title */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-lg font-bold leading-tight flex items-center gap-2">
+                              {lm.name}
+                              {allPassed && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground font-mono">
+                              <span>{passed} / {total} Completed</span>
+                              <span className="w-1 h-1 rounded-full bg-border" />
+                              <span>{lvlLabs.reduce((acc, l) => acc + l.estimatedMinutes, 0)}m est.</span>
+                            </div>
+                          </div>
+
+                          {/* Right: progress bar + chevron */}
+                          <div className="flex items-center gap-6 shrink-0">
+                            <div className="w-32 hidden md:block">
+                              <Progress 
+                                value={total > 0 ? (passed / total) * 100 : 0} 
+                                className="h-2 bg-background border border-border" 
+                                indicatorStyle={{ background: lm.accentHex }}
+                              />
+                            </div>
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center bg-background border transition-all duration-300",
+                              isOpen ? "border-primary/50 text-primary" : "border-border text-muted-foreground"
+                            )}>
+                              <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", isOpen && "rotate-180")} />
+                            </div>
+                          </div>
                         </div>
-                        {locked && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Complete Level {level - 1} to unlock
-                          </p>
+
+                        {/* Expanded lab rows */}
+                        {isOpen && (
+                          <div className="border-t border-border/50 bg-background/30 divide-y divide-border/40">
+                            {lvlLabs.map(lab => {
+                              const prog = progressByLabId[lab.id]
+                              const isPassed     = prog?.status === "passed"
+                              const isInProgress = prog?.status === "in_progress"
+                              const score = prog?.bestScore ?? 0
+                              
+                              return (
+                                <div key={lab.id} className="flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-4 hover:bg-muted/10 transition-colors group">
+                                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                                    {/* Status Icon */}
+                                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                                      {isPassed
+                                        ? <div className="w-6 h-6 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" /></div>
+                                        : isInProgress
+                                        ? <div className="w-6 h-6 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center"><PlayCircle className="w-3.5 h-3.5 text-cyan-400" /></div>
+                                        : <div className="w-6 h-6 rounded-full bg-background border-2 border-muted-foreground/30 group-hover:border-primary/50 transition-colors" />
+                                      }
+                                    </div>
+                                    
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-3 mb-1.5">
+                                        <span className="text-base font-semibold text-foreground/90 group-hover:text-primary transition-colors truncate">
+                                          {lab.title}
+                                        </span>
+                                        <Badge variant="outline" className={cn("text-[10px] px-2 py-0 h-5 font-mono border", DIFFICULTY_BADGE[lab.difficulty])}>
+                                          {lab.difficulty}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+                                        {lab.summary}
+                                      </p>
+                                      <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground/80">
+                                        <span className="flex items-center gap-1.5"><Terminal className="w-3.5 h-3.5" />{lab.category}</span>
+                                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{lab.estimatedMinutes}m</span>
+                                        {score > 0 && (
+                                          <span className="flex items-center gap-1.5 text-green-400/80">
+                                            <Trophy className="w-3.5 h-3.5" />
+                                            {score}%
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Actions */}
+                                  <div className="pl-12 sm:pl-0 shrink-0">
+                                    <Link href={`/labs/${lab.id}`}>
+                                      <button className={cn(
+                                        "w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200",
+                                        isPassed
+                                          ? "bg-background border border-border text-foreground hover:bg-muted hover:border-border/80"
+                                          : isInProgress
+                                          ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25"
+                                          : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.2)] hover:shadow-[0_0_20px_rgba(var(--primary),0.4)]"
+                                      )}>
+                                        {isPassed ? "Review"
+                                          : isInProgress ? "Continue"
+                                          : "Deploy Sandbox"}
+                                      </button>
+                                    </Link>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
                         )}
                       </div>
+                    )
+                  })
+              }
+            </div>
+          )}
 
-                      {!locked && (
-                        <div className="flex items-center gap-3 shrink-0">
-                          <Progress value={pct} className="w-24 h-1.5" />
-                          <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
-                            {passed}/{total}
-                          </span>
-                          <Badge variant="outline" className={cn("text-[10px] font-medium", lm.badgeClass)}>
-                            {pct === 100 ? "Cleared" : pct > 0 ? "In Progress" : "Not Started"}
-                          </Badge>
-                        </div>
-                      )}
+          {/* ── By Course view (existing) ── */}
+          {viewMode === "by-course" && (loading ? (
+            <div className="rounded-xl border border-border/50 bg-card/80 p-6 space-y-6">
+              <div className="flex items-center gap-5">
+                <Skeleton className="w-16 h-16 rounded-xl" />
+                <div className="flex-1 space-y-3"><Skeleton className="h-6 w-48" /><Skeleton className="h-4 w-72" /></div>
+                <Skeleton className="w-28 h-10 rounded-lg" />
+              </div>
+              <Skeleton className="h-2 w-full rounded-full" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[0,1,2,3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Course Header Card */}
+              <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm overflow-hidden relative">
+                <div className={cn("absolute inset-0 opacity-10 bg-gradient-to-r", meta.gradient)} />
+                
+                <div className="relative p-6 sm:p-8">
+                  <div className="flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center">
+                    <div className="flex items-center gap-5">
+                      <div
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 border"
+                        style={{ background: `${meta.accentHex}15`, borderColor: `${meta.accentHex}30` }}
+                      >
+                        <meta.icon className="w-8 h-8" style={{ color: meta.accentHex }} />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold">{meta.label} Bootcamp</h2>
+                        <p className="text-muted-foreground mt-1 text-sm">{totalPassed} of {totalLabs} modules completed</p>
+                      </div>
                     </div>
 
-                    {/* Lab rows */}
-                    <div className="divide-y divide-border/50">
-                      {lvlLabs.map(lab => {
-                        const prog = progressByLabId[lab.id]
-                        const isPassed    = prog?.status === "passed"
-                        const isInProgress = prog?.status === "in_progress"
-                        const score = prog?.bestScore ?? 0
+                    {nextLabId && (
+                      <Link href={`/labs/${nextLabId}`}>
+                        <button
+                          className="w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(0,0,0,0.2)] hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                          style={{ background: meta.accentHex, color: "#000" }}
+                        >
+                          <PlayCircle className="w-5 h-5" />
+                          {totalPassed > 0 ? "Resume Course" : "Start Course"}
+                        </button>
+                      </Link>
+                    )}
+                  </div>
 
+                  {/* Progress milestones */}
+                  <div className="mt-10 mb-2 px-2">
+                    <div className="relative h-2.5 bg-background border border-border rounded-full flex items-center">
+                      {/* Fill */}
+                      {totalLabs > 0 && (
+                        <div
+                          className="absolute left-0 h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${Math.max(2, (totalPassed / totalLabs) * 100)}%`,
+                            background: `linear-gradient(90deg, ${meta.accentHex}40, ${meta.accentHex})`,
+                          }}
+                        />
+                      )}
+                      
+                      {/* Markers */}
+                      {milestones.map(({ level, cumTotal, passed: lvlPassed }) => {
+                        const pos = totalLabs > 0 ? (cumTotal / totalLabs) * 100 : 0
+                        const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                        const isReached = totalPassed >= cumTotal - (levels.find(l => l.level === level)?.total ?? 0)
+                        const isComplete = totalPassed >= cumTotal
+                        
                         return (
                           <div
-                            key={lab.id}
-                            className={cn(
-                              "flex items-center gap-4 px-6 py-4 group",
-                              locked ? "pointer-events-none" : "hover:bg-muted/20 transition-colors"
-                            )}
+                            key={level}
+                            className="absolute flex flex-col items-center"
+                            style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
                           >
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                              {isPassed
-                                ? <CheckCircle2 className="w-5 h-5 text-teal-400" />
-                                : isInProgress
-                                ? <PlayCircle className="w-5 h-5 text-blue-400" />
-                                : <div className="w-2.5 h-2.5 rounded-full border-2 border-muted-foreground/40" />
-                              }
+                            <div
+                              className={cn(
+                                "w-6 h-6 rounded-full border-4 bg-card flex items-center justify-center transition-all z-10",
+                                isComplete ? "border-transparent" : "border-background"
+                              )}
+                              style={isComplete ? { background: lm.accentHex } : {}}
+                            >
+                              {isComplete && <CheckCircle2 className="w-4 h-4 text-black" />}
                             </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className={cn(
-                                  "text-sm font-medium leading-tight",
-                                  locked ? "text-muted-foreground" : "text-foreground group-hover:text-primary transition-colors"
-                                )}>
-                                  {lab.title}
-                                </span>
-                                <Badge variant="outline" className={cn("text-[10px] shrink-0", DIFFICULTY_BADGE[lab.difficulty])}>
-                                  {lab.difficulty}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Terminal className="w-3 h-3" />{lab.category}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />{lab.estimatedMinutes}m
-                                </span>
-                                {score > 0 && (
-                                  <span className="flex items-center gap-1">
-                                    <Trophy className="w-3 h-3 text-primary/70" />
-                                    <span className="font-mono">{score}%</span>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {!locked && score > 0 && (
-                              <div className="w-20 shrink-0">
-                                <Progress value={score} className="h-1" />
-                              </div>
-                            )}
-
-                            {!locked ? (
-                              <Link href={`/labs/${lab.id}`}>
-                                <button className={cn(
-                                  "shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all",
-                                  isPassed
-                                    ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 hover:bg-teal-500/20"
-                                    : isInProgress
-                                    ? "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
-                                    : "bg-primary text-primary-foreground hover:bg-primary/90"
-                                )}>
-                                  {isPassed
-                                    ? <><Star className="w-3 h-3" /> Review</>
-                                    : isInProgress
-                                    ? <><PlayCircle className="w-3 h-3" /> Continue</>
-                                    : <><PlayCircle className="w-3 h-3" /> Start Lab</>
-                                  }
-                                </button>
-                              </Link>
-                            ) : (
-                              <div className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium bg-muted/30 text-muted-foreground/50 border border-border/50">
-                                <Lock className="w-3 h-3" /> Locked
-                              </div>
-                            )}
+                            <span className="absolute top-8 text-xs font-mono font-medium whitespace-nowrap text-muted-foreground">
+                              {lm.name}
+                            </span>
                           </div>
                         )
                       })}
                     </div>
                   </div>
-                )
-              })
-            )}
-          </div>
-        )}
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { count: trackStats.completed, label: "Verified", color: "#10b981", Icon: CheckCircle2 },
+                  { count: trackStats.pending,   label: "In Progress", color: "#0ea5e9", Icon: Hourglass },
+                  { count: trackStats.unlocked,  label: "Available", color: "#8b5cf6", Icon: Unlock },
+                  { count: trackStats.locked,    label: "Locked", color: "#64748b", Icon: Lock },
+                ].map(({ count, label, color, Icon }) => (
+                  <div key={label} className="rounded-xl bg-card border border-border p-5 flex flex-col items-center justify-center text-center">
+                    <Icon className="w-6 h-6 mb-3" style={{ color }} />
+                    <span className="text-3xl font-black font-mono leading-none mb-1">{count}</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* List of labs in course view */}
+              <div className="space-y-4 pt-4">
+                <h3 className="text-xl font-bold font-mono tracking-tight flex items-center gap-2">
+                  <Terminal className="w-5 h-5 text-primary" /> MODULES
+                </h3>
+                
+                {levels.map(({ level, labs: lvlLabs, locked }) => {
+                  const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                  
+                  return (
+                    <div key={level} className="space-y-3">
+                      <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2 pt-2">
+                        <div className="w-2 h-2 rounded-full" style={{ background: lm.accentHex }} />
+                        LEVEL {level}: {lm.name.toUpperCase()}
+                      </h4>
+                      
+                      <div className="grid gap-3">
+                        {lvlLabs.map((lab, idx) => {
+                          const prog = progressByLabId[lab.id]
+                          const isPassed = prog?.status === "passed"
+                          
+                          return (
+                            <Link key={lab.id} href={`/labs/${lab.id}`}>
+                              <div className="group flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer">
+                                <div className="w-8 font-mono text-muted-foreground/50 text-right text-lg font-bold group-hover:text-primary/50 transition-colors">
+                                  {(idx + 1).toString().padStart(2, '0')}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                                    {lab.title}
+                                  </h5>
+                                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                                    {lab.estimatedMinutes}m • {lab.difficulty}
+                                  </p>
+                                </div>
+                                <div>
+                                  {isPassed ? (
+                                    <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full border border-border group-hover:border-primary/50 flex items-center justify-center transition-colors">
+                                      <PlayCircle className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
