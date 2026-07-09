@@ -163,8 +163,13 @@ export default function Workspace() {
       return { mainInstructions: text, stepsMarkdown: null as string | null }
     }
 
+    // Keep everything outside the Steps block (before it AND any sections
+    // after it, e.g. "## Credentials") in the always-visible instructions —
+    // only the Steps block itself is gated behind the reveal button.
+    const before = lines.slice(0, stepsStart).join("\n").trim()
+    const after = lines.slice(stepsEnd).join("\n").trim()
     return {
-      mainInstructions: lines.slice(0, stepsStart).join("\n").trim(),
+      mainInstructions: [before, after].filter(Boolean).join("\n\n"),
       stepsMarkdown: lines.slice(stepsStart, stepsEnd).join("\n").trim(),
     }
   }, [lab?.instructions])

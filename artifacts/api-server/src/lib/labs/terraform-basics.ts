@@ -6,7 +6,7 @@ export const terraformBasics: LabDefinition = {
   level: 1,
   title: "Terraform Basics: Write, Plan, Apply",
   category: "Infrastructure as Code",
-  difficulty: "intermediate",
+  difficulty: "beginner",
   summary:
     "Write a Terraform project from scratch — define variables, locals, and a managed resource, then init, validate, plan, and apply it.",
   estimatedMinutes: 20,
