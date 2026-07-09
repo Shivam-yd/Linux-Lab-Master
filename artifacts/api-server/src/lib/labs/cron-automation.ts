@@ -2,6 +2,8 @@ import type { LabDefinition } from "./types";
 
 export const cronAutomation: LabDefinition = {
   id: "cron-automation",
+  track: "linux",
+  level: 3,
   title: "Cron Job Scheduling & Automation",
   category: "Automation",
   difficulty: "intermediate",

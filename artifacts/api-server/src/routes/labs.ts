@@ -19,6 +19,8 @@ router.get("/labs", async (_req, res): Promise<void> => {
   const labs = LABS.map((lab) => ({
     id: lab.id,
     title: lab.title,
+    track: lab.track,
+    level: lab.level,
     category: lab.category,
     difficulty: lab.difficulty,
     summary: lab.summary,
@@ -43,6 +45,8 @@ router.get("/labs/:labId", async (req, res): Promise<void> => {
     GetLabResponse.parse({
       id: lab.id,
       title: lab.title,
+      track: lab.track,
+      level: lab.level,
       category: lab.category,
       difficulty: lab.difficulty,
       summary: lab.summary,

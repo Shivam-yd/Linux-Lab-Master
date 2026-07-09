@@ -192,12 +192,18 @@ components:
     Lab:
       type: object
       required:
-        [id, title, category, difficulty, summary, estimatedMinutes, order]
+        [id, title, track, level, category, difficulty, summary, estimatedMinutes, order]
       properties:
         id:
           type: string
         title:
           type: string
+        track:
+          type: string
+          description: Technology track (e.g. "linux", "terraform")
+        level:
+          type: integer
+          description: Skill tier within the track (1 = foundation, 2 = intermediate, 3 = advanced)
         category:
           type: string
         difficulty:

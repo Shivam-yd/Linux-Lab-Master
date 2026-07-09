@@ -2,6 +2,8 @@ import type { LabDefinition } from "./types";
 
 export const terraformBasics: LabDefinition = {
   id: "terraform-basics",
+  track: "terraform",
+  level: 1,
   title: "Terraform Basics: Write, Plan, Apply",
   category: "Infrastructure as Code",
   difficulty: "intermediate",

@@ -2,6 +2,8 @@ import type { LabDefinition } from "./types";
 
 export const backupScript: LabDefinition = {
   id: "backup-script",
+  track: "linux",
+  level: 3,
   title: "Shell Scripting: Automated Backup Script",
   category: "Automation",
   difficulty: "advanced",

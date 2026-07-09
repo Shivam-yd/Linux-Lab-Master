@@ -23,6 +23,8 @@ export const HealthCheckResponse = zod.object({
 export const ListLabsResponseItem = zod.object({
   "id": zod.string(),
   "title": zod.string(),
+  "track": zod.string().describe('Technology track (e.g. \"linux\", \"terraform\")'),
+  "level": zod.number().describe('Skill tier within the track (1 = foundation, 2 = intermediate, 3 = advanced)'),
   "category": zod.string(),
   "difficulty": zod.enum(['beginner', 'intermediate', 'advanced']),
   "summary": zod.string(),
@@ -42,6 +44,8 @@ export const GetLabParams = zod.object({
 export const GetLabResponse = zod.object({
   "id": zod.string(),
   "title": zod.string(),
+  "track": zod.string().describe('Technology track (e.g. \"linux\", \"terraform\")'),
+  "level": zod.number().describe('Skill tier within the track (1 = foundation, 2 = intermediate, 3 = advanced)'),
   "category": zod.string(),
   "difficulty": zod.enum(['beginner', 'intermediate', 'advanced']),
   "summary": zod.string(),

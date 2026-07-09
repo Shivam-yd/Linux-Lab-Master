@@ -2,6 +2,8 @@ import type { LabDefinition } from "./types";
 
 export const logForensics: LabDefinition = {
   id: "log-forensics",
+  track: "linux",
+  level: 3,
   title: "Log Forensics: Finding the Root Cause",
   category: "Troubleshooting",
   difficulty: "intermediate",

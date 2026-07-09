@@ -2,6 +2,8 @@ import type { LabDefinition } from "./types";
 
 export const userGroupManagement: LabDefinition = {
   id: "user-group-management",
+  track: "linux",
+  level: 2,
   title: "Linux User & Group Management",
   category: "System Administration",
   difficulty: "beginner",

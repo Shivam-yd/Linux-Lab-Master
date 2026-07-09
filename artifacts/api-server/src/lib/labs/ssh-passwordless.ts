@@ -3,6 +3,8 @@ import type { LabDefinition } from "./types";
 export const sshPasswordless: LabDefinition = {
   id: "ssh-passwordless",
   title: "Passwordless SSH Between Two Servers",
+  track: "linux",
+  level: 1,
   category: "Networking",
   difficulty: "beginner",
   summary:

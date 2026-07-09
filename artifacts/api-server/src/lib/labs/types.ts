@@ -10,6 +10,10 @@ export interface LabTerminal {
 export interface LabDefinition {
   id: string;
   title: string;
+  /** Technology track this lab belongs to (e.g. "linux", "terraform"). Used for sidebar grouping. */
+  track: string;
+  /** Skill level tier within the track (1 = foundation, 2 = intermediate, 3 = advanced). */
+  level: number;
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   summary: string;

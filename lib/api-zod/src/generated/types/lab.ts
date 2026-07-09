@@ -10,6 +10,10 @@ import type { LabDifficulty } from './labDifficulty';
 export interface Lab {
   id: string;
   title: string;
+  /** Technology track (e.g. "linux", "terraform") */
+  track: string;
+  /** Skill tier within the track (1 = foundation, 2 = intermediate, 3 = advanced) */
+  level: number;
   category: string;
   difficulty: LabDifficulty;
   summary: string;

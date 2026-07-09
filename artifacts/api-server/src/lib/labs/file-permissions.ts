@@ -2,6 +2,8 @@ import type { LabDefinition } from "./types";
 
 export const filePermissions: LabDefinition = {
   id: "file-permissions",
+  track: "linux",
+  level: 2,
   title: "File Permissions & Ownership Troubleshooting",
   category: "System Administration",
   difficulty: "beginner",
