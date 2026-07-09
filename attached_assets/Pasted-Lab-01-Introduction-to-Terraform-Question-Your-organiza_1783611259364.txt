@@ -1,0 +1,140 @@
+Lab 01 – Introduction to Terraform
+Question
+
+Your organization is adopting Infrastructure as Code (IaC). As part of the onboarding process, you need to create your first Terraform project and verify the complete Terraform workflow from initialization to resource destruction.
+
+The working directory is already created at /root/tf-lab.
+
+Task
+Create a valid Terraform configuration.
+Configure the required provider.
+Create one resource.
+Initialize the project.
+Validate the configuration.
+Preview the execution plan.
+Apply the configuration.
+Verify the resource.
+Destroy the infrastructure.
+Lab 02 – Providers
+Question
+
+Your team wants every Terraform project to explicitly declare its provider configuration to ensure consistency across environments.
+
+The working directory is /root/tf-lab.
+
+Task
+Declare the required provider.
+Configure the provider.
+Create a resource using the provider.
+Initialize provider plugins.
+Verify the provider installation.
+Apply the configuration successfully.
+Lab 03 – Resources
+Question
+
+Your DevOps team has asked you to provision multiple infrastructure resources using Terraform instead of creating them manually.
+
+The working directory is /root/tf-lab.
+
+Task
+Create multiple resources.
+Give each resource a unique name.
+Verify Terraform manages all resources.
+Modify one resource.
+Apply the changes.
+Destroy all resources.
+Lab 04 – Variables
+Question
+
+The same Terraform configuration will be deployed to development, staging, and production. Remove hardcoded values by introducing input variables.
+
+The working directory is /root/tf-lab.
+
+Task
+Define input variables.
+Assign appropriate data types.
+Provide default values where appropriate.
+Use variables in resource definitions.
+Override at least one variable during execution.
+Verify the updated configuration.
+Lab 05 – Outputs
+Question
+
+Your CI/CD pipeline needs information after deployment. Configure Terraform outputs so downstream jobs can retrieve important infrastructure details.
+
+The working directory is /root/tf-lab.
+
+Task
+Create multiple output values.
+Output resource attributes.
+Mark one output as sensitive.
+Verify outputs after deployment.
+Display individual outputs using Terraform CLI.
+Lab 06 – Local Values
+Question
+
+Your organization follows a standard naming convention for all infrastructure resources. Implement reusable naming logic using Terraform local values.
+
+The working directory is /root/tf-lab.
+
+Task
+Create variables for project name, environment, and region.
+Define local values to generate standardized names.
+Use locals within resources.
+Output the generated names.
+Verify the naming convention.
+Lab 07 – Terraform State
+Question
+
+A teammate accidentally removed a managed resource outside Terraform. Investigate how Terraform tracks infrastructure using the state file.
+
+The working directory is /root/tf-lab.
+
+Task
+Deploy infrastructure.
+Inspect the Terraform state.
+List all managed resources.
+Display detailed information for one resource.
+Verify state reflects infrastructure changes.
+Destroy the infrastructure.
+Lab 08 – Built-in Functions
+Question
+
+Your team wants consistent resource names and configuration values. Use Terraform's built-in functions to dynamically generate these values.
+
+The working directory is /root/tf-lab.
+
+Task
+Use multiple built-in functions.
+Format strings dynamically.
+Combine multiple values.
+Transform text using string functions.
+Output the generated values.
+Verify the results.
+Lab 09 – Expressions & Dependencies
+Question
+
+Your infrastructure contains resources that depend on one another. Configure Terraform to manage resource dependencies correctly.
+
+The working directory is /root/tf-lab.
+
+Task
+Create related resources.
+Reference attributes between resources.
+Demonstrate implicit dependencies.
+Add an explicit dependency where required.
+Verify resource creation order.
+Lab 10 – count Meta-Argument
+Question
+
+Your testing environment requires multiple identical resources. Instead of duplicating code, use Terraform's meta-arguments to automate resource creation.
+
+The working directory is /root/tf-lab.
+
+Task
+Create multiple instances of a resource using count.
+Control the number of instances with a variable.
+Modify the instance count.
+Observe the execution plan.
+Apply the changes.
+Destroy the infrastructure.
