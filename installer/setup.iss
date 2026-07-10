@@ -106,11 +106,11 @@ end;
 
 // Generate a random alphanumeric string of the requested length
 function RandomString(Len: Integer): String;
-const
-  Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 var
+  Chars: String;
   I: Integer;
 begin
+  Chars := 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   Result := '';
   for I := 1 to Len do
     Result := Result + Chars[1 + Random(Length(Chars))];
