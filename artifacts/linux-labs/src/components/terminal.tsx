@@ -41,16 +41,27 @@ export function Terminal({ labId, terminalName, className }: TerminalProps) {
       }
     }
 
+    ws.binaryType = "arraybuffer"
     ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        if (msg.type === "output" && msg.data) {
-          xtermRef.current?.write(msg.data)
-        } else if (msg.type === "status" && msg.message) {
-          xtermRef.current?.write(`\x1b[90m\r\n--- ${msg.message} ---\x1b[0m\r\n`)
+      // Binary framing: first byte = message type
+      //   0x01 — raw terminal output (write directly to xterm)
+      //   0x02 — control/status JSON (low frequency)
+      if (event.data instanceof ArrayBuffer) {
+        const buf = new Uint8Array(event.data)
+        if (buf.length === 0) return
+        if (buf[0] === 0x01) {
+          // Fast path: write raw bytes directly — no JSON parse
+          xtermRef.current?.write(buf.slice(1))
+        } else if (buf[0] === 0x02) {
+          try {
+            const msg = JSON.parse(new TextDecoder().decode(buf.slice(1)))
+            if (msg.type === "status" && msg.message) {
+              xtermRef.current?.write(`\x1b[90m\r\n--- ${msg.message} ---\x1b[0m\r\n`)
+            }
+          } catch {
+            // Ignore malformed control frames
+          }
         }
-      } catch (err) {
-        // Ignore JSON parse errors or malformed frames
       }
     }
 

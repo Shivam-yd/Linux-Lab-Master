@@ -10,10 +10,27 @@ type ClientMessage =
   | { type: "input"; data: string }
   | { type: "resize"; cols: number; rows: number };
 
-function sendJson(ws: WebSocket, payload: unknown): void {
-  if (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(payload));
-  }
+// Binary framing protocol (avoids JSON parse/stringify on the hot output path):
+//   0x01 <raw bytes>  — terminal output
+//   0x02 <utf-8 json> — control/status message (low frequency)
+const MSG_OUTPUT  = 0x01;
+const MSG_CONTROL = 0x02;
+
+function sendOutput(ws: WebSocket, chunk: Buffer): void {
+  if (ws.readyState !== WebSocket.OPEN) return;
+  const frame = Buffer.allocUnsafe(1 + chunk.length);
+  frame[0] = MSG_OUTPUT;
+  chunk.copy(frame, 1);
+  ws.send(frame);
+}
+
+function sendControl(ws: WebSocket, payload: unknown): void {
+  if (ws.readyState !== WebSocket.OPEN) return;
+  const json = Buffer.from(JSON.stringify(payload), "utf8");
+  const frame = Buffer.allocUnsafe(1 + json.length);
+  frame[0] = MSG_CONTROL;
+  json.copy(frame, 1);
+  ws.send(frame);
 }
 
 export function attachTerminalWebSocketServer(server: HttpServer): void {
@@ -62,7 +79,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
     return;
   }
 
-  sendJson(ws, { type: "status", message: `Connected to ${terminalName}.` });
+  sendControl(ws, { type: "status", message: `Connected to ${terminalName}.` });
 
   try {
     const shell = lab.shell ?? "sh";
@@ -78,13 +95,13 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
     const stream = await exec.start({ hijack: true, stdin: true, Tty: true });
 
     stream.on("data", (chunk: Buffer) => {
-      sendJson(ws, { type: "output", data: chunk.toString("utf8") });
+      sendOutput(ws, chunk);
     });
     stream.on("error", (err: Error) => {
       logger.warn({ err, labId, studentId, terminalName }, "Terminal exec stream error");
     });
     stream.on("end", () => {
-      sendJson(ws, { type: "status", message: "Session ended." });
+      sendControl(ws, { type: "status", message: "Session ended." });
       ws.close();
     });
 
@@ -109,7 +126,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
     });
   } catch (err) {
     logger.error({ err, labId, studentId, terminalName }, "Failed to attach terminal exec session");
-    sendJson(ws, { type: "status", message: "Failed to attach to the sandbox terminal." });
+    sendControl(ws, { type: "status", message: "Failed to attach to the sandbox terminal." });
     ws.close();
   }
 }
