@@ -60,7 +60,7 @@ terminals:
     cwd: "/root"
 
 setupScript: |
-  apt-get update -qq && apt-get install -y -qq cron at nano
+  apt-get update -qq && apt-get install -y -qq cron at nano procps
   export EDITOR=nano
   echo "export EDITOR=nano" >> /root/.bashrc
   update-alternatives --set editor /bin/nano
