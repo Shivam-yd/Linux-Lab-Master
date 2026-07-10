@@ -60,9 +60,13 @@ terminals:
     cwd: "/root"
 
 setupScript: |
-  apt-get update -qq && apt-get install -y -qq cron at
+  apt-get update -qq && apt-get install -y -qq cron at nano
+  export EDITOR=nano
+  echo "export EDITOR=nano" >> /root/.bashrc
+  update-alternatives --set editor /bin/nano
   service cron start
-  echo "Cron lab ready. cron and at are installed." > /etc/motd
+  service atd start
+  echo "Cron lab ready. cron and at are installed. EDITOR is set to nano." > /etc/motd
 
 verifyScript: |
   # CHECK: install-crontab
@@ -87,7 +91,8 @@ verifyScript: |
   fi
 
 hints:
-  - "Use `crontab -e` and add: `* * * * * date >> /var/log/heartbeat-cron.log`"
+  - "Use `crontab -e` (opens nano) and add: `* * * * * date >> /var/log/heartbeat-cron.log`, then save with Ctrl+O, Enter, and exit with Ctrl+X"
+  - "Prefer not to use an editor? `(crontab -l 2>/dev/null; echo '* * * * * date >> /var/log/heartbeat-cron.log') | crontab -`"
   - "Wait ~60s after installing the crontab, then check `cat /var/log/heartbeat-cron.log`"
   - "Schedule an at job with: `echo \"echo scheduled-task-ran > /root/at-output.txt\" | at now + 1 minute`"
   - "If `atd` isn't running, start it with `service atd start`"
