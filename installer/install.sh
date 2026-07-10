@@ -151,6 +151,7 @@ docker pull ubuntu:24.04
 docker pull alpine:latest
 docker pull hashicorp/terraform:1.9
 docker pull rastasheep/ubuntu-sshd:18.04
+docker pull localstack/localstack:latest
 success "Lab images ready"
 
 # ── Step 6: Install systemd service ───────────────────────────────────────────
