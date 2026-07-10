@@ -25,6 +25,10 @@ instructions: |
   `cron` runs recurring jobs on a schedule; `at` runs a job once at a future
   time. Every Linux sysadmin needs to be comfortable scheduling both.
 
+  This sandbox is Alpine Linux, so cron is provided by BusyBox's
+  `crond`/`crontab`. There's no text editor besides BusyBox's minimal `vi`,
+  so avoid `crontab -e` and pipe entries straight into `crontab -` instead.
+
   ### Cron expression format
 
   ```
@@ -41,7 +45,7 @@ instructions: |
 
   ```bash
   crontab -l       # list current user's cron jobs
-  crontab -e       # edit current user's cron jobs
+  crontab -e       # edit current user's cron jobs (opens vi — avoid in-browser)
   ```
 
 tasks:
@@ -52,21 +56,34 @@ tasks:
   - id: "schedule-at-job"
     description: "Use the at command to schedule a one-off job that writes 'scheduled-task-ran' to /root/at-output.txt"
 
-image: "ubuntu:24.04"
-shell: "bash"
+image: "alpine:latest"
+shell: "sh"
 terminals:
   - name: "Terminal"
     user: "root"
     cwd: "/root"
 
 setupScript: |
-  apt-get update -qq && apt-get install -y -qq cron at nano procps
-  export EDITOR=nano
-  echo "export EDITOR=nano" >> /root/.bashrc
-  update-alternatives --set editor /bin/nano
-  service cron start
-  service atd start
-  echo "Cron lab ready. cron and at are installed. EDITOR is set to nano." > /etc/motd
+  mkdir -p /var/log /var/spool/at
+  # Alpine's BusyBox has crond/crontab built in, but no `at` — there's no
+  # network access in this sandbox to apt/apk install one, so provide a
+  # minimal at(1)-compatible shim: it reads a job from stdin and runs it
+  # after the delay parsed from "now + N minute(s)|hour(s)".
+  cat > /usr/local/bin/at <<'EOF'
+  #!/bin/sh
+  args="$*"
+  delay=0
+  case "$args" in
+    *hour*) n=$(echo "$args" | grep -oE '[0-9]+' | head -1); delay=$((n * 3600)) ;;
+    *minute*) n=$(echo "$args" | grep -oE '[0-9]+' | head -1); delay=$((n * 60)) ;;
+  esac
+  job=$(cat)
+  ( sleep "$delay"; sh -c "$job" ) >/var/spool/at/last.log 2>&1 &
+  echo "job $! scheduled at now $args"
+  EOF
+  chmod +x /usr/local/bin/at
+  crond
+  echo "Cron lab ready. crond is running and at is available." > /etc/motd
 
 verifyScript: |
   # CHECK: install-crontab
@@ -77,7 +94,7 @@ verifyScript: |
   fi
 
   # CHECK: verify-cron-running
-  if pgrep cron >/dev/null && [ -f /var/log/heartbeat-cron.log ]; then
+  if pgrep crond >/dev/null && [ -f /var/log/heartbeat-cron.log ]; then
     echo "CHECK:verify-cron-running:PASS:cron daemon running and log file exists"
   else
     echo "CHECK:verify-cron-running:FAIL:cron daemon not running or log file missing"
@@ -91,8 +108,7 @@ verifyScript: |
   fi
 
 hints:
-  - "Use `crontab -e` (opens nano) and add: `* * * * * date >> /var/log/heartbeat-cron.log`, then save with Ctrl+O, Enter, and exit with Ctrl+X"
-  - "Prefer not to use an editor? `(crontab -l 2>/dev/null; echo '* * * * * date >> /var/log/heartbeat-cron.log') | crontab -`"
+  - "Add the crontab entry without an editor: `(crontab -l 2>/dev/null; echo '* * * * * date >> /var/log/heartbeat-cron.log') | crontab -`"
   - "Wait ~60s after installing the crontab, then check `cat /var/log/heartbeat-cron.log`"
   - "Schedule an at job with: `echo \"echo scheduled-task-ran > /root/at-output.txt\" | at now + 1 minute`"
-  - "If `atd` isn't running, start it with `service atd start`"
+  - "If crond isn't running, start it with `crond`"
