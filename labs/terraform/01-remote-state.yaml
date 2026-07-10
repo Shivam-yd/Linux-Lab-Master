@@ -1,0 +1,136 @@
+id: "terraform-remote-state"
+title: "Remote State with S3 Backend"
+track: "terraform"
+level: 2
+category: "State Management"
+difficulty: "intermediate"
+summary: "Configure an S3 backend for Terraform state, enable state locking with DynamoDB, and migrate existing local state."
+estimatedMinutes: 40
+order: 300
+
+objectives:
+  - "Understand why remote state is essential for team workflows"
+  - "Configure an S3 backend with a DynamoDB lock table"
+  - "Run terraform init to migrate local state to the remote backend"
+  - "Inspect and manipulate state with terraform state commands"
+
+instructions: |
+  ## Remote State with S3 Backend
+
+  By default Terraform stores state in a local `terraform.tfstate` file.  This
+  works fine for solo projects but breaks down in teams: two people running
+  `apply` simultaneously can corrupt state.
+
+  **Remote backends** solve this by:
+  - Storing state in a shared, versioned location (S3)
+  - Locking state during operations so only one apply runs at a time (DynamoDB)
+
+  ### Backend configuration
+
+  ```hcl
+  terraform {
+    backend "s3" {
+      bucket         = "my-tf-state-bucket"
+      key            = "envs/prod/terraform.tfstate"
+      region         = "us-east-1"
+      dynamodb_table = "terraform-lock"
+      encrypt        = true
+    }
+  }
+  ```
+
+  In this lab we use **LocalStack** (an AWS emulator running in the container)
+  so you can practise the full workflow without real AWS credentials.
+
+tasks:
+  - id: "write-backend"
+    description: "Write a backend.tf that configures the S3 backend pointing at LocalStack (endpoint http://localhost:4566)"
+  - id: "create-bucket"
+    description: "Create the S3 bucket 'tf-state-lab' in LocalStack using the AWS CLI"
+  - id: "init-migrate"
+    description: "Run terraform init to initialise the S3 backend (use -migrate-state if local state exists)"
+  - id: "state-list"
+    description: "Run terraform state list and save the output to /root/state-list.txt"
+
+image: "localstack/localstack:latest"
+entrypoint: ["/bin/bash"]
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/lab"
+
+setupScript: |
+  mkdir -p /root/lab
+  cat > /root/lab/main.tf <<'EOF'
+  terraform {
+    required_providers {
+      aws = { source = "hashicorp/aws", version = "~> 5.0" }
+    }
+  }
+
+  provider "aws" {
+    region                      = "us-east-1"
+    access_key                  = "test"
+    secret_key                  = "test"
+    skip_credentials_validation = true
+    skip_metadata_api_check     = true
+    skip_requesting_account_id  = true
+    endpoints {
+      s3       = "http://localhost:4566"
+      dynamodb = "http://localhost:4566"
+    }
+  }
+
+  resource "aws_s3_bucket" "example" {
+    bucket = "my-example-bucket"
+  }
+  EOF
+
+  # Start LocalStack in the background
+  localstack start -d 2>/dev/null || true
+  sleep 5
+
+  # Install Terraform
+  wget -q https://releases.hashicorp.com/terraform/1.9.0/terraform_1.9.0_linux_amd64.zip
+  unzip -q terraform_1.9.0_linux_amd64.zip -d /usr/local/bin
+  rm terraform_1.9.0_linux_amd64.zip
+
+  echo "Lab ready — LocalStack running, Terraform installed"
+
+verifyScript: |
+  cd /root/lab
+
+  # CHECK: write-backend
+  if grep -q "backend \"s3\"" backend.tf 2>/dev/null && grep -q "localhost:4566" backend.tf; then
+    echo "CHECK:write-backend:PASS:backend.tf configures S3 with LocalStack endpoint"
+  else
+    echo "CHECK:write-backend:FAIL:backend.tf missing or doesn't reference localhost:4566"
+  fi
+
+  # CHECK: create-bucket
+  if aws --endpoint-url=http://localhost:4566 s3 ls s3://tf-state-lab 2>/dev/null; then
+    echo "CHECK:create-bucket:PASS:tf-state-lab bucket exists in LocalStack"
+  else
+    echo "CHECK:create-bucket:FAIL:tf-state-lab bucket not found in LocalStack"
+  fi
+
+  # CHECK: init-migrate
+  if [[ -f .terraform/terraform.tfstate ]] || [[ -d .terraform/providers ]]; then
+    echo "CHECK:init-migrate:PASS:terraform init completed (.terraform directory exists)"
+  else
+    echo "CHECK:init-migrate:FAIL:.terraform directory not found — did you run terraform init?"
+  fi
+
+  # CHECK: state-list
+  if [[ -f /root/state-list.txt ]]; then
+    echo "CHECK:state-list:PASS:/root/state-list.txt exists"
+  else
+    echo "CHECK:state-list:FAIL:/root/state-list.txt not found — run: terraform state list > /root/state-list.txt"
+  fi
+
+hints:
+  - "backend.tf needs: bucket, key, region, endpoint (http://localhost:4566), skip_credentials_validation = true"
+  - "Create the bucket: `aws --endpoint-url=http://localhost:4566 s3 mb s3://tf-state-lab`"
+  - "Init with migration: `terraform init -migrate-state` (answer 'yes' when prompted)"
+  - "State list: `terraform state list > /root/state-list.txt`"

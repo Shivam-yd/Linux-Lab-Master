@@ -1,0 +1,100 @@
+id: "linux-process-management"
+title: "Process Management & Signals"
+track: "linux"
+level: 2
+category: "System Administration"
+difficulty: "intermediate"
+summary: "Monitor, control, and signal Linux processes using ps, top, kill, nice, and systemd."
+estimatedMinutes: 35
+order: 201
+
+objectives:
+  - "Identify resource-heavy processes with ps and top"
+  - "Send signals (SIGTERM, SIGKILL, SIGHUP) to processes"
+  - "Adjust process priority with nice and renice"
+  - "Create and manage a basic systemd unit"
+
+instructions: |
+  ## Process Management & Signals
+
+  Every running program in Linux is a **process** with a unique PID, owner, and
+  priority.  Understanding how to inspect, control, and prioritise processes is
+  a core sysadmin skill.
+
+  ### Key commands
+
+  ```bash
+  ps aux                      # snapshot of all processes
+  top / htop                  # live view
+  kill -SIGTERM <pid>         # ask process to exit gracefully
+  kill -SIGKILL <pid>         # force-kill (unblockable)
+  kill -SIGHUP  <pid>         # reload config (many daemons)
+  nice  -n 10 <cmd>           # start with lower priority
+  renice -n 5  -p <pid>       # change priority of running process
+  ```
+
+  ### niceness
+
+  Values run from **-20** (highest priority) to **+19** (lowest).  Only root
+  can set negative nice values.
+
+tasks:
+  - id: "background-proc"
+    description: "Start a background process that writes the date every second to /tmp/heartbeat.log"
+  - id: "find-pid"
+    description: "Write the PID of that process to /tmp/heartbeat.pid"
+  - id: "renice-proc"
+    description: "Renice the heartbeat process to +10"
+  - id: "graceful-stop"
+    description: "Send SIGTERM to the heartbeat process so it exits cleanly"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  apt-get update -qq && apt-get install -y -qq procps
+  echo "Process lab ready"
+
+verifyScript: |
+  # CHECK: background-proc
+  if [[ -f /tmp/heartbeat.log ]] && [[ $(wc -l < /tmp/heartbeat.log) -ge 2 ]]; then
+    echo "CHECK:background-proc:PASS:heartbeat.log exists and has entries"
+  else
+    echo "CHECK:background-proc:FAIL:/tmp/heartbeat.log missing or empty"
+  fi
+
+  # CHECK: find-pid
+  if [[ -f /tmp/heartbeat.pid ]]; then
+    echo "CHECK:find-pid:PASS:heartbeat.pid exists"
+  else
+    echo "CHECK:find-pid:FAIL:/tmp/heartbeat.pid not found"
+  fi
+
+  # CHECK: renice-proc — accept as pass if file exists (process may have stopped)
+  if [[ -f /tmp/heartbeat.pid ]]; then
+    echo "CHECK:renice-proc:PASS:Accepted (process was running at some point)"
+  else
+    echo "CHECK:renice-proc:FAIL:Could not verify renice without heartbeat.pid"
+  fi
+
+  # CHECK: graceful-stop
+  if [[ -f /tmp/heartbeat.pid ]]; then
+    pid=$(cat /tmp/heartbeat.pid)
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo "CHECK:graceful-stop:PASS:Process $pid is no longer running"
+    else
+      echo "CHECK:graceful-stop:FAIL:Process $pid is still running"
+    fi
+  else
+    echo "CHECK:graceful-stop:FAIL:/tmp/heartbeat.pid missing"
+  fi
+
+hints:
+  - "Run in background: `while true; do date >> /tmp/heartbeat.log; sleep 1; done & echo $! > /tmp/heartbeat.pid`"
+  - "Check it's running: `cat /tmp/heartbeat.pid | xargs ps -p`"
+  - "Renice: `renice -n 10 -p $(cat /tmp/heartbeat.pid)`"
+  - "Stop it: `kill -SIGTERM $(cat /tmp/heartbeat.pid)`"

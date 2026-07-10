@@ -62,3 +62,32 @@ export const insertLabProgressSchema = createInsertSchema(
 ).omit({ id: true, updatedAt: true });
 export type InsertLabProgress = z.infer<typeof insertLabProgressSchema>;
 export type LabProgressRow = typeof labProgressTable.$inferSelect;
+
+// ─── Remote labs (fetched from GitHub) ───────────────────────────────────────
+
+/** One row per lab pulled from the GitHub repo — definition stored as JSONB. */
+export const remoteLabsTable = pgTable("remote_labs", {
+  id: text("id").primaryKey(), // matches LabDefinition.id
+  definition: jsonb("definition").notNull(), // full LabDefinition serialised
+  sha: text("sha"), // GitHub blob SHA — used to skip unchanged files
+  syncedAt: timestamp("synced_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+export type RemoteLabRow = typeof remoteLabsTable.$inferSelect;
+
+/** One row written after every sync attempt (background or manual). */
+export const labSyncLogTable = pgTable("lab_sync_log", {
+  id: serial("id").primaryKey(),
+  status: text("status").notNull(), // "success" | "error"
+  labsAdded: integer("labs_added").notNull().default(0),
+  labsUpdated: integer("labs_updated").notNull().default(0),
+  totalRemote: integer("total_remote").notNull().default(0),
+  errorMessage: text("error_message"),
+  triggeredBy: text("triggered_by").notNull().default("auto"), // "auto" | "manual"
+  syncedAt: timestamp("synced_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+export type LabSyncLogRow = typeof labSyncLogTable.$inferSelect;

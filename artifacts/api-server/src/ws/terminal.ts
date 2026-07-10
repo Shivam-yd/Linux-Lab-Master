@@ -1,7 +1,7 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import type { Duplex } from "node:stream";
-import { getLabById } from "../lib/labs/registry";
+import { getLabByIdAsync } from "../lib/labs/registry";
 import { getRunningContainer } from "../lib/docker/manager";
 import { studentIdFromCookieHeader } from "../middleware/student";
 import { logger } from "../lib/logger";
@@ -64,7 +64,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
     return;
   }
 
-  const lab = getLabById(labId);
+  const lab = await getLabByIdAsync(labId);
   const terminal = lab?.terminals.find((t) => t.name === terminalName);
   if (!lab || !terminal) {
     sendJson(ws, { type: "status", message: "Unknown lab or terminal." });

@@ -7,7 +7,7 @@ import {
   labProgressTable,
   type LabSessionRow,
 } from "@workspace/db/schema";
-import { getLabById } from "../labs/registry";
+import { getLabByIdAsync } from "../labs/registry";
 import { logger } from "../logger";
 
 const docker = new Docker({ socketPath: "/var/run/docker.sock" });
@@ -92,7 +92,7 @@ export async function getSessionRow(studentId: string, labId: string): Promise<L
 }
 
 export async function startSession(studentId: string, labId: string): Promise<LabSessionRow> {
-  const lab = getLabById(labId);
+  const lab = await getLabByIdAsync(labId);
   if (!lab) throw new Error(`Unknown lab: ${labId}`);
 
   const name = containerName(studentId, labId);
@@ -194,7 +194,7 @@ export async function verifyLab(
   studentId: string,
   labId: string,
 ): Promise<{ id: string; passed: boolean; message: string }[]> {
-  const lab = getLabById(labId);
+  const lab = await getLabByIdAsync(labId);
   if (!lab) throw new Error(`Unknown lab: ${labId}`);
   const container = await getRunningContainer(studentId, labId);
   if (!container) {

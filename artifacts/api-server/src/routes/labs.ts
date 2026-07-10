@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { labProgressTable } from "@workspace/db/schema";
 import {
@@ -8,15 +8,19 @@ import {
   GetLabResponse,
   ListProgressResponse,
 } from "@workspace/api-zod";
-import { LABS, getLabById } from "../lib/labs/registry";
+import { getAllLabs, getLabByIdAsync } from "../lib/labs/registry";
+import { runSync, getLastSyncStatus } from "../lib/github-sync";
 import { studentIdentity } from "../middleware/student";
 
 const router: IRouter = Router();
 
 router.use(studentIdentity);
 
+// ── Lab listing ───────────────────────────────────────────────────────────────
+
 router.get("/labs", async (_req, res): Promise<void> => {
-  const labs = LABS.map((lab) => ({
+  const all = await getAllLabs();
+  const labs = all.map((lab) => ({
     id: lab.id,
     title: lab.title,
     track: lab.track,
@@ -36,7 +40,7 @@ router.get("/labs/:labId", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const lab = getLabById(params.data.labId);
+  const lab = await getLabByIdAsync(params.data.labId);
   if (!lab) {
     res.status(404).json({ error: "Lab not found" });
     return;
@@ -60,14 +64,17 @@ router.get("/labs/:labId", async (req, res): Promise<void> => {
   );
 });
 
+// ── Student progress ──────────────────────────────────────────────────────────
+
 router.get("/progress", async (req, res): Promise<void> => {
+  const all = await getAllLabs();
   const rows = await db
     .select()
     .from(labProgressTable)
     .where(eq(labProgressTable.studentId, req.studentId));
 
   const byLabId = new Map(rows.map((r) => [r.labId, r]));
-  const progress = LABS.map((lab) => {
+  const progress = all.map((lab) => {
     const row = byLabId.get(lab.id);
     return {
       labId: lab.id,
@@ -78,6 +85,34 @@ router.get("/progress", async (req, res): Promise<void> => {
     };
   });
   res.json(ListProgressResponse.parse(progress));
+});
+
+// ── GitHub sync ───────────────────────────────────────────────────────────────
+
+/** GET /labs/sync/status — last sync info + total remote lab count */
+router.get("/labs/sync/status", async (_req, res): Promise<void> => {
+  try {
+    const status = await getLastSyncStatus();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to get sync status" });
+  }
+});
+
+/** POST /labs/sync — trigger an immediate sync from GitHub */
+router.post("/labs/sync", async (_req, res): Promise<void> => {
+  try {
+    const result = await runSync("manual");
+    // Surface sync errors as HTTP 502 so the frontend can distinguish
+    // "sync ran but GitHub had an error" from "lab list fetch failed"
+    if (result.status === "error") {
+      res.status(502).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Sync failed unexpectedly" });
+  }
 });
 
 export default router;

@@ -10,7 +10,7 @@ import {
   VerifyLabParams,
   VerifyLabResponse,
 } from "@workspace/api-zod";
-import { getLabById } from "../lib/labs/registry";
+import { getLabByIdAsync } from "../lib/labs/registry";
 import { studentIdentity } from "../middleware/student";
 import {
   getSessionRow,
@@ -42,7 +42,7 @@ router.get("/labs/:labId/session", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const lab = getLabById(params.data.labId);
+  const lab = await getLabByIdAsync(params.data.labId);
   if (!lab) {
     res.status(404).json({ error: "Lab not found" });
     return;
@@ -65,7 +65,7 @@ router.post("/labs/:labId/session", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const lab = getLabById(params.data.labId);
+  const lab = await getLabByIdAsync(params.data.labId);
   if (!lab) {
     res.status(404).json({ error: "Lab not found" });
     return;
@@ -88,7 +88,7 @@ router.delete("/labs/:labId/session", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const lab = getLabById(params.data.labId);
+  const lab = await getLabByIdAsync(params.data.labId);
   if (!lab) {
     res.status(404).json({ error: "Lab not found" });
     return;
@@ -103,7 +103,7 @@ router.post("/labs/:labId/session/reset", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const lab = getLabById(params.data.labId);
+  const lab = await getLabByIdAsync(params.data.labId);
   if (!lab) {
     res.status(404).json({ error: "Lab not found" });
     return;
@@ -126,7 +126,7 @@ router.post("/labs/:labId/verify", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const lab = getLabById(params.data.labId);
+  const lab = await getLabByIdAsync(params.data.labId);
   if (!lab) {
     res.status(404).json({ error: "Lab not found" });
     return;

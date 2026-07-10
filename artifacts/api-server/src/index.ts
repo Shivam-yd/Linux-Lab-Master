@@ -32,3 +32,8 @@ server.listen(port, () => {
 // request time). Runs after listen() so the health check isn't blocked
 // on image pulls.
 void warmLabImages(docker);
+
+// Start polling GitHub for new/updated lab definitions every 10 minutes.
+// Also runs once 5 s after startup so remote labs appear quickly.
+import { startBackgroundSync } from "./lib/github-sync";
+startBackgroundSync();

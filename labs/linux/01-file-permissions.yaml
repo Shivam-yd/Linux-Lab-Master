@@ -1,0 +1,106 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: File Permissions Deep Dive
+# Push this file to your GitHub repo and it will appear in the app automatically.
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-file-permissions-deep"
+title: "File Permissions Deep Dive"
+track: "linux"
+level: 2
+category: "Security"
+difficulty: "intermediate"
+summary: "Master Unix file permissions, special bits (SUID/SGID/sticky), and ACLs to secure a multi-user system."
+estimatedMinutes: 45
+order: 200
+
+objectives:
+  - "Read and interpret octal and symbolic permission notation"
+  - "Apply SUID, SGID, and sticky-bit flags correctly"
+  - "Use setfacl/getfacl to grant granular access without changing group ownership"
+  - "Audit a directory tree for world-writable or SUID files"
+
+instructions: |
+  ## File Permissions Deep Dive
+
+  Linux uses a three-tier permission model (owner / group / others) plus three
+  special bits (SUID, SGID, sticky).  In this lab you will configure a shared
+  project directory that enforces least-privilege access for a team of users.
+
+  ### Background
+
+  | Notation | Octal | Effect on file | Effect on directory |
+  |---|---|---|---|
+  | SUID (`s`) | 4000 | Runs as file owner | — |
+  | SGID (`s`) | 2000 | Runs as file group | New files inherit group |
+  | Sticky (`t`) | 1000 | — | Only owner can delete own files |
+
+  ### ACLs
+
+  Standard Unix permissions allow one owner and one group.  **ACLs** let you
+  grant access to additional users/groups without changing ownership:
+
+  ```bash
+  setfacl -m u:alice:rw /shared/report.txt
+  getfacl /shared/report.txt
+  ```
+
+tasks:
+  - id: "create-shared-dir"
+    description: "Create /shared/project owned by root:devteam with SGID set and permissions 2775"
+  - id: "sticky-tmp"
+    description: "Set the sticky bit on /shared/uploads so only file owners can delete their own files"
+  - id: "acl-readonly"
+    description: "Grant user 'auditor' read-only ACL access to /shared/project without changing group ownership"
+  - id: "find-suid"
+    description: "Find all SUID binaries in /usr/bin and save the list to /root/suid-report.txt"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  apt-get update -qq && apt-get install -y -qq acl
+  groupadd devteam 2>/dev/null || true
+  useradd -m -G devteam alice 2>/dev/null || true
+  useradd -m auditor 2>/dev/null || true
+  mkdir -p /shared/project /shared/uploads
+  echo "Lab ready. Users: alice (devteam), auditor" > /etc/motd
+
+verifyScript: |
+  # CHECK: create-shared-dir
+  if stat -c "%G %a" /shared/project 2>/dev/null | grep -q "devteam 2775"; then
+    echo "CHECK:create-shared-dir:PASS:SGID directory configured correctly"
+  else
+    echo "CHECK:create-shared-dir:FAIL:Expected group=devteam, perms=2775 on /shared/project"
+  fi
+
+  # CHECK: sticky-tmp
+  perms=$(stat -c "%a" /shared/uploads 2>/dev/null)
+  if [[ "$perms" == *1* ]]; then
+    echo "CHECK:sticky-tmp:PASS:Sticky bit is set on /shared/uploads"
+  else
+    echo "CHECK:sticky-tmp:FAIL:Sticky bit not found on /shared/uploads (got $perms)"
+  fi
+
+  # CHECK: acl-readonly
+  if getfacl /shared/project 2>/dev/null | grep -q "user:auditor:r--"; then
+    echo "CHECK:acl-readonly:PASS:ACL grants auditor read-only access"
+  else
+    echo "CHECK:acl-readonly:FAIL:No read-only ACL entry for 'auditor' on /shared/project"
+  fi
+
+  # CHECK: find-suid
+  if [[ -f /root/suid-report.txt ]] && grep -q "/" /root/suid-report.txt; then
+    echo "CHECK:find-suid:PASS:SUID report written to /root/suid-report.txt"
+  else
+    echo "CHECK:find-suid:FAIL:/root/suid-report.txt missing or empty"
+  fi
+
+hints:
+  - "Use `chmod 2775 /shared/project` to set SGID + rwxrwxr-x, then `chown root:devteam /shared/project`"
+  - "Sticky bit: `chmod +t /shared/uploads` or `chmod 1777 /shared/uploads`"
+  - "ACL: `setfacl -m u:auditor:r-x /shared/project`"
+  - "Find SUID files: `find /usr/bin -perm -4000 -type f > /root/suid-report.txt`"

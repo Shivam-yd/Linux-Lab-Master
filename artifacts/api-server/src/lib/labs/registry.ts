@@ -28,8 +28,12 @@ import { terraformL1State } from "./terraform-l1-state";
 import { terraformL1Functions } from "./terraform-l1-functions";
 import { terraformL1Dependencies } from "./terraform-l1-dependencies";
 import { terraformL1Count } from "./terraform-l1-count";
+import { db } from "@workspace/db";
+import { remoteLabsTable } from "@workspace/db/schema";
 
-export const LABS: LabDefinition[] = [
+// ── Hardcoded labs (always available) ─────────────────────────────────────────
+
+export const BUILTIN_LABS: LabDefinition[] = [
   sshPasswordless,
   userGroupManagement,
   filePermissions,
@@ -61,8 +65,53 @@ export const LABS: LabDefinition[] = [
   terraformL1Count,
 ].sort((a, b) => a.order - b.order);
 
-const LABS_BY_ID = new Map(LABS.map((lab) => [lab.id, lab]));
+// Keep the synchronous export for any code that only needs built-ins
+// (e.g. warmLabImages).  Routes should call getAllLabs() instead.
+export const LABS = BUILTIN_LABS;
 
+// ── Remote labs (fetched from GitHub, stored in DB) ───────────────────────────
+
+/** Returns labs stored in the remote_labs table. */
+async function getRemoteLabs(): Promise<LabDefinition[]> {
+  try {
+    const rows = await db.select().from(remoteLabsTable);
+    return rows.map((r) => r.definition as unknown as LabDefinition);
+  } catch {
+    // DB might not be ready during very early startup — fail gracefully
+    return [];
+  }
+}
+
+/**
+ * Returns the merged lab list: built-in labs + remote labs from GitHub.
+ * Remote labs with the same ID as a built-in lab override the built-in.
+ * Result is sorted by `order` ascending.
+ */
+export async function getAllLabs(): Promise<LabDefinition[]> {
+  const remote = await getRemoteLabs();
+  const remoteById = new Map(remote.map((l) => [l.id, l]));
+
+  // Start with built-ins, override any whose ID exists in remote
+  const merged = BUILTIN_LABS.map((l) => remoteById.get(l.id) ?? l);
+  // Append remote labs that aren't in built-ins
+  for (const lab of remote) {
+    if (!BUILTIN_LABS.some((b) => b.id === lab.id)) {
+      merged.push(lab);
+    }
+  }
+  return merged.sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Looks up a lab by ID — checks remote first, then built-ins.
+ * Use this in routes so GitHub-pushed labs are always found.
+ */
+export async function getLabByIdAsync(labId: string): Promise<LabDefinition | undefined> {
+  const all = await getAllLabs();
+  return all.find((l) => l.id === labId);
+}
+
+/** Synchronous lookup (built-ins only) — kept for backward compatibility. */
 export function getLabById(labId: string): LabDefinition | undefined {
-  return LABS_BY_ID.get(labId);
+  return BUILTIN_LABS.find((l) => l.id === labId);
 }

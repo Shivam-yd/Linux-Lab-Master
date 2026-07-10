@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { Link, useLocation } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
@@ -7,9 +7,48 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
-  Award, Hourglass, Unlock, Zap, Server
+  Award, Hourglass, Unlock, Zap, Server, RefreshCw, CloudDownload, Github
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// ── GitHub sync helpers ───────────────────────────────────────────────────────
+interface SyncStatus {
+  lastSync: {
+    status: "success" | "error"
+    labsAdded: number
+    labsUpdated: number
+    totalRemote: number
+    errorMessage: string | null
+    triggeredBy: string
+    syncedAt: string
+  } | null
+  totalRemote: number
+}
+
+async function fetchSyncStatus(): Promise<SyncStatus> {
+  const res = await fetch(`${import.meta.env.BASE_URL}api/labs/sync/status`, { credentials: "include" })
+  if (!res.ok) throw new Error("Failed to fetch sync status")
+  return res.json()
+}
+
+async function triggerSync(): Promise<{ status: string; labsAdded: number; labsUpdated: number; totalRemote: number; errorMessage?: string }> {
+  const res = await fetch(`${import.meta.env.BASE_URL}api/labs/sync`, { method: "POST", credentials: "include" })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok || body.status === "error") {
+    throw new Error(body.errorMessage ?? body.error ?? "Sync failed")
+  }
+  return body
+}
+
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
 
 // ─────────────────────────────────────────
 // Track metadata
@@ -54,9 +93,44 @@ const DIFFICULTY_BADGE: Record<string, string> = {
 }
 
 export default function Catalog() {
-  const { data: labs, isLoading: labsLoading } = useListLabs()
-  const { data: progress, isLoading: progressLoading } = useListProgress()
+  const { data: labs, isLoading: labsLoading, refetch: refetchLabs } = useListLabs()
+  const { data: progress, isLoading: progressLoading, refetch: refetchProgress } = useListProgress()
   const loading = labsLoading || progressLoading
+
+  // ── GitHub sync state ──────────────────────────────────────────────────────
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchSyncStatus().then(setSyncStatus).catch(() => {})
+  }, [])
+
+  const handleFetchLabs = useCallback(async () => {
+    setSyncing(true)
+    setSyncMessage(null)
+    try {
+      const result = await triggerSync()
+      const added   = result.labsAdded   ?? 0
+      const updated = result.labsUpdated ?? 0
+      if (added === 0 && updated === 0) {
+        setSyncMessage("Already up to date")
+      } else {
+        const parts = []
+        if (added   > 0) parts.push(`${added} new`)
+        if (updated > 0) parts.push(`${updated} updated`)
+        setSyncMessage(`✓ ${parts.join(", ")} lab${(added + updated) !== 1 ? "s" : ""} synced`)
+      }
+      const fresh = await fetchSyncStatus()
+      setSyncStatus(fresh)
+      await refetchLabs()
+      await refetchProgress()
+    } catch {
+      setSyncMessage("✗ Sync failed — check network or repo")
+    } finally {
+      setSyncing(false)
+    }
+  }, [refetchLabs, refetchProgress])
 
   // Derive sorted unique tracks that have labs
   const tracks = useMemo(() => {
@@ -299,22 +373,69 @@ export default function Catalog() {
               </p>
             </div>
 
-            {/* Tab switcher */}
-            <div className="flex items-center p-1 bg-card/80 backdrop-blur-sm border border-border/80 rounded-lg shadow-sm">
-              {(["by-level", "by-course"] as const).map(mode => (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Fetch Labs button */}
+              <div className="flex flex-col items-end gap-1.5">
                 <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
+                  onClick={handleFetchLabs}
+                  disabled={syncing}
                   className={cn(
-                    "px-5 py-2 rounded-md text-sm font-semibold transition-all duration-200",
-                    viewMode === mode
-                      ? "bg-muted text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground/80 hover:bg-muted/50"
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200",
+                    syncing
+                      ? "bg-muted/40 border-border text-muted-foreground cursor-not-allowed"
+                      : "bg-card border-border hover:border-primary/50 hover:bg-muted/30 text-foreground"
                   )}
                 >
-                  {mode === "by-level" ? "By Level" : "By Course"}
+                  {syncing
+                    ? <RefreshCw className="w-4 h-4 animate-spin" />
+                    : <CloudDownload className="w-4 h-4" />
+                  }
+                  {syncing ? "Fetching…" : "Fetch Labs"}
                 </button>
-              ))}
+
+                {/* Status line */}
+                <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/70 pr-0.5">
+                  {syncMessage ? (
+                    <span className={syncMessage.startsWith("✓") ? "text-green-400" : syncMessage.startsWith("✗") ? "text-rose-400" : ""}>
+                      {syncMessage}
+                    </span>
+                  ) : syncStatus?.lastSync ? (
+                    <>
+                      <Github className="w-3 h-3" />
+                      <span>
+                        {syncStatus.totalRemote > 0 ? `${syncStatus.totalRemote} remote` : "no remote labs"} ·
+                        synced {formatRelativeTime(syncStatus.lastSync.syncedAt)}
+                      </span>
+                      {syncStatus.lastSync.status === "error" && (
+                        <span className="text-rose-400 ml-0.5">· error</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Github className="w-3 h-3" />
+                      pulls from GitHub every 10m
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Tab switcher */}
+              <div className="flex items-center p-1 bg-card/80 backdrop-blur-sm border border-border/80 rounded-lg shadow-sm">
+                {(["by-level", "by-course"] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={cn(
+                      "px-5 py-2 rounded-md text-sm font-semibold transition-all duration-200",
+                      viewMode === mode
+                        ? "bg-muted text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground/80 hover:bg-muted/50"
+                    )}
+                  >
+                    {mode === "by-level" ? "By Level" : "By Course"}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
