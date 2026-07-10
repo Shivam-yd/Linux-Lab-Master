@@ -141,7 +141,7 @@ MAIN="$LAB/main.tf"
 # Task 1: at least 3 variable blocks in variables.tf
 VAR_COUNT=0
 if [ -f "$VARS" ]; then
-  VAR_COUNT=$(grep -v '^[[:space:]]*#' "$VARS" | grep -cE '^[[:space:]]*variable[[:space:]]+"' 2>/dev/null || echo 0)
+  VAR_COUNT=$(grep -v '^[[:space:]]*#' "$VARS" | grep -cE '^[[:space:]]*variable[[:space:]]+"' 2>/dev/null)
 fi
 if [ "$VAR_COUNT" -ge 3 ]; then
   echo "CHECK:variables_defined:PASS:Found $VAR_COUNT variable block(s) in variables.tf."
@@ -153,8 +153,8 @@ fi
 TOTAL_VARS=0
 TYPED_VARS=0
 if [ -f "$VARS" ]; then
-  TOTAL_VARS=$(grep -v '^[[:space:]]*#' "$VARS" | grep -cE '^[[:space:]]*variable[[:space:]]+"' 2>/dev/null || echo 0)
-  TYPED_VARS=$(grep -v '^[[:space:]]*#' "$VARS" | grep -cE '^[[:space:]]*type[[:space:]]*=' 2>/dev/null || echo 0)
+  TOTAL_VARS=$(grep -v '^[[:space:]]*#' "$VARS" | grep -cE '^[[:space:]]*variable[[:space:]]+"' 2>/dev/null)
+  TYPED_VARS=$(grep -v '^[[:space:]]*#' "$VARS" | grep -cE '^[[:space:]]*type[[:space:]]*=' 2>/dev/null)
 fi
 if [ "$TOTAL_VARS" -ge 3 ] && [ "$TYPED_VARS" -ge "$TOTAL_VARS" ]; then
   echo "CHECK:types_assigned:PASS:All $TOTAL_VARS variable(s) have an explicit type."
@@ -189,7 +189,7 @@ fi
 # Task 5: state has managed resources
 STATE="$LAB/terraform.tfstate"
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -gt 0 ]; then
     echo "CHECK:apply_succeeded:PASS:terraform.tfstate records $MANAGED managed resource(s)."
   else

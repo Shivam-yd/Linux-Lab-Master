@@ -122,7 +122,7 @@ MAIN="$LAB/main.tf"
 # Task 1: at least 2 terraform_data resources
 COUNT=0
 if [ -f "$MAIN" ]; then
-  COUNT=$(grep -v '^[[:space:]]*#' "$MAIN" | grep -cE 'resource[[:space:]]+"terraform_data"' 2>/dev/null || echo 0)
+  COUNT=$(grep -v '^[[:space:]]*#' "$MAIN" | grep -cE 'resource[[:space:]]+"terraform_data"' 2>/dev/null)
 fi
 if [ "$COUNT" -ge 2 ]; then
   echo "CHECK:multiple_resources:PASS:Found $COUNT terraform_data resource block(s)."
@@ -155,7 +155,7 @@ fi
 # Task 4: state has at least 2 managed resources
 STATE="$LAB/terraform.tfstate"
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -ge 2 ]; then
     echo "CHECK:apply_succeeded:PASS:terraform.tfstate records $MANAGED managed resource(s)."
   else

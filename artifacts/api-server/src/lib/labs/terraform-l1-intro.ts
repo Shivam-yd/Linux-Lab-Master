@@ -56,11 +56,13 @@ resource "terraform_data" "hello" {
 
 ### 2 — Initialise the project
 
+Save the output so the check can verify you ran it:
+
 \`\`\`sh
-terraform init
+terraform init 2>&1 | tee init-output.txt
 \`\`\`
 
-This creates the \`.terraform/\` directory and the lock file \`.terraform.lock.hcl\`.
+Terraform prepares the working directory. For built-in providers the step is instant, but it must be run before any other commands.
 
 ### 3 — Validate the configuration
 
@@ -104,11 +106,11 @@ Terraform removes all managed resources. The state file is updated to reflect an
     },
     {
       id: "init_done",
-      description: "terraform init has been run (.terraform.lock.hcl exists)",
+      description: "terraform init has been run (init-output.txt saved with init output)",
     },
     {
       id: "apply_succeeded",
-      description: "terraform apply has run and the state file records at least one managed resource",
+      description: "terraform apply has been run (state file exists as evidence)",
     },
     {
       id: "destroy_done",
@@ -131,36 +133,47 @@ else
   echo "CHECK:config_written:FAIL:main.tf exists but has no terraform_data resource. Add: resource \"terraform_data\" \"hello\" { input = \"Hello, Terraform!\" }"
 fi
 
-# Task 2: terraform init has been run (.terraform.lock.hcl exists)
-if [ -f "$LAB/.terraform.lock.hcl" ]; then
-  echo "CHECK:init_done:PASS:.terraform.lock.hcl found — terraform init has been run."
+# Task 2: terraform init was run — student saves output: terraform init 2>&1 | tee init-output.txt
+INIT_OUT="$LAB/init-output.txt"
+if [ -f "$INIT_OUT" ] && grep -qi 'initialized\|initialised\|already been' "$INIT_OUT" 2>/dev/null; then
+  echo "CHECK:init_done:PASS:init-output.txt confirms Terraform was initialised."
+elif [ -f "$INIT_OUT" ]; then
+  echo "CHECK:init_done:FAIL:init-output.txt found but does not confirm init ran successfully. Run: terraform init 2>&1 | tee init-output.txt"
 else
-  echo "CHECK:init_done:FAIL:.terraform.lock.hcl not found. Run: terraform init"
+  echo "CHECK:init_done:FAIL:init-output.txt not found. Run: terraform init 2>&1 | tee init-output.txt"
 fi
 
-# Task 3: apply has run — state file has at least one managed resource
+# Task 3: apply has been run — state file exists.
+# serial >= 1 means at least one apply has occurred (remains true even after destroy).
 STATE="$LAB/terraform.tfstate"
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
-  if [ "$MANAGED" -gt 0 ]; then
-    echo "CHECK:apply_succeeded:PASS:terraform.tfstate records $MANAGED managed resource(s) — apply succeeded."
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
+  SERIAL=$(grep -oE '"serial":[[:space:]]*[0-9]+' "$STATE" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+  if [ -z "$SERIAL" ]; then SERIAL=0; fi
+  if [ "$MANAGED" -gt 0 ] || [ "$SERIAL" -ge 1 ]; then
+    echo "CHECK:apply_succeeded:PASS:terraform.tfstate exists (serial=$SERIAL, managed=$MANAGED) — apply has been run."
   else
-    echo "CHECK:apply_succeeded:FAIL:terraform.tfstate exists but contains no managed resources. Run: terraform apply -auto-approve"
+    echo "CHECK:apply_succeeded:FAIL:terraform.tfstate exists but shows no evidence of a successful apply. Run: terraform apply -auto-approve"
   fi
 else
   echo "CHECK:apply_succeeded:FAIL:No terraform.tfstate found. Run: terraform apply -auto-approve"
 fi
 
-# Task 4: destroy has run — state file has zero managed resources
+# Task 4: destroy has run — state file exists but has zero managed resources.
+# Require serial >= 1 so a blank manually-created file cannot fake this.
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
-  if [ "$MANAGED" -eq 0 ]; then
-    echo "CHECK:destroy_done:PASS:terraform.tfstate contains no managed resources — destroy succeeded."
-  else
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
+  SERIAL=$(grep -oE '"serial":[[:space:]]*[0-9]+' "$STATE" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+  if [ -z "$SERIAL" ]; then SERIAL=0; fi
+  if [ "$MANAGED" -eq 0 ] && [ "$SERIAL" -ge 1 ]; then
+    echo "CHECK:destroy_done:PASS:terraform.tfstate has no managed resources (serial=$SERIAL) — destroy succeeded."
+  elif [ "$MANAGED" -gt 0 ]; then
     echo "CHECK:destroy_done:FAIL:$MANAGED resource(s) still in state. Run: terraform destroy -auto-approve"
+  else
+    echo "CHECK:destroy_done:FAIL:State file looks empty or uninitialised. Complete the apply step first, then run: terraform destroy -auto-approve"
   fi
 else
-  echo "CHECK:destroy_done:FAIL:terraform.tfstate not found. Run apply first, then terraform destroy -auto-approve"
+  echo "CHECK:destroy_done:FAIL:terraform.tfstate not found. Run apply first, then: terraform destroy -auto-approve"
 fi
 `,
 };

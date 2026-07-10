@@ -161,11 +161,18 @@ else
   echo "CHECK:three_variables:FAIL:Missing variables:$MISSING. Add them to variables.tf."
 fi
 
+<<<<<<< HEAD
 # Task 2: locals block with at least 2 values (count assignments inside locals {} only)
+=======
+# Task 2: locals block with at least 2 values.
+# Parse assignments directly from inside the locals {} block using sed's range
+# pattern so resource-block assignments are not counted.
+# The sed range /locals {/,/closing }/ extracts only the lines between the braces.
+>>>>>>> 5e2023e (comment)
 HAS_LOCALS=0
-LOCAL_COUNT=0
 if [ -f "$MAIN" ]; then
   grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '^[[:space:]]*locals[[:space:]]*\{' && HAS_LOCALS=1
+<<<<<<< HEAD
   LOCAL_COUNT=$(awk '
     /^[[:space:]]*locals[[:space:]]*\{/ { in_l=1; depth=1; next }
     in_l {
@@ -179,10 +186,27 @@ if [ -f "$MAIN" ]; then
 fi
 if [ "$HAS_LOCALS" -eq 1 ] && [ "$LOCAL_COUNT" -ge 2 ]; then
   echo "CHECK:locals_block:PASS:locals {} block found with $LOCAL_COUNT computed values."
+=======
+fi
+LOCAL_COUNT=0
+if [ "$HAS_LOCALS" -eq 1 ]; then
+  LOCAL_COUNT=$(sed -n '/^[[:space:]]*locals[[:space:]]*{/,/^[[:space:]]*}[[:space:]]*$/{
+    /^[[:space:]]*locals[[:space:]]*{/d
+    /^[[:space:]]*}[[:space:]]*$/d
+    /^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*=/p
+  }' "$MAIN" | grep -c .)
+fi
+if [ "$HAS_LOCALS" -eq 1 ] && [ "$LOCAL_COUNT" -ge 2 ]; then
+  echo "CHECK:locals_block:PASS:locals {} block found with $LOCAL_COUNT assigned value(s)."
+>>>>>>> 5e2023e (comment)
 elif [ "$HAS_LOCALS" -eq 0 ]; then
-  echo "CHECK:locals_block:FAIL:No locals {} block in main.tf. Add: locals { prefix = \"\${var.project_name}-\${var.environment}\" }"
+  echo "CHECK:locals_block:FAIL:No locals {} block in main.tf. Add a locals block: locals { prefix = \"...\"; bucket_name = \"...\" }"
 else
+<<<<<<< HEAD
   echo "CHECK:locals_block:FAIL:locals {} block found but only $LOCAL_COUNT value(s) detected — need at least 2 (e.g. prefix, bucket_name, db_name)."
+=======
+  echo "CHECK:locals_block:FAIL:locals {} block found but only $LOCAL_COUNT assignment(s) inside it. Define at least 2 local values (e.g. prefix and bucket_name)."
+>>>>>>> 5e2023e (comment)
 fi
 
 # Task 3: local.<name> reference inside resource
@@ -210,7 +234,7 @@ fi
 # Task 5: state has managed resources
 STATE="$LAB/terraform.tfstate"
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -gt 0 ]; then
     echo "CHECK:apply_succeeded:PASS:terraform.tfstate records $MANAGED managed resource(s)."
   else

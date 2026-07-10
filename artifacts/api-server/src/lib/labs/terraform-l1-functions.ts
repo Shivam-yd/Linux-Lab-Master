@@ -168,6 +168,7 @@ HAS_LOCALS=0
 FN_COUNT=0
 if [ -f "$MAIN" ]; then
   grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '^[[:space:]]*locals[[:space:]]*\{' && HAS_LOCALS=1
+<<<<<<< HEAD
   # Extract only the locals block content, then count lines with a function call (word immediately followed by open paren)
   FN_COUNT=$(awk '
     /^[[:space:]]*locals[[:space:]]*\{/ { in_l=1; depth=1; next }
@@ -179,6 +180,10 @@ if [ -f "$MAIN" ]; then
     }
     END{print cnt+0}
   ' "$MAIN" 2>/dev/null || echo 0)
+=======
+  # Count lines inside main.tf that contain a function call pattern (word followed by open paren)
+  FN_COUNT=$(grep -v '^[[:space:]]*#' "$MAIN" | grep -cE '[a-z_]+[[:space:]]*\([^)]*\)' 2>/dev/null)
+>>>>>>> 5e2023e (comment)
 fi
 if [ "$HAS_LOCALS" -eq 1 ] && [ "$FN_COUNT" -ge 2 ]; then
   echo "CHECK:locals_with_functions:PASS:locals {} block found with $FN_COUNT function call(s)."
@@ -191,7 +196,7 @@ fi
 # Task 4: state has managed resources
 STATE="$LAB/terraform.tfstate"
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -gt 0 ]; then
     echo "CHECK:apply_succeeded:PASS:terraform.tfstate records $MANAGED managed resource(s)."
   else

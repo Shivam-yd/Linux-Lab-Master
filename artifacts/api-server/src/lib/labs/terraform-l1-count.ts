@@ -159,7 +159,7 @@ fi
 # Task 4: state has at least 3 managed resources
 STATE="$LAB/terraform.tfstate"
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -ge 3 ]; then
     echo "CHECK:apply_multiple:PASS:terraform.tfstate records $MANAGED managed resource(s) — count is working."
   else

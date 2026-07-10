@@ -127,7 +127,7 @@ OUTS="$LAB/outputs.tf"
 # Task 1: at least 2 output blocks
 OUT_COUNT=0
 if [ -f "$OUTS" ]; then
-  OUT_COUNT=$(grep -v '^[[:space:]]*#' "$OUTS" | grep -cE '^[[:space:]]*output[[:space:]]+"' 2>/dev/null || echo 0)
+  OUT_COUNT=$(grep -v '^[[:space:]]*#' "$OUTS" | grep -cE '^[[:space:]]*output[[:space:]]+"' 2>/dev/null)
 fi
 if [ "$OUT_COUNT" -ge 2 ]; then
   echo "CHECK:multiple_outputs:PASS:Found $OUT_COUNT output block(s) in outputs.tf."
@@ -160,7 +160,7 @@ fi
 # Task 4: state has managed resources
 STATE="$LAB/terraform.tfstate"
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -gt 0 ]; then
     echo "CHECK:apply_succeeded:PASS:terraform.tfstate records $MANAGED managed resource(s)."
   else

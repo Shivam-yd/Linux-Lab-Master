@@ -133,7 +133,7 @@ STATE="$LAB/terraform.tfstate"
 if [ -f "$LAB/state-list.txt" ] && [ -s "$LAB/state-list.txt" ]; then
   echo "CHECK:apply_succeeded:PASS:state-list.txt exists with content — terraform apply was run successfully before listing state."
 elif [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -ge 2 ]; then
     echo "CHECK:apply_succeeded:PASS:terraform.tfstate records $MANAGED managed resource(s)."
   else
@@ -163,7 +163,7 @@ fi
 
 # Task 4: destroy done — zero managed resources
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -eq 0 ]; then
     echo "CHECK:destroy_done:PASS:No managed resources in state — terraform destroy succeeded."
   else

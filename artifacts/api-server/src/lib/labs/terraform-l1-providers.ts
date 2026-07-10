@@ -76,14 +76,16 @@ resource "terraform_data" "demo" {
 
 ### 4 — Initialise and apply
 
+Save init output so the check can verify you ran it:
+
 \`\`\`sh
-terraform init
+terraform init 2>&1 | tee init-output.txt
 terraform providers          # inspect what was installed
 terraform validate
 terraform apply -auto-approve
 \`\`\`
 
-After \`init\`, \`terraform providers\` lists every provider Terraform resolved. The \`.terraform.lock.hcl\` lock file pins the exact versions so the build is reproducible.`,
+After \`init\`, \`terraform providers\` lists every provider Terraform resolved. The \`init-output.txt\` file records that initialisation succeeded.`,
   tasks: [
     {
       id: "terraform_block",
@@ -95,7 +97,7 @@ After \`init\`, \`terraform providers\` lists every provider Terraform resolved.
     },
     {
       id: "init_done",
-      description: "terraform init has been run (.terraform.lock.hcl exists)",
+      description: "terraform init has been run (init-output.txt saved with init output)",
     },
     {
       id: "apply_succeeded",
@@ -133,17 +135,20 @@ else
   echo "CHECK:required_version_set:FAIL:required_version not found. Add: required_version = \">= 1.0\" inside the terraform {} block."
 fi
 
-# Task 3: .terraform.lock.hcl exists
-if [ -f "$LAB/.terraform.lock.hcl" ]; then
-  echo "CHECK:init_done:PASS:.terraform.lock.hcl exists — terraform init has been run."
+# Task 3: terraform init was run — student saves output: terraform init 2>&1 | tee init-output.txt
+INIT_OUT="$LAB/init-output.txt"
+if [ -f "$INIT_OUT" ] && grep -qi 'initialized\|initialised\|already been' "$INIT_OUT" 2>/dev/null; then
+  echo "CHECK:init_done:PASS:init-output.txt confirms Terraform was initialised."
+elif [ -f "$INIT_OUT" ]; then
+  echo "CHECK:init_done:FAIL:init-output.txt found but does not confirm init ran successfully. Run: terraform init 2>&1 | tee init-output.txt"
 else
-  echo "CHECK:init_done:FAIL:.terraform.lock.hcl not found. Run: terraform init"
+  echo "CHECK:init_done:FAIL:init-output.txt not found. Run: terraform init 2>&1 | tee init-output.txt"
 fi
 
 # Task 4: state has at least one managed resource
 STATE="$LAB/terraform.tfstate"
 if [ -f "$STATE" ]; then
-  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null || echo 0)
+  MANAGED=$(grep -c '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null)
   if [ "$MANAGED" -gt 0 ]; then
     echo "CHECK:apply_succeeded:PASS:terraform.tfstate records $MANAGED managed resource(s)."
   else
