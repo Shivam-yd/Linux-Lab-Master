@@ -1,12 +1,12 @@
 modules = ["nodejs-20", "web", "bash"]
 
 [[ports]]
-localPort = 21398
-externalPort = 80
-
-[[ports]]
 localPort = 8080
 externalPort = 8080
+
+[[ports]]
+localPort = 21398
+externalPort = 80
 
 [deployment]
 router = "application"
