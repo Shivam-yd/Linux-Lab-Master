@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Terminal, Play, Square, RotateCcw, ArrowLeft, 
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity,
-  Lightbulb, ChevronDown, ChevronRight, Eye, Server, Loader2, Target
+  Lightbulb, ChevronDown, ChevronRight, Eye, Server, Loader2, Target, Trophy
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -593,11 +593,6 @@ export default function Workspace() {
                   <p className="text-xs font-mono text-muted-foreground/60 mt-3 relative z-10">
                     {verifyResult.passed ? "// All objectives verified — see checklist above" : "// See objectives above for details"}
                   </p>
-                  {verifyResult.passed && closeCountdown !== null && (
-                    <p className="text-xs font-mono text-green-400/70 mt-2 relative z-10">
-                      // Returning to lab list in {closeCountdown}s…
-                    </p>
-                  )}
                 </div>
               </div>
             )}
@@ -708,6 +703,48 @@ export default function Workspace() {
           )}
         </div>
       </div>
+
+      {/* ── Completion popup ── */}
+      {closeCountdown !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+          {/* Card */}
+          <div className="relative animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center gap-6 rounded-2xl border border-green-500/40 bg-[#0a0a0a] px-12 py-10 shadow-[0_0_80px_rgba(34,197,94,0.25)] text-center">
+            {/* Glow blob */}
+            <div className="absolute inset-0 rounded-2xl bg-green-500/5 pointer-events-none" />
+
+            {/* Icon */}
+            <div className="relative w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+              <Trophy className="w-9 h-9 text-green-400" />
+            </div>
+
+            {/* Heading */}
+            <div className="relative flex flex-col items-center gap-2">
+              <span className="font-mono text-xs tracking-[0.3em] uppercase text-green-500/70">Mission Complete</span>
+              <h2 className="font-mono font-black text-3xl tracking-tight text-green-400">
+                Lab Completed!
+              </h2>
+            </div>
+
+            {/* Countdown */}
+            <p className="relative font-mono text-sm text-muted-foreground/70">
+              This lab will close in{" "}
+              <span className="text-green-400 font-bold tabular-nums">{closeCountdown}</span>{" "}
+              second{closeCountdown !== 1 ? "s" : ""}…
+            </p>
+
+            {/* Progress bar */}
+            <div className="relative w-full h-1 rounded-full bg-green-500/20 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-green-500 transition-none"
+                style={{ width: `${((5 - closeCountdown) / 5) * 100}%`, transition: "width 1s linear" }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
