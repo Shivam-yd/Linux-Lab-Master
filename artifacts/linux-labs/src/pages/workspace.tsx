@@ -379,11 +379,26 @@ export default function Workspace() {
             
             {/* Scenario Header */}
             <div className="mb-6 pb-4 border-b border-border/40">
-              <h2 className="text-xl font-bold tracking-tight mb-2">Scenario</h2>
               <div className="prose prose-invert prose-sm max-w-none prose-p:text-muted-foreground prose-headings:text-foreground prose-a:text-primary prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded">
                 <ReactMarkdown>{mainInstructions || "No instructions provided."}</ReactMarkdown>
               </div>
             </div>
+
+            {/* ── Objectives (always visible — concrete deliverables, not hidden behind the steps reveal) ── */}
+            {lab.objectives && lab.objectives.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-primary" /> What You'll Deliver
+                </h3>
+                <ul className="space-y-2 list-disc list-inside">
+                  {lab.objectives.map((objective: string, i: number) => (
+                    <li key={i} className="text-sm text-muted-foreground leading-relaxed">
+                      {objective}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* ── Steps Panel ── */}
             {stepsMarkdown && (
@@ -416,7 +431,7 @@ export default function Workspace() {
             {lab.tasks && lab.tasks.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary" /> Objectives
+                  <CheckCircle2 className="w-4 h-4 text-primary" /> Verification Checklist
                 </h3>
 
                 <ul className="space-y-2.5">
