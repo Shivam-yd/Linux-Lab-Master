@@ -1,0 +1,93 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Cron & Task Scheduling
+# Push this file to your GitHub repo and it will appear in the app automatically.
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-cron-scheduling"
+title: "Cron & Task Scheduling"
+track: "linux"
+level: 2
+category: "System Administration"
+difficulty: "intermediate"
+summary: "Schedule recurring and one-off jobs on Linux using cron and at, and verify they run correctly."
+estimatedMinutes: 30
+order: 202
+
+objectives:
+  - "Write cron expressions for common recurring schedules"
+  - "Install a crontab for the current user"
+  - "Redirect cron job output to a log file"
+  - "Schedule a one-off job with at"
+
+instructions: |
+  ## Cron & Task Scheduling
+
+  `cron` runs recurring jobs on a schedule; `at` runs a job once at a future
+  time. Every Linux sysadmin needs to be comfortable scheduling both.
+
+  ### Cron expression format
+
+  ```
+  * * * * *  command
+  │ │ │ │ │
+  │ │ │ │ └─ day of week (0-6, Sun=0)
+  │ │ │ └─── month (1-12)
+  │ │ └───── day of month (1-31)
+  │ └─────── hour (0-23)
+  └───────── minute (0-59)
+  ```
+
+  ### Managing your crontab
+
+  ```bash
+  crontab -l       # list current user's cron jobs
+  crontab -e       # edit current user's cron jobs
+  ```
+
+tasks:
+  - id: "install-crontab"
+    description: "Add a cron job for root that appends the current date to /var/log/heartbeat-cron.log every minute"
+  - id: "verify-cron-running"
+    description: "Confirm the cron daemon is running and the job has executed at least once, leaving output in /var/log/heartbeat-cron.log"
+  - id: "schedule-at-job"
+    description: "Use the at command to schedule a one-off job that writes 'scheduled-task-ran' to /root/at-output.txt"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  apt-get update -qq && apt-get install -y -qq cron at
+  service cron start
+  echo "Cron lab ready. cron and at are installed." > /etc/motd
+
+verifyScript: |
+  # CHECK: install-crontab
+  if crontab -l 2>/dev/null | grep -q "heartbeat-cron.log"; then
+    echo "CHECK:install-crontab:PASS:Crontab entry for heartbeat-cron.log found"
+  else
+    echo "CHECK:install-crontab:FAIL:No crontab entry writing to /var/log/heartbeat-cron.log"
+  fi
+
+  # CHECK: verify-cron-running
+  if pgrep cron >/dev/null && [[ -f /var/log/heartbeat-cron.log ]]; then
+    echo "CHECK:verify-cron-running:PASS:cron daemon running and log file exists"
+  else
+    echo "CHECK:verify-cron-running:FAIL:cron daemon not running or log file missing"
+  fi
+
+  # CHECK: schedule-at-job
+  if [[ -f /root/at-output.txt ]] && grep -q "scheduled-task-ran" /root/at-output.txt; then
+    echo "CHECK:schedule-at-job:PASS:at job wrote expected output"
+  else
+    echo "CHECK:schedule-at-job:FAIL:/root/at-output.txt missing or does not contain expected text"
+  fi
+
+hints:
+  - "Use `crontab -e` and add: `* * * * * date >> /var/log/heartbeat-cron.log`"
+  - "Wait ~60s after installing the crontab, then check `cat /var/log/heartbeat-cron.log`"
+  - "Schedule an at job with: `echo \"echo scheduled-task-ran > /root/at-output.txt\" | at now + 1 minute`"
+  - "If `atd` isn't running, start it with `service atd start`"
