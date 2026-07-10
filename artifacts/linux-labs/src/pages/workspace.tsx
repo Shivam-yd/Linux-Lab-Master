@@ -7,6 +7,7 @@ import {
   useStopLabSession, 
   useResetLabSession, 
   useVerifyLab,
+  useListProgress,
   getGetLabQueryKey,
   getGetLabSessionQueryKey
 } from "@workspace/api-client-react"
@@ -76,8 +77,24 @@ export default function Workspace() {
     }
   })
 
+  const { data: progressList } = useListProgress()
+
   const verifyLab = useVerifyLab()
   const [verifyResult, setVerifyResult] = useState<any>(null)
+
+  // Seed verifyResult from stored lastResults when progress loads or lab changes
+  useEffect(() => {
+    const entry = progressList?.find((p: any) => p.labId === labId)
+    if (entry?.lastResults?.length) {
+      setVerifyResult({
+        passed: entry.status === "passed",
+        score: entry.bestScore,
+        checks: entry.lastResults,
+      })
+    } else {
+      setVerifyResult(null)
+    }
+  }, [progressList, labId])
 
   // Hints state
   const [hintsRevealed, setHintsRevealed] = useState(0)

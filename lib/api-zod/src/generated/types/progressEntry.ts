@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CheckResult } from './checkResult';
 import type { ProgressEntryStatus } from './progressEntryStatus';
 
 export interface ProgressEntry {
@@ -13,4 +14,6 @@ export interface ProgressEntry {
   bestScore: number;
   /** @nullable */
   lastAttemptAt?: Date | null;
+  /** @nullable */
+  lastResults?: CheckResult[] | null;
 }

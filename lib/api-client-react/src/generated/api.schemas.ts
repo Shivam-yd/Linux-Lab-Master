@@ -97,5 +97,7 @@ export interface ProgressEntry {
   bestScore: number;
   /** @nullable */
   lastAttemptAt?: string | null;
+  /** @nullable */
+  lastResults?: CheckResult[] | null;
 }
 

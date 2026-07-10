@@ -312,3 +312,7 @@ components:
         lastAttemptAt:
           type: ["string", "null"]
           format: date-time
+        lastResults:
+          type: ["array", "null"]
+          items:
+            $ref: "#/components/schemas/CheckResult"

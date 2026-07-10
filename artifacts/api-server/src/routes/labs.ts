@@ -74,6 +74,7 @@ router.get("/progress", async (req, res): Promise<void> => {
       status: row?.status ?? "not_started",
       bestScore: row?.bestScore ?? 0,
       lastAttemptAt: row?.lastAttemptAt ?? null,
+      lastResults: (row?.lastResults as any[] | null) ?? null,
     };
   });
   res.json(ListProgressResponse.parse(progress));

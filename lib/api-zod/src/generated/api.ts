@@ -69,7 +69,13 @@ export const ListProgressResponseItem = zod.object({
   "labId": zod.string(),
   "status": zod.enum(['not_started', 'in_progress', 'passed']),
   "bestScore": zod.number(),
-  "lastAttemptAt": zod.coerce.date().nullish()
+  "lastAttemptAt": zod.coerce.date().nullish(),
+  "lastResults": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "passed": zod.boolean(),
+  "message": zod.string()
+})).nullish()
 })
 export const ListProgressResponse = zod.array(ListProgressResponseItem)
 
