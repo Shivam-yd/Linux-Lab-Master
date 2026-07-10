@@ -1,0 +1,104 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Building Your Own Log Rotation (Level 3 - Advanced)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-log-rotation-shim"
+title: "Building Your Own Log Rotation"
+track: "linux"
+level: 3
+category: "Automation"
+difficulty: "advanced"
+summary: "This minimal image has no logrotate installed. Build a manual rotation + retention + scheduling workflow with plain shell and cron."
+estimatedMinutes: 30
+order: 323
+
+objectives:
+  - "Manually rotate a log file (move, compress, truncate)"
+  - "Enforce a retention policy by deleting the oldest archives"
+  - "Schedule the rotation script to run automatically via cron"
+
+instructions: |
+  ## Building Your Own Log Rotation
+
+  Not every server has `logrotate` installed, but log files still grow
+  forever if nothing manages them — eventually filling the disk. Understanding
+  what `logrotate` does under the hood (because you built it yourself once)
+  makes you much better at debugging it later.
+
+  ### What you need to do
+
+  1. `/var/log/app/app.log` has grown large. Rotate it by hand: move its
+     content into `/var/log/app/app.log.1.gz` (compressed) and leave a
+     fresh, empty `/var/log/app/app.log` in its place.
+  2. `/var/log/app/access.log.1.gz` through `access.log.4.gz` are old
+     rotated archives — but your retention policy only allows keeping the
+     3 most recent. Delete the oldest one, `access.log.4.gz` (higher
+     number = older, matching the logrotate convention), so exactly 3 remain.
+  3. Edit `/usr/local/bin/rotate-app-log.sh` (already created for you) so
+     it performs the rotation from step 1, then schedule it to run daily
+     at midnight via `crontab`.
+
+  ### Reference
+
+  ```bash
+  gzip -c /var/log/app/app.log > /var/log/app/app.log.1.gz
+  : > /var/log/app/app.log              # truncate, don't delete — the app has it open
+  rm /var/log/app/access.log.4.gz
+  echo "0 0 * * * /usr/local/bin/rotate-app-log.sh" | crontab -
+  ```
+
+tasks:
+  - id: "rotate-log"
+    description: "Rotate /var/log/app/app.log into a compressed app.log.1.gz and truncate the live file"
+  - id: "cap-history"
+    description: "Enforce a 3-archive retention limit on access.log.*.gz by removing the oldest (access.log.4.gz)"
+  - id: "schedule-rotation"
+    description: "Add a daily midnight cron entry that runs /usr/local/bin/rotate-app-log.sh"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/log/app /usr/local/bin
+  yes "log line" | head -1000 > /var/log/app/app.log
+  for i in 1 2 3 4; do echo "old archive $i" | gzip > /var/log/app/access.log.$i.gz; done
+  cat > /usr/local/bin/rotate-app-log.sh <<'EOF'
+  #!/bin/sh
+  # TODO: rotate /var/log/app/app.log -> app.log.1.gz and truncate it
+  EOF
+  chmod +x /usr/local/bin/rotate-app-log.sh
+  crond
+
+verifyScript: |
+  # CHECK: rotate-log
+  if [ -f /var/log/app/app.log.1.gz ] && [ -f /var/log/app/app.log ] && [ ! -s /var/log/app/app.log ] \
+     && zcat /var/log/app/app.log.1.gz 2>/dev/null | grep -q "log line"; then
+    echo "CHECK:rotate-log:PASS:app.log rotated into app.log.1.gz and truncated"
+  else
+    echo "CHECK:rotate-log:FAIL:Expected a truncated app.log and a compressed app.log.1.gz containing the old content"
+  fi
+
+  # CHECK: cap-history
+  cnt=$(ls /var/log/app/access.log.*.gz 2>/dev/null | wc -l | tr -d '[:space:]')
+  if [ "$cnt" -le 3 ] 2>/dev/null && [ ! -f /var/log/app/access.log.4.gz ]; then
+    echo "CHECK:cap-history:PASS:Retention enforced, oldest archive removed"
+  else
+    echo "CHECK:cap-history:FAIL:Expected access.log.4.gz removed and at most 3 archives remaining (found $cnt)"
+  fi
+
+  # CHECK: schedule-rotation
+  if crontab -l 2>/dev/null | grep -q "rotate-app-log.sh"; then
+    echo "CHECK:schedule-rotation:PASS:Cron entry found for rotate-app-log.sh"
+  else
+    echo "CHECK:schedule-rotation:FAIL:No crontab entry references rotate-app-log.sh"
+  fi
+
+hints:
+  - "`gzip -c /var/log/app/app.log > /var/log/app/app.log.1.gz` compresses without deleting the source; then truncate with `: > /var/log/app/app.log`."
+  - "Never `rm` a log file a running app still has open — always truncate it in place instead."
+  - "Higher archive numbers are older by convention, so `rm /var/log/app/access.log.4.gz` is the correct one to drop."
+  - "`crontab -l` and `crontab -` (reading from stdin) are the two commands you need: `echo '0 0 * * * /usr/local/bin/rotate-app-log.sh' | crontab -`"

@@ -1,0 +1,95 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Diagnosing Port Conflicts (Level 2 - Intermediate)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-port-conflicts"
+title: "Diagnosing Port Conflicts"
+track: "linux"
+level: 2
+category: "Networking"
+difficulty: "intermediate"
+summary: "Your service fails to start with 'address already in use'. Find what's holding the port, free it, and confirm your service binds."
+estimatedMinutes: 20
+order: 223
+
+objectives:
+  - "Identify which process is bound to a given port"
+  - "Terminate a process that's blocking a port"
+  - "Confirm a new process is listening on that port"
+
+instructions: |
+  ## Diagnosing Port Conflicts
+
+  "Error: address already in use" is one of the most common deployment
+  failures. The fix is always the same three steps: find who's holding the
+  port, decide whether it's safe to stop, then free it.
+
+  ### What you need to do
+
+  1. Something is already listening on port `8080`. Use `netstat -tlnp` (or
+     `netstat -tln` plus a process check) to identify it, then write the
+     process name you find into `/root/blocker-info.txt`.
+  2. Stop that process so port 8080 is free.
+  3. Start your own listener on port 8080 (e.g. `nc -lk -p 8080 &`) and
+     confirm it's listening.
+
+  ### Reference
+
+  ```bash
+  netstat -tlnp | grep 8080
+  pkill -f <process-name>
+  nc -lk -p 8080 &
+  netstat -tln | grep 8080
+  ```
+
+tasks:
+  - id: "identify-blocker"
+    description: "Identify the process bound to port 8080 and write its name to /root/blocker-info.txt"
+  - id: "free-port"
+    description: "Stop the process that was bound to port 8080"
+  - id: "confirm-new-listener"
+    description: "Start your own listener on port 8080 and confirm it's active"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /usr/local/bin
+  cat > /usr/local/bin/legacy-service.sh <<'EOF'
+  #!/bin/sh
+  exec nc -lk -p 8080
+  EOF
+  chmod +x /usr/local/bin/legacy-service.sh
+  /usr/local/bin/legacy-service.sh >/dev/null 2>&1 &
+
+verifyScript: |
+  # CHECK: identify-blocker
+  if [ -f /root/blocker-info.txt ] && grep -q "legacy-service" /root/blocker-info.txt; then
+    echo "CHECK:identify-blocker:PASS:Correctly identified legacy-service.sh as the blocking process"
+  else
+    echo "CHECK:identify-blocker:FAIL:/root/blocker-info.txt should mention legacy-service.sh"
+  fi
+
+  # CHECK: free-port
+  if ! pgrep -f legacy-service.sh >/dev/null 2>&1; then
+    echo "CHECK:free-port:PASS:legacy-service.sh is no longer running"
+  else
+    echo "CHECK:free-port:FAIL:legacy-service.sh is still running"
+  fi
+
+  # CHECK: confirm-new-listener
+  if netstat -tln 2>/dev/null | grep -q ":8080 "; then
+    echo "CHECK:confirm-new-listener:PASS:Port 8080 has an active listener"
+  else
+    echo "CHECK:confirm-new-listener:FAIL:Nothing is listening on port 8080"
+  fi
+
+hints:
+  - "`netstat -tlnp | grep 8080` shows the PID/process pair holding the port."
+  - "Write the process name (legacy-service.sh) into /root/blocker-info.txt with `echo`."
+  - "`pkill -f legacy-service.sh` stops it by matching the full command line."
+  - "After freeing the port, `nc -lk -p 8080 &` claims it again — the `&` keeps it running in the background."

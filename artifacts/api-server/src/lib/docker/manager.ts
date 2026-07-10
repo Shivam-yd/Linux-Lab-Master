@@ -135,6 +135,12 @@ export async function startSession(studentId: string, labId: string): Promise<La
         Memory: 384 * 1024 * 1024,
         NanoCpus: 1_000_000_000,
         PidsLimit: 256,
+        // Run a real init (tini) as PID 1 so killed background processes are
+        // reaped instead of piling up as zombies. Without this, `pkill`/`kill`
+        // inside a lab leaves a defunct process that tools like `pgrep -f`
+        // can still match (via /proc/pid/comm), causing verify scripts to
+        // report a process as "still running" after it was actually killed.
+        Init: true,
       },
     });
     try {

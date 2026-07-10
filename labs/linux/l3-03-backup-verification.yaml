@@ -1,0 +1,96 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Backup, Restore & Integrity Verification (Level 3 - Advanced)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-backup-verification"
+title: "Backup, Restore & Integrity Verification"
+track: "linux"
+level: 3
+category: "Automation"
+difficulty: "advanced"
+summary: "A backup nobody has ever restored isn't a backup. Create one, checksum it, and prove it actually restores."
+estimatedMinutes: 30
+order: 322
+
+objectives:
+  - "Create a compressed backup of application data"
+  - "Generate and verify a checksum for the backup archive"
+  - "Perform a real test-restore and confirm the data matches"
+
+instructions: |
+  ## Backup, Restore & Integrity Verification
+
+  The single most common backup failure isn't a missing backup — it's a
+  backup that was **never test-restored** and silently stopped working
+  months ago. A trustworthy backup process always includes a checksum and
+  a periodic restore test.
+
+  ### What you need to do
+
+  1. Archive `/data/appdata` into `/backups/appdata.tar.gz`. Use
+     `-C /data appdata` so the archive stores `appdata/...` as a relative
+     path.
+  2. Generate a SHA-256 checksum for the backup and save it as
+     `/backups/appdata.tar.gz.sha256`, then confirm it validates with
+     `sha256sum -c`.
+  3. Prove the backup actually works: extract it into `/restore-test` and
+     confirm the original data is there and intact.
+
+  ### Reference
+
+  ```bash
+  tar -czf /backups/appdata.tar.gz -C /data appdata
+  sha256sum /backups/appdata.tar.gz > /backups/appdata.tar.gz.sha256
+  cd /backups && sha256sum -c appdata.tar.gz.sha256
+  mkdir -p /restore-test && tar xzf /backups/appdata.tar.gz -C /restore-test
+  ```
+
+tasks:
+  - id: "create-backup"
+    description: "Create /backups/appdata.tar.gz containing /data/appdata"
+  - id: "verify-checksum"
+    description: "Generate and validate a SHA-256 checksum for the backup archive"
+  - id: "test-restore"
+    description: "Extract the backup into /restore-test and confirm the data matches the original"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /data/appdata /backups
+  echo "critical record 1" > /data/appdata/db.sql
+  echo "settings" > /data/appdata/config.yaml
+
+verifyScript: |
+  # CHECK: create-backup
+  if [ -f /backups/appdata.tar.gz ] && tar tzf /backups/appdata.tar.gz >/dev/null 2>&1; then
+    echo "CHECK:create-backup:PASS:Backup archive created"
+  else
+    echo "CHECK:create-backup:FAIL:/backups/appdata.tar.gz missing or invalid"
+  fi
+
+  # CHECK: verify-checksum
+  if [ -f /backups/appdata.tar.gz.sha256 ] && (cd /backups && sha256sum -c appdata.tar.gz.sha256 >/dev/null 2>&1); then
+    echo "CHECK:verify-checksum:PASS:Checksum file present and validates"
+  else
+    echo "CHECK:verify-checksum:FAIL:/backups/appdata.tar.gz.sha256 missing or does not match the archive"
+  fi
+
+  # CHECK: test-restore
+  mkdir -p /restore-test
+  tar xzf /backups/appdata.tar.gz -C /restore-test 2>/dev/null
+  if [ -f /restore-test/appdata/db.sql ] && grep -q "critical record 1" /restore-test/appdata/db.sql; then
+    echo "CHECK:test-restore:PASS:Restored data matches the original"
+  else
+    echo "CHECK:test-restore:FAIL:/restore-test/appdata/db.sql missing or content mismatch"
+  fi
+
+hints:
+  - "`tar -czf /backups/appdata.tar.gz -C /data appdata` keeps the archive's internal paths relative."
+  - "`sha256sum /backups/appdata.tar.gz > /backups/appdata.tar.gz.sha256` writes it in sha256sum -c's expected format."
+  - "Run the checksum check from inside /backups: `cd /backups && sha256sum -c appdata.tar.gz.sha256`"
+  - "`mkdir -p /restore-test && tar xzf /backups/appdata.tar.gz -C /restore-test` performs the actual restore test."

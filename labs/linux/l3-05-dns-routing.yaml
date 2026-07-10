@@ -1,0 +1,104 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Advanced Network Troubleshooting - DNS & Routing (Level 3 - Advanced)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-dns-routing"
+title: "Advanced Network Troubleshooting: DNS & Routing"
+track: "linux"
+level: 3
+category: "Networking"
+difficulty: "advanced"
+summary: "A service can't reach its dependency because of a stale /etc/hosts entry. Diagnose, fix, and document the routing path."
+estimatedMinutes: 30
+order: 324
+
+objectives:
+  - "Diagnose a stale hostname-to-IP mapping causing a connection failure"
+  - "Correct /etc/hosts using an authoritative source of truth"
+  - "Read and document a host's routing table"
+
+instructions: |
+  ## Advanced Network Troubleshooting: DNS & Routing
+
+  A service reports it can't reach `api.internal`. In environments without
+  full DNS, `/etc/hosts` is often the source of truth for internal service
+  discovery — and a stale entry left over from an old migration is a very
+  common, very real outage cause.
+
+  ### What you need to do
+
+  1. `/etc/app/service-manifest.txt` is the authoritative record of where
+     `api.internal` should point. `/etc/hosts` currently has the **wrong**
+     IP for it (left over from before a migration). Fix `/etc/hosts` so it
+     matches the manifest, and make sure the old, incorrect mapping is
+     completely gone (not just shadowed by a second line). Note:
+     `/etc/hosts` is a bind-mounted file in this sandbox, so `sed -i`
+     (which renames a temp file over it) will fail with "Resource busy" —
+     write the filtered content back with `>` instead, which truncates the
+     existing file in place.
+  2. Document the container's routing table: save the output of
+     `ip route show` to `/root/routes.txt`. It should show a `default`
+     route — this is what every outbound connection uses when there's no
+     more specific route.
+  3. After fixing the hosts file, resolve `api.internal` (by reading
+     `/etc/hosts`, since there's no real DNS server here) and save just the
+     resolved IP to `/root/resolved-ip.txt`.
+
+  ### Reference
+
+  ```bash
+  cat /etc/app/service-manifest.txt
+  grep -v api.internal /etc/hosts > /tmp/hosts.new
+  echo "10.20.0.50 api.internal" >> /tmp/hosts.new
+  cat /tmp/hosts.new > /etc/hosts             # > truncates in place; sed -i would fail (bind mount)
+  ip route show > /root/routes.txt
+  ```
+
+tasks:
+  - id: "fix-hosts-conflict"
+    description: "Correct /etc/hosts so api.internal maps to the IP in the service manifest, with no stale entry remaining"
+  - id: "inspect-routes"
+    description: "Save the output of `ip route show` to /root/routes.txt"
+  - id: "resolve-check"
+    description: "Save the resolved IP for api.internal (from /etc/hosts) to /root/resolved-ip.txt"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /etc/app /root
+  echo "api.internal=10.20.0.50" > /etc/app/service-manifest.txt
+  echo "10.20.0.99 api.internal" >> /etc/hosts
+
+verifyScript: |
+  # CHECK: fix-hosts-conflict
+  if grep -q "10.20.0.50 api.internal" /etc/hosts && ! grep -q "10.20.0.99" /etc/hosts; then
+    echo "CHECK:fix-hosts-conflict:PASS:/etc/hosts correctly maps api.internal to 10.20.0.50, stale entry removed"
+  else
+    echo "CHECK:fix-hosts-conflict:FAIL:/etc/hosts should map api.internal to 10.20.0.50 only, with the 10.20.0.99 entry removed"
+  fi
+
+  # CHECK: inspect-routes
+  if [ -s /root/routes.txt ] && grep -qi "default" /root/routes.txt; then
+    echo "CHECK:inspect-routes:PASS:routes.txt captured with a default route"
+  else
+    echo "CHECK:inspect-routes:FAIL:/root/routes.txt missing or has no default route"
+  fi
+
+  # CHECK: resolve-check
+  val=$(cat /root/resolved-ip.txt 2>/dev/null | tr -d '[:space:]')
+  if [ "$val" = "10.20.0.50" ]; then
+    echo "CHECK:resolve-check:PASS:Correctly resolved api.internal to 10.20.0.50"
+  else
+    echo "CHECK:resolve-check:FAIL:Expected 10.20.0.50, got '$val'"
+  fi
+
+hints:
+  - "`cat /etc/app/service-manifest.txt` tells you the correct IP is 10.20.0.50."
+  - "/etc/hosts is bind-mounted, so `sed -i` fails with 'Resource busy'. Instead: `grep -v api.internal /etc/hosts > /tmp/h && cat /tmp/h > /etc/hosts`, then append the correct line."
+  - "`ip route show` lists the routing table; the line starting with `default` is the gateway used for everything else."
+  - "Resolve manually by reading the file: `grep api.internal /etc/hosts | awk '{print $1}' > /root/resolved-ip.txt`"

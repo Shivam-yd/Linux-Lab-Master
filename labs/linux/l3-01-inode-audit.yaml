@@ -1,0 +1,101 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Auditing Inode & File Count Usage (Level 3 - Advanced)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-inode-audit"
+title: "Auditing Inode & File Count Usage"
+track: "linux"
+level: 3
+category: "Troubleshooting"
+difficulty: "advanced"
+summary: "A server can run out of usable disk space even with plenty of bytes free, if it runs out of inodes (too many small files). Audit and fix it."
+estimatedMinutes: 30
+order: 320
+
+objectives:
+  - "Count files per directory to find which one is consuming the most inodes"
+  - "Identify the worst offender directory"
+  - "Reclaim inodes by removing excess files"
+
+instructions: |
+  ## Auditing Inode & File Count Usage
+
+  Here's a surprising real-world failure: `df -h` shows plenty of free
+  space, yet writes fail with "No space left on device". The cause is
+  almost always **inode exhaustion** — every file (even a 0-byte one)
+  consumes one inode, and a filesystem has a fixed number of them. A
+  directory that accumulates huge numbers of tiny files (session files,
+  temp uploads, cache entries) is the usual culprit.
+
+  ### What you need to do
+
+  1. `/var/cache/app` has three subdirectories: `sessions`, `uploads`, and
+     `tmp`. For each one, count the number of files it contains and write
+     one line per directory in the form `<dirname>:<count>` to
+     `/root/inode-report.txt` (dirname only, not the full path).
+  2. Based on your report, identify which directory has by far the most
+     files and write **just its name** (e.g. `sessions`) to
+     `/root/culprit-dir.txt`.
+  3. Delete every file inside that directory to reclaim the inodes (leave
+     the empty directory itself in place).
+
+  ### Reference
+
+  ```bash
+  find /var/cache/app/sessions -type f | wc -l
+  find /var/cache/app/<culprit> -type f -delete
+  ```
+
+tasks:
+  - id: "count-per-dir"
+    description: "Write file counts per directory (dirname:count) to /root/inode-report.txt"
+  - id: "identify-culprit"
+    description: "Write the name of the directory with the most files to /root/culprit-dir.txt"
+  - id: "cleanup-culprit"
+    description: "Delete all files inside the culprit directory, reclaiming its inodes"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/cache/app/sessions /var/cache/app/uploads /var/cache/app/tmp
+  i=1
+  while [ $i -le 500 ]; do : > /var/cache/app/sessions/sess_$i; i=$((i+1)); done
+  i=1
+  while [ $i -le 20 ]; do : > /var/cache/app/uploads/file_$i; i=$((i+1)); done
+  i=1
+  while [ $i -le 5 ]; do : > /var/cache/app/tmp/tmp_$i; i=$((i+1)); done
+
+verifyScript: |
+  # CHECK: count-per-dir
+  if [ -f /root/inode-report.txt ] && grep -q "sessions" /root/inode-report.txt \
+     && grep -q "uploads" /root/inode-report.txt && grep -q "tmp" /root/inode-report.txt; then
+    echo "CHECK:count-per-dir:PASS:inode-report.txt lists all three directories"
+  else
+    echo "CHECK:count-per-dir:FAIL:/root/inode-report.txt missing one or more directories"
+  fi
+
+  # CHECK: identify-culprit
+  val=$(cat /root/culprit-dir.txt 2>/dev/null | tr -d '[:space:]')
+  if [ "$val" = "sessions" ] || [ "$val" = "/var/cache/app/sessions" ]; then
+    echo "CHECK:identify-culprit:PASS:Correctly identified 'sessions' as the culprit (500 files)"
+  else
+    echo "CHECK:identify-culprit:FAIL:Expected 'sessions', got '$val'"
+  fi
+
+  # CHECK: cleanup-culprit
+  count=$(find /var/cache/app/sessions -type f | wc -l | tr -d '[:space:]')
+  if [ "$count" = "0" ]; then
+    echo "CHECK:cleanup-culprit:PASS:All files removed from /var/cache/app/sessions"
+  else
+    echo "CHECK:cleanup-culprit:FAIL:/var/cache/app/sessions still has $count files"
+  fi
+
+hints:
+  - "`find /var/cache/app/sessions -type f | wc -l` counts files in one directory; repeat for each."
+  - "sessions has 500 files, uploads has 20, tmp has 5 — sessions is the clear outlier."
+  - "`find /var/cache/app/sessions -type f -delete` removes every file but keeps the directory itself."

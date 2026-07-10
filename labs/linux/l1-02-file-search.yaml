@@ -1,0 +1,98 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Finding Files Fast (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-file-search"
+title: "Finding Files Fast"
+track: "linux"
+level: 1
+category: "Linux Fundamentals"
+difficulty: "beginner"
+summary: "Locate configuration files and oversized data files across a directory tree using find."
+estimatedMinutes: 20
+order: 16
+
+objectives:
+  - "Search a directory tree for files by name pattern"
+  - "Search a directory tree for files by size"
+  - "Count files matching a condition"
+
+instructions: |
+  ## Finding Files Fast
+
+  A new teammate asks: "Where are all the config files for this app, and
+  which data file is hogging space?" Instead of clicking through folders,
+  a real sysadmin reaches for `find`.
+
+  ### What you need to do
+
+  1. Find every `*.conf` file under `/etc/app` (recursively) and save the
+     sorted list of paths to `/root/configs.txt`.
+  2. Find every file under `/data` larger than 1 MB (1024k) and save the
+     list of paths to `/root/large-files.txt`.
+  3. Count the total number of files (not directories) under `/data` and
+     write just the number to `/root/file-count.txt`.
+
+  ### Reference
+
+  ```bash
+  find /etc/app -name '*.conf' -type f | sort
+  find /data -type f -size +1024k
+  find /data -type f | wc -l
+  ```
+
+tasks:
+  - id: "find-config-files"
+    description: "Find all *.conf files under /etc/app and save the sorted list to /root/configs.txt"
+  - id: "find-large-files"
+    description: "Find all files under /data larger than 1MB (1024k) and save the list to /root/large-files.txt"
+  - id: "count-files"
+    description: "Count the total files under /data and write the number to /root/file-count.txt"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /etc/app/conf.d /data
+  echo "port=8080" > /etc/app/app.conf
+  echo "debug=false" > /etc/app/conf.d/debug.conf
+  echo "timeout=30" > /etc/app/conf.d/network.conf
+  dd if=/dev/zero of=/data/dataset.bin bs=1M count=2 2>/dev/null
+  dd if=/dev/zero of=/data/small.txt bs=1K count=5 2>/dev/null
+  for i in 1 2 3 4 5; do echo "row $i" > /data/record-$i.csv; done
+
+verifyScript: |
+  # CHECK: find-config-files
+  if [ -f /root/configs.txt ] && grep -q "app.conf" /root/configs.txt && \
+     grep -q "debug.conf" /root/configs.txt && grep -q "network.conf" /root/configs.txt; then
+    echo "CHECK:find-config-files:PASS:All three .conf files found"
+  else
+    echo "CHECK:find-config-files:FAIL:/root/configs.txt is missing one or more .conf files"
+  fi
+
+  # CHECK: find-large-files
+  if [ -f /root/large-files.txt ] && grep -q "dataset.bin" /root/large-files.txt && \
+     ! grep -q "small.txt" /root/large-files.txt; then
+    echo "CHECK:find-large-files:PASS:Correctly identified dataset.bin as the only file over 1MB"
+  else
+    echo "CHECK:find-large-files:FAIL:/root/large-files.txt should contain dataset.bin and not small.txt"
+  fi
+
+  # CHECK: count-files
+  expected=$(find /data -type f | wc -l | tr -d '[:space:]')
+  actual=$(cat /root/file-count.txt 2>/dev/null | tr -d '[:space:]')
+  if [ "$actual" = "$expected" ]; then
+    echo "CHECK:count-files:PASS:File count matches ($expected)"
+  else
+    echo "CHECK:count-files:FAIL:Expected $expected, got '$actual'"
+  fi
+
+hints:
+  - "`find /etc/app -name '*.conf'` searches recursively by default."
+  - "Pipe through `sort` before redirecting to the file: `find /etc/app -name '*.conf' | sort > /root/configs.txt`"
+  - "This find only understands size suffixes b/c/k/w — use `-size +1024k` (1024 KB) rather than +1M."
+  - "`find /data -type f | wc -l` prints the count; redirect it into the file."

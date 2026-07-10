@@ -1,0 +1,94 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Archiving and Compressing Files (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-archiving"
+title: "Archiving and Compressing Files"
+track: "linux"
+level: 1
+category: "Linux Fundamentals"
+difficulty: "beginner"
+summary: "Package a project directory into a compressed archive before a risky change, then verify and restore it."
+estimatedMinutes: 20
+order: 17
+
+objectives:
+  - "Create a compressed tar archive of a directory"
+  - "List the contents of an archive without extracting it"
+  - "Extract an archive and confirm the restored files match"
+
+instructions: |
+  ## Archiving and Compressing Files
+
+  Before you make any risky change on a server — an upgrade, a config
+  rewrite, a migration — the first habit every experienced engineer has is:
+  **back it up first.** `tar` + `gzip` is the standard Linux way to do that.
+
+  ### What you need to do
+
+  1. Archive and compress `/data/project` into `/root/project-backup.tar.gz`.
+     Use `-C /data project` so the archive stores relative paths (`project/...`)
+     instead of absolute ones — this makes it portable to restore anywhere.
+  2. List the archive's contents with `tar tzf` and save the listing to
+     `/root/archive-contents.txt`.
+  3. Extract the archive into `/restore` and confirm the original files are
+     there.
+
+  ### Reference
+
+  ```bash
+  tar -czf /root/project-backup.tar.gz -C /data project
+  tar tzf /root/project-backup.tar.gz
+  mkdir -p /restore && tar xzf /root/project-backup.tar.gz -C /restore
+  ```
+
+tasks:
+  - id: "create-archive"
+    description: "Create /root/project-backup.tar.gz containing /data/project (archived as 'project/...')"
+  - id: "verify-archive"
+    description: "Save the archive's file listing (tar tzf) to /root/archive-contents.txt"
+  - id: "extract-restore"
+    description: "Extract the archive into /restore so /restore/project/config.yaml exists"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /data/project/src /data/project/docs
+  echo "print('hello')" > /data/project/src/main.py
+  echo "# Project Docs" > /data/project/docs/readme.md
+  echo "config data" > /data/project/config.yaml
+
+verifyScript: |
+  # CHECK: create-archive
+  if [ -f /root/project-backup.tar.gz ] && tar tzf /root/project-backup.tar.gz >/dev/null 2>&1; then
+    echo "CHECK:create-archive:PASS:Archive created and is a valid gzip/tar file"
+  else
+    echo "CHECK:create-archive:FAIL:/root/project-backup.tar.gz missing or not a valid archive"
+  fi
+
+  # CHECK: verify-archive
+  if [ -f /root/archive-contents.txt ] && grep -q "main.py" /root/archive-contents.txt; then
+    echo "CHECK:verify-archive:PASS:Archive contents listing saved correctly"
+  else
+    echo "CHECK:verify-archive:FAIL:/root/archive-contents.txt missing or doesn't list main.py"
+  fi
+
+  # CHECK: extract-restore
+  mkdir -p /restore
+  tar xzf /root/project-backup.tar.gz -C /restore 2>/dev/null
+  if [ -f /restore/project/config.yaml ] && grep -q "config data" /restore/project/config.yaml; then
+    echo "CHECK:extract-restore:PASS:Archive extracted and content matches original"
+  else
+    echo "CHECK:extract-restore:FAIL:/restore/project/config.yaml missing or content mismatch"
+  fi
+
+hints:
+  - "`tar -czf <archive> -C <dir> <name>` archives <name> as a relative path — cd into /data conceptually via -C."
+  - "Example: `tar -czf /root/project-backup.tar.gz -C /data project`"
+  - "`tar tzf /root/project-backup.tar.gz > /root/archive-contents.txt` lists without extracting."
+  - "`mkdir -p /restore && tar xzf /root/project-backup.tar.gz -C /restore` extracts into that folder."

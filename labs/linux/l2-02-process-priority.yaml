@@ -1,0 +1,104 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Process Priority & Runaway Processes (Level 2 - Intermediate)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-process-priority"
+title: "Process Priority & Runaway Processes"
+track: "linux"
+level: 2
+category: "System Administration"
+difficulty: "intermediate"
+summary: "A background job is hogging CPU. Find it, kill it, and learn to control process priority with nice/renice."
+estimatedMinutes: 25
+order: 221
+
+objectives:
+  - "Identify and terminate a runaway process by name"
+  - "Change the priority of an already-running process with renice"
+  - "Launch a new process with a specific nice value from the start"
+
+instructions: |
+  ## Process Priority & Runaway Processes
+
+  A teammate reports the server "feels slow." A classic cause: some
+  background job stuck in an infinite loop, burning 100% of a CPU core
+  while everything else starves for scheduling time.
+
+  ### What you need to do
+
+  1. There's a runaway process called `cpu-hog.sh` spinning in a busy loop.
+     Kill it (`pkill -f cpu-hog.sh`) so it stops consuming CPU.
+  2. A long-running `sleep` process (its PID is saved in `/root/sleeper.pid`)
+     is currently running at normal priority. Change its priority to
+     **nice value 10** using `renice`, without restarting it.
+  3. Launch a brand-new `sleep 300` in the background at **nice value 15**
+     from the start (`nice -n 15 sleep 300 &`), and save its PID to
+     `/root/niced.pid`.
+
+  ### Reference
+
+  ```bash
+  pkill -f cpu-hog.sh
+  renice -n 10 -p <pid>
+  nice -n 15 sleep 300 &
+  echo $! > /root/niced.pid
+  cat /proc/<pid>/stat | awk '{print $19}'   # field 19 is the nice value
+  ```
+
+tasks:
+  - id: "kill-hog"
+    description: "Kill the cpu-hog.sh runaway process"
+  - id: "renice-sleeper"
+    description: "Renice the process in /root/sleeper.pid to nice value 10"
+  - id: "launch-niced"
+    description: "Launch `sleep 300` at nice value 15 in the background and save its PID to /root/niced.pid"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /usr/local/bin
+  cat > /usr/local/bin/cpu-hog.sh <<'EOF'
+  #!/bin/sh
+  while true; do :; done
+  EOF
+  chmod +x /usr/local/bin/cpu-hog.sh
+  /usr/local/bin/cpu-hog.sh &
+  sleep 100 &
+  echo $! > /root/sleeper.pid
+
+verifyScript: |
+  # CHECK: kill-hog
+  if ! pgrep -f cpu-hog.sh >/dev/null 2>&1; then
+    echo "CHECK:kill-hog:PASS:cpu-hog.sh is no longer running"
+  else
+    echo "CHECK:kill-hog:FAIL:cpu-hog.sh is still running"
+  fi
+
+  # CHECK: renice-sleeper
+  pid=$(cat /root/sleeper.pid 2>/dev/null | tr -d '[:space:]')
+  ni=$(awk '{print $19}' /proc/"$pid"/stat 2>/dev/null)
+  if [ -n "$pid" ] && [ "$ni" = "10" ]; then
+    echo "CHECK:renice-sleeper:PASS:Process $pid now has nice value 10"
+  else
+    echo "CHECK:renice-sleeper:FAIL:Expected nice 10 for pid $pid, got '$ni' (process may have exited or not been reniced)"
+  fi
+
+  # CHECK: launch-niced
+  pid2=$(cat /root/niced.pid 2>/dev/null | tr -d '[:space:]')
+  ni2=$(awk '{print $19}' /proc/"$pid2"/stat 2>/dev/null)
+  if [ -n "$pid2" ] && [ "$ni2" = "15" ]; then
+    echo "CHECK:launch-niced:PASS:New process $pid2 launched with nice value 15"
+  else
+    echo "CHECK:launch-niced:FAIL:Expected nice 15 for pid in /root/niced.pid, got '$ni2'"
+  fi
+
+hints:
+  - "`pgrep -f cpu-hog.sh` finds it; `pkill -f cpu-hog.sh` kills all matches."
+  - "`cat /root/sleeper.pid` gives you the PID; `renice -n 10 -p <pid>` changes its priority in place."
+  - "`nice -n 15 sleep 300 &` starts the process already at nice 15; `$!` is the PID of the last background job."
+  - "Verify with: `awk '{print $19}' /proc/<pid>/stat` — field 19 of /proc/<pid>/stat is the nice value."

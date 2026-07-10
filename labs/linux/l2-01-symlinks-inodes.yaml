@@ -1,0 +1,101 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Symbolic Links & Inodes (Level 2 - Intermediate)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-symlinks-inodes"
+title: "Symbolic Links & Inodes"
+track: "linux"
+level: 2
+category: "System Administration"
+difficulty: "intermediate"
+summary: "Manage a zero-downtime deployment symlink and understand hard links vs. inodes."
+estimatedMinutes: 25
+order: 220
+
+objectives:
+  - "Point a symlink at a release directory"
+  - "Repoint an existing symlink atomically without recreating it"
+  - "Understand that hard links share the same inode"
+
+instructions: |
+  ## Symbolic Links & Inodes
+
+  Zero-downtime deploys often work like this: releases live in versioned
+  folders (`/opt/releases/v1`, `v2`, ...) and a symlink `current` always
+  points at whichever one is live. Switching versions is just repointing
+  one symlink — instant, and easy to roll back.
+
+  ### What you need to do
+
+  1. Create `/etc/app/current` as a symlink pointing to `/opt/releases/v2`.
+  2. A new version is ready. Repoint `/etc/app/current` to
+     `/opt/releases/v3` — don't delete and recreate it as a real
+     directory, just repoint the symlink (`ln -sfn` is the standard way).
+  3. Separately: create a **hard link** named `/data/file-hardlink` that
+     points to `/data/original.txt`. Unlike a symlink, a hard link shares
+     the exact same inode as the original — prove you understand this by
+     making sure `stat -c %i` reports the same inode number for both.
+
+  ### Reference
+
+  ```bash
+  ln -s /opt/releases/v2 /etc/app/current      # create symlink
+  ln -sfn /opt/releases/v3 /etc/app/current    # atomically repoint it
+  ln /data/original.txt /data/file-hardlink    # hard link (no -s)
+  stat -c %i /data/original.txt
+  ```
+
+tasks:
+  - id: "create-symlink"
+    description: "Create /etc/app/current as a symlink to /opt/releases/v2"
+  - id: "repoint-symlink"
+    description: "Repoint /etc/app/current to /opt/releases/v3 without recreating it as a directory"
+  - id: "hard-link-check"
+    description: "Create /data/file-hardlink as a hard link to /data/original.txt (same inode)"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /opt/releases/v1 /opt/releases/v2 /opt/releases/v3 /etc/app /data
+  echo "v1" > /opt/releases/v1/app.txt
+  echo "v2" > /opt/releases/v2/app.txt
+  echo "v3" > /opt/releases/v3/app.txt
+  echo "original content" > /data/original.txt
+
+verifyScript: |
+  # CHECK: create-symlink (checked via final state below too, but this documents intent)
+  # CHECK: repoint-symlink
+  if [ -L /etc/app/current ] && [ "$(readlink -f /etc/app/current)" = "/opt/releases/v3" ]; then
+    echo "CHECK:create-symlink:PASS:/etc/app/current is a symlink"
+    echo "CHECK:repoint-symlink:PASS:/etc/app/current now points to /opt/releases/v3"
+  elif [ -L /etc/app/current ]; then
+    echo "CHECK:create-symlink:PASS:/etc/app/current is a symlink"
+    echo "CHECK:repoint-symlink:FAIL:/etc/app/current does not point to /opt/releases/v3 (got $(readlink -f /etc/app/current))"
+  else
+    echo "CHECK:create-symlink:FAIL:/etc/app/current is not a symlink"
+    echo "CHECK:repoint-symlink:FAIL:/etc/app/current is not a symlink"
+  fi
+
+  # CHECK: hard-link-check
+  if [ -f /data/file-hardlink ]; then
+    i1=$(stat -c %i /data/original.txt 2>/dev/null)
+    i2=$(stat -c %i /data/file-hardlink 2>/dev/null)
+    if [ -n "$i1" ] && [ "$i1" = "$i2" ]; then
+      echo "CHECK:hard-link-check:PASS:file-hardlink shares inode $i1 with original.txt"
+    else
+      echo "CHECK:hard-link-check:FAIL:file-hardlink exists but has a different inode than original.txt"
+    fi
+  else
+    echo "CHECK:hard-link-check:FAIL:/data/file-hardlink does not exist"
+  fi
+
+hints:
+  - "`ln -s /opt/releases/v2 /etc/app/current` creates the initial symlink."
+  - "`ln -sfn /opt/releases/v3 /etc/app/current` — the -f forces overwrite and -n treats the target as a symlink, not a directory to descend into."
+  - "A hard link is made by omitting -s: `ln /data/original.txt /data/file-hardlink`"
+  - "`stat -c %i <file>` prints the inode number. Hard links to the same data always report the same number."

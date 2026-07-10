@@ -1,0 +1,110 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Pipes, Redirects & Text Processing (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-pipes-redirects"
+title: "Pipes, Redirects & Text Processing"
+track: "linux"
+level: 1
+category: "Linux Fundamentals"
+difficulty: "beginner"
+summary: "Analyze a web server access log and an application log using pipes, sort/uniq/grep, and safe redirection."
+estimatedMinutes: 20
+order: 18
+
+objectives:
+  - "Chain commands with pipes to summarize log data"
+  - "Count matching lines with grep -c"
+  - "Append to a file without destroying its existing content"
+
+instructions: |
+  ## Pipes, Redirects & Text Processing
+
+  Most day-to-day Linux troubleshooting isn't fancy tooling — it's chaining
+  a handful of small commands together with pipes (`|`) to answer a
+  question fast.
+
+  ### What you need to do
+
+  1. `/var/log/access.log` has one request per line, formatted
+     `<ip> <method> <path>`. Find the **3 most frequent IP addresses** and
+     save them to `/root/top-ips.txt`, one per line, most frequent first.
+  2. Count how many lines in `/var/log/app.log` contain `ERROR` and save
+     just the number to `/root/error-count.txt`.
+  3. Append the line `MAINTENANCE_MODE=true` to `/etc/app/app.conf`
+     **without deleting its existing content**.
+
+  ### Reference
+
+  ```bash
+  awk '{print $1}' file | sort | uniq -c | sort -rn | head -3
+  grep -c ERROR file
+  echo "line" >> file        # >> appends, > overwrites!
+  ```
+
+tasks:
+  - id: "top-ips"
+    description: "Find the 3 most frequent IPs in /var/log/access.log and save them (most frequent first) to /root/top-ips.txt"
+  - id: "error-count"
+    description: "Count lines containing ERROR in /var/log/app.log and save the number to /root/error-count.txt"
+  - id: "append-log"
+    description: "Append 'MAINTENANCE_MODE=true' to /etc/app/app.conf without removing its existing lines"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /etc/app
+  cat > /etc/app/app.conf <<'EOF'
+  port=8080
+  debug=false
+  EOF
+  cat > /var/log/access.log <<'EOF'
+  10.0.0.1 GET /
+  10.0.0.2 GET /api
+  10.0.0.1 GET /home
+  10.0.0.3 GET /login
+  10.0.0.1 GET /api
+  10.0.0.2 GET /home
+  EOF
+  cat > /var/log/app.log <<'EOF'
+  INFO start
+  ERROR db timeout
+  INFO ok
+  ERROR disk full
+  ERROR db timeout
+  EOF
+
+verifyScript: |
+  # CHECK: top-ips
+  if [ -f /root/top-ips.txt ] && [ "$(head -1 /root/top-ips.txt | awk '{print $1}')" = "10.0.0.1" ]; then
+    echo "CHECK:top-ips:PASS:10.0.0.1 (3 requests) correctly identified as most frequent"
+  else
+    echo "CHECK:top-ips:FAIL:/root/top-ips.txt missing or first line isn't 10.0.0.1"
+  fi
+
+  # CHECK: error-count
+  expected=$(grep -c ERROR /var/log/app.log)
+  actual=$(cat /root/error-count.txt 2>/dev/null | tr -d '[:space:]')
+  if [ "$actual" = "$expected" ]; then
+    echo "CHECK:error-count:PASS:Correct ERROR count ($expected)"
+  else
+    echo "CHECK:error-count:FAIL:Expected $expected, got '$actual'"
+  fi
+
+  # CHECK: append-log
+  if grep -q "^port=8080" /etc/app/app.conf && grep -q "MAINTENANCE_MODE=true" /etc/app/app.conf; then
+    echo "CHECK:append-log:PASS:Line appended without destroying existing config"
+  else
+    echo "CHECK:append-log:FAIL:/etc/app/app.conf missing original content or the new line"
+  fi
+
+hints:
+  - "`awk '{print $1}' /var/log/access.log | sort | uniq -c | sort -rn` ranks IPs by frequency."
+  - "Extract just the IP column from the ranked output before saving to top-ips.txt."
+  - "`grep -c ERROR /var/log/app.log > /root/error-count.txt`"
+  - "Use `>>` (two arrows), not `>` — a single `>` would erase the existing lines."

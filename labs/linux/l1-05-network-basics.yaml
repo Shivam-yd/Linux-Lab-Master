@@ -1,0 +1,92 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Basic Network Diagnostics (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-network-basics"
+title: "Basic Network Diagnostics"
+track: "linux"
+level: 1
+category: "Networking"
+difficulty: "beginner"
+summary: "Fix a broken hostname mapping, start a listener, and read your container's own network configuration."
+estimatedMinutes: 20
+order: 19
+
+objectives:
+  - "Add a static hostname mapping in /etc/hosts"
+  - "Start and confirm a listening TCP port"
+  - "Read a network interface's IP address with the ip command"
+
+instructions: |
+  ## Basic Network Diagnostics
+
+  "It works on my machine" often comes down to networking basics: does the
+  hostname resolve, is the port actually listening, what's my own IP? These
+  are the first three things to check before blaming anything more exotic.
+
+  ### What you need to do
+
+  1. An app is trying to reach `db.internal`, but nothing maps that name to
+     an IP yet. Add a line to `/etc/hosts` mapping `db.internal` to
+     `10.5.0.9`.
+  2. Start a background listener on TCP port `9090` (e.g. with `nc -lk -p
+     9090 &`) so a health check can confirm the service is up.
+  3. Find this container's own IPv4 address on `eth0` and save just the IP
+     (no prefix, e.g. `172.17.0.2`) to `/root/my-ip.txt`.
+
+  ### Reference
+
+  ```bash
+  echo "10.5.0.9 db.internal" >> /etc/hosts
+  nc -lk -p 9090 &
+  netstat -tln
+  ip -4 addr show eth0
+  ```
+
+tasks:
+  - id: "configure-hosts"
+    description: "Add '10.5.0.9 db.internal' to /etc/hosts"
+  - id: "start-listener"
+    description: "Start a background TCP listener on port 9090"
+  - id: "record-ip"
+    description: "Save this container's eth0 IPv4 address to /root/my-ip.txt"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /root
+
+verifyScript: |
+  # CHECK: configure-hosts
+  if grep -q "10.5.0.9" /etc/hosts && grep -q "db.internal" /etc/hosts; then
+    echo "CHECK:configure-hosts:PASS:db.internal maps to 10.5.0.9 in /etc/hosts"
+  else
+    echo "CHECK:configure-hosts:FAIL:/etc/hosts missing the db.internal mapping"
+  fi
+
+  # CHECK: start-listener
+  if netstat -tln 2>/dev/null | grep -q ":9090 "; then
+    echo "CHECK:start-listener:PASS:Something is listening on port 9090"
+  else
+    echo "CHECK:start-listener:FAIL:No listener found on port 9090"
+  fi
+
+  # CHECK: record-ip
+  ip4=$(ip -4 addr show eth0 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1)
+  saved=$(cat /root/my-ip.txt 2>/dev/null | tr -d '[:space:]')
+  if [ -n "$ip4" ] && [ "$saved" = "$ip4" ]; then
+    echo "CHECK:record-ip:PASS:Correct eth0 IP recorded ($ip4)"
+  else
+    echo "CHECK:record-ip:FAIL:Expected '$ip4', got '$saved'"
+  fi
+
+hints:
+  - "The /etc/hosts format is: `<ip> <hostname>`, one mapping per line."
+  - "`nc -lk -p 9090 &` starts a persistent background listener; the `&` is required to keep your terminal free."
+  - "`netstat -tln` lists all listening TCP ports."
+  - "`ip -4 addr show eth0` prints a line like `inet 172.17.0.2/16 ...` — the IP is before the `/`."

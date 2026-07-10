@@ -1,0 +1,105 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Structured Log Analysis (Level 2 - Intermediate)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-log-analysis"
+title: "Structured Log Analysis"
+track: "linux"
+level: 2
+category: "Troubleshooting"
+difficulty: "intermediate"
+summary: "Parse an nginx-style access log with awk/grep to find server errors, the top endpoint, and average latency."
+estimatedMinutes: 25
+order: 222
+
+objectives:
+  - "Filter log lines by HTTP status code range"
+  - "Aggregate and rank a text field with awk/sort/uniq"
+  - "Compute a numeric average with awk"
+
+instructions: |
+  ## Structured Log Analysis
+
+  When a service degrades, the access log is usually the fastest place to
+  find the answer — but only if you can slice it quickly with `awk` and
+  `grep` instead of reading it line by line.
+
+  `/var/log/nginx/access.log` has one request per line in the format:
+  `<method> <path> <status> <response_ms>`
+
+  ### What you need to do
+
+  1. Extract every line whose status code is in the `5xx` range (server
+     errors) and save them to `/root/server-errors.txt`.
+  2. Determine which endpoint (2nd column) was requested the most, and
+     save just that endpoint to `/root/top-endpoint.txt`.
+  3. Compute the average response time (4th column, integer division —
+     drop any decimal) across **all** requests and save the number to
+     `/root/avg-response.txt`.
+
+  ### Reference
+
+  ```bash
+  grep -E ' 5[0-9]{2} ' /var/log/nginx/access.log
+  awk '{print $2}' file | sort | uniq -c | sort -rn | head -1
+  awk '{sum+=$4; n++} END{print int(sum/n)}' file
+  ```
+
+tasks:
+  - id: "extract-5xx"
+    description: "Extract all 5xx status lines from /var/log/nginx/access.log into /root/server-errors.txt"
+  - id: "top-endpoint"
+    description: "Find the most-requested endpoint and save it to /root/top-endpoint.txt"
+  - id: "response-time-avg"
+    description: "Compute the integer average response time across all requests and save it to /root/avg-response.txt"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/log/nginx
+  cat > /var/log/nginx/access.log <<'EOF'
+  GET /home 200 120
+  GET /api/users 200 80
+  GET /api/users 500 300
+  GET /home 200 110
+  GET /api/orders 404 50
+  GET /api/users 200 90
+  GET /api/users 503 200
+  GET /home 200 130
+  EOF
+
+verifyScript: |
+  # CHECK: extract-5xx
+  if [ -f /root/server-errors.txt ] && grep -q " 500 " /root/server-errors.txt && grep -q " 503 " /root/server-errors.txt \
+     && ! grep -q " 404 " /root/server-errors.txt && ! grep -q " 200 " /root/server-errors.txt; then
+    echo "CHECK:extract-5xx:PASS:server-errors.txt contains exactly the two 5xx lines"
+  else
+    echo "CHECK:extract-5xx:FAIL:/root/server-errors.txt should contain only the 500 and 503 lines"
+  fi
+
+  # CHECK: top-endpoint
+  if [ -f /root/top-endpoint.txt ] && grep -q "/api/users" /root/top-endpoint.txt; then
+    echo "CHECK:top-endpoint:PASS:/api/users correctly identified as most requested (4 hits)"
+  else
+    echo "CHECK:top-endpoint:FAIL:/root/top-endpoint.txt should contain /api/users"
+  fi
+
+  # CHECK: response-time-avg
+  expected=$(awk '{sum+=$4; n++} END{print int(sum/n)}' /var/log/nginx/access.log)
+  actual=$(cat /root/avg-response.txt 2>/dev/null | tr -d '[:space:]')
+  if [ "$actual" = "$expected" ]; then
+    echo "CHECK:response-time-avg:PASS:Average response time correct ($expected ms)"
+  else
+    echo "CHECK:response-time-avg:FAIL:Expected $expected, got '$actual'"
+  fi
+
+hints:
+  - "`grep -E ' 5[0-9]{2} '` matches any 3-digit status code starting with 5, surrounded by spaces."
+  - "`awk '{print $2}' access.log | sort | uniq -c | sort -rn | head -1` ranks endpoints by request count."
+  - "/api/users appears 4 times — more than any other endpoint."
+  - "`awk '{sum+=$4; n++} END{print int(sum/n)}' access.log` sums column 4 and divides by the line count."

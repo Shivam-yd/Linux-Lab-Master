@@ -1,0 +1,100 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Resource Limits & Runaway Processes (Level 3 - Advanced)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-resource-limits"
+title: "Resource Limits & Runaway Processes"
+track: "linux"
+level: 3
+category: "System Administration"
+difficulty: "advanced"
+summary: "Detect and stop a process that forked out of control, then configure a preventive per-user process limit."
+estimatedMinutes: 30
+order: 321
+
+objectives:
+  - "Detect multiple runaway instances of the same process by name"
+  - "Terminate all instances at once"
+  - "Configure a per-user nproc limit to prevent recurrence"
+
+instructions: |
+  ## Resource Limits & Runaway Processes
+
+  A buggy deploy script forked a worker script multiple times without a
+  supervisor to stop it — a classic "fork bomb lite" that can starve a
+  server of CPU and PIDs. Beyond just killing it, a good sysadmin puts a
+  **preventive limit** in place so it can't happen again unnoticed.
+
+  ### What you need to do
+
+  1. Several copies of `cpu-hog.sh` are running in a busy loop. Count how
+     many instances are running and write just the number to
+     `/root/runaway-count.txt`.
+  2. Terminate all of them.
+  3. Create `/etc/security/limits.d/lab.conf` with a hard process limit for
+     user `appuser` — a line like `appuser hard nproc 50` — so a future
+     runaway script can't fork unbounded processes for that user.
+
+  ### Reference
+
+  ```bash
+  pgrep -f cpu-hog.sh | wc -l
+  pkill -f cpu-hog.sh
+  echo "appuser hard nproc 50" > /etc/security/limits.d/lab.conf
+  ```
+
+tasks:
+  - id: "detect-runaway"
+    description: "Count the running cpu-hog.sh instances and save the number to /root/runaway-count.txt"
+  - id: "terminate-runaway"
+    description: "Kill all running cpu-hog.sh instances"
+  - id: "enforce-limit"
+    description: "Create /etc/security/limits.d/lab.conf limiting appuser's process count"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  adduser -D appuser 2>/dev/null || true
+  mkdir -p /usr/local/bin /etc/security/limits.d
+  cat > /usr/local/bin/cpu-hog.sh <<'EOF'
+  #!/bin/sh
+  while true; do :; done
+  EOF
+  chmod +x /usr/local/bin/cpu-hog.sh
+  /usr/local/bin/cpu-hog.sh &
+  /usr/local/bin/cpu-hog.sh &
+  /usr/local/bin/cpu-hog.sh &
+
+verifyScript: |
+  # CHECK: detect-runaway
+  saved=$(cat /root/runaway-count.txt 2>/dev/null | tr -d '[:space:]')
+  if [ "$saved" = "3" ]; then
+    echo "CHECK:detect-runaway:PASS:Correctly counted 3 running instances"
+  else
+    echo "CHECK:detect-runaway:FAIL:Expected 3, got '$saved'"
+  fi
+
+  # CHECK: terminate-runaway
+  if ! pgrep -f cpu-hog.sh >/dev/null 2>&1; then
+    echo "CHECK:terminate-runaway:PASS:All cpu-hog.sh instances terminated"
+  else
+    echo "CHECK:terminate-runaway:FAIL:cpu-hog.sh instances still running"
+  fi
+
+  # CHECK: enforce-limit
+  if [ -f /etc/security/limits.d/lab.conf ] && grep -q "appuser" /etc/security/limits.d/lab.conf \
+     && grep -q "nproc" /etc/security/limits.d/lab.conf; then
+    echo "CHECK:enforce-limit:PASS:Process limit configured for appuser"
+  else
+    echo "CHECK:enforce-limit:FAIL:/etc/security/limits.d/lab.conf missing or doesn't limit appuser's nproc"
+  fi
+
+hints:
+  - "`pgrep -f cpu-hog.sh | wc -l` counts matching processes; save the number *before* you kill them."
+  - "`pkill -f cpu-hog.sh` kills every process whose command line matches."
+  - "limits.conf syntax is: `<user> <soft|hard> <item> <value>` — e.g. `appuser hard nproc 50`."

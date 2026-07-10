@@ -1,0 +1,94 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: File Integrity & Checksums (Level 2 - Intermediate)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "linux-file-integrity"
+title: "File Integrity & Checksums"
+track: "linux"
+level: 2
+category: "Security"
+difficulty: "intermediate"
+summary: "Use sha256sum and diff to verify a release file wasn't corrupted, and detect tampering between two config versions."
+estimatedMinutes: 20
+order: 224
+
+objectives:
+  - "Generate and validate a SHA-256 checksum file"
+  - "Use sha256sum -c to verify integrity against a known-good checksum"
+  - "Detect differences between two versions of a file"
+
+instructions: |
+  ## File Integrity & Checksums
+
+  Before you trust a downloaded or copied file — a release artifact, a
+  config pulled from another server — verify it wasn't corrupted or
+  tampered with in transit. Checksums are the standard way to do this.
+
+  ### What you need to do
+
+  1. Generate a SHA-256 checksum for `/data/release.tar` and save it as
+     `/data/release.tar.sha256` (standard `sha256sum` output format).
+  2. `/data/expected.sha256` contains a known-good checksum for
+     `/data/config.yaml`. Verify it with `sha256sum -c` and save the
+     command's output to `/root/verify-result.txt`.
+  3. Compare `/data/original.conf` against `/data/modified.conf` and save
+     the diff output to `/root/diff-result.txt` — these two files do
+     differ, so your diff should show that.
+
+  ### Reference
+
+  ```bash
+  sha256sum /data/release.tar > /data/release.tar.sha256
+  cd /data && sha256sum -c expected.sha256
+  diff /data/original.conf /data/modified.conf
+  ```
+
+tasks:
+  - id: "generate-checksum"
+    description: "Generate /data/release.tar.sha256 for /data/release.tar"
+  - id: "verify-integrity"
+    description: "Run sha256sum -c against /data/expected.sha256 and save the output to /root/verify-result.txt"
+  - id: "detect-tampering"
+    description: "Diff /data/original.conf against /data/modified.conf and save the output to /root/diff-result.txt"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /data
+  dd if=/dev/urandom of=/data/release.tar bs=1K count=2 2>/dev/null
+  echo "port=8080" > /data/config.yaml
+  sha256sum /data/config.yaml > /data/expected.sha256
+  echo "version=1.0" > /data/original.conf
+  echo "version=1.1" > /data/modified.conf
+
+verifyScript: |
+  # CHECK: generate-checksum
+  if [ -f /data/release.tar.sha256 ] && sha256sum -c /data/release.tar.sha256 >/dev/null 2>&1; then
+    echo "CHECK:generate-checksum:PASS:release.tar.sha256 exists and validates correctly"
+  else
+    echo "CHECK:generate-checksum:FAIL:/data/release.tar.sha256 missing or does not match release.tar"
+  fi
+
+  # CHECK: verify-integrity
+  if [ -f /root/verify-result.txt ] && grep -qi "OK" /root/verify-result.txt; then
+    echo "CHECK:verify-integrity:PASS:verify-result.txt shows a successful integrity check"
+  else
+    echo "CHECK:verify-integrity:FAIL:/root/verify-result.txt missing or doesn't show OK"
+  fi
+
+  # CHECK: detect-tampering
+  if [ -s /root/diff-result.txt ]; then
+    echo "CHECK:detect-tampering:PASS:diff-result.txt captures the difference between the two files"
+  else
+    echo "CHECK:detect-tampering:FAIL:/root/diff-result.txt is missing or empty"
+  fi
+
+hints:
+  - "`sha256sum /data/release.tar > /data/release.tar.sha256` writes the checksum in the format sha256sum -c expects."
+  - "Run the check from inside /data so relative paths in expected.sha256 resolve: `cd /data && sha256sum -c expected.sha256 > /root/verify-result.txt`"
+  - "`diff /data/original.conf /data/modified.conf > /root/diff-result.txt` — diff exits non-zero when files differ, that's expected."
