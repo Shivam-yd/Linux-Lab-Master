@@ -1,3 +1,24 @@
+# Linux Labs — Installer Guide
+
+## Ubuntu (one command)
+
+Run this from the project root on the target machine:
+
+```bash
+sudo bash installer/install.sh
+```
+
+That's it. The script installs Docker, builds the images, pulls lab containers, and registers a systemd service that starts on boot. Open `http://localhost` when it finishes.
+
+| Command | What it does |
+|---|---|
+| `sudo systemctl status linuxlabs` | Check if it's running |
+| `sudo systemctl stop linuxlabs` | Stop |
+| `sudo systemctl start linuxlabs` | Start |
+| `journalctl -u linuxlabs -f` | Live logs |
+
+---
+
 # Building the Windows Installer
 
 ## What it does
