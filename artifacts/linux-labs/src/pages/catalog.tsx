@@ -373,7 +373,7 @@ export default function Catalog() {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
               {/* Fetch Labs button */}
               <div className="flex flex-col items-end gap-1.5">
                 <button
