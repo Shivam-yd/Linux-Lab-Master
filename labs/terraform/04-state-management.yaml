@@ -91,6 +91,7 @@ instructions: |
 
   ```sh
   terraform apply -auto-approve
+  touch /root/tf-lab/.scratch_applied   # marks that scratch was really applied, for the checker
   terraform state rm terraform_data.scratch
   terraform state list
   # → scratch is gone from state, but was never destroyed
@@ -102,7 +103,7 @@ tasks:
   - id: "state_mv_reconciled"
     description: "terraform state list shows app_server tracked in state (renamed via terraform state mv, not destroy+recreate)"
   - id: "state_rm_applied"
-    description: "terraform_data.scratch was applied and then removed from state tracking with terraform state rm"
+    description: "terraform_data.scratch was applied, marked with 'touch /root/tf-lab/.scratch_applied', and then removed from state tracking with terraform state rm"
 
 image: "hashicorp/terraform:1.9"
 entrypoint: ["sleep", "infinity"]
