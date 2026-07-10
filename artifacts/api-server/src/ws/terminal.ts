@@ -59,7 +59,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
   const studentId = studentIdFromCookieHeader(req.headers.cookie);
 
   if (!labId || !terminalName || !studentId) {
-    sendJson(ws, { type: "status", message: "Missing labId, terminal, or student session." });
+    sendControl(ws, { type: "status", message: "Missing labId, terminal, or student session." });
     ws.close();
     return;
   }
@@ -67,14 +67,14 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
   const lab = await getLabByIdAsync(labId);
   const terminal = lab?.terminals.find((t) => t.name === terminalName);
   if (!lab || !terminal) {
-    sendJson(ws, { type: "status", message: "Unknown lab or terminal." });
+    sendControl(ws, { type: "status", message: "Unknown lab or terminal." });
     ws.close();
     return;
   }
 
   const container = await getRunningContainer(studentId, labId);
   if (!container) {
-    sendJson(ws, { type: "status", message: "Sandbox is not running. Start the session first." });
+    sendControl(ws, { type: "status", message: "Sandbox is not running. Start the session first." });
     ws.close();
     return;
   }

@@ -28,7 +28,7 @@ const LABS_PATH       = "labs";
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 // Optional: set GITHUB_TOKEN env var to raise rate limit from 60 → 5 000 req/hr
-const githubHeaders = (): HeadersInit => {
+const githubHeaders = (): Record<string, string> => {
   const token = process.env["GITHUB_TOKEN"];
   return {
     Accept: "application/vnd.github+json",
