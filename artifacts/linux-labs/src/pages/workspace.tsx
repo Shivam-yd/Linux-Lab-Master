@@ -388,29 +388,53 @@ export default function Workspace() {
                 <ul className="space-y-2.5">
                   {lab.tasks.map((task, i) => {
                     const taskResult = verifyResult?.checks?.find((c: any) => c.id === task.id)
+                    const isVerified = !!taskResult
                     const isPassed = taskResult?.passed
 
                     return (
                       <li key={task.id} className={cn(
                         "flex items-start text-sm p-3.5 rounded-lg border transition-all duration-300",
-                        isPassed 
-                          ? "bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]" 
+                        isVerified
+                          ? isPassed
+                            ? "bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                            : "bg-red-500/10 border-red-500/30"
                           : "bg-background border-border/60"
                       )}>
                         <div className={cn(
-                          "w-5 h-5 shrink-0 rounded flex items-center justify-center mr-3 mt-0.5 text-xs font-bold font-mono transition-colors",
-                          isPassed
-                            ? "bg-green-500 text-black"
+                          "w-6 h-6 shrink-0 rounded-full flex items-center justify-center mr-3 mt-0.5 text-xs font-bold font-mono transition-colors",
+                          isVerified
+                            ? isPassed
+                              ? "bg-green-500 text-black"
+                              : "bg-red-500 text-white"
                             : "bg-muted text-muted-foreground"
                         )}>
-                          {isPassed ? <CheckCircle2 className="w-3.5 h-3.5" /> : (i + 1)}
+                          {isVerified
+                            ? isPassed
+                              ? <CheckCircle2 className="w-3.5 h-3.5" />
+                              : <XCircle className="w-3.5 h-3.5" />
+                            : (i + 1)
+                          }
                         </div>
-                        <span className={cn(
-                          "leading-snug flex-1",
-                          isPassed ? "text-foreground font-medium" : "text-muted-foreground"
-                        )}>
-                          {task.description}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className={cn(
+                            "leading-snug",
+                            isVerified
+                              ? isPassed
+                                ? "text-green-300 font-medium"
+                                : "text-red-300 font-medium"
+                              : "text-muted-foreground"
+                          )}>
+                            {task.description}
+                          </span>
+                          {isVerified && taskResult?.message && (
+                            <div className={cn(
+                              "text-xs mt-1.5 font-mono truncate",
+                              isPassed ? "text-muted-foreground" : "text-red-400"
+                            )}>
+                              {">"} {taskResult.message}
+                            </div>
+                          )}
+                        </div>
                       </li>
                     )
                   })}
@@ -532,29 +556,9 @@ export default function Workspace() {
                     </div>
                   </div>
                   
-                  <div className="space-y-3 mt-4 pt-4 border-t border-border/50 relative z-10 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
-                    {verifyResult.checks?.map((check: any) => (
-                      <div key={check.id} className="text-sm bg-background/50 rounded-lg p-3 border border-border/50">
-                        <div className="flex items-start">
-                          {check.passed ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-500 mr-2.5 shrink-0 mt-0.5" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-500 mr-2.5 shrink-0 mt-0.5" />
-                          )}
-                          <div>
-                            <span className={cn("font-medium", check.passed ? "text-foreground" : "text-foreground")}>
-                              {check.label}
-                            </span>
-                            {check.message && (
-                              <div className={cn("text-xs mt-1.5 font-mono", check.passed ? "text-muted-foreground" : "text-red-400")}>
-                                {`> `}{check.message}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-xs font-mono text-muted-foreground/60 mt-3 relative z-10">
+                    {verifyResult.passed ? "// All objectives verified — see checklist above" : "// See objectives above for details"}
+                  </p>
                 </div>
               </div>
             )}
