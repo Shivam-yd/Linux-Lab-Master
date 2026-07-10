@@ -6,7 +6,7 @@ export const cronAutomation: LabDefinition = {
   level: 3,
   title: "Cron Job Scheduling & Automation",
   category: "Automation",
-  difficulty: "intermediate",
+  difficulty: "advanced",
   summary:
     "Write a disk-space-check script and schedule it to run automatically every 5 minutes with cron.",
   estimatedMinutes: 20,

@@ -6,7 +6,7 @@ export const logForensics: LabDefinition = {
   level: 3,
   title: "Log Forensics: Finding the Root Cause",
   category: "Troubleshooting",
-  difficulty: "intermediate",
+  difficulty: "advanced",
   summary:
     "Dig through a noisy application log with grep, awk, and sed to find which IP address is hammering the login endpoint and how many times.",
   estimatedMinutes: 20,

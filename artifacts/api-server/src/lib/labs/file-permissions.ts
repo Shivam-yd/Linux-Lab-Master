@@ -6,7 +6,7 @@ export const filePermissions: LabDefinition = {
   level: 2,
   title: "File Permissions & Ownership Troubleshooting",
   category: "System Administration",
-  difficulty: "beginner",
+  difficulty: "intermediate",
   summary:
     "A deploy script is failing because of broken ownership and permissions. Track down and fix every misconfigured file.",
   estimatedMinutes: 15,

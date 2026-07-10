@@ -6,7 +6,7 @@ export const userGroupManagement: LabDefinition = {
   level: 2,
   title: "Linux User & Group Management",
   category: "System Administration",
-  difficulty: "beginner",
+  difficulty: "intermediate",
   summary:
     "Create a shared group for a small dev team, add the right users to it, and lock down a project directory so only the team can use it.",
   estimatedMinutes: 15,
