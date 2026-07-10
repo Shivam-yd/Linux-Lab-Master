@@ -1,0 +1,65 @@
+services:
+
+  # ── PostgreSQL database ─────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: linuxlabs
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-linuxlabs}
+      POSTGRES_DB: linuxlabs
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linuxlabs -d linuxlabs"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ── Database migration (runs once per start, exits 0 when done) ─────────────
+  # Uses the builder stage so drizzle-kit is available.
+  # docker compose will not start the api until this exits successfully.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://linuxlabs:${POSTGRES_PASSWORD:-linuxlabs}@postgres:5432/linuxlabs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  # ── API server ──────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgresql://linuxlabs:${POSTGRES_PASSWORD:-linuxlabs}@postgres:5432/linuxlabs
+      SESSION_SECRET: ${SESSION_SECRET}
+      NODE_ENV: production
+    # Mount the host Docker socket so the API can spin up lab containers
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # ── Web frontend (nginx) ────────────────────────────────────────────────────
+  # Serves the built React app and proxies /api/* to the api container.
+  # This is the only service that needs an external port.
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

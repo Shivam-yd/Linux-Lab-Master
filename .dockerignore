@@ -1,0 +1,29 @@
+# Dependencies — installed fresh inside Docker
+node_modules
+**/node_modules
+
+# Build outputs — produced inside Docker
+**/dist
+
+# Source maps
+**/*.map
+
+# Git history
+.git
+.gitignore
+
+# Secrets / local env
+.env
+.env.*
+
+# Replit-specific
+.agents
+.local
+.cache
+.replit
+replit.nix
+
+# Editor
+.vscode
+.idea
+*.swp
