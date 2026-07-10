@@ -24,6 +24,55 @@ Sub-folders are just for organisation — the app recursively picks up every
 
 ---
 
+## ⚠️ Sandbox has NO internet access — read this before writing any script
+
+Every lab runs in a Docker container in the Replit environment, and **that
+container has no outbound internet/DNS access**. This means:
+
+- `apt-get`, `apk add`, `pip install`, `npm install`, `curl <url>`,
+  `wget <url>`, `git clone` — **none of these work at runtime**, even with
+  `-qq` or `--quiet` flags. They will hang or fail silently, and any lab that
+  depends on them will look "broken" to students no matter what they do.
+- `docker pull` for the `image:` field **does** work (images are pulled once
+  ahead of time), so the fix is always to **choose or build an image that
+  already contains everything the lab needs** — never to install things
+  inside `setupScript`.
+- This bit a real lab before ("Cron & Task Scheduling" used `ubuntu:24.04` +
+  `apt-get install -y cron at`, which silently failed, so `cron`/`at` were
+  never present and every check failed). Don't repeat that mistake.
+
+### How to satisfy a lab's tool requirements without installing anything
+
+1. **Prefer official/community images that already bundle the tool.**
+   Examples already used in this repo: `hashicorp/terraform:1.9` (Terraform
+   preinstalled), `rastasheep/ubuntu-sshd:18.04` (sshd preinstalled).
+2. **Prefer Alpine + BusyBox for common Linux utilities.** BusyBox (built
+   into `alpine:latest`) already ships `crond`/`crontab`, `vi`, `ps`,
+   `grep`, `find`, `awk`, `sed`, networking basics, etc. Run
+   `docker run --rm alpine:latest busybox --list` to see the full applet
+   list before assuming a tool is missing.
+3. **If a required tool truly isn't available anywhere,** write a small
+   POSIX-`sh` shim script in `setupScript` that fakes the minimum behavior
+   the lab's tasks need (see `labs/linux/03-cron-scheduling.yaml`'s `at`
+   shim for a worked example) — do not fall back to a package manager.
+4. **Before writing the real `setupScript`/`verifyScript`,** manually pull
+   the candidate image and exec into it to confirm the commands you plan to
+   use actually exist:
+   ```bash
+   docker pull <image>
+   docker run --rm <image> sh -c 'which <tool1> <tool2>; cat /etc/os-release'
+   ```
+   Do this check for every tool your lab's instructions/hints tell students
+   to run — not just the "main" one. (For the cron lab, `crond` existed but
+   `at` didn't; that mismatch is exactly what breaks a lab.)
+5. **Test the full lab flow end-to-end before publishing** — actually
+   `docker run` the chosen image, execute your `setupScript`, perform the
+   actions a student would perform, then execute your `verifyScript` and
+   confirm every `CHECK:` line comes back `PASS`. Don't just read the
+   scripts and assume they'll work.
+
+---
+
 ## Lab YAML format
 
 Copy `labs/linux/01-file-permissions.yaml` as a starting point.  Required
@@ -68,12 +117,18 @@ CHECK:<taskId>:FAIL:<reason>
 
 ### Step 1 — Pick a topic and track
 
-Decide what the student will learn and which track it belongs to:
+Decide what the student will learn and which track it belongs to, then pick
+an `image` that already contains every tool the lab needs (see the
+no-internet warning above — never plan on installing anything at runtime):
 
 | Track | Image to use | When |
 |---|---|---|
-| `linux` | `ubuntu:24.04` | Shell, files, users, networking, scripting |
+| `linux` | `alpine:latest` (preferred — BusyBox covers most core-utils/cron needs) or `ubuntu:24.04` (only if you don't need any tool beyond what ships in the base image) | Shell, files, users, networking, scripting |
 | `terraform` | `hashicorp/terraform:1.9` | IaC, providers, state, modules |
+
+If the topic needs a tool that isn't in either base image, find a
+pre-built image that bundles it (e.g. `rastasheep/ubuntu-sshd:18.04` for
+SSH) — don't reach for `ubuntu:24.04` + `apt-get install` by default.
 
 Give the lab a short **kebab-case ID** that is unique across all labs, e.g. `linux-cron-jobs` or `terraform-data-sources`.
 
@@ -102,16 +157,20 @@ Rules:
 `setupScript` runs as root the moment the student clicks **"Deploy Sandbox"**.  Use it to seed the lab's starting state.
 
 ```yaml
+image: "alpine:latest"
 setupScript: |
-  apt-get update -qq && apt-get install -y -qq cron
-  # Create a placeholder so the student knows where to start
+  # No apt-get/apk here — the sandbox has no internet access.
+  # alpine already ships BusyBox crond, so just create the starting state
+  # and start the daemon.
   mkdir -p /usr/local/bin
   echo "# add your backup logic here" > /usr/local/bin/backup.sh
-  systemctl enable cron && systemctl start cron
+  chmod +x /usr/local/bin/backup.sh
+  crond
 ```
 
 Tips:
-- Redirect `apt-get` output with `-qq` to keep startup fast and quiet.
+- Never call `apt-get`/`apk`/`pip`/`npm install`/`curl <url>`/`wget <url>` here — there's no network access at runtime; see the warning at the top of this file.
+- Pick an `image` that already has what you need instead of installing anything.
 - Avoid downloading large files here — use a pre-pulled Docker image instead.
 - The script must be idempotent (re-running it should not break anything).
 
@@ -124,14 +183,14 @@ Tips:
 ```yaml
 verifyScript: |
   # CHECK: verify-script-exists
-  if [[ -f /usr/local/bin/backup.sh && -x /usr/local/bin/backup.sh ]]; then
+  if [ -f /usr/local/bin/backup.sh ] && [ -x /usr/local/bin/backup.sh ]; then
     echo "CHECK:verify-script-exists:PASS:backup.sh exists and is executable"
   else
     echo "CHECK:verify-script-exists:FAIL:backup.sh not found or not executable in /usr/local/bin"
   fi
 
   # CHECK: create-cronjob
-  if crontab -l 2>/dev/null | grep -q "2 \* \* \* backup.sh\|0 2 \* \* \*.*backup"; then
+  if crontab -l 2>/dev/null | grep -q "0 2 \* \* \*.*backup"; then
     echo "CHECK:create-cronjob:PASS:Cron job found for 2 AM"
   else
     echo "CHECK:create-cronjob:FAIL:No matching cron entry found — run 'crontab -e' and add the job"
@@ -143,6 +202,10 @@ Rules:
 - One line per task — the first match wins; extras are ignored.
 - The script must finish in **under 10 seconds**.
 - Must be idempotent — it can be run many times without side effects.
+- **Use POSIX `sh` syntax, not bashisms** — `[ ]` not `[[ ]]`, no
+  `${var,,}`, no arrays, no `function` keyword. Set `shell: "sh"` unless
+  your image's `/bin/sh` really is bash (most minimal images, including
+  `alpine:latest`, use `dash`/`ash`, which reject `[[ ]]`).
 
 ---
 
@@ -220,9 +283,10 @@ The app picks it up within **10 minutes**, or click **"Fetch Labs"** in the cata
 
 - `order` values don't need to be contiguous.  Use `100, 200, 300…` so you can
   insert labs between existing ones without renumbering.
-- The `setupScript` runs once when the student clicks "Deploy Sandbox".  Keep
-  it fast — avoid large `apt-get` installs if possible, or pre-bake a custom
-  Docker image.
+- The `setupScript` runs once when the student clicks "Deploy Sandbox". There
+  is no network access, so it can never call a package manager — pick an
+  `image` that already has what you need, or fake missing tools with a small
+  shell shim (see the warning near the top of this file).
 - The `verifyScript` is run every time the student clicks "Check".  It must be
   idempotent and complete in under 10 seconds.
 - If you update a lab's YAML, the app detects the changed GitHub blob SHA and
