@@ -204,7 +204,7 @@ export default function Workspace() {
       onSuccess: (res) => {
         setVerifyResult(res)
         if (res.passed) {
-          setCloseCountdown(5)
+          setCloseCountdown(15)
         }
       }
     })
@@ -704,42 +704,36 @@ export default function Workspace() {
         </div>
       </div>
 
-      {/* ── Completion popup ── */}
+      {/* ── Completion toast (bottom-right) ── */}
       {closeCountdown !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
-          {/* Card */}
-          <div className="relative animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center gap-6 rounded-2xl border border-green-500/40 bg-[#0a0a0a] px-12 py-10 shadow-[0_0_80px_rgba(34,197,94,0.25)] text-center">
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-80">
+          <div className="relative rounded-xl border border-green-500/40 bg-[#0d0d0d] p-5 shadow-[0_0_40px_rgba(34,197,94,0.2)] overflow-hidden">
             {/* Glow blob */}
-            <div className="absolute inset-0 rounded-2xl bg-green-500/5 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 blur-[30px] -mr-6 -mt-6 rounded-full pointer-events-none" />
 
-            {/* Icon */}
-            <div className="relative w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-              <Trophy className="w-9 h-9 text-green-400" />
+            {/* Header */}
+            <div className="relative flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.25)] shrink-0">
+                <Trophy className="w-4 h-4 text-green-400" />
+              </div>
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-green-500/60 leading-none mb-1">Mission Complete</p>
+                <p className="font-mono font-bold text-base text-green-400 leading-none">Lab Completed!</p>
+              </div>
             </div>
 
-            {/* Heading */}
-            <div className="relative flex flex-col items-center gap-2">
-              <span className="font-mono text-xs tracking-[0.3em] uppercase text-green-500/70">Mission Complete</span>
-              <h2 className="font-mono font-black text-3xl tracking-tight text-green-400">
-                Lab Completed!
-              </h2>
-            </div>
-
-            {/* Countdown */}
-            <p className="relative font-mono text-sm text-muted-foreground/70">
-              This lab will close in{" "}
+            {/* Message */}
+            <p className="relative font-mono text-xs text-muted-foreground/60 mb-4">
+              Returning to lab list in{" "}
               <span className="text-green-400 font-bold tabular-nums">{closeCountdown}</span>{" "}
-              second{closeCountdown !== 1 ? "s" : ""}…
+              second{closeCountdown !== 1 ? "s" : ""}. Take a moment to review your work.
             </p>
 
-            {/* Progress bar */}
-            <div className="relative w-full h-1 rounded-full bg-green-500/20 overflow-hidden">
+            {/* Progress bar (drains left-to-right over 15 s) */}
+            <div className="relative h-[3px] rounded-full bg-green-500/20 overflow-hidden">
               <div
-                className="h-full rounded-full bg-green-500 transition-none"
-                style={{ width: `${((5 - closeCountdown) / 5) * 100}%`, transition: "width 1s linear" }}
+                className="h-full rounded-full bg-green-500"
+                style={{ width: `${((15 - closeCountdown) / 15) * 100}%`, transition: "width 1s linear" }}
               />
             </div>
           </div>
