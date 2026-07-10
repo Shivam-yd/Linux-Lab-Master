@@ -269,12 +269,12 @@ components:
 
     CheckResult:
       type: object
-      required: [id, label, passed, message]
+      required: [id, passed, message]
       properties:
         id:
           type: string
         label:
-          type: string
+          type: ["string", "null"]
         passed:
           type: boolean
         message:

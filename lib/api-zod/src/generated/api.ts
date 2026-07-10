@@ -72,7 +72,7 @@ export const ListProgressResponseItem = zod.object({
   "lastAttemptAt": zod.coerce.date().nullish(),
   "lastResults": zod.array(zod.object({
   "id": zod.string(),
-  "label": zod.string(),
+  "label": zod.string().nullish(),
   "passed": zod.boolean(),
   "message": zod.string()
 })).nullish()
@@ -151,7 +151,7 @@ export const VerifyLabResponse = zod.object({
   "score": zod.number(),
   "checks": zod.array(zod.object({
   "id": zod.string(),
-  "label": zod.string(),
+  "label": zod.string().nullish(),
   "passed": zod.boolean(),
   "message": zod.string()
 })),

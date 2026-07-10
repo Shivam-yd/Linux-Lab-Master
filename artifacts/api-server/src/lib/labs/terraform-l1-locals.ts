@@ -166,8 +166,16 @@ HAS_LOCALS=0
 LOCAL_COUNT=0
 if [ -f "$MAIN" ]; then
   grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '^[[:space:]]*locals[[:space:]]*\{' && HAS_LOCALS=1
-  LOCAL_COUNT=$(sed -n '/^[[:space:]]*locals[[:space:]]*{/,/^[[:space:]]*}/{/^[[:space:]]*locals[[:space:]]*{/d;/^[[:space:]]*}/d;p}' "$MAIN" 2>/dev/null \
-    | grep -v '^[[:space:]]*#' | grep -cE '^[[:space:]]*[a-zA-Z_][a-zA-Z_0-9]*[[:space:]]*=' || echo 0)
+  LOCAL_COUNT=$(awk '
+    /^[[:space:]]*locals[[:space:]]*\{/ { in_l=1; depth=1; next }
+    in_l {
+      line=$0; gsub(/#.*/,"",line)
+      n=split(line,ch,""); for(i=1;i<=n;i++){if(ch[i]=="{")depth++;if(ch[i]=="}")depth--}
+      if(depth<=0){in_l=0;next}
+      if(line~/^[[:space:]]*[a-zA-Z_][a-zA-Z_0-9]*[[:space:]]*=/)cnt++
+    }
+    END{print cnt+0}
+  ' "$MAIN" 2>/dev/null || echo 0)
 fi
 if [ "$HAS_LOCALS" -eq 1 ] && [ "$LOCAL_COUNT" -ge 2 ]; then
   echo "CHECK:locals_block:PASS:locals {} block found with $LOCAL_COUNT computed values."

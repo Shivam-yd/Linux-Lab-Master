@@ -96,6 +96,19 @@ export default function Workspace() {
     }
   }, [progressList, labId])
 
+  // Auto-close on 100% completion (only triggered by a fresh verify, not seeded history)
+  const [closeCountdown, setCloseCountdown] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (closeCountdown === null) return
+    if (closeCountdown === 0) {
+      setLocation('/')
+      return
+    }
+    const timer = setTimeout(() => setCloseCountdown(c => (c ?? 1) - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [closeCountdown, setLocation])
+
   // Hints state
   const [hintsRevealed, setHintsRevealed] = useState(0)
   const [hintsOpen, setHintsOpen] = useState(false)
@@ -109,6 +122,7 @@ export default function Workspace() {
     setHintsOpen(false)
     setStepsRevealed(false)
     setVerifyResult(null)
+    setCloseCountdown(null)
   }, [labId])
 
   // Derived state
@@ -189,6 +203,9 @@ export default function Workspace() {
     verifyLab.mutate({ labId }, {
       onSuccess: (res) => {
         setVerifyResult(res)
+        if (res.passed) {
+          setCloseCountdown(5)
+        }
       }
     })
   }
@@ -576,6 +593,11 @@ export default function Workspace() {
                   <p className="text-xs font-mono text-muted-foreground/60 mt-3 relative z-10">
                     {verifyResult.passed ? "// All objectives verified — see checklist above" : "// See objectives above for details"}
                   </p>
+                  {verifyResult.passed && closeCountdown !== null && (
+                    <p className="text-xs font-mono text-green-400/70 mt-2 relative z-10">
+                      // Returning to lab list in {closeCountdown}s…
+                    </p>
+                  )}
                 </div>
               </div>
             )}

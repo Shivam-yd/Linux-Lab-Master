@@ -69,7 +69,8 @@ export interface Session {
 
 export interface CheckResult {
   id: string;
-  label: string;
+  /** @nullable */
+  label?: string | null;
   passed: boolean;
   message: string;
 }

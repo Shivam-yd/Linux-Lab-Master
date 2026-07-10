@@ -201,7 +201,8 @@ export async function verifyLab(
     throw new Error("Lab session is not running. Start the sandbox before running checks.");
   }
   const result = await runExec(container, ["sh", "-lc", lab.verifyScript], { user: "root" });
-  const checks: { id: string; passed: boolean; message: string }[] = [];
+  const taskLabelMap = new Map(lab.tasks.map((t) => [t.id, t.description]));
+  const checks: { id: string; label: string | null; passed: boolean; message: string }[] = [];
   const lineRe = /^CHECK:([^:]+):(PASS|FAIL):(.*)$/;
   for (const rawLine of result.output.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -209,7 +210,7 @@ export async function verifyLab(
     if (!match) continue;
     const [, id, verdict, message] = match;
     if (!id || !message) continue;
-    checks.push({ id, passed: verdict === "PASS", message });
+    checks.push({ id, label: taskLabelMap.get(id) ?? null, passed: verdict === "PASS", message });
   }
   if (checks.length === 0) {
     logger.warn({ labId, studentId, output: result.output }, "Verify script produced no CHECK lines");
