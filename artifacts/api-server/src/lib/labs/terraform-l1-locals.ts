@@ -161,19 +161,20 @@ else
   echo "CHECK:three_variables:FAIL:Missing variables:$MISSING. Add them to variables.tf."
 fi
 
-# Task 2: locals block with at least 2 values
+# Task 2: locals block with at least 2 values (count assignments inside locals {} only)
 HAS_LOCALS=0
 LOCAL_COUNT=0
 if [ -f "$MAIN" ]; then
   grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '^[[:space:]]*locals[[:space:]]*\{' && HAS_LOCALS=1
-  LOCAL_COUNT=$(grep -v '^[[:space:]]*#' "$MAIN" | grep -cE '^[[:space:]]*[a-zA-Z_]+[[:space:]]*=' 2>/dev/null || echo 0)
+  LOCAL_COUNT=$(sed -n '/^[[:space:]]*locals[[:space:]]*{/,/^[[:space:]]*}/{/^[[:space:]]*locals[[:space:]]*{/d;/^[[:space:]]*}/d;p}' "$MAIN" 2>/dev/null \
+    | grep -v '^[[:space:]]*#' | grep -cE '^[[:space:]]*[a-zA-Z_][a-zA-Z_0-9]*[[:space:]]*=' || echo 0)
 fi
 if [ "$HAS_LOCALS" -eq 1 ] && [ "$LOCAL_COUNT" -ge 2 ]; then
-  echo "CHECK:locals_block:PASS:locals {} block found with at least 2 computed values."
+  echo "CHECK:locals_block:PASS:locals {} block found with $LOCAL_COUNT computed values."
 elif [ "$HAS_LOCALS" -eq 0 ]; then
   echo "CHECK:locals_block:FAIL:No locals {} block in main.tf. Add: locals { prefix = \"\${var.project_name}-\${var.environment}\" }"
 else
-  echo "CHECK:locals_block:FAIL:locals {} block found but needs at least 2 computed values."
+  echo "CHECK:locals_block:FAIL:locals {} block found but only $LOCAL_COUNT value(s) detected — need at least 2 (e.g. prefix, bucket_name, db_name)."
 fi
 
 # Task 3: local.<name> reference inside resource

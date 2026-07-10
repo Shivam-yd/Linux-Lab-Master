@@ -163,20 +163,21 @@ else
   echo "CHECK:uses_format_join:FAIL:Neither format() nor join() found in main.tf. Use one to compose a name, e.g.: format(\"%s-%s\", local.app_lower, local.env_upper)"
 fi
 
-# Task 3: locals block with at least 2 function calls (parens as proxy)
+# Task 3: locals block with at least 2 function calls (count inside locals {} only)
 HAS_LOCALS=0
 FN_COUNT=0
 if [ -f "$MAIN" ]; then
   grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '^[[:space:]]*locals[[:space:]]*\{' && HAS_LOCALS=1
-  # Count lines inside main.tf that contain a function call pattern (word followed by open paren)
-  FN_COUNT=$(grep -v '^[[:space:]]*#' "$MAIN" | grep -cE '[a-z_]+[[:space:]]*\([^)]*\)' 2>/dev/null || echo 0)
+  # Extract only the locals block content, then count lines with a function call (word immediately followed by open paren)
+  FN_COUNT=$(sed -n '/^[[:space:]]*locals[[:space:]]*{/,/^[[:space:]]*}/{/^[[:space:]]*locals[[:space:]]*{/d;/^[[:space:]]*}/d;p}' "$MAIN" 2>/dev/null \
+    | grep -v '^[[:space:]]*#' | grep -cE '[a-z_]+\(' || echo 0)
 fi
 if [ "$HAS_LOCALS" -eq 1 ] && [ "$FN_COUNT" -ge 2 ]; then
-  echo "CHECK:locals_with_functions:PASS:locals {} block found with at least 2 function calls."
+  echo "CHECK:locals_with_functions:PASS:locals {} block found with $FN_COUNT function call(s)."
 elif [ "$HAS_LOCALS" -eq 0 ]; then
-  echo "CHECK:locals_with_functions:FAIL:No locals {} block in main.tf. Add one that uses built-in functions."
+  echo "CHECK:locals_with_functions:FAIL:No locals {} block in main.tf. Add one that uses built-in functions like lower(), upper(), format(), join()."
 else
-  echo "CHECK:locals_with_functions:FAIL:locals {} block found but only $FN_COUNT function call(s) detected. Use at least 2 built-in functions (e.g. lower, format, join)."
+  echo "CHECK:locals_with_functions:FAIL:locals {} block found but only $FN_COUNT function call(s) inside it — need at least 2 (e.g. lower(var.app_name) and format(\"%s-%s\", ...))."
 fi
 
 # Task 4: state has managed resources

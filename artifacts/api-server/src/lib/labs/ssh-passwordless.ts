@@ -63,8 +63,8 @@ useradd -m -s /bin/bash student1
 useradd -m -s /bin/bash student2
 echo "student1:student1" | chpasswd
 echo "student2:student2" | chpasswd
-echo "127.0.0.1 server1" >> /etc/hosts
-echo "127.0.0.1 server2" >> /etc/hosts
+echo "127.0.0.1 server1 student1" >> /etc/hosts
+echo "127.0.0.1 server2 student2" >> /etc/hosts
 service ssh start || /usr/sbin/sshd
 `,
   verifyScript: `
