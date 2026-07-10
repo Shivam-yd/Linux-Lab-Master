@@ -26,29 +26,30 @@ instructions: |
 
   ### What you need to do
 
-  1. Something is already listening on port `8080`. Use `netstat -tlnp` (or
-     `netstat -tln` plus a process check) to identify it, then write the
-     process name you find into `/root/blocker-info.txt`.
-  2. Stop that process so port 8080 is free.
+  1. Something is already listening on port `8080`. Use `netstat -tlnp` to
+     find the **PID** of the process holding it, and write just that PID
+     to `/root/blocker-pid.txt`.
+  2. Kill that exact PID so port 8080 is free.
   3. Start your own listener on port 8080 (e.g. `nc -lk -p 8080 &`) and
-     confirm it's listening.
+     confirm it's listening — this will be a **different PID** than the
+     one you killed.
 
   ### Reference
 
   ```bash
-  netstat -tlnp | grep 8080
-  pkill -f <process-name>
+  netstat -tlnp | grep :8080          # last column is pid/program-name
+  kill <pid>
   nc -lk -p 8080 &
-  netstat -tln | grep 8080
+  netstat -tlnp | grep :8080
   ```
 
 tasks:
   - id: "identify-blocker"
-    description: "Identify the process bound to port 8080 and write its name to /root/blocker-info.txt"
+    description: "Find the PID of the process bound to port 8080 and write it to /root/blocker-pid.txt"
   - id: "free-port"
-    description: "Stop the process that was bound to port 8080"
+    description: "Kill that exact PID so port 8080 is free"
   - id: "confirm-new-listener"
-    description: "Start your own listener on port 8080 and confirm it's active"
+    description: "Start your own listener on port 8080 (a new PID) and confirm it's active"
 
 image: "alpine:latest"
 shell: "sh"
@@ -58,38 +59,43 @@ terminals:
     cwd: "/root"
 
 setupScript: |
-  mkdir -p /usr/local/bin
+  mkdir -p /usr/local/bin /var/run
   cat > /usr/local/bin/legacy-service.sh <<'EOF'
   #!/bin/sh
   exec nc -lk -p 8080
   EOF
   chmod +x /usr/local/bin/legacy-service.sh
   /usr/local/bin/legacy-service.sh >/dev/null 2>&1 &
+  echo $! > /var/run/blocker.pid
 
 verifyScript: |
+  original=$(cat /var/run/blocker.pid 2>/dev/null | tr -d '[:space:]')
+
   # CHECK: identify-blocker
-  if [ -f /root/blocker-info.txt ] && grep -q "legacy-service" /root/blocker-info.txt; then
-    echo "CHECK:identify-blocker:PASS:Correctly identified legacy-service.sh as the blocking process"
+  found=$(cat /root/blocker-pid.txt 2>/dev/null | tr -d '[:space:]')
+  if [ -n "$original" ] && [ "$found" = "$original" ]; then
+    echo "CHECK:identify-blocker:PASS:Correctly identified PID $original as the blocker"
   else
-    echo "CHECK:identify-blocker:FAIL:/root/blocker-info.txt should mention legacy-service.sh"
+    echo "CHECK:identify-blocker:FAIL:/root/blocker-pid.txt should contain $original, got '$found'"
   fi
 
   # CHECK: free-port
-  if ! pgrep -f legacy-service.sh >/dev/null 2>&1; then
-    echo "CHECK:free-port:PASS:legacy-service.sh is no longer running"
+  if [ -n "$original" ] && ! kill -0 "$original" 2>/dev/null; then
+    echo "CHECK:free-port:PASS:Original blocking process (PID $original) is gone"
   else
-    echo "CHECK:free-port:FAIL:legacy-service.sh is still running"
+    echo "CHECK:free-port:FAIL:Original blocking process (PID $original) is still running"
   fi
 
   # CHECK: confirm-new-listener
-  if netstat -tln 2>/dev/null | grep -q ":8080 "; then
-    echo "CHECK:confirm-new-listener:PASS:Port 8080 has an active listener"
+  newpid=$(netstat -tlnp 2>/dev/null | awk '/:8080 /{print $NF}' | cut -d/ -f1)
+  if [ -n "$newpid" ] && [ "$newpid" != "$original" ]; then
+    echo "CHECK:confirm-new-listener:PASS:A new process (PID $newpid) is listening on 8080"
   else
-    echo "CHECK:confirm-new-listener:FAIL:Nothing is listening on port 8080"
+    echo "CHECK:confirm-new-listener:FAIL:Port 8080 has no listener, or it's still the original blocker"
   fi
 
 hints:
-  - "`netstat -tlnp | grep 8080` shows the PID/process pair holding the port."
-  - "Write the process name (legacy-service.sh) into /root/blocker-info.txt with `echo`."
-  - "`pkill -f legacy-service.sh` stops it by matching the full command line."
-  - "After freeing the port, `nc -lk -p 8080 &` claims it again — the `&` keeps it running in the background."
+  - "`netstat -tlnp | grep :8080` — the last column is `pid/program`; the PID is the part before the slash."
+  - "Save that number (not the name) to /root/blocker-pid.txt: `echo <pid> > /root/blocker-pid.txt`"
+  - "`kill <pid>` (or `kill -9 <pid>` if it won't stop) terminates the exact process holding the port."
+  - "After freeing the port, `nc -lk -p 8080 &` claims it again with a brand-new PID — the `&` keeps it running in the background."
