@@ -3,7 +3,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:20-slim AS builder
 
-RUN npm install -g pnpm@latest
+RUN npm install -g pnpm@10.26.1
 
 WORKDIR /app
 COPY . .

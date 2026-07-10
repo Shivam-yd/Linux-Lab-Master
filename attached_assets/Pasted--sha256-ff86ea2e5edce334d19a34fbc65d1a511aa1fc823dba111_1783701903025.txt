@@ -1,0 +1,84 @@
+ => => sha256:ff86ea2e5edce334d19a34fbc65d1a511aa1fc823dba1110422f991aa56b44d4 26.21MB / 28.24MB                                                                                         4.7s
+ => => sha256:e54aec64c365815cd7b91e718f00ac6e625562b1de09036b38614621b42c7582 0B / 3.31kB                                                                                               4.7s
+ => => sha256:804d4d68057cbb26cbcde9a735148ebc6589911bad32cf9dbddb5b0ba878bf1f 41.42MB / 41.42MB                                                                                         2.3s
+ => => extracting sha256:ff86ea2e5edce334d19a34fbc65d1a511aa1fc823dba1110422f991aa56b44d4                                                                                                0.4s
+ => => sha256:64cfb949317c9824fd081d55c59a7225bfe1f650c6395ba42d7ed0ccf51993d2 1.71MB / 1.71MB                                                                                           2.1s
+ => => sha256:3c02fd806613748139b8b8a14a69ae3518a1b0e863c57c35aada3b92ed87fb31 447B / 447B                                                                                               1.9s
+ => => extracting sha256:e54aec64c365815cd7b91e718f00ac6e625562b1de09036b38614621b42c7582                                                                                                0.0s
+ => => extracting sha256:804d4d68057cbb26cbcde9a735148ebc6589911bad32cf9dbddb5b0ba878bf1f                                                                                                0.4s
+ => => extracting sha256:64cfb949317c9824fd081d55c59a7225bfe1f650c6395ba42d7ed0ccf51993d2                                                                                                0.0s
+ => => extracting sha256:3c02fd806613748139b8b8a14a69ae3518a1b0e863c57c35aada3b92ed87fb31                                                                                                0.0s
+ => [api internal] load build context                                                                                                                                                    0.1s
+ => => transferring context: 1.63MB                                                                                                                                                      0.0s
+ => [web web 1/3] FROM docker.io/library/nginx:alpine@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa                                                            1.7s
+ => => resolve docker.io/library/nginx:alpine@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa                                                                    0.0s
+ => => sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa 10.33kB / 10.33kB                                                                                         0.0s
+ => => sha256:ea51152ef8c480b999cee0271a288c698704b18483276119b1253e576ef3232f 12.32kB / 12.32kB                                                                                         0.0s
+ => => sha256:e6f31ffc071e5560b82a8685fba8214954e5721e3e49269d00958316edbe89fe 3.84MB / 3.84MB                                                                                           0.3s
+ => => sha256:c16defe09b2f86b04c4143bb610095be90732794fce5c56fb7185f02feadd879 1.89MB / 1.89MB                                                                                           0.8s
+ => => sha256:5b429a43b8dfa079c3ac95537bd88d5f1ac70e478c64f100b8ef6aa9c555ebc2 628B / 628B                                                                                               0.5s
+ => => sha256:35cd77497979abe70dc8d26f5ae60811eea233a2eb5dc03c2ee30972caeb303e 2.50kB / 2.50kB                                                                                           0.0s
+ => => extracting sha256:e6f31ffc071e5560b82a8685fba8214954e5721e3e49269d00958316edbe89fe                                                                                                0.1s
+ => => sha256:967885d218c57d3ce2a4e906131fb25f59e6f56cce51d87dde7d74b0e7465675 955B / 955B                                                                                               0.8s
+ => => sha256:ab1fd90497517c799d4fb351bc1a7ae8b58e231345d4948ae8ac73c75b320b35 405B / 405B                                                                                               0.8s
+ => => extracting sha256:c16defe09b2f86b04c4143bb610095be90732794fce5c56fb7185f02feadd879                                                                                                0.0s
+ => => extracting sha256:5b429a43b8dfa079c3ac95537bd88d5f1ac70e478c64f100b8ef6aa9c555ebc2                                                                                                0.0s
+ => => extracting sha256:967885d218c57d3ce2a4e906131fb25f59e6f56cce51d87dde7d74b0e7465675                                                                                                0.0s
+ => => sha256:ce42635eeddd348e8266227a36db92cea8a45d5177d03e9a922a7bfb25762b7f 1.21kB / 1.21kB                                                                                           1.1s
+ => => sha256:01bf363d61e6136ebd7dcaf74b303bd08ee8f849a04e2c0be5a8d03159b404f6 1.40kB / 1.40kB                                                                                           1.1s
+ => => sha256:c75b9c33e8b0983941fe03793379bd5d137f641f92b4a94d1c8956d28ba77f65 20.25MB / 20.25MB                                                                                         1.3s
+ => => extracting sha256:ab1fd90497517c799d4fb351bc1a7ae8b58e231345d4948ae8ac73c75b320b35                                                                                                0.0s
+ => => extracting sha256:ce42635eeddd348e8266227a36db92cea8a45d5177d03e9a922a7bfb25762b7f                                                                                                0.0s
+ => => extracting sha256:01bf363d61e6136ebd7dcaf74b303bd08ee8f849a04e2c0be5a8d03159b404f6                                                                                                0.0s
+ => => extracting sha256:c75b9c33e8b0983941fe03793379bd5d137f641f92b4a94d1c8956d28ba77f65                                                                                                0.2s
+ => [api builder 2/7] RUN npm install -g pnpm@latest                                                                                                                                     1.0s
+ => [api api 2/3] WORKDIR /app                                                                                                                                                           0.2s
+ => [migrate builder 3/7] WORKDIR /app                                                                                                                                                   0.1s
+ => [web builder 4/7] COPY . .                                                                                                                                                           0.1s
+ => ERROR [web builder 5/7] RUN pnpm install --frozen-lockfile                                                                                                                           0.6s
+------
+ > [web builder 5/7] RUN pnpm install --frozen-lockfile:
+0.372 warn: This version of pnpm requires at least Node.js v22.13
+0.372 warn: The current version of Node.js is v20.20.2
+0.372 warn: Visit https://r.pnpm.io/comp to see the list of past pnpm versions with respective Node.js version support.
+0.546 node:internal/modules/cjs/loader:1031
+0.546       throw new ERR_UNKNOWN_BUILTIN_MODULE(request);
+0.546             ^
+0.546 
+0.546 Error [ERR_UNKNOWN_BUILTIN_MODULE]: No such built-in module: node:sqlite
+0.546     at Module._load (node:internal/modules/cjs/loader:1031:13)
+0.546     at Module.require (node:internal/modules/cjs/loader:1289:19)
+0.546     at require (node:internal/modules/helpers:182:18)
+0.546     at ../store/index/lib/index.js (file:///usr/local/lib/node_modules/pnpm/dist/pnpm.mjs:56741:25)
+0.546     at __init (file:///usr/local/lib/node_modules/pnpm/dist/pnpm.mjs:17:58)
+0.546     at ../resolving/npm-resolver/lib/index.js (file:///usr/local/lib/node_modules/pnpm/dist/pnpm.mjs:67916:5)
+0.546     at __init (file:///usr/local/lib/node_modules/pnpm/dist/pnpm.mjs:17:58)
+0.546     at ../workspace/projects-graph/lib/index.js (file:///usr/local/lib/node_modules/pnpm/dist/pnpm.mjs:68054:5)
+0.546     at __init (file:///usr/local/lib/node_modules/pnpm/dist/pnpm.mjs:17:58)
+0.546     at ../workspace/projects-filter/lib/index.js (file:///usr/local/lib/node_modules/pnpm/dist/pnpm.mjs:75474:5) {
+0.546   code: 'ERR_UNKNOWN_BUILTIN_MODULE'
+0.546 }
+0.546 
+0.546 Node.js v20.20.2
+------
+[+] build 0/3
+ ⠙ Image linuxlabs-api     Building                                                                                                                                                       7.2s
+ ⠙ Image linuxlabs-web     Building                                                                                                                                                       7.2s
+ ⠙ Image linuxlabs-migrate Building                                                                                                                                                       7.2s
+Dockerfile:12
+
+--------------------
+
+  10 |     
+
+  11 |     # Install all workspace dependencies
+
+  12 | >>> RUN pnpm install --frozen-lockfile
+
+  13 |     
+
+  14 |     # Build API server (esbuild → artifacts/api-server/dist/)
+
+--------------------
+
+target migrate: failed to solve: process "/bin/sh -c pnpm install --frozen-lockfile" did not complete successfully: exit code: 1
