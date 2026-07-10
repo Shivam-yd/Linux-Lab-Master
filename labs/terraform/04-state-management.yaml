@@ -1,0 +1,161 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Terraform State Manipulation
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-state-management"
+title: "Terraform State Manipulation: mv & rm"
+track: "terraform"
+level: 3
+category: "Infrastructure as Code"
+difficulty: "advanced"
+summary: "Refactor a resource's address without destroying it using terraform state mv, and remove a resource from state tracking with terraform state rm."
+estimatedMinutes: 30
+order: 330
+
+objectives:
+  - "Apply an initial config and inspect the state with terraform state list"
+  - "Rename a resource in code and reconcile state with terraform state mv"
+  - "Confirm the rename caused no destroy/recreate via terraform plan"
+  - "Remove a resource from state tracking with terraform state rm"
+
+instructions: |
+  ## Scenario
+
+  Refactoring a Terraform config — renaming a resource, splitting a module,
+  reorganizing files — changes a resource's *address* in code, but Terraform
+  doesn't know that's "the same" resource unless you tell it. Left alone, a
+  rename looks like "destroy the old one, create a new one." The state
+  subcommands (`state list`, `state mv`, `state rm`) let you fix that without
+  touching real infrastructure.
+
+  Working directory: `/root/tf-lab`
+
+  **Tip**: use heredocs to write files (no text editor installed):
+  ```sh
+  cat > main.tf <<'EOF'
+  # your HCL here
+  EOF
+  ```
+
+  ---
+
+  ## Steps
+
+  ### 1 — Initial config and apply
+
+  ```hcl
+  resource "terraform_data" "web_server" {
+    input = "nginx"
+  }
+  ```
+
+  ```sh
+  terraform init
+  terraform apply -auto-approve
+  terraform state list
+  # → terraform_data.web_server
+  ```
+
+  ### 2 — Rename in code
+
+  Edit `main.tf` so the resource is now called `app_server` instead of
+  `web_server` (same resource type, new local name):
+
+  ```hcl
+  resource "terraform_data" "app_server" {
+    input = "nginx"
+  }
+  ```
+
+  If you ran `terraform plan` right now, Terraform would want to destroy
+  `web_server` and create `app_server` — a real outage for a real resource.
+
+  ### 3 — Reconcile state with `state mv`
+
+  ```sh
+  terraform state mv terraform_data.web_server terraform_data.app_server
+  terraform plan
+  # → "No changes." — state now matches the renamed resource in code
+  ```
+
+  ### 4 — Remove a resource from state tracking
+
+  Add a second, throwaway resource, apply it, then stop Terraform from
+  managing it (without destroying it) using `state rm`:
+
+  ```hcl
+  resource "terraform_data" "scratch" {
+    input = "temporary"
+  }
+  ```
+
+  ```sh
+  terraform apply -auto-approve
+  terraform state rm terraform_data.scratch
+  terraform state list
+  # → scratch is gone from state, but was never destroyed
+  ```
+
+tasks:
+  - id: "renamed_in_code"
+    description: "main.tf defines terraform_data.app_server (the renamed resource) and no longer defines web_server"
+  - id: "state_mv_reconciled"
+    description: "terraform state list shows app_server tracked in state (renamed via terraform state mv, not destroy+recreate)"
+  - id: "state_rm_applied"
+    description: "terraform_data.scratch was applied and then removed from state tracking with terraform state rm"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "main"
+    user: "root"
+    cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # Task 1: renamed in code
+  if [ -f "$MAIN" ] \
+    && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'resource[[:space:]]+"terraform_data"[[:space:]]+"app_server"' \
+    && ! grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'resource[[:space:]]+"terraform_data"[[:space:]]+"web_server"'; then
+    echo "CHECK:renamed_in_code:PASS:main.tf defines app_server and no longer defines web_server"
+  else
+    echo "CHECK:renamed_in_code:FAIL:main.tf should define terraform_data.app_server and no longer define terraform_data.web_server"
+  fi
+
+  # Task 2: state was reconciled via mv (app_server present in state, web_server absent)
+  if [ -f "$STATE" ]; then
+    HAS_APP=$(grep -c '"app_server"' "$STATE" 2>/dev/null)
+    HAS_WEB=$(grep -c '"web_server"' "$STATE" 2>/dev/null)
+    if [ "${HAS_APP:-0}" -gt 0 ] && [ "${HAS_WEB:-0}" -eq 0 ]; then
+      echo "CHECK:state_mv_reconciled:PASS:state tracks app_server and no longer tracks web_server"
+    else
+      echo "CHECK:state_mv_reconciled:FAIL:Run 'terraform state mv terraform_data.web_server terraform_data.app_server' to reconcile state with the renamed resource"
+    fi
+  else
+    echo "CHECK:state_mv_reconciled:FAIL:No terraform.tfstate found. Run terraform init && terraform apply -auto-approve first"
+  fi
+
+  # Task 3: scratch resource removed from state (but config may still reference it — we only check state)
+  if [ -f "$STATE" ] && ! grep -q '"scratch"' "$STATE" 2>/dev/null; then
+    if [ -f "$LAB/.scratch_applied" ]; then
+      echo "CHECK:state_rm_applied:PASS:scratch was applied and is no longer tracked in state"
+    else
+      echo "CHECK:state_rm_applied:FAIL:scratch must be applied first (terraform apply), then removed with 'terraform state rm terraform_data.scratch'"
+    fi
+  else
+    echo "CHECK:state_rm_applied:FAIL:terraform_data.scratch is still tracked in state — run 'terraform state rm terraform_data.scratch' after applying it"
+  fi
+
+hints:
+  - "terraform state list shows every resource address Terraform currently tracks."
+  - "terraform state mv <old_address> <new_address> updates the state file's address without touching real infrastructure — use it whenever you rename a resource in code."
+  - "After a state mv, terraform plan should report 'No changes' if the code and state agree."
+  - "terraform state rm <address> stops Terraform from tracking a resource but does NOT destroy it — the resource is simply orphaned from state."
+  - "For the scratch resource, apply it first so it exists in state, then run 'touch /root/tf-lab/.scratch_applied' before removing it with state rm, so the checker can tell it was really applied."

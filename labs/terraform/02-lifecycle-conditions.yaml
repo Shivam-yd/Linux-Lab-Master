@@ -1,0 +1,150 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Terraform Lifecycle & Output Preconditions
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-lifecycle-conditions"
+title: "Terraform Custom Conditions: Preconditions"
+track: "terraform"
+level: 2
+category: "Infrastructure as Code"
+difficulty: "intermediate"
+summary: "Guard resources and outputs with precondition blocks that fail fast with a clear error message when an assumption is violated."
+estimatedMinutes: 25
+order: 220
+
+objectives:
+  - "Add a precondition to a resource's lifecycle block"
+  - "Add a precondition to an output block"
+  - "Trigger a precondition failure and read the resulting error"
+  - "Apply successfully once the input satisfies both conditions"
+
+instructions: |
+  ## Scenario
+
+  Type constraints and variable `validation {}` blocks only catch bad input
+  *before* Terraform touches any resource. Sometimes you need to assert
+  something about a resource's computed value, or about the relationship
+  between two resources — that's what **custom conditions** (Terraform 1.2+)
+  are for: a `precondition` block inside a resource's `lifecycle {}`, and a
+  `precondition` block on an output. (Note: outputs only support
+  `precondition`, not `postcondition` — only *resource* and *data source*
+  blocks support postconditions.)
+
+  Working directory: `/root/tf-lab`
+
+  **Tip**: use heredocs to write files (no text editor installed):
+  ```sh
+  cat > main.tf <<'EOF'
+  # your HCL here
+  EOF
+  ```
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  ```hcl
+  variable "replica_count" {
+    type    = number
+    default = 3
+  }
+  ```
+
+  ### 2 — main.tf with a resource precondition
+
+  Declare a `terraform_data` resource whose `lifecycle` block asserts the
+  replica count is sane *before* Terraform creates it:
+
+  ```hcl
+  resource "terraform_data" "fleet" {
+    input = { replicas = var.replica_count }
+
+    lifecycle {
+      precondition {
+        condition     = var.replica_count >= 1 && var.replica_count <= 10
+        error_message = "replica_count must be between 1 and 10, got ${var.replica_count}."
+      }
+    }
+  }
+  ```
+
+  ### 3 — outputs.tf with an output precondition
+
+  ```hcl
+  output "replicas" {
+    value = terraform_data.fleet.output.replicas
+
+    precondition {
+      condition     = terraform_data.fleet.output.replicas > 0
+      error_message = "replicas output must be a positive number."
+    }
+  }
+  ```
+
+  ### 4 — Apply, then trigger the failure
+
+  ```sh
+  terraform init
+  terraform apply -auto-approve
+  # Now break the assumption on purpose:
+  terraform apply -auto-approve -var="replica_count=50"
+  # Expect: "replica_count must be between 1 and 10, got 50."
+  ```
+
+tasks:
+  - id: "resource_precondition"
+    description: "main.tf defines a terraform_data resource with a lifecycle precondition block"
+  - id: "output_precondition"
+    description: "outputs.tf defines an output with a precondition block"
+  - id: "apply_succeeded"
+    description: "terraform apply has been run with valid input and state records the resource"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "main"
+    user: "root"
+    cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  OUT="$LAB/outputs.tf"
+
+  # Task 1: resource precondition
+  if [ -f "$MAIN" ] \
+    && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'resource[[:space:]]+"terraform_data"' \
+    && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'precondition[[:space:]]*\{'; then
+    echo "CHECK:resource_precondition:PASS:terraform_data resource with a lifecycle precondition found in main.tf"
+  else
+    echo "CHECK:resource_precondition:FAIL:main.tf must define a terraform_data resource with a lifecycle { precondition { ... } } block"
+  fi
+
+  # Task 2: output precondition
+  if [ -f "$OUT" ] \
+    && grep -v '^[[:space:]]*#' "$OUT" | grep -qE 'output[[:space:]]+"' \
+    && grep -v '^[[:space:]]*#' "$OUT" | grep -qE 'precondition[[:space:]]*\{'; then
+    echo "CHECK:output_precondition:PASS:output with a precondition block found in outputs.tf"
+  else
+    echo "CHECK:output_precondition:FAIL:outputs.tf must define an output block containing a precondition { ... } block"
+  fi
+
+  # Task 3: state has a managed resource
+  STATE="$LAB/terraform.tfstate"
+  if [ -f "$STATE" ] && grep -q '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null; then
+    echo "CHECK:apply_succeeded:PASS:terraform.tfstate records a managed resource"
+  else
+    echo "CHECK:apply_succeeded:FAIL:No applied state found. Run: terraform init && terraform apply -auto-approve"
+  fi
+
+hints:
+  - "precondition blocks were added in Terraform 1.2 — this image (1.9) supports them natively."
+  - "A resource precondition goes inside lifecycle { precondition { condition = ...; error_message = ... } }."
+  - "Outputs only support precondition (not postcondition) — put it directly inside the output block, referencing the resource output rather than `self`."
+  - "If apply fails with your custom error_message, that's the lab working correctly — fix the input and re-apply."

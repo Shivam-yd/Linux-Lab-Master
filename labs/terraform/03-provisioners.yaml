@@ -1,0 +1,133 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Linux Lab: Terraform Provisioners (local-exec)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-provisioners"
+title: "Terraform Provisioners: local-exec & Triggers"
+track: "terraform"
+level: 3
+category: "Infrastructure as Code"
+difficulty: "advanced"
+summary: "Run local shell commands as part of a resource's lifecycle with the local-exec provisioner, and control re-execution with triggers_replace."
+estimatedMinutes: 30
+order: 320
+
+objectives:
+  - "Attach a local-exec provisioner to a resource"
+  - "Use a provisioner to write a file that proves it ran"
+  - "Use triggers_replace so the provisioner re-runs when an input changes"
+  - "Apply twice with different input and confirm the provisioner ran both times"
+
+instructions: |
+  ## Scenario
+
+  Sometimes infrastructure-as-code needs to shell out to do something no
+  provider covers — render a config file, notify a webhook, kick a local
+  script. That's what **provisioners** are for. They're a feature of
+  Terraform core itself (not tied to any provider), so `local-exec` works on
+  any resource, including the built-in `terraform_data`.
+
+  Working directory: `/root/tf-lab`
+
+  **Tip**: use heredocs to write files (no text editor installed):
+  ```sh
+  cat > main.tf <<'EOF'
+  # your HCL here
+  EOF
+  ```
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  ```hcl
+  variable "release_version" {
+    type    = string
+    default = "v1.0.0"
+  }
+  ```
+
+  ### 2 — main.tf with a local-exec provisioner
+
+  Use `triggers_replace` so the resource (and therefore its provisioner)
+  reruns whenever `release_version` changes:
+
+  ```hcl
+  resource "terraform_data" "deploy" {
+    input             = var.release_version
+    triggers_replace   = [var.release_version]
+
+    provisioner "local-exec" {
+      command = "echo \"deployed ${self.input}\" >> /root/tf-lab/deploy.log"
+    }
+  }
+  ```
+
+  ### 3 — Apply twice with different versions
+
+  ```sh
+  terraform init
+  terraform apply -auto-approve -var="release_version=v1.0.0"
+  terraform apply -auto-approve -var="release_version=v1.1.0"
+  cat /root/tf-lab/deploy.log
+  # expect two lines: "deployed v1.0.0" and "deployed v1.1.0"
+  ```
+
+  Because `triggers_replace` includes `var.release_version`, changing the
+  version forces `terraform_data.deploy` to be replaced — which reruns the
+  provisioner. Without `triggers_replace`, the second apply would be a no-op.
+
+tasks:
+  - id: "provisioner_defined"
+    description: "main.tf defines a terraform_data resource with a local-exec provisioner"
+  - id: "triggers_replace_used"
+    description: "The resource uses triggers_replace so it re-runs the provisioner when release_version changes"
+  - id: "provisioner_ran_twice"
+    description: "/root/tf-lab/deploy.log contains two distinct deployed-version lines, proving the provisioner ran on both applies"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "main"
+    user: "root"
+    cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  LOG="$LAB/deploy.log"
+
+  # Task 1: provisioner defined
+  if [ -f "$MAIN" ] \
+    && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'resource[[:space:]]+"terraform_data"' \
+    && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'provisioner[[:space:]]+"local-exec"'; then
+    echo "CHECK:provisioner_defined:PASS:terraform_data resource with a local-exec provisioner found"
+  else
+    echo "CHECK:provisioner_defined:FAIL:main.tf must define a terraform_data resource with a provisioner \"local-exec\" { command = ... } block"
+  fi
+
+  # Task 2: triggers_replace used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'triggers_replace[[:space:]]*='; then
+    echo "CHECK:triggers_replace_used:PASS:triggers_replace found on the resource"
+  else
+    echo "CHECK:triggers_replace_used:FAIL:main.tf is missing triggers_replace = [var.release_version] on the resource"
+  fi
+
+  # Task 3: provisioner actually ran twice with different content
+  if [ -f "$LOG" ] && [ "$(sort -u "$LOG" | wc -l)" -ge 2 ]; then
+    echo "CHECK:provisioner_ran_twice:PASS:deploy.log has at least two distinct deployed-version lines"
+  else
+    echo "CHECK:provisioner_ran_twice:FAIL:deploy.log is missing or doesn't show two different runs. Apply once, change release_version, apply again."
+  fi
+
+hints:
+  - "Provisioners are attached inside a resource block, not a separate top-level block: resource \"terraform_data\" \"deploy\" { provisioner \"local-exec\" { command = ... } }"
+  - "Reference the resource's own input inside the provisioner with self.input."
+  - "triggers_replace = [var.release_version] forces replacement (destroy+recreate) whenever that value changes, which is what reruns the provisioner."
+  - "If deploy.log only has one line after two applies, triggers_replace is probably missing — Terraform saw no change and skipped the resource."
