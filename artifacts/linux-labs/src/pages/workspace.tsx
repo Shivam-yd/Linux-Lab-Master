@@ -131,6 +131,19 @@ export default function Workspace() {
   const isStopped = session?.status === 'stopped' || !session || session.status === 'none'
   const sessionError = session?.status === 'error'
 
+  // Auto-boot the sandbox the first time a student opens a lab — but only
+  // when a session has genuinely never been created ('none'). If the
+  // student explicitly stopped it before, respect that and require a
+  // manual START — this must not override the START/STOP/RESET controls.
+  const autoStartedRef = useRef(false)
+  useEffect(() => {
+    if (autoStartedRef.current) return
+    if (!labId || sessionLoading) return
+    if (session?.status !== 'none') return
+    autoStartedRef.current = true
+    startSession.mutate({ labId })
+  }, [labId, sessionLoading, session?.status, startSession])
+
   const isRunningRef = useRef(isRunning)
   isRunningRef.current = isRunning
 
