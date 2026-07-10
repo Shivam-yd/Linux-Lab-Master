@@ -41,7 +41,7 @@ SetupLogging=yes
 ShowTasksTreeLines=yes
 
 [Languages]
-Name: "english"; MessagesFile: "compiler:Default.iss"
+Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}";
