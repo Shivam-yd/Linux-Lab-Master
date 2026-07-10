@@ -1,7 +1,7 @@
 # Linux Lab Master — Lab Definitions
 
 This folder contains **YAML lab definitions** that the Linux Labs platform
-fetches automatically every 10 minutes.  You can also trigger an immediate
+fetches automatically once an hour.  You can also trigger an immediate
 sync with the **"Fetch Labs"** button in the app.
 
 ---
@@ -83,7 +83,7 @@ fields are marked with ✱.
 | `id` ✱ | string | Unique across all labs. Use kebab-case. |
 | `title` ✱ | string | Shown in the catalog |
 | `track` ✱ | string | `linux` or `terraform` (or any new track) |
-| `level` ✱ | number | `1` = Foundation, `2` = Intermediate, `3` = Advanced |
+| `level` ✱ | number | `1`–`5`. In practice `1` = Foundation, `2` = Intermediate, `3+` = Advanced |
 | `category` ✱ | string | Sidebar grouping label |
 | `difficulty` ✱ | string | `beginner` / `intermediate` / `advanced` |
 | `summary` ✱ | string | One-line description |
@@ -94,10 +94,10 @@ fields are marked with ✱.
 | `tasks` ✱ | object[] | `{ id, description }` — each maps to one verify check |
 | `image` ✱ | string | Docker image (`ubuntu:24.04`, `hashicorp/terraform:1.9`, …) |
 | `terminals` ✱ | object[] | `{ name, user, cwd }` — one entry per terminal tab |
-| `setupScript` ✱ | string | Bash run as root when the container starts |
-| `verifyScript` ✱ | string | Bash that prints `CHECK:<taskId>:PASS\|FAIL:<msg>` per task |
+| `setupScript` ✱ | string | Shell script run as root when the container starts. Write it in POSIX `sh` unless you've confirmed the image's default shell is bash — see `shell` below |
+| `verifyScript` ✱ | string | Shell script that prints `CHECK:<taskId>:PASS\|FAIL:<msg>` per task. Same shell rules as `setupScript` |
 | `entrypoint` | string[] | Override container entrypoint (needed for Terraform image) |
-| `shell` | string | `bash` or `sh` (default: `sh`) |
+| `shell` | `"bash"` \| `"sh"` | Which shell scripts are written for/run with (default: `"sh"`). Most minimal images (`alpine:latest`, BusyBox-based images) only have POSIX `sh` (`ash`/`dash`) — using bash-only syntax like `[[ ]]` there will break your scripts |
 | `hints` | string[] | Progressive hints shown one at a time when student is stuck |
 
 ### verifyScript contract

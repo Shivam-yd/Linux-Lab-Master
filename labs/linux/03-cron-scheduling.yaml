@@ -68,14 +68,18 @@ setupScript: |
   # Alpine's BusyBox has crond/crontab built in, but no `at` — there's no
   # network access in this sandbox to apt/apk install one, so provide a
   # minimal at(1)-compatible shim: it reads a job from stdin and runs it
-  # after the delay parsed from "now + N minute(s)|hour(s)".
+  # after the delay parsed from "now + N minute(s)|hour(s)". Unsupported
+  # time specs are rejected instead of silently running immediately.
   cat > /usr/local/bin/at <<'EOF'
   #!/bin/sh
   args="$*"
-  delay=0
   case "$args" in
     *hour*) n=$(echo "$args" | grep -oE '[0-9]+' | head -1); delay=$((n * 3600)) ;;
     *minute*) n=$(echo "$args" | grep -oE '[0-9]+' | head -1); delay=$((n * 60)) ;;
+    *)
+      echo "at: unsupported time spec '$args' — use 'now + N minute(s)' or 'now + N hour(s)'" >&2
+      exit 1
+      ;;
   esac
   job=$(cat)
   ( sleep "$delay"; sh -c "$job" ) >/var/spool/at/last.log 2>&1 &
@@ -87,17 +91,20 @@ setupScript: |
 
 verifyScript: |
   # CHECK: install-crontab
-  if crontab -l 2>/dev/null | grep -q "heartbeat-cron.log"; then
-    echo "CHECK:install-crontab:PASS:Crontab entry for heartbeat-cron.log found"
+  # Must be a cron entry that runs every minute (5-field "* * * * *") and
+  # appends the date to the required log file — not just any mention of it.
+  if crontab -l 2>/dev/null | grep -qE '^\*[[:space:]]+\*[[:space:]]+\*[[:space:]]+\*[[:space:]]+\*[[:space:]]+.*date.*>>.*heartbeat-cron\.log'; then
+    echo "CHECK:install-crontab:PASS:Every-minute crontab entry appending to heartbeat-cron.log found"
   else
-    echo "CHECK:install-crontab:FAIL:No crontab entry writing to /var/log/heartbeat-cron.log"
+    echo "CHECK:install-crontab:FAIL:No every-minute crontab entry appending 'date' output to /var/log/heartbeat-cron.log"
   fi
 
   # CHECK: verify-cron-running
-  if pgrep crond >/dev/null && [ -f /var/log/heartbeat-cron.log ]; then
-    echo "CHECK:verify-cron-running:PASS:cron daemon running and log file exists"
+  # crond must be running AND the log must actually contain output — not just exist.
+  if pgrep crond >/dev/null && [ -s /var/log/heartbeat-cron.log ]; then
+    echo "CHECK:verify-cron-running:PASS:cron daemon is running and the job has produced output"
   else
-    echo "CHECK:verify-cron-running:FAIL:cron daemon not running or log file missing"
+    echo "CHECK:verify-cron-running:FAIL:cron daemon not running, or /var/log/heartbeat-cron.log is missing/empty (wait a minute after installing the crontab)"
   fi
 
   # CHECK: schedule-at-job
