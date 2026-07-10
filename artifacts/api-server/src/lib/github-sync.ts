@@ -25,7 +25,7 @@ import { logger } from "./logger";
 const GITHUB_OWNER    = "Shivam-yd";
 const GITHUB_REPO     = "Linux-Lab-Master";
 const LABS_PATH       = "labs";
-const POLL_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 // Optional: set GITHUB_TOKEN env var to raise rate limit from 60 → 5 000 req/hr
 const githubHeaders = (): HeadersInit => {
