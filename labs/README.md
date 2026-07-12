@@ -94,11 +94,33 @@ fields are marked with ✱.
 | `tasks` ✱ | object[] | `{ id, description }` — each maps to one verify check |
 | `image` ✱ | string | Docker image (`ubuntu:24.04`, `hashicorp/terraform:1.9`, …) |
 | `terminals` ✱ | object[] | `{ name, user, cwd }` — one entry per terminal tab |
-| `setupScript` ✱ | string | Shell script run as root when the container starts. Write it in POSIX `sh` unless you've confirmed the image's default shell is bash — see `shell` below |
+| `setupScript` ✱ | string | Shell script run as root when the container starts. The platform runs it as `<shell> -lc <script>` using the `shell` field below — match your syntax to your image's real shell |
 | `verifyScript` ✱ | string | Shell script that prints `CHECK:<taskId>:PASS\|FAIL:<msg>` per task. Same shell rules as `setupScript` |
-| `entrypoint` | string[] | Override container entrypoint (needed for Terraform image) |
-| `shell` | `"bash"` \| `"sh"` | Which shell scripts are written for/run with (default: `"sh"`). Most minimal images (`alpine:latest`, BusyBox-based images) only have POSIX `sh` (`ash`/`dash`) — using bash-only syntax like `[[ ]]` there will break your scripts |
+| `entrypoint` | string[] | Override container entrypoint (needed for images like `hashicorp/terraform` whose default entrypoint is not a shell) |
+| `shell` | `"bash"` \| `"sh"` | **Required if you use any bash-specific syntax.** The platform uses this field to invoke *both* `setupScript` and `verifyScript` (as `<shell> -lc <script>`). Mismatch between this field and your actual image shell = silent FAIL on every check. See the shell reference table below. |
 | `hints` | string[] | Progressive hints shown one at a time when student is stuck |
+
+### Shell reference — know before you write a single line of script
+
+The `shell` field controls how the platform runs **both** `setupScript` and
+`verifyScript`. Getting it wrong causes every verify check to silently fail
+with no visible error to the student.
+
+| Image | `/bin/sh` is | Supports `[[ ]]`? | Use `shell:` |
+|---|---|---|---|
+| `ubuntu:24.04` | **dash** | ❌ No — `[[: not found` | `"bash"` (bash is pre-installed) |
+| `alpine:latest` | **BusyBox ash** | ✅ Yes | `"sh"` |
+| `hashicorp/terraform:1.9` | **BusyBox ash** (Alpine-based) | ✅ Yes | `"sh"` |
+| `localstack/localstack:latest` | **dash** (Ubuntu-based) | ❌ No | `"bash"` (bash is pre-installed) |
+| Any other Ubuntu-based image | **dash** | ❌ No | `"bash"` if bash is present |
+| Any other Alpine-based image | **BusyBox ash** | ✅ Yes | `"sh"` |
+
+**Quick test** — run this before writing any scripts for a new image:
+```bash
+docker run --rm <image> sh -lc 'if [[ 1 == 1 ]]; then echo ok; fi'
+```
+- Prints `ok` → ash or bash, `[[ ]]` works, `shell: "sh"` is fine.
+- Prints `[[: not found` → dash, **do not use `[[ ]]`** — either set `shell: "bash"` (if bash is installed in the image) or rewrite all scripts with POSIX `[ ]`.
 
 ### verifyScript contract
 
@@ -109,7 +131,11 @@ CHECK:<taskId>:PASS:<message>
 CHECK:<taskId>:FAIL:<reason>
 ```
 
-`taskId` must match one of the `tasks[].id` values in the same file.
+- `taskId` must **exactly match** one of the `tasks[].id` values in the same
+  file — the parser does a strict string comparison, no fuzzy matching.
+- Every task must have **both** a `PASS` path and a `FAIL` path — a task
+  that only ever emits one will always report that result regardless of what
+  the student does.
 
 ---
 
@@ -123,7 +149,7 @@ no-internet warning above — never plan on installing anything at runtime):
 
 | Track | Image to use | When |
 |---|---|---|
-| `linux` | `alpine:latest` (preferred — BusyBox covers most core-utils/cron needs) or `ubuntu:24.04` (only if you don't need any tool beyond what ships in the base image) | Shell, files, users, networking, scripting |
+| `linux` | `alpine:latest` (preferred — BusyBox covers most core-utils/cron needs) or `ubuntu:24.04` (only if you specifically need a tool that requires a glibc environment) | Shell, files, users, networking, scripting |
 | `terraform` | `hashicorp/terraform:1.9` | IaC, providers, state, modules |
 
 If the topic needs a tool that isn't in either base image, find a
@@ -147,7 +173,7 @@ tasks:
 ```
 
 Rules:
-- IDs must be unique within the lab and match exactly what `verifyScript` emits.
+- IDs must be unique within the lab and match **exactly** what `verifyScript` emits in its `CHECK:` lines.
 - Descriptions are shown to the student — write them as instructions, not test names.
 
 ---
@@ -158,6 +184,7 @@ Rules:
 
 ```yaml
 image: "alpine:latest"
+shell: "sh"
 setupScript: |
   # No apt-get/apk here — the sandbox has no internet access.
   # alpine already ships BusyBox crond, so just create the starting state
@@ -171,8 +198,8 @@ setupScript: |
 Tips:
 - Never call `apt-get`/`apk`/`pip`/`npm install`/`curl <url>`/`wget <url>` here — there's no network access at runtime; see the warning at the top of this file.
 - Pick an `image` that already has what you need instead of installing anything.
-- Avoid downloading large files here — use a pre-pulled Docker image instead.
 - The script must be idempotent (re-running it should not break anything).
+- Always set `shell:` before writing the script — it controls which interpreter the platform uses to run this script.
 
 ---
 
@@ -199,13 +226,18 @@ verifyScript: |
 
 Rules:
 - Every `CHECK:` line format: `CHECK:<taskId>:PASS|FAIL:<human message>`
-- One line per task — the first match wins; extras are ignored.
+- Every `taskId` in a `CHECK:` line must **exactly match** one of the `tasks[].id`
+  values in the same file — the parser does a strict string comparison.
+- Every task must emit **both** a `PASS` path and a `FAIL` path — a task with
+  only one path will always report the same result regardless of what the student does.
+- One `CHECK:` line per task is enough — the parser uses the first match.
 - The script must finish in **under 10 seconds**.
 - Must be idempotent — it can be run many times without side effects.
-- **Use POSIX `sh` syntax, not bashisms** — `[ ]` not `[[ ]]`, no
-  `${var,,}`, no arrays, no `function` keyword. Set `shell: "sh"` unless
-  your image's `/bin/sh` really is bash (most minimal images, including
-  `alpine:latest`, use `dash`/`ash`, which reject `[[ ]]`).
+- **Match your syntax to your image's actual shell** — see the shell reference
+  table above. The most common mistake: writing `[[ ]]` for a `ubuntu:24.04` lab
+  with `shell: "sh"`. Ubuntu's `/bin/sh` is dash, which silently rejects `[[`,
+  causing every check to output a wrong value and report FAIL even when the
+  student's work is correct. Either set `shell: "bash"` or rewrite with `[ ]`.
 
 ---
 
@@ -267,7 +299,53 @@ order: 210                      # pick a number that fits between existing labs
 
 ---
 
-### Step 8 — Publish
+### Step 8 — Pre-publish checklist
+
+Run through this before every `git push`. It takes 5 minutes and prevents broken labs reaching students.
+
+**Structure checks**
+
+- [ ] Every field marked ✱ in the format table is present and non-empty
+- [ ] `id` is unique — check it doesn't already appear in any other `.yaml` file in `labs/`
+- [ ] Every `tasks[].id` appears as `CHECK:<id>:PASS:` **and** `CHECK:<id>:FAIL:` in `verifyScript`
+- [ ] No `CHECK:` line in `verifyScript` references an ID that isn't in `tasks[]`
+
+**Shell checks**
+
+- [ ] `shell:` is set and matches what the image actually provides (see the shell reference table)
+- [ ] Run the quick test against your image: `docker run --rm <image> sh -lc 'if [[ 1 == 1 ]]; then echo ok; fi'`
+  - Got `ok` → `[[ ]]` is safe; your `shell:` choice is consistent
+  - Got `[[: not found` → you have dash; use `[ ]` or switch to `shell: "bash"`
+
+**Live end-to-end test**
+
+```bash
+# 1. Spin up a container (using the entrypoint override if needed)
+docker run -d --name lab-test <image> sleep 300
+
+# 2. Run the setupScript
+docker exec lab-test <shell> -lc "$(grep -A9999 'setupScript:' your-lab.yaml | tail -n +2 | sed 's/^  //')"
+
+# 3. Simulate the student's work (perform the tasks the lab asks for)
+
+# 4. Run the verifyScript — every CHECK line must say PASS
+docker exec lab-test <shell> -lc "$(grep -A9999 'verifyScript:' your-lab.yaml | tail -n +2 | sed 's/^  //')"
+
+# 5. Clean up
+docker rm -f lab-test
+```
+
+Alternatively, start the actual app locally, open the lab, complete it yourself,
+and click "Check my work" — all tasks must turn green.
+
+**No-internet checks**
+
+- [ ] `setupScript` contains no `apt-get`, `apk`, `pip`, `npm install`, `curl <url>`, `wget <url>`, or `git clone`
+- [ ] Every tool used in `setupScript`/`verifyScript`/`instructions` is present in the chosen image (confirmed with `docker run --rm <image> which <tool>`)
+
+---
+
+### Step 9 — Publish
 
 ```bash
 git add labs/linux/linux-cron-jobs.yaml
