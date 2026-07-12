@@ -145,7 +145,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
     });
     try {
       await container.start();
-      const setup = await runExec(container, ["sh", "-lc", lab.setupScript], { user: "root" });
+      const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], { user: "root" });
       if (setup.exitCode !== 0) {
         logger.error({ labId, studentId, output: setup.output }, "Lab setup script failed");
         throw new Error(`Setup script failed (exit ${setup.exitCode}): ${setup.output.slice(-500)}`);
@@ -206,7 +206,7 @@ export async function verifyLab(
   if (!container) {
     throw new Error("Lab session is not running. Start the sandbox before running checks.");
   }
-  const result = await runExec(container, ["sh", "-lc", lab.verifyScript], { user: "root" });
+  const result = await runExec(container, [lab.shell ?? "sh", "-lc", lab.verifyScript], { user: "root" });
   const taskLabelMap = new Map(lab.tasks.map((t) => [t.id, t.description]));
   const checks: { id: string; label: string | null; passed: boolean; message: string }[] = [];
   const lineRe = /^CHECK:([^:]+):(PASS|FAIL):(.*)$/;
