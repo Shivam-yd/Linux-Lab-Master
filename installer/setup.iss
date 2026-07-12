@@ -218,6 +218,13 @@ begin
     False);
 
   // ── Step 4: Write WinSW service config ────────────────────────────────────
+  // WHY <env> elements: WinSW has no EnvironmentFile directive (unlike systemd
+  // on Ubuntu which uses EnvironmentFile= to inject secrets before docker
+  // compose runs).  Without explicit <env> entries, Docker Compose falls back
+  // to auto-discovering .env via --project-directory, but that lookup is
+  // unreliable under Docker Desktop's WSL2 backend and results in SESSION_SECRET
+  // arriving blank, crashing the API on every boot.  Embedding the values
+  // directly mirrors exactly what the Ubuntu systemd service does.
   WizardForm.StatusLabel.Caption := 'Writing service configuration...';
   WinSWXml := TStringList.Create;
   try
@@ -225,10 +232,20 @@ begin
     WinSWXml.Add('  <id>' + '{#ServiceName}' + '</id>');
     WinSWXml.Add('  <name>' + '{#ServiceDisplay}' + '</name>');
     WinSWXml.Add('  <description>Linux Labs interactive learning platform</description>');
+    // Inject secrets as process environment variables so Docker Compose
+    // receives them directly (same mechanism as systemd EnvironmentFile on Ubuntu).
+    WinSWXml.Add('  <env name="SESSION_SECRET" value="' + SessionSecret + '" />');
+    WinSWXml.Add('  <env name="POSTGRES_PASSWORD" value="' + PgPassword + '" />');
     WinSWXml.Add('  <executable>docker</executable>');
-    WinSWXml.Add('  <arguments>compose --project-directory "' + AppDir + '" up --no-build</arguments>');
+    // --env-file is belt-and-suspenders: env vars above are the primary path;
+    // --env-file ensures any future variables added to .env are also picked up.
+    WinSWXml.Add('  <arguments>compose --project-directory "' + AppDir + '"' +
+                 ' --env-file "' + AppDir + '\.env"' +
+                 ' up --no-build</arguments>');
     WinSWXml.Add('  <stopexecutable>docker</stopexecutable>');
-    WinSWXml.Add('  <stoparguments>compose --project-directory "' + AppDir + '" down</stoparguments>');
+    WinSWXml.Add('  <stoparguments>compose --project-directory "' + AppDir + '"' +
+                 ' --env-file "' + AppDir + '\.env"' +
+                 ' down</stoparguments>');
     WinSWXml.Add('  <workingdirectory>' + AppDir + '</workingdirectory>');
     WinSWXml.Add('  <startmode>Automatic</startmode>');
     WinSWXml.Add('  <waithint>180000</waithint>');
@@ -246,7 +263,10 @@ begin
   // ── Step 5: Build Docker images ────────────────────────────────────────────
   WizardForm.StatusLabel.Caption :=
     'Building Linux Labs (first run only — this takes 3–5 minutes)...';
-  if not ExecOK('docker', 'compose --project-directory "' + AppDir + '" build', AppDir) then
+  if not ExecOK('docker',
+    'compose --project-directory "' + AppDir + '"' +
+    ' --env-file "' + AppDir + '\.env"' +
+    ' build', AppDir) then
   begin
     MsgBox(
       'Docker image build failed.' + #13#10 +
