@@ -1,0 +1,109 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Variable Validation Blocks
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-variable-validation"
+title: "Variable Validation Blocks"
+track: "terraform"
+level: 2
+category: "Terraform Language"
+difficulty: "intermediate"
+summary: "Reject bad input before Terraform touches any resource by adding a validation block to a variable."
+estimatedMinutes: 25
+order: 230
+
+objectives:
+- "Add a validation block to a variable with a condition and error_message"
+- "Trigger a validation failure with bad input and read the resulting error"
+- "Apply successfully once the input satisfies the validation rule"
+
+instructions: |
+  ## Fail fast, before touching any resource
+
+  A validation block runs at plan time, before Terraform evaluates any
+  resource — so bad input never gets anywhere near real infrastructure. This
+  is stricter (and earlier) than a lifecycle precondition, which only
+  guards one specific resource.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf with a validation block
+
+  \`\`\`hcl
+  variable "port" {
+    type    = number
+    default = 8080
+
+    validation {
+      condition     = var.port >= 1024 && var.port <= 65535
+      error_message = "port must be between 1024 and 65535 (unprivileged range)."
+    }
+  }
+  \`\`\`
+
+  ### 2 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "listener" {
+    input = "port-\${var.port}"
+  }
+  \`\`\`
+
+  ### 3 — Trigger the failure, then fix it
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve -var="port=80"
+  # Expect: "port must be between 1024 and 65535 (unprivileged range)."
+
+  terraform apply -auto-approve -var="port=9090"
+  # Succeeds
+  \`\`\`
+
+tasks:
+- id: "validation_block_present"
+  description: "variables.tf's port variable has a validation block with condition and error_message"
+- id: "applied_with_valid_port"
+  description: "terraform.tfstate shows the resource applied with a valid port value (>= 1024)"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  VARS="$LAB/variables.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: validation_block_present
+  if [ -f "$VARS" ] \
+    && grep -v '^[[:space:]]*#' "$VARS" | grep -qE 'validation[[:space:]]*\{' \
+    && grep -v '^[[:space:]]*#' "$VARS" | grep -qE 'error_message[[:space:]]*='; then
+    echo "CHECK:validation_block_present:PASS:port variable has a validation block with an error_message"
+  else
+    echo "CHECK:validation_block_present:FAIL:variables.tf's port variable must include validation { condition = ...; error_message = ... }"
+  fi
+
+  # CHECK: applied_with_valid_port
+  if [ -f "$STATE" ] && grep -qE '"port-(1[0-9]{3}[0-9]?|[2-9][0-9]{3,4}|[1-6][0-9]{4})"' "$STATE" 2>/dev/null; then
+    echo "CHECK:applied_with_valid_port:PASS:state shows a port value within the valid range"
+  else
+    echo "CHECK:applied_with_valid_port:FAIL:Apply with a valid port (>= 1024), e.g. terraform apply -auto-approve -var=\"port=9090\""
+  fi
+
+hints:
+- "A validation block goes inside the variable block it validates, and needs both condition and error_message."
+- "condition must reference var.<name> itself — it runs against whatever value was actually supplied."
+- "Trying an invalid value like port=80 should fail at plan time with your custom error_message, before any resource is touched."
+

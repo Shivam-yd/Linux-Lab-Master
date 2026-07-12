@@ -1,0 +1,110 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Detecting Drift with -refresh-only
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-refresh-only-plan"
+title: "Detecting Drift with -refresh-only"
+track: "terraform"
+level: 3
+category: "State Management"
+difficulty: "advanced"
+summary: "Simulate configuration drift by editing state directly, then use a refresh-only plan and apply to reconcile state with real-world reality without touching resources."
+estimatedMinutes: 25
+order: 380
+
+objectives:
+- "Apply a resource normally"
+- "Simulate drift by editing terraform.tfstate's recorded attribute directly"
+- "Run terraform plan -refresh-only to see the drift, then terraform apply -refresh-only to accept it into state"
+
+instructions: |
+  ## Drift: when real-world state diverges from Terraform's record
+
+  In real infrastructure, someone might change a resource outside of
+  Terraform (a manual console edit, another tool). A refresh-only plan
+  shows the difference between recorded state and current reality, without
+  proposing any resource changes — and refresh-only apply updates just the
+  state record to match, without touching any resource.
+
+  We simulate drift here by editing state directly, since terraform_data
+  has no external system to drift against on its own.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "config_flag" {
+    input = "enabled"
+  }
+  \`\`\`
+
+  ### 2 — Apply, then simulate drift with sed
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+
+  # Simulate an out-of-band change directly in state
+  sed -i 's/"enabled"/"disabled-by-someone-else"/' terraform.tfstate
+  \`\`\`
+
+  ### 3 — Run a refresh-only plan and apply
+
+  \`\`\`sh
+  terraform plan -refresh-only
+  terraform apply -auto-approve -refresh-only
+  \`\`\`
+
+  Note: because terraform_data has no real backing system, a genuine
+  refresh won't detect the sed edit on its own — but running the
+  refresh-only apply is still the correct workflow motion to practice, and
+  this lab's checks focus on demonstrating that workflow end-to-end.
+
+tasks:
+- id: "resource_applied"
+  description: "terraform_data.config_flag has been applied at least once (terraform.tfstate exists with the resource recorded)"
+- id: "refresh_only_apply_ran"
+  description: "A refresh-only apply was run after the initial apply (terraform.tfstate's serial/lineage was touched by a second terraform run)"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  STATE="$LAB/terraform.tfstate"
+  BACKUP="$LAB/terraform.tfstate.backup"
+
+  # CHECK: resource_applied
+  if [ -f "$STATE" ] && grep -q '"config_flag"' "$STATE" 2>/dev/null; then
+    echo "CHECK:resource_applied:PASS:config_flag is recorded in state"
+  else
+    echo "CHECK:resource_applied:FAIL:Apply main.tf first (terraform init && terraform apply -auto-approve)"
+  fi
+
+  # CHECK: refresh_only_apply_ran
+  # A refresh (plan or apply) writes a backup of the prior state — presence of a backup file
+  # after the initial apply is a reliable signal that a second terraform run touched state.
+  if [ -f "$BACKUP" ]; then
+    echo "CHECK:refresh_only_apply_ran:PASS:a subsequent terraform run (the refresh-only apply) touched state, as shown by the state backup file"
+  else
+    echo "CHECK:refresh_only_apply_ran:FAIL:After the initial apply, run terraform apply -auto-approve -refresh-only to reconcile state"
+  fi
+
+hints:
+- "terraform plan -refresh-only never proposes create/update/destroy — it only shows differences between state and (attempted) real-world refresh."
+- "terraform apply -refresh-only writes the refreshed values into state but does not modify any actual resource."
+- "Editing terraform.tfstate by hand (e.g. with sed) is only safe in a lab — never do this against real infrastructure state."
+

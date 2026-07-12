@@ -1,0 +1,114 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Variables with Types and Defaults
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-variables-defaults"
+title: "Variables with Types and Defaults"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Declare typed input variables with default values, then override them from the command line with -var."
+estimatedMinutes: 20
+order: 110
+
+objectives:
+- "Declare a variable with an explicit type and a default value"
+- "Reference a variable from a resource block"
+- "Override a variable's default using -var on the command line"
+- "Confirm the override took effect by inspecting state"
+
+instructions: |
+  ## Variables let configs be reused with different inputs
+
+  Without variables, changing any value means editing the .tf file itself.
+  A `variable` block declares a named input with a type and (optionally) a
+  default, so the same config can be applied with different values.
+
+  Working directory: `/root/tf-lab`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  ```hcl
+  variable "environment_name" {
+    type    = string
+    default = "dev"
+  }
+  ```
+
+  ### 2 — main.tf referencing the variable
+
+  ```hcl
+  resource "terraform_data" "environment" {
+    input = var.environment_name
+  }
+  ```
+
+  ### 3 — Apply with the default, then override
+
+  ```sh
+  terraform init
+  terraform apply -auto-approve
+  # environment_name defaults to "dev" — check terraform.tfstate
+
+  terraform apply -auto-approve -var="environment_name=staging"
+  # now the state should show "staging" instead
+  ```
+
+tasks:
+- id: "variable_declared"
+  description: "variables.tf declares environment_name as type string with a default value"
+- id: "resource_uses_variable"
+  description: "main.tf's terraform_data resource sets input = var.environment_name"
+- id: "override_applied"
+  description: "terraform.tfstate reflects the overridden value 'staging' after applying with -var=environment_name=staging"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  VARS="$LAB/variables.tf"
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: variable_declared
+  if [ -f "$VARS" ] \
+    && grep -v '^[[:space:]]*#' "$VARS" | grep -qE 'variable[[:space:]]+"environment_name"' \
+    && grep -v '^[[:space:]]*#' "$VARS" | grep -qE 'default[[:space:]]*='; then
+    echo "CHECK:variable_declared:PASS:environment_name variable declared with a default"
+  else
+    echo "CHECK:variable_declared:FAIL:variables.tf must declare variable \"environment_name\" with type and default"
+  fi
+
+  # CHECK: resource_uses_variable
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'var\.environment_name'; then
+    echo "CHECK:resource_uses_variable:PASS:main.tf references var.environment_name"
+  else
+    echo "CHECK:resource_uses_variable:FAIL:main.tf must set a resource attribute to var.environment_name"
+  fi
+
+  # CHECK: override_applied
+  if [ -f "$STATE" ] && grep -q '"staging"' "$STATE" 2>/dev/null; then
+    echo "CHECK:override_applied:PASS:state reflects the overridden value 'staging'"
+  else
+    echo "CHECK:override_applied:FAIL:Run terraform apply -auto-approve -var=\"environment_name=staging\" to override the default"
+  fi
+
+hints:
+- "A variable block needs at least a type; default is optional but makes the variable usable without -var."
+- "Reference any variable in HCL with var.<name>."
+- "-var=\"name=value\" on the apply command line overrides that variable's default for just that run."
+

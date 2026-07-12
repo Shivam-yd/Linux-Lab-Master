@@ -1,0 +1,113 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Core Workflow: init, plan, apply, destroy
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-init-workflow"
+title: "Terraform Core Workflow: init, plan, apply, destroy"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Run the full Terraform lifecycle against a single resource: init, plan, apply, and destroy — and see what each command actually changes."
+estimatedMinutes: 20
+order: 100
+
+objectives:
+- "Initialize a working directory with terraform init"
+- "Preview changes with terraform plan before applying them"
+- "Create a resource with terraform apply"
+- "Tear everything down with terraform destroy"
+
+instructions: |
+  ## The four commands you'll use constantly
+
+  Every Terraform workflow boils down to four commands, run in order:
+
+  1. `terraform init` — downloads providers and sets up the `.terraform`
+     working directory (this lab needs no providers, since we only use the
+     builtin `terraform_data` resource — but init is still required).
+  2. `terraform plan` — shows what *would* change, without touching anything.
+  3. `terraform apply` — makes the change and records it in `terraform.tfstate`.
+  4. `terraform destroy` — removes everything Terraform created.
+
+  Working directory: `/root/tf-lab`
+
+  ---
+
+  ## Steps
+
+  ### 1 — Write main.tf
+
+  ```hcl
+  resource "terraform_data" "greeting" {
+    input = "hello, terraform"
+  }
+  ```
+
+  ### 2 — Run the workflow
+
+  ```sh
+  terraform init
+  terraform plan
+  terraform apply -auto-approve
+  cat terraform.tfstate   # confirm the resource is recorded
+  ```
+
+  ### 3 — Tear it down
+
+  ```sh
+  terraform destroy -auto-approve
+  ```
+
+  After destroy, `terraform.tfstate` should list zero resources.
+
+tasks:
+- id: "init_ran"
+  description: "Run terraform init so a .terraform directory exists in /root/tf-lab"
+- id: "applied_state"
+  description: "Apply main.tf so terraform.tfstate records the terraform_data.greeting resource"
+- id: "destroyed_clean"
+  description: "Run terraform destroy so terraform.tfstate no longer lists any managed resources"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: init_ran
+  if [ -d "$LAB/.terraform" ]; then
+    echo "CHECK:init_ran:PASS:.terraform directory exists"
+  else
+    echo "CHECK:init_ran:FAIL:.terraform directory not found — run terraform init in /root/tf-lab"
+  fi
+
+  # CHECK: applied_state
+  if [ -f "$STATE" ] && grep -q '"greeting"' "$STATE" 2>/dev/null && grep -q '"mode":[[:space:]]*"managed"' "$STATE" 2>/dev/null; then
+    echo "CHECK:applied_state:PASS:terraform_data.greeting is recorded in state"
+  else
+    echo "CHECK:applied_state:FAIL:No applied state for terraform_data.greeting found. Run terraform apply -auto-approve"
+  fi
+
+  # CHECK: destroyed_clean
+  if [ -f "$STATE" ] && grep -q '"resources":[[:space:]]*\[\]' "$STATE" 2>/dev/null; then
+    echo "CHECK:destroyed_clean:PASS:state shows zero managed resources after destroy"
+  else
+    echo "CHECK:destroyed_clean:FAIL:state still has resources — run terraform destroy -auto-approve after applying"
+  fi
+
+hints:
+- "terraform init must be run once per working directory before plan/apply/destroy will work."
+- "terraform apply -auto-approve skips the interactive yes/no confirmation — useful in a lab, risky on real infra."
+- "Check the resources array in terraform.tfstate directly with cat or grep to see what Terraform thinks it owns."
+- "terraform destroy -auto-approve removes every resource in state — after it succeeds, the resources array should be empty."
+

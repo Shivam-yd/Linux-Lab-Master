@@ -1,0 +1,98 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Targeted Operations with -target
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-targeted-apply"
+title: "Targeted Operations with -target"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Apply or destroy a single resource by address with -target, leaving the rest of the config untouched."
+estimatedMinutes: 20
+order: 190
+
+objectives:
+- "Apply an entire config with two resources"
+- "Destroy just one resource by address using -target"
+- "Confirm the untargeted resource is still present in state"
+
+instructions: |
+  ## -target: operate on one resource at a time
+
+  Normally apply/destroy act on the whole config. -target=<address> scopes
+  the operation to just that resource (and anything it depends on). It's an
+  escape hatch for emergencies, not a normal workflow — but it's essential
+  to know when a full apply/destroy would be too broad.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "cache" {
+    input = "cache-instance"
+  }
+
+  resource "terraform_data" "queue" {
+    input = "queue-instance"
+  }
+  \`\`\`
+
+  ### 2 — Apply everything, then destroy just one resource
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  terraform destroy -auto-approve -target=terraform_data.cache
+  terraform state list
+  # → only terraform_data.queue should remain
+  \`\`\`
+
+tasks:
+- id: "both_resources_defined"
+  description: "main.tf defines both terraform_data.cache and terraform_data.queue"
+- id: "cache_destroyed_queue_kept"
+  description: "After a targeted destroy of terraform_data.cache, terraform state list shows queue still present and cache gone"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+
+  # CHECK: both_resources_defined
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'resource[[:space:]]+"terraform_data"[[:space:]]+"cache"' && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'resource[[:space:]]+"terraform_data"[[:space:]]+"queue"'; then
+    echo "CHECK:both_resources_defined:PASS:both cache and queue resources are defined"
+  else
+    echo "CHECK:both_resources_defined:FAIL:main.tf must define both terraform_data.cache and terraform_data.queue"
+  fi
+
+  # CHECK: cache_destroyed_queue_kept
+  HAS_QUEUE=$(terraform state list 2>/dev/null | grep -c '^terraform_data\.queue$' || echo 0)
+  HAS_CACHE=$(terraform state list 2>/dev/null | grep -c '^terraform_data\.cache$' || echo 0)
+  if [ "$HAS_QUEUE" -eq 1 ] && [ "$HAS_CACHE" -eq 0 ]; then
+    echo "CHECK:cache_destroyed_queue_kept:PASS:queue remains in state, cache has been removed"
+  else
+    echo "CHECK:cache_destroyed_queue_kept:FAIL:Run terraform apply -auto-approve, then terraform destroy -auto-approve -target=terraform_data.cache"
+  fi
+
+hints:
+- "Apply the full config first with a plain terraform apply -auto-approve so both resources exist."
+- "-target accepts a full resource address: terraform destroy -auto-approve -target=terraform_data.cache."
+- "terraform state list after the targeted destroy should show queue but not cache."
+- "Terraform will warn that -target is not recommended for routine use — that warning is expected here."
+

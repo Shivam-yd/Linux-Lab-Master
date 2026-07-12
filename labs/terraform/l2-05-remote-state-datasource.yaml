@@ -1,0 +1,132 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Reading State with terraform_remote_state
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-remote-state-datasource"
+title: "Reading State with terraform_remote_state"
+track: "terraform"
+level: 2
+category: "State Management"
+difficulty: "intermediate"
+summary: "Use the builtin terraform_remote_state data source to read an output from another config's local state file — no backend or network required."
+estimatedMinutes: 25
+order: 250
+
+objectives:
+- "Apply a 'producer' config in one directory that exposes an output"
+- "Read that output from a separate 'consumer' config using terraform_remote_state with backend = \"local\""
+- "Confirm the consumer's resource picked up the value from the producer's state"
+
+instructions: |
+  ## Sharing state between configs without a network backend
+
+  Real teams usually share state via a remote backend (S3, Terraform Cloud,
+  etc.), but the mechanism for *reading* it is the same regardless of
+  backend: the terraform_remote_state data source. This lab uses
+  backend = "local", pointing at a state file on disk, so it works with zero
+  network access — but the data source usage is identical to the S3/GCS case.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — producer/main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "network" {
+    input = "vpc-12345"
+  }
+
+  output "vpc_id" {
+    value = terraform_data.network.output
+  }
+  \`\`\`
+
+  ### 2 — Apply the producer
+
+  \`\`\`sh
+  cd /root/tf-lab/producer
+  terraform init
+  terraform apply -auto-approve
+  cd /root/tf-lab
+  \`\`\`
+
+  ### 3 — consumer/main.tf reading the producer's state
+
+  \`\`\`hcl
+  data "terraform_remote_state" "network" {
+    backend = "local"
+    config = {
+      path = "../producer/terraform.tfstate"
+    }
+  }
+
+  resource "terraform_data" "app" {
+    input = "deployed-into-\${data.terraform_remote_state.network.outputs.vpc_id}"
+  }
+  \`\`\`
+
+  ### 4 — Apply the consumer
+
+  \`\`\`sh
+  cd /root/tf-lab/consumer
+  terraform init
+  terraform apply -auto-approve
+  \`\`\`
+
+tasks:
+- id: "producer_applied"
+  description: "producer/terraform.tfstate has an applied terraform_data.network resource and a vpc_id output"
+- id: "consumer_uses_remote_state"
+  description: "consumer/main.tf declares data \"terraform_remote_state\" \"network\" with backend = \"local\" pointing at the producer's state file"
+- id: "consumer_applied_with_value"
+  description: "consumer/terraform.tfstate shows terraform_data.app's input built from the producer's vpc_id output"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab/producer /root/tf-lab/consumer
+
+verifyScript: |
+  LAB=/root/tf-lab
+  PSTATE="$LAB/producer/terraform.tfstate"
+  CMAIN="$LAB/consumer/main.tf"
+  CSTATE="$LAB/consumer/terraform.tfstate"
+
+  # CHECK: producer_applied
+  if [ -f "$PSTATE" ] && grep -q '"network"' "$PSTATE" 2>/dev/null && grep -q '"vpc_id"' "$PSTATE" 2>/dev/null; then
+    echo "CHECK:producer_applied:PASS:producer state has an applied network resource and vpc_id output"
+  else
+    echo "CHECK:producer_applied:FAIL:Apply producer/main.tf first (cd producer && terraform init && terraform apply -auto-approve)"
+  fi
+
+  # CHECK: consumer_uses_remote_state
+  if [ -f "$CMAIN" ] \
+    && grep -v '^[[:space:]]*#' "$CMAIN" | grep -qE 'terraform_remote_state' \
+    && grep -v '^[[:space:]]*#' "$CMAIN" | grep -qE 'backend[[:space:]]*=[[:space:]]*"local"'; then
+    echo "CHECK:consumer_uses_remote_state:PASS:consumer declares a terraform_remote_state data source with backend local"
+  else
+    echo "CHECK:consumer_uses_remote_state:FAIL:consumer/main.tf must declare data \"terraform_remote_state\" \"network\" with backend = \"local\""
+  fi
+
+  # CHECK: consumer_applied_with_value
+  if [ -f "$CSTATE" ] && grep -q "vpc-12345" "$CSTATE" 2>/dev/null; then
+    echo "CHECK:consumer_applied_with_value:PASS:consumer state shows the value read from the producer's output"
+  else
+    echo "CHECK:consumer_applied_with_value:FAIL:Apply consumer/main.tf (cd consumer && terraform init && terraform apply -auto-approve) after the producer"
+  fi
+
+hints:
+- "The producer must be applied first — the consumer reads its state file, which only exists after apply."
+- "backend = \"local\" with config = { path = \"...\" } points the data source at any local state file, relative to the consumer's working directory."
+- "Read a remote-state output as data.terraform_remote_state.<label>.outputs.<output_name> — note the extra .outputs level."
+- "Each of producer/ and consumer/ needs its own terraform init, since they are separate working directories."
+

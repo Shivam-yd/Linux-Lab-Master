@@ -1,0 +1,120 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Lifecycle Postconditions
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-postconditions"
+title: "Lifecycle Postconditions"
+track: "terraform"
+level: 3
+category: "Terraform Language"
+difficulty: "advanced"
+summary: "Guard a resource's own computed result with a postcondition block that fails apply if the result doesn't meet an expectation."
+estimatedMinutes: 25
+order: 360
+
+objectives:
+- "Add a postcondition block inside a resource's lifecycle block"
+- "Trigger a postcondition failure with a value that violates the check"
+- "Fix the input so the postcondition passes and apply succeeds"
+
+instructions: |
+  ## postcondition: verify a resource's own result
+
+  A postcondition lives inside lifecycle {} on a resource or data block and
+  is checked right after that resource is created or read. Unlike a
+  variable validation (checked before anything is touched), a
+  postcondition checks the *result*, which can depend on computed values.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  \`\`\`hcl
+  variable "replica_count" {
+    type    = number
+    default = 3
+  }
+  \`\`\`
+
+  ### 2 — main.tf with a postcondition
+
+  \`\`\`hcl
+  resource "terraform_data" "replicas" {
+    input = var.replica_count
+
+    lifecycle {
+      postcondition {
+        condition     = tonumber(self.output) >= 2
+        error_message = "replica_count must resolve to at least 2 for high availability."
+      }
+    }
+  }
+  \`\`\`
+
+  ### 3 — Trigger the failure, then fix it
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve -var="replica_count=1"
+  # Expect a postcondition failure
+
+  terraform apply -auto-approve -var="replica_count=3"
+  # Succeeds
+  \`\`\`
+
+tasks:
+- id: "postcondition_declared"
+  description: "main.tf's terraform_data.replicas resource has a lifecycle block containing a postcondition with condition and error_message"
+- id: "postcondition_uses_self"
+  description: "The postcondition's condition references self.output (the resource's own computed result)"
+- id: "applied_with_valid_count"
+  description: "terraform.tfstate shows replica_count applied at a value satisfying the postcondition (>= 2)"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: postcondition_declared
+  if [ -f "$MAIN" ] \
+    && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'postcondition[[:space:]]*\{' \
+    && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'error_message[[:space:]]*='; then
+    echo "CHECK:postcondition_declared:PASS:terraform_data.replicas has a postcondition block"
+  else
+    echo "CHECK:postcondition_declared:FAIL:main.tf must add lifecycle { postcondition { condition = ...; error_message = ... } } to terraform_data.replicas"
+  fi
+
+  # CHECK: postcondition_uses_self
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'self\.output'; then
+    echo "CHECK:postcondition_uses_self:PASS:postcondition references self.output"
+  else
+    echo "CHECK:postcondition_uses_self:FAIL:the postcondition's condition must reference self.output, e.g. tonumber(self.output) >= 2"
+  fi
+
+  # CHECK: applied_with_valid_count
+  if [ -f "$STATE" ] && grep -qE '"input":[[:space:]]*[2-9]' "$STATE" 2>/dev/null; then
+    echo "CHECK:applied_with_valid_count:PASS:state shows a replica_count value satisfying the postcondition"
+  else
+    echo "CHECK:applied_with_valid_count:FAIL:Apply with a valid count, e.g. terraform apply -auto-approve -var=\"replica_count=3\""
+  fi
+
+hints:
+- "postcondition lives inside a lifecycle block on the resource itself, alongside (but distinct from) precondition."
+- "self.<attribute> inside a postcondition refers to the resource's own just-computed attribute — not another resource."
+- "tonumber() converts a string to a number before comparing with >= — terraform_data.output is always a string."
+

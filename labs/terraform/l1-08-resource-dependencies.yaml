@@ -1,0 +1,98 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Resource Dependencies with depends_on
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-resource-dependencies"
+title: "Resource Dependencies with depends_on"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Force an explicit ordering between two resources that have no natural attribute reference between them."
+estimatedMinutes: 20
+order: 170
+
+objectives:
+- "Understand that Terraform infers ordering from attribute references"
+- "Add an explicit depends_on when two resources must be ordered but share no reference"
+- "Confirm both resources apply successfully with the dependency declared"
+
+instructions: |
+  ## Implicit vs explicit dependencies
+
+  Normally, if resource B reads an attribute from resource A (like
+  terraform_data.a.output), Terraform automatically creates A first. But
+  sometimes two resources must be ordered even though neither references the
+  other's attributes — that's what depends_on is for.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "network_setup" {
+    input = "network-ready"
+  }
+
+  resource "terraform_data" "app_deploy" {
+    input      = "app-deployed"
+    depends_on = [terraform_data.network_setup]
+  }
+  \`\`\`
+
+  Here app_deploy doesn't read anything from network_setup — its input is a
+  plain string. Without depends_on, Terraform would have no reason to order
+  them at all. With it, network_setup is guaranteed to apply first.
+
+  ### 2 — Apply
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  \`\`\`
+
+tasks:
+- id: "depends_on_declared"
+  description: "app_deploy's resource block includes depends_on = [terraform_data.network_setup]"
+- id: "both_applied"
+  description: "terraform.tfstate records both terraform_data.network_setup and terraform_data.app_deploy"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: depends_on_declared
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'depends_on[[:space:]]*=[[:space:]]*\[terraform_data\.network_setup\]'; then
+    echo "CHECK:depends_on_declared:PASS:app_deploy declares depends_on = [terraform_data.network_setup]"
+  else
+    echo "CHECK:depends_on_declared:FAIL:app_deploy's resource block must include depends_on = [terraform_data.network_setup]"
+  fi
+
+  # CHECK: both_applied
+  if [ -f "$STATE" ] && grep -q '"network_setup"' "$STATE" 2>/dev/null && grep -q '"app_deploy"' "$STATE" 2>/dev/null; then
+    echo "CHECK:both_applied:PASS:both resources are recorded in state"
+  else
+    echo "CHECK:both_applied:FAIL:Run terraform apply -auto-approve so both resources are created"
+  fi
+
+hints:
+- "depends_on takes a list of resource references, even if there's only one: depends_on = [terraform_data.network_setup]."
+- "depends_on belongs inside the dependent resource's block (app_deploy), not the one it depends on."
+- "Terraform only needs depends_on when there's no attribute reference to infer the order from automatically."
+

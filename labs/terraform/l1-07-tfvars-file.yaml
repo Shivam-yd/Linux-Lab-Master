@@ -1,0 +1,113 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Loading Values from terraform.tfvars
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-tfvars-file"
+title: "Loading Values from terraform.tfvars"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Supply variable values from a terraform.tfvars file instead of typing -var on every command."
+estimatedMinutes: 15
+order: 160
+
+objectives:
+- "Declare a variable with no default (required input)"
+- "Provide its value via a terraform.tfvars file, auto-loaded by Terraform"
+- "Confirm the value from the file was applied without any -var flag"
+
+instructions: |
+  ## terraform.tfvars is loaded automatically
+
+  Typing -var on every command gets old fast. A file literally named
+  terraform.tfvars (or any *.auto.tfvars) in the working directory is
+  loaded automatically by plan/apply — no flag needed.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf (no default — this makes the value required)
+
+  \`\`\`hcl
+  variable "release_channel" {
+    type = string
+  }
+  \`\`\`
+
+  ### 2 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "channel" {
+    input = var.release_channel
+  }
+  \`\`\`
+
+  ### 3 — terraform.tfvars
+
+  \`\`\`hcl
+  release_channel = "beta"
+  \`\`\`
+
+  ### 4 — Apply with no -var flag at all
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  # Terraform reads terraform.tfvars automatically — no prompt, no -var needed
+  \`\`\`
+
+tasks:
+- id: "required_variable"
+  description: "variables.tf declares release_channel with no default, making it a required input"
+- id: "tfvars_file_present"
+  description: "terraform.tfvars sets release_channel = \"beta\""
+- id: "applied_from_tfvars"
+  description: "terraform.tfstate shows the value 'beta' after apply, proving it came from the auto-loaded tfvars file"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  VARS="$LAB/variables.tf"
+  TFVARS="$LAB/terraform.tfvars"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: required_variable
+  if [ -f "$VARS" ] && grep -v '^[[:space:]]*#' "$VARS" | grep -qE 'variable[[:space:]]+"release_channel"' && ! grep -v '^[[:space:]]*#' "$VARS" | grep -qE 'default[[:space:]]*='; then
+    echo "CHECK:required_variable:PASS:release_channel declared with no default"
+  else
+    echo "CHECK:required_variable:FAIL:variables.tf must declare release_channel with a type but no default"
+  fi
+
+  # CHECK: tfvars_file_present
+  if [ -f "$TFVARS" ] && grep -qE 'release_channel[[:space:]]*=[[:space:]]*"beta"' "$TFVARS"; then
+    echo "CHECK:tfvars_file_present:PASS:terraform.tfvars sets release_channel = \"beta\""
+  else
+    echo "CHECK:tfvars_file_present:FAIL:Create terraform.tfvars with release_channel = \"beta\""
+  fi
+
+  # CHECK: applied_from_tfvars
+  if [ -f "$STATE" ] && grep -q '"beta"' "$STATE" 2>/dev/null; then
+    echo "CHECK:applied_from_tfvars:PASS:state shows 'beta', loaded automatically from terraform.tfvars"
+  else
+    echo "CHECK:applied_from_tfvars:FAIL:Run terraform apply -auto-approve with no -var flag — terraform.tfvars should be picked up automatically"
+  fi
+
+hints:
+- "A variable with no default becomes required — Terraform will prompt for it interactively unless a value is supplied another way."
+- "A file named exactly terraform.tfvars (or matching *.auto.tfvars) is loaded automatically, with no -var-file flag needed."
+- "If apply prompts you for release_channel, the tfvars file is either missing, misnamed, or has a syntax error."
+

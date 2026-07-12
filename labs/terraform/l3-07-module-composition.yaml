@@ -1,0 +1,156 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Composing Modules Together
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-module-composition"
+title: "Composing Modules Together"
+track: "terraform"
+level: 3
+category: "Modules"
+difficulty: "advanced"
+summary: "Wire the output of one module directly into the input of a second module, building a small dependency chain across module boundaries."
+estimatedMinutes: 30
+order: 400
+
+objectives:
+- "Create two local modules where one's output feeds directly into the other's input"
+- "Call both modules from the root config in the correct order"
+- "Confirm the second module's applied resource used a value computed by the first"
+
+instructions: |
+  ## Modules that depend on each other
+
+  A single module reused twice (like the earlier local-modules lab) is one
+  pattern. Composition is different: here, module B's *input* is module
+  A's *output* — Terraform automatically works out that A must apply
+  before B, purely from the reference.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — modules/network/{variables.tf,main.tf,outputs.tf}
+
+  \`\`\`hcl
+  # variables.tf
+  variable "cidr_block" {
+    type = string
+  }
+  \`\`\`
+
+  \`\`\`hcl
+  # main.tf
+  resource "terraform_data" "vpc" {
+    input = "vpc-\${var.cidr_block}"
+  }
+  \`\`\`
+
+  \`\`\`hcl
+  # outputs.tf
+  output "vpc_id" {
+    value = terraform_data.vpc.output
+  }
+  \`\`\`
+
+  ### 2 — modules/app/{variables.tf,main.tf}
+
+  \`\`\`hcl
+  # variables.tf
+  variable "vpc_id" {
+    type = string
+  }
+  \`\`\`
+
+  \`\`\`hcl
+  # main.tf
+  resource "terraform_data" "server" {
+    input = "server-in-\${var.vpc_id}"
+  }
+  \`\`\`
+
+  ### 3 — root main.tf composing them
+
+  \`\`\`hcl
+  module "network" {
+    source     = "./modules/network"
+    cidr_block = "10.0.0.0/16"
+  }
+
+  module "app" {
+    source = "./modules/app"
+    vpc_id = module.network.vpc_id
+  }
+  \`\`\`
+
+  ### 4 — Apply
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  \`\`\`
+
+tasks:
+- id: "network_module_exists"
+  description: "modules/network/ has variables.tf, main.tf, and outputs.tf exposing vpc_id"
+- id: "app_module_exists"
+  description: "modules/app/ has variables.tf and main.tf accepting a vpc_id variable"
+- id: "root_wires_modules_together"
+  description: "Root main.tf sets module \"app\"'s vpc_id = module.network.vpc_id, chaining the two modules"
+- id: "chained_apply_succeeded"
+  description: "terraform.tfstate shows module.app.terraform_data.server's input built from module.network's applied vpc value"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab/modules/network /root/tf-lab/modules/app
+
+verifyScript: |
+  LAB=/root/tf-lab
+  NET_DIR="$LAB/modules/network"
+  APP_DIR="$LAB/modules/app"
+  ROOT_MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: network_module_exists
+  if [ -f "$NET_DIR/variables.tf" ] && [ -f "$NET_DIR/main.tf" ] && [ -f "$NET_DIR/outputs.tf" ] \
+    && grep -qE 'output[[:space:]]+"vpc_id"' "$NET_DIR/outputs.tf" 2>/dev/null; then
+    echo "CHECK:network_module_exists:PASS:network module exposes a vpc_id output"
+  else
+    echo "CHECK:network_module_exists:FAIL:Create modules/network/{variables.tf,main.tf,outputs.tf} exposing output \"vpc_id\""
+  fi
+
+  # CHECK: app_module_exists
+  if [ -f "$APP_DIR/variables.tf" ] && [ -f "$APP_DIR/main.tf" ] \
+    && grep -qE 'variable[[:space:]]+"vpc_id"' "$APP_DIR/variables.tf" 2>/dev/null; then
+    echo "CHECK:app_module_exists:PASS:app module accepts a vpc_id variable"
+  else
+    echo "CHECK:app_module_exists:FAIL:Create modules/app/{variables.tf,main.tf} with variable \"vpc_id\""
+  fi
+
+  # CHECK: root_wires_modules_together
+  if [ -f "$ROOT_MAIN" ] && grep -v '^[[:space:]]*#' "$ROOT_MAIN" | grep -qE 'vpc_id[[:space:]]*=[[:space:]]*module\.network\.vpc_id'; then
+    echo "CHECK:root_wires_modules_together:PASS:root config chains module.network.vpc_id into module.app"
+  else
+    echo "CHECK:root_wires_modules_together:FAIL:Root main.tf must set module \"app\"'s vpc_id = module.network.vpc_id"
+  fi
+
+  # CHECK: chained_apply_succeeded
+  if [ -f "$STATE" ] && grep -q "server-in-vpc-10.0.0.0/16" "$STATE" 2>/dev/null; then
+    echo "CHECK:chained_apply_succeeded:PASS:app module's applied value was built from the network module's output"
+  else
+    echo "CHECK:chained_apply_succeeded:FAIL:Run terraform apply -auto-approve so the chained modules apply successfully"
+  fi
+
+hints:
+- "Reference one module's output as another module's input the same way you'd reference any other expression: module.<name>.<output>."
+- "Terraform infers that module.network must apply before module.app purely from this reference — no depends_on needed."
+- "Keep each module's variables.tf, main.tf, and (for network) outputs.tf focused on just that module's own resource."
+

@@ -1,0 +1,117 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: String Interpolation and Built-in Functions
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-string-interpolation"
+title: "String Interpolation and Built-in Functions"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Combine variables and Terraform's built-in functions (upper, join, format) inside string interpolation."
+estimatedMinutes: 20
+order: 130
+
+objectives:
+- "Use string interpolation to build a value from a variable"
+- "Apply the upper() and format() functions to a value"
+- "Use join() to combine a list variable into a single string"
+
+instructions: |
+  ## Terraform's expression language
+
+  HCL supports string interpolation and a large library of built-in
+  functions. You don't need a provider to practise these — they work on any
+  string, number, or list, anywhere in a config.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  \`\`\`hcl
+  variable "service_name" {
+    type    = string
+    default = "billing"
+  }
+
+  variable "regions" {
+    type    = list(string)
+    default = ["us-east-1", "eu-west-1", "ap-south-1"]
+  }
+  \`\`\`
+
+  ### 2 — main.tf using functions
+
+  \`\`\`hcl
+  resource "terraform_data" "label" {
+    input = format("service=%s", upper(var.service_name))
+  }
+
+  resource "terraform_data" "region_list" {
+    input = join(",", var.regions)
+  }
+  \`\`\`
+
+  ### 3 — Apply and inspect
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  # terraform_data.label.output should be "service=BILLING"
+  # terraform_data.region_list.output should be "us-east-1,eu-west-1,ap-south-1"
+  \`\`\`
+
+tasks:
+- id: "format_upper_used"
+  description: "main.tf uses format() and upper() together to build terraform_data.label's input"
+- id: "join_used"
+  description: "main.tf uses join(\",\", var.regions) to build terraform_data.region_list's input"
+- id: "applied_correctly"
+  description: "terraform.tfstate shows the computed values 'service=BILLING' and the comma-joined region list"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: format_upper_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'format\(' && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'upper\('; then
+    echo "CHECK:format_upper_used:PASS:main.tf combines format() and upper()"
+  else
+    echo "CHECK:format_upper_used:FAIL:main.tf must use format(\"service=%s\", upper(var.service_name)) for terraform_data.label"
+  fi
+
+  # CHECK: join_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'join\('; then
+    echo "CHECK:join_used:PASS:main.tf uses join() on var.regions"
+  else
+    echo "CHECK:join_used:FAIL:main.tf must use join(\",\", var.regions) for terraform_data.region_list"
+  fi
+
+  # CHECK: applied_correctly
+  if [ -f "$STATE" ] && grep -q "service=BILLING" "$STATE" 2>/dev/null && grep -q "us-east-1,eu-west-1,ap-south-1" "$STATE" 2>/dev/null; then
+    echo "CHECK:applied_correctly:PASS:state shows the computed string values"
+  else
+    echo "CHECK:applied_correctly:FAIL:Apply the config and confirm the computed outputs match — run terraform apply -auto-approve"
+  fi
+
+hints:
+- "format(\"service=%s\", upper(var.service_name)) — %s is replaced by the upper()-cased argument."
+- "join(separator, list) concatenates a list variable into one string with that separator between elements."
+- "Functions can be nested arbitrarily: upper(...) can be the argument to format(...)."
+

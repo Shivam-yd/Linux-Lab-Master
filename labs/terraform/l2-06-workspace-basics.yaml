@@ -1,0 +1,112 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Terraform Workspaces
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-workspace-basics"
+title: "Terraform Workspaces"
+track: "terraform"
+level: 2
+category: "State Management"
+difficulty: "intermediate"
+summary: "Use terraform workspace to maintain separate state for the same config under different named workspaces (e.g. dev vs. staging)."
+estimatedMinutes: 20
+order: 260
+
+objectives:
+- "Create a new named workspace with terraform workspace new"
+- "Apply the same config independently in two different workspaces"
+- "Use terraform.workspace inside a resource to make behavior workspace-aware"
+
+instructions: |
+  ## One config, isolated state per workspace
+
+  By default every config has a single workspace, "default". Additional
+  named workspaces let the *same* .tf files maintain completely separate
+  state — useful for keeping dev and staging isolated without duplicating
+  code into separate directories.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf using terraform.workspace
+
+  \`\`\`hcl
+  resource "terraform_data" "env_marker" {
+    input = "running-in-\${terraform.workspace}"
+  }
+  \`\`\`
+
+  ### 2 — Apply in default, then create and switch to staging
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  # default workspace → "running-in-default"
+
+  terraform workspace new staging
+  terraform apply -auto-approve
+  # staging workspace → "running-in-staging", stored in a SEPARATE state file
+  \`\`\`
+
+  ### 3 — Confirm isolation
+
+  \`\`\`sh
+  terraform workspace list
+  ls terraform.tfstate.d/
+  # → staging/terraform.tfstate exists separately from the root terraform.tfstate
+  \`\`\`
+
+tasks:
+- id: "workspace_aware_resource"
+  description: "main.tf's terraform_data.env_marker input references terraform.workspace"
+- id: "staging_workspace_created"
+  description: "A workspace named 'staging' exists (terraform workspace list includes it)"
+- id: "staging_state_isolated"
+  description: "terraform.tfstate.d/staging/terraform.tfstate exists and shows 'running-in-staging', separate from the default workspace's state"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STAGING_STATE="$LAB/terraform.tfstate.d/staging/terraform.tfstate"
+
+  # CHECK: workspace_aware_resource
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'terraform\.workspace'; then
+    echo "CHECK:workspace_aware_resource:PASS:main.tf references terraform.workspace"
+  else
+    echo "CHECK:workspace_aware_resource:FAIL:main.tf's env_marker input should reference terraform.workspace"
+  fi
+
+  # CHECK: staging_workspace_created
+  if terraform workspace list 2>/dev/null | grep -qE '(^|[[:space:]])staging$'; then
+    echo "CHECK:staging_workspace_created:PASS:staging workspace exists"
+  else
+    echo "CHECK:staging_workspace_created:FAIL:Run terraform workspace new staging"
+  fi
+
+  # CHECK: staging_state_isolated
+  if [ -f "$STAGING_STATE" ] && grep -q "running-in-staging" "$STAGING_STATE" 2>/dev/null; then
+    echo "CHECK:staging_state_isolated:PASS:staging workspace has its own applied state"
+  else
+    echo "CHECK:staging_state_isolated:FAIL:After creating the staging workspace, run terraform apply -auto-approve while on it"
+  fi
+
+hints:
+- "terraform workspace new <name> both creates and switches to the new workspace in one step."
+- "terraform.workspace (no var. prefix) is a special expression available anywhere in the config, holding the current workspace's name."
+- "Non-default workspace state lives under terraform.tfstate.d/<workspace>/terraform.tfstate — the default workspace still uses the plain terraform.tfstate."
+- "terraform workspace select <name> switches back and forth between existing workspaces without creating a new one."
+

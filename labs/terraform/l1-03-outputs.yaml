@@ -1,0 +1,101 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Output Values
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-output-values"
+title: "Output Values"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Expose a resource's computed value with an output block, then read it back with terraform output."
+estimatedMinutes: 15
+order: 120
+
+objectives:
+- "Declare an output block that exposes a resource attribute"
+- "Apply the config and read the output with terraform output"
+- "Redirect a single output's raw value to a file with -raw"
+
+instructions: |
+  ## Outputs surface information after apply
+
+  A resource's attributes are only useful if something can read them.
+  \`output\` blocks expose values after \`apply\` — for a human running
+  \`terraform output\`, or for another config to consume (see the
+  remote-state data source lab later in this track).
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "message" {
+    input = "shipped"
+  }
+  \`\`\`
+
+  ### 2 — outputs.tf
+
+  \`\`\`hcl
+  output "message_value" {
+    value = terraform_data.message.output
+  }
+  \`\`\`
+
+  ### 3 — Apply and read the output
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  terraform output message_value
+  terraform output -raw message_value > /root/tf-lab/message.txt
+  \`\`\`
+
+tasks:
+- id: "output_declared"
+  description: "outputs.tf declares an output named message_value that references terraform_data.message.output"
+- id: "output_extracted"
+  description: "The raw output value was written to /root/tf-lab/message.txt using terraform output -raw"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  OUT="$LAB/outputs.tf"
+  FILE="$LAB/message.txt"
+
+  # CHECK: output_declared
+  if [ -f "$OUT" ] \
+    && grep -v '^[[:space:]]*#' "$OUT" | grep -qE 'output[[:space:]]+"message_value"' \
+    && grep -v '^[[:space:]]*#' "$OUT" | grep -qE 'terraform_data\.message\.output'; then
+    echo "CHECK:output_declared:PASS:message_value output references terraform_data.message.output"
+  else
+    echo "CHECK:output_declared:FAIL:outputs.tf must declare output \"message_value\" { value = terraform_data.message.output }"
+  fi
+
+  # CHECK: output_extracted
+  if [ -s "$FILE" ] && grep -q "shipped" "$FILE" 2>/dev/null; then
+    echo "CHECK:output_extracted:PASS:message.txt contains the raw output value"
+  else
+    echo "CHECK:output_extracted:FAIL:Run terraform output -raw message_value > /root/tf-lab/message.txt"
+  fi
+
+hints:
+- "output blocks live at the top level, not nested inside a resource."
+- "terraform_data exposes its input back as .output — that's what most of these labs read from."
+- "terraform output -raw <name> prints the bare value with no quotes, ideal for piping into a file or script."
+

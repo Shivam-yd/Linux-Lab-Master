@@ -1,0 +1,133 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: for Expressions
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-for-expressions"
+title: "for Expressions"
+track: "terraform"
+level: 3
+category: "Terraform Language"
+difficulty: "advanced"
+summary: "Transform a list or map into a new list or map using a for expression, including a filter clause."
+estimatedMinutes: 25
+order: 340
+
+objectives:
+- "Write a for expression that transforms a list into a new list"
+- "Write a for expression that transforms a list into a map"
+- "Add an if clause to a for expression to filter elements"
+
+instructions: |
+  ## for expressions: HCL's data transformation tool
+
+  A for expression iterates over a list, set, or map and produces a new
+  collection — the functional-programming equivalent of a loop, but it
+  always produces a value rather than executing statements.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  \`\`\`hcl
+  variable "service_names" {
+    type    = list(string)
+    default = ["auth", "billing", "search", "legacy-batch"]
+  }
+  \`\`\`
+
+  ### 2 — main.tf using for expressions
+
+  \`\`\`hcl
+  locals {
+    # list -> list: uppercase every name
+    upper_names = [for name in var.service_names : upper(name)]
+
+    # list -> map: name -> its string length
+    name_lengths = { for name in var.service_names : name => length(name) }
+
+    # list -> filtered list: drop anything containing "legacy"
+    active_names = [for name in var.service_names : name if !strcontains(name, "legacy")]
+  }
+
+  resource "terraform_data" "summary" {
+    input = join(",", local.upper_names)
+  }
+
+  resource "terraform_data" "active_only" {
+    input = join(",", local.active_names)
+  }
+  \`\`\`
+
+  ### 3 — Apply and confirm
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  # summary.output     => "AUTH,BILLING,SEARCH,LEGACY-BATCH"
+  # active_only.output => "auth,billing,search"  (legacy-batch filtered out)
+  \`\`\`
+
+tasks:
+- id: "list_to_list_for"
+  description: "locals.upper_names is built with a for expression that upper()s each element of var.service_names"
+- id: "list_to_map_for"
+  description: "locals.name_lengths is built with a for expression producing a map of name => length(name)"
+- id: "filtered_for_used"
+  description: "locals.active_names uses a for expression with an if clause to exclude any name containing 'legacy'"
+- id: "applied_correctly"
+  description: "terraform.tfstate shows active_only's joined value with legacy-batch excluded"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: list_to_list_for
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '\[for[[:space:]]+name[[:space:]]+in[[:space:]]+var\.service_names[[:space:]]*:[[:space:]]*upper\(name\)\]'; then
+    echo "CHECK:list_to_list_for:PASS:upper_names uses a for expression over service_names with upper()"
+  else
+    echo "CHECK:list_to_list_for:FAIL:locals.upper_names must be [for name in var.service_names : upper(name)]"
+  fi
+
+  # CHECK: list_to_map_for
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '\{[[:space:]]*for[[:space:]]+name[[:space:]]+in[[:space:]]+var\.service_names[[:space:]]*:[[:space:]]*name[[:space:]]*=>'; then
+    echo "CHECK:list_to_map_for:PASS:name_lengths uses a for expression producing a map"
+  else
+    echo "CHECK:list_to_map_for:FAIL:locals.name_lengths must be { for name in var.service_names : name => length(name) }"
+  fi
+
+  # CHECK: filtered_for_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '\[for[[:space:]]+name[[:space:]]+in[[:space:]]+var\.service_names[[:space:]]*:[[:space:]]*name[[:space:]]+if[[:space:]]'; then
+    echo "CHECK:filtered_for_used:PASS:active_names uses a for expression with an if clause"
+  else
+    echo "CHECK:filtered_for_used:FAIL:locals.active_names must use [for name in var.service_names : name if ...] with a filter condition"
+  fi
+
+  # CHECK: applied_correctly
+  if [ -f "$STATE" ] && grep -q "auth,billing,search" "$STATE" 2>/dev/null && ! grep -q "legacy-batch\"" "$STATE" 2>/dev/null; then
+    echo "CHECK:applied_correctly:PASS:active_only's applied value excludes legacy-batch"
+  else
+    echo "CHECK:applied_correctly:FAIL:Apply the config and confirm active_only.output is \"auth,billing,search\" with legacy-batch filtered out"
+  fi
+
+hints:
+- "List-to-list for: [for item in collection : expression] — one output element per input element."
+- "List-to-map for: { for item in collection : key_expr => value_expr } — braces instead of brackets."
+- "Add if condition right after the value expression to filter: [for item in collection : item if condition]."
+- "strcontains(string, substr) returns true if substr appears anywhere in string — useful for name-based filters."
+

@@ -1,0 +1,100 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Multiple Resources with count
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-count-basics"
+title: "Multiple Resources with count"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Use the count meta-argument to create several copies of a resource, each indexed by count.index."
+estimatedMinutes: 20
+order: 150
+
+objectives:
+- "Add count to a resource block to create multiple instances"
+- "Use count.index to give each instance a distinct value"
+- "Confirm the expected number of instances appear in state"
+
+instructions: |
+  ## count: same resource, many copies
+
+  \`count\` turns a single resource block into a list of N instances,
+  addressed as \`resource_type.name[0]\`, \`[1]\`, etc. Inside the block,
+  \`count.index\` (0-based) lets each instance differ slightly.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "worker" {
+    count = 3
+    input = "worker-\${count.index}"
+  }
+  \`\`\`
+
+  ### 2 — Apply and inspect
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  terraform state list
+  # → terraform_data.worker[0], terraform_data.worker[1], terraform_data.worker[2]
+  \`\`\`
+
+tasks:
+- id: "count_used"
+  description: "main.tf's terraform_data.worker resource sets count = 3"
+- id: "count_index_used"
+  description: "The resource's input uses count.index so each instance gets a distinct value (worker-0, worker-1, worker-2)"
+- id: "three_instances_applied"
+  description: "terraform state list shows exactly three terraform_data.worker instances after apply"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+
+  # CHECK: count_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'count[[:space:]]*=[[:space:]]*3'; then
+    echo "CHECK:count_used:PASS:terraform_data.worker sets count = 3"
+  else
+    echo "CHECK:count_used:FAIL:main.tf must set count = 3 on the terraform_data.worker resource"
+  fi
+
+  # CHECK: count_index_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'count\.index'; then
+    echo "CHECK:count_index_used:PASS:input references count.index"
+  else
+    echo "CHECK:count_index_used:FAIL:main.tf's input should reference count.index so each instance differs"
+  fi
+
+  # CHECK: three_instances_applied
+  INSTANCES=$(terraform state list 2>/dev/null | grep -c '^terraform_data\.worker\[' || echo 0)
+  if [ "$INSTANCES" -eq 3 ]; then
+    echo "CHECK:three_instances_applied:PASS:three terraform_data.worker instances found in state"
+  else
+    echo "CHECK:three_instances_applied:FAIL:Expected 3 terraform_data.worker[N] instances in state, found $INSTANCES. Run terraform apply -auto-approve"
+  fi
+
+hints:
+- "count = 3 on a resource block turns it into a list of 3 instances: name[0], name[1], name[2]."
+- "count.index is only valid inside a resource that itself has count set."
+- "terraform state list shows every resource address, including the [N] index for counted resources."
+

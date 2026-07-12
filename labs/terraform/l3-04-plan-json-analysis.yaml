@@ -1,0 +1,116 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Machine-Readable Plans with -json
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-plan-json-analysis"
+title: "Machine-Readable Plans with -json"
+track: "terraform"
+level: 3
+category: "Automation"
+difficulty: "advanced"
+summary: "Produce a saved plan file, convert it to JSON, and extract structured facts about the change using standard shell tools."
+estimatedMinutes: 25
+order: 370
+
+objectives:
+- "Save a plan to a binary plan file with terraform plan -out"
+- "Convert the saved plan to JSON with terraform show -json"
+- "Extract the count of resource changes from the JSON using grep/sed or a similar text tool"
+
+instructions: |
+  ## Plans as structured data, not just terminal output
+
+  CI pipelines can't parse colored terminal output reliably. Saving a plan
+  to a file and re-rendering it as JSON gives a stable, scriptable format
+  for policy checks, change summaries, or approval gates.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "a" {
+    input = "alpha"
+  }
+
+  resource "terraform_data" "b" {
+    input = "bravo"
+  }
+  \`\`\`
+
+  ### 2 — Save the plan and convert to JSON
+
+  \`\`\`sh
+  terraform init
+  terraform plan -out=tfplan.binary
+  terraform show -json tfplan.binary > plan.json
+  \`\`\`
+
+  ### 3 — Extract a fact from the JSON without a JSON parser
+
+  \`\`\`sh
+  grep -o '"actions":\[\"create\"\]' plan.json | wc -l
+  # Should report 2 — two resources planned for creation
+  \`\`\`
+
+  ### 4 — Apply the saved plan file directly (not the live config)
+
+  \`\`\`sh
+  terraform apply -auto-approve tfplan.binary
+  \`\`\`
+
+tasks:
+- id: "plan_saved"
+  description: "tfplan.binary exists as a saved binary plan file"
+- id: "plan_json_generated"
+  description: "plan.json exists and contains valid-looking JSON plan output (a resource_changes key)"
+- id: "applied_from_saved_plan"
+  description: "terraform.tfstate shows both terraform_data.a and terraform_data.b applied, confirming the saved plan was used"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  PLAN="$LAB/tfplan.binary"
+  JSONFILE="$LAB/plan.json"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: plan_saved
+  if [ -s "$PLAN" ]; then
+    echo "CHECK:plan_saved:PASS:tfplan.binary exists"
+  else
+    echo "CHECK:plan_saved:FAIL:Run terraform plan -out=tfplan.binary"
+  fi
+
+  # CHECK: plan_json_generated
+  if [ -s "$JSONFILE" ] && grep -q "resource_changes" "$JSONFILE" 2>/dev/null; then
+    echo "CHECK:plan_json_generated:PASS:plan.json contains resource_changes"
+  else
+    echo "CHECK:plan_json_generated:FAIL:Run terraform show -json tfplan.binary > plan.json"
+  fi
+
+  # CHECK: applied_from_saved_plan
+  if [ -f "$STATE" ] && grep -q '"alpha"' "$STATE" 2>/dev/null && grep -q '"bravo"' "$STATE" 2>/dev/null; then
+    echo "CHECK:applied_from_saved_plan:PASS:both resources are applied"
+  else
+    echo "CHECK:applied_from_saved_plan:FAIL:Run terraform apply -auto-approve tfplan.binary to apply the saved plan"
+  fi
+
+hints:
+- "terraform plan -out=<file> writes a binary plan that can later be applied exactly as planned, with terraform apply <file> (no -auto-approve needed since it's already a concrete plan, but it doesn't hurt here)."
+- "terraform show -json <planfile> renders that binary plan as JSON — the live config isn't re-evaluated at apply time when you apply a saved plan file."
+- "The JSON plan's resource_changes array has one entry per resource, each with an actions array like [\"create\"]."
+

@@ -1,0 +1,102 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Conditional Expressions
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-conditional-expressions"
+title: "Conditional Expressions"
+track: "terraform"
+level: 2
+category: "Terraform Language"
+difficulty: "intermediate"
+summary: "Use the condition ? true_val : false_val ternary operator to pick a value based on a variable at plan time."
+estimatedMinutes: 20
+order: 210
+
+objectives:
+- "Write a ternary conditional expression based on a boolean variable"
+- "Use a conditional to pick between two literal values"
+- "Confirm the applied value matches the branch selected by the input"
+
+instructions: |
+  ## HCL has no if statement — it has conditional expressions
+
+  Terraform's expression language doesn't support imperative if/else
+  statements, but it does support the ternary conditional operator:
+  \`condition ? true_val : false_val\`. This is how most "conditional logic"
+  is written in HCL.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  \`\`\`hcl
+  variable "is_production" {
+    type    = bool
+    default = false
+  }
+  \`\`\`
+
+  ### 2 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "tier" {
+    input = var.is_production ? "high-availability" : "single-instance"
+  }
+  \`\`\`
+
+  ### 3 — Apply with each branch
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  # is_production defaults to false → "single-instance"
+
+  terraform apply -auto-approve -var="is_production=true"
+  # now → "high-availability"
+  \`\`\`
+
+tasks:
+- id: "ternary_used"
+  description: "main.tf uses a ternary expression (var.is_production ? ... : ...) to set terraform_data.tier's input"
+- id: "production_branch_applied"
+  description: "terraform.tfstate reflects the 'high-availability' branch after applying with is_production=true"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: ternary_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'var\.is_production[[:space:]]*\?'; then
+    echo "CHECK:ternary_used:PASS:main.tf uses a ternary expression on var.is_production"
+  else
+    echo "CHECK:ternary_used:FAIL:main.tf must set terraform_data.tier's input using var.is_production ? \"high-availability\" : \"single-instance\""
+  fi
+
+  # CHECK: production_branch_applied
+  if [ -f "$STATE" ] && grep -q "high-availability" "$STATE" 2>/dev/null; then
+    echo "CHECK:production_branch_applied:PASS:state shows the high-availability branch"
+  else
+    echo "CHECK:production_branch_applied:FAIL:Run terraform apply -auto-approve -var=\"is_production=true\" to select the high-availability branch"
+  fi
+
+hints:
+- "Ternary syntax: condition ? value_if_true : value_if_false — no if/else keyword exists in HCL expressions."
+- "The condition must evaluate to a bool; var.is_production ? true : false only works if is_production is type bool."
+- "Apply twice with different -var values to see both branches land in state."
+

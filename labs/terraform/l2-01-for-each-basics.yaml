@@ -1,0 +1,111 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Multiple Resources with for_each
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-for-each-basics"
+title: "Multiple Resources with for_each"
+track: "terraform"
+level: 2
+category: "Terraform Language"
+difficulty: "intermediate"
+summary: "Create one resource instance per element of a set or map with for_each, addressed by key instead of numeric index."
+estimatedMinutes: 25
+order: 200
+
+objectives:
+- "Use for_each with a set of strings to create keyed resource instances"
+- "Reference each.key and each.value inside the resource"
+- "Explain when for_each is a better fit than count (stable keys vs. positional index)"
+
+instructions: |
+  ## for_each: keyed instead of indexed
+
+  count.index is positional — insert an element in the middle of a list and
+  every resource after it gets renumbered, forcing needless
+  destroy/recreate. for_each avoids that: each instance is addressed by a
+  stable key (a map key, or the set element itself), so adding or removing
+  one element only affects that one instance.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  \`\`\`hcl
+  variable "teams" {
+    type    = set(string)
+    default = ["platform", "billing", "growth"]
+  }
+  \`\`\`
+
+  ### 2 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "team_workspace" {
+    for_each = var.teams
+    input    = "workspace-for-\${each.value}"
+  }
+  \`\`\`
+
+  ### 3 — Apply and inspect
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  terraform state list
+  # → terraform_data.team_workspace["billing"], ["growth"], ["platform"]
+  \`\`\`
+
+tasks:
+- id: "for_each_declared"
+  description: "main.tf's terraform_data.team_workspace resource uses for_each = var.teams"
+- id: "each_value_used"
+  description: "The resource's input references each.value to build a per-team string"
+- id: "keyed_instances_applied"
+  description: "terraform state list shows three team_workspace instances, keyed by team name rather than a numeric index"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+
+  # CHECK: for_each_declared
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'for_each[[:space:]]*=[[:space:]]*var\.teams'; then
+    echo "CHECK:for_each_declared:PASS:team_workspace uses for_each = var.teams"
+  else
+    echo "CHECK:for_each_declared:FAIL:main.tf must set for_each = var.teams on terraform_data.team_workspace"
+  fi
+
+  # CHECK: each_value_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'each\.value'; then
+    echo "CHECK:each_value_used:PASS:input references each.value"
+  else
+    echo "CHECK:each_value_used:FAIL:main.tf's input should reference each.value, e.g. \"workspace-for-${each.value}\""
+  fi
+
+  # CHECK: keyed_instances_applied
+  KEYED=$(terraform state list 2>/dev/null | grep -cE '^terraform_data\.team_workspace\["(platform|billing|growth)"\]$' || echo 0)
+  if [ "$KEYED" -eq 3 ]; then
+    echo "CHECK:keyed_instances_applied:PASS:three keyed team_workspace instances found in state"
+  else
+    echo "CHECK:keyed_instances_applied:FAIL:Expected 3 team_workspace[\"<team>\"] instances in state, found $KEYED. Run terraform apply -auto-approve"
+  fi
+
+hints:
+- "for_each accepts a set(string) or a map — with a set, each.key and each.value are the same (the element itself)."
+- "Instances created with for_each are addressed by key in brackets, e.g. terraform_data.team_workspace[\"billing\"], not a numeric index."
+- "Switching an existing count-based resource to for_each generally forces a replace — plan the migration, don't do it live on real infra."
+

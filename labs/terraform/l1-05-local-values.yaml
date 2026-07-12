@@ -1,0 +1,117 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Local Values
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-local-values"
+title: "Local Values"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Use a locals block to compute a value once and reuse it across a config instead of repeating an expression."
+estimatedMinutes: 15
+order: 140
+
+objectives:
+- "Declare a locals block that computes a value from a variable"
+- "Reference a local value from a resource"
+- "Explain why locals reduce duplication compared to repeating the same expression"
+
+instructions: |
+  ## locals: compute once, use everywhere
+
+  If the same expression (a concatenation, a lookup, a computed name) is
+  needed in more than one place, hardcoding it twice invites drift. A
+  \`locals\` block names the expression once; every reference reads the same
+  computed value.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  \`\`\`hcl
+  variable "project" {
+    type    = string
+    default = "orion"
+  }
+
+  variable "environment" {
+    type    = string
+    default = "prod"
+  }
+  \`\`\`
+
+  ### 2 — main.tf with a locals block
+
+  \`\`\`hcl
+  locals {
+    resource_name = "\${var.project}-\${var.environment}"
+  }
+
+  resource "terraform_data" "tagged" {
+    input = local.resource_name
+  }
+  \`\`\`
+
+  ### 3 — Apply and confirm
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  # terraform_data.tagged.output should read "orion-prod"
+  \`\`\`
+
+tasks:
+- id: "locals_declared"
+  description: "main.tf declares a locals block computing resource_name from var.project and var.environment"
+- id: "local_referenced"
+  description: "terraform_data.tagged sets input = local.resource_name (not the raw expression repeated)"
+- id: "applied_value_correct"
+  description: "terraform.tfstate shows the computed value 'orion-prod'"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: locals_declared
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE '^locals[[:space:]]*\{' && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'resource_name[[:space:]]*='; then
+    echo "CHECK:locals_declared:PASS:locals block computes resource_name"
+  else
+    echo "CHECK:locals_declared:FAIL:main.tf must declare a locals { resource_name = ... } block"
+  fi
+
+  # CHECK: local_referenced
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'local\.resource_name'; then
+    echo "CHECK:local_referenced:PASS:terraform_data.tagged references local.resource_name"
+  else
+    echo "CHECK:local_referenced:FAIL:terraform_data.tagged's input must be local.resource_name, not a repeated expression"
+  fi
+
+  # CHECK: applied_value_correct
+  if [ -f "$STATE" ] && grep -q "orion-prod" "$STATE" 2>/dev/null; then
+    echo "CHECK:applied_value_correct:PASS:state shows the computed value orion-prod"
+  else
+    echo "CHECK:applied_value_correct:FAIL:Apply the config with terraform apply -auto-approve and confirm the computed value"
+  fi
+
+hints:
+- "locals { name = expression } can reference variables, other locals, or resource attributes."
+- "Reference a local value anywhere with local.<name> — note: local (singular), not locals."
+- "String interpolation inside locals works the same as anywhere else."
+

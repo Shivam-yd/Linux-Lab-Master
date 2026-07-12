@@ -1,0 +1,124 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Zero-Downtime Replacement with create_before_destroy
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-lifecycle-create-before-destroy"
+title: "Zero-Downtime Replacement with create_before_destroy"
+track: "terraform"
+level: 3
+category: "Terraform Language"
+difficulty: "advanced"
+summary: "Force Terraform to create a replacement resource before destroying the old one, avoiding a gap where neither exists."
+estimatedMinutes: 25
+order: 410
+
+objectives:
+- "Apply a resource, then change an attribute that forces replacement"
+- "Add lifecycle { create_before_destroy = true } and observe the changed apply order"
+- "Confirm from the plan output that the new instance is created before the old one is destroyed"
+
+instructions: |
+  ## Default replacement order vs. create_before_destroy
+
+  By default, when a change forces replacement, Terraform destroys the old
+  resource *first*, then creates the new one — for something serving live
+  traffic, that's a gap with nothing available. create_before_destroy
+  flips the order: create the replacement, then destroy the original,
+  eliminating the gap.
+
+  terraform_data forces replacement when its input_sensitive-independent
+  triggers_replace or id-affecting arguments change; here we use its
+  input_sensitive-free trigger via a simple approach: changing input alone
+  does NOT force replacement for terraform_data (it just updates output in
+  place). Instead, this lab forces replacement explicitly with a
+  triggers_replace value, which is the idiomatic way to force a
+  terraform_data replacement deliberately.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf (initial version)
+
+  \`\`\`hcl
+  resource "terraform_data" "release" {
+    input = "v1"
+
+    triggers_replace = "v1"
+
+    lifecycle {
+      create_before_destroy = true
+    }
+  }
+  \`\`\`
+
+  ### 2 — Apply the initial version
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  \`\`\`
+
+  ### 3 — Bump triggers_replace to force a replacement, and inspect the plan
+
+  Change both \`input\` and \`triggers_replace\` to \`"v2"\`, then:
+
+  \`\`\`sh
+  terraform plan
+  # Look for: "+/- terraform_data.release" and note the plan explains
+  # create_before_destroy ordering
+  terraform apply -auto-approve
+  \`\`\`
+
+tasks:
+- id: "create_before_destroy_set"
+  description: "main.tf's terraform_data.release resource has lifecycle { create_before_destroy = true }"
+- id: "triggers_replace_used"
+  description: "main.tf uses triggers_replace to force replacement deliberately, rather than relying on input alone"
+- id: "replacement_applied"
+  description: "terraform.tfstate shows the resource applied at the 'v2' value after the forced replacement"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: create_before_destroy_set
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'create_before_destroy[[:space:]]*=[[:space:]]*true'; then
+    echo "CHECK:create_before_destroy_set:PASS:terraform_data.release sets create_before_destroy = true"
+  else
+    echo "CHECK:create_before_destroy_set:FAIL:main.tf must add lifecycle { create_before_destroy = true } to terraform_data.release"
+  fi
+
+  # CHECK: triggers_replace_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'triggers_replace[[:space:]]*='; then
+    echo "CHECK:triggers_replace_used:PASS:main.tf uses triggers_replace to force replacement"
+  else
+    echo "CHECK:triggers_replace_used:FAIL:main.tf must set triggers_replace on terraform_data.release to deliberately force replacement"
+  fi
+
+  # CHECK: replacement_applied
+  if [ -f "$STATE" ] && grep -q '"v2"' "$STATE" 2>/dev/null; then
+    echo "CHECK:replacement_applied:PASS:state shows the resource replaced and applied at v2"
+  else
+    echo "CHECK:replacement_applied:FAIL:Apply the v1 version first, then update input and triggers_replace to \"v2\" and apply again"
+  fi
+
+hints:
+- "terraform_data only forces replacement when triggers_replace (or another replace-triggering argument) changes — plain input changes are updated in place."
+- "lifecycle { create_before_destroy = true } goes inside the resource block whose replacement order you want to flip."
+- "Watch the plan output carefully: a create_before_destroy replacement shows as +/- (create then destroy), a default replacement shows as -/+ (destroy then create)."
+

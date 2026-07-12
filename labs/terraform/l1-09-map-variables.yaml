@@ -1,0 +1,121 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Map-Typed Variables and lookup()
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-map-variables"
+title: "Map-Typed Variables and lookup()"
+track: "terraform"
+level: 1
+category: "Terraform Fundamentals"
+difficulty: "beginner"
+summary: "Declare a variable of type map(string), then read values from it with both index syntax and lookup()."
+estimatedMinutes: 20
+order: 180
+
+objectives:
+- "Declare a variable with type = map(string)"
+- "Read a value with bracket index syntax"
+- "Read a value with a fallback default using lookup()"
+
+instructions: |
+  ## Maps: key-value input variables
+
+  Lists aren't the only useful collection type. A map(string) variable lets
+  you look values up by name instead of by position — handy for
+  per-environment or per-region configuration.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — variables.tf
+
+  \`\`\`hcl
+  variable "instance_sizes" {
+    type = map(string)
+    default = {
+      dev  = "small"
+      prod = "large"
+    }
+  }
+  \`\`\`
+
+  ### 2 — main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "dev_size" {
+    input = var.instance_sizes["dev"]
+  }
+
+  resource "terraform_data" "staging_size" {
+    # "staging" isn't in the map — fall back to "medium"
+    input = lookup(var.instance_sizes, "staging", "medium")
+  }
+  \`\`\`
+
+  ### 3 — Apply and confirm
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  # dev_size.output      => "small"
+  # staging_size.output  => "medium"  (the lookup() fallback)
+  \`\`\`
+
+tasks:
+- id: "map_variable_declared"
+  description: "variables.tf declares instance_sizes as type map(string) with dev and prod keys"
+- id: "bracket_index_used"
+  description: "main.tf reads var.instance_sizes[\"dev\"] using bracket index syntax"
+- id: "lookup_fallback_used"
+  description: "main.tf uses lookup(var.instance_sizes, \"staging\", \"medium\") to safely read a missing key with a default"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  VARS="$LAB/variables.tf"
+  MAIN="$LAB/main.tf"
+  STATE="$LAB/terraform.tfstate"
+
+  # CHECK: map_variable_declared
+  if [ -f "$VARS" ] && grep -v '^[[:space:]]*#' "$VARS" | grep -qE 'type[[:space:]]*=[[:space:]]*map\(string\)'; then
+    echo "CHECK:map_variable_declared:PASS:instance_sizes declared as map(string)"
+  else
+    echo "CHECK:map_variable_declared:FAIL:variables.tf must declare variable \"instance_sizes\" with type = map(string)"
+  fi
+
+  # CHECK: bracket_index_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'var\.instance_sizes\[.dev.\]'; then
+    echo "CHECK:bracket_index_used:PASS:dev_size uses bracket index syntax"
+  else
+    echo "CHECK:bracket_index_used:FAIL:main.tf must read var.instance_sizes[\"dev\"] for terraform_data.dev_size"
+  fi
+
+  # CHECK: lookup_fallback_used
+  if [ -f "$MAIN" ] && grep -v '^[[:space:]]*#' "$MAIN" | grep -qE 'lookup\(var\.instance_sizes'; then
+    if [ -f "$STATE" ] && grep -q '"medium"' "$STATE" 2>/dev/null && grep -q '"small"' "$STATE" 2>/dev/null; then
+      echo "CHECK:lookup_fallback_used:PASS:lookup() fallback applied and state shows both computed values"
+    else
+      echo "CHECK:lookup_fallback_used:FAIL:Apply the config so both dev_size and staging_size are recorded in state"
+    fi
+  else
+    echo "CHECK:lookup_fallback_used:FAIL:main.tf must use lookup(var.instance_sizes, \"staging\", \"medium\") for terraform_data.staging_size"
+  fi
+
+hints:
+- "Map values are read with either var.map[\"key\"] or var.map.key — bracket syntax is required for keys that aren't valid identifiers."
+- "Bracket indexing a missing key errors at plan time — use lookup(map, key, default) whenever the key might not exist."
+- "lookup() takes three arguments: the map, the key to look up, and the fallback value if the key is absent."
+

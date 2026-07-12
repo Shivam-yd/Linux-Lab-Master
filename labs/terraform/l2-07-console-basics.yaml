@@ -1,0 +1,106 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Exploring Expressions with terraform console
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-console-basics"
+title: "Exploring Expressions with terraform console"
+track: "terraform"
+level: 2
+category: "Terraform Language"
+difficulty: "intermediate"
+summary: "Use the interactive terraform console to evaluate expressions and inspect applied resource attributes without writing a plan."
+estimatedMinutes: 15
+order: 270
+
+objectives:
+- "Apply a small config with a resource and a local value"
+- "Use terraform console non-interactively (piped input) to evaluate an expression"
+- "Read a resource attribute and a local value through the console"
+
+instructions: |
+  ## terraform console: a REPL for your config
+
+  Before committing an expression to a .tf file, it's often faster to test
+  it in terraform console — a read-eval-print loop that has access to your
+  config's variables, locals, and (after apply) resource attributes. It
+  never modifies state.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — main.tf
+
+  \`\`\`hcl
+  locals {
+    greeting = "hello from console"
+  }
+
+  resource "terraform_data" "sample" {
+    input = local.greeting
+  }
+  \`\`\`
+
+  ### 2 — Apply, then query with console
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+
+  echo 'local.greeting' | terraform console
+  echo 'terraform_data.sample.output' | terraform console
+  \`\`\`
+
+  Piping a single expression into \`terraform console\` lets you use it
+  non-interactively — handy for scripting or, in this case, for a lab
+  environment with no interactive TTY.
+
+  ### 3 — Save a console query result to a file
+
+  \`\`\`sh
+  echo 'terraform_data.sample.output' | terraform console > /root/tf-lab/console-output.txt
+  \`\`\`
+
+tasks:
+- id: "config_applied"
+  description: "main.tf's terraform_data.sample resource (with input = local.greeting) has been applied"
+- id: "console_output_saved"
+  description: "/root/tf-lab/console-output.txt contains the result of evaluating terraform_data.sample.output through terraform console"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab
+
+verifyScript: |
+  LAB=/root/tf-lab
+  STATE="$LAB/terraform.tfstate"
+  OUTFILE="$LAB/console-output.txt"
+
+  # CHECK: config_applied
+  if [ -f "$STATE" ] && grep -q "hello from console" "$STATE" 2>/dev/null; then
+    echo "CHECK:config_applied:PASS:terraform_data.sample applied with the local.greeting value"
+  else
+    echo "CHECK:config_applied:FAIL:Apply main.tf (terraform init && terraform apply -auto-approve) with local.greeting = \"hello from console\""
+  fi
+
+  # CHECK: console_output_saved
+  if [ -s "$OUTFILE" ] && grep -q "hello from console" "$OUTFILE" 2>/dev/null; then
+    echo "CHECK:console_output_saved:PASS:console-output.txt contains the evaluated attribute value"
+  else
+    echo "CHECK:console_output_saved:FAIL:Run: echo 'terraform_data.sample.output' | terraform console > /root/tf-lab/console-output.txt"
+  fi
+
+hints:
+- "terraform console reads expressions from stdin when input isn't an interactive terminal — pipe a single line in with echo."
+- "Any expression valid inside a .tf file is valid in the console: locals, variables, resource attributes, function calls."
+- "The console only reflects applied state — a resource must be applied before its attributes are queryable there."
+

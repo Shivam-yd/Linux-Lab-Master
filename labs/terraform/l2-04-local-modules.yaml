@@ -1,0 +1,151 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Terraform Lab: Local Modules
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "terraform-local-modules"
+title: "Local Modules"
+track: "terraform"
+level: 2
+category: "Modules"
+difficulty: "intermediate"
+summary: "Factor a resource into a reusable local module with its own variables and outputs, then call it twice with different inputs."
+estimatedMinutes: 30
+order: 240
+
+objectives:
+- "Create a module directory with its own variables.tf, main.tf, and outputs.tf"
+- "Call the module twice from the root config with different input values"
+- "Read a module's output from the root config"
+
+instructions: |
+  ## Modules: reusable, self-contained configs
+
+  A module is just a directory of .tf files with its own variables and
+  outputs — the root config calls it with a module block and reads results
+  back through module.<name>.<output>. This is how Terraform configs stay
+  DRY across environments or repeated components.
+
+  Working directory: \`/root/tf-lab\`
+
+  ---
+
+  ## Steps
+
+  ### 1 — modules/service/variables.tf
+
+  \`\`\`hcl
+  variable "service_name" {
+    type = string
+  }
+  \`\`\`
+
+  ### 2 — modules/service/main.tf
+
+  \`\`\`hcl
+  resource "terraform_data" "instance" {
+    input = "service:\${var.service_name}"
+  }
+  \`\`\`
+
+  ### 3 — modules/service/outputs.tf
+
+  \`\`\`hcl
+  output "instance_id" {
+    value = terraform_data.instance.id
+  }
+  \`\`\`
+
+  ### 4 — root main.tf calling the module twice
+
+  \`\`\`hcl
+  module "billing" {
+    source       = "./modules/service"
+    service_name = "billing"
+  }
+
+  module "auth" {
+    source       = "./modules/service"
+    service_name = "auth"
+  }
+
+  output "billing_instance_id" {
+    value = module.billing.instance_id
+  }
+  \`\`\`
+
+  ### 5 — Apply
+
+  \`\`\`sh
+  terraform init
+  terraform apply -auto-approve
+  terraform state list
+  # → module.billing.terraform_data.instance, module.auth.terraform_data.instance
+  \`\`\`
+
+tasks:
+- id: "module_directory_exists"
+  description: "modules/service/ contains variables.tf, main.tf, and outputs.tf defining a reusable terraform_data resource"
+- id: "module_called_twice"
+  description: "Root main.tf calls the service module twice (module \"billing\" and module \"auth\") with different service_name values"
+- id: "root_output_reads_module"
+  description: "A root-level output reads module.billing.instance_id"
+- id: "both_module_instances_applied"
+  description: "terraform state list shows both module.billing.terraform_data.instance and module.auth.terraform_data.instance"
+
+image: "hashicorp/terraform:1.9"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+- name: "main"
+  user: "root"
+  cwd: "/root/tf-lab"
+
+setupScript: |
+  mkdir -p /root/tf-lab/modules/service
+
+verifyScript: |
+  LAB=/root/tf-lab
+  MOD_DIR="$LAB/modules/service"
+  ROOT_MAIN="$LAB/main.tf"
+
+  # CHECK: module_directory_exists
+  if [ -f "$MOD_DIR/variables.tf" ] && [ -f "$MOD_DIR/main.tf" ] && [ -f "$MOD_DIR/outputs.tf" ] \
+    && grep -qE 'resource[[:space:]]+"terraform_data"' "$MOD_DIR/main.tf" 2>/dev/null; then
+    echo "CHECK:module_directory_exists:PASS:modules/service has variables.tf, main.tf, and outputs.tf"
+  else
+    echo "CHECK:module_directory_exists:FAIL:Create modules/service/{variables.tf,main.tf,outputs.tf} with a terraform_data resource"
+  fi
+
+  # CHECK: module_called_twice
+  if [ -f "$ROOT_MAIN" ] \
+    && grep -v '^[[:space:]]*#' "$ROOT_MAIN" | grep -qE 'module[[:space:]]+"billing"' \
+    && grep -v '^[[:space:]]*#' "$ROOT_MAIN" | grep -qE 'module[[:space:]]+"auth"' \
+    && grep -v '^[[:space:]]*#' "$ROOT_MAIN" | grep -qE 'source[[:space:]]*=[[:space:]]*"\./modules/service"'; then
+    echo "CHECK:module_called_twice:PASS:root config calls the service module as both billing and auth"
+  else
+    echo "CHECK:module_called_twice:FAIL:Root main.tf must call module \"billing\" and module \"auth\" with source = \"./modules/service\""
+  fi
+
+  # CHECK: root_output_reads_module
+  ROOT_HAS_OUTPUT=$(grep -rl 'module\.billing\.instance_id' "$LAB"/*.tf 2>/dev/null | wc -l)
+  if [ "$ROOT_HAS_OUTPUT" -gt 0 ]; then
+    echo "CHECK:root_output_reads_module:PASS:a root output reads module.billing.instance_id"
+  else
+    echo "CHECK:root_output_reads_module:FAIL:Add an output at the root that reads module.billing.instance_id"
+  fi
+
+  # CHECK: both_module_instances_applied
+  BILLING=$(terraform state list 2>/dev/null | grep -c '^module\.billing\.terraform_data\.instance$' || echo 0)
+  AUTH=$(terraform state list 2>/dev/null | grep -c '^module\.auth\.terraform_data\.instance$' || echo 0)
+  if [ "$BILLING" -eq 1 ] && [ "$AUTH" -eq 1 ]; then
+    echo "CHECK:both_module_instances_applied:PASS:both module instances are recorded in state"
+  else
+    echo "CHECK:both_module_instances_applied:FAIL:Run terraform apply -auto-approve so both module calls are applied"
+  fi
+
+hints:
+- "A module is just a directory of .tf files — no special file naming beyond what you choose to use."
+- "source = \"./modules/service\" is a relative filesystem path for a local module, resolved from the calling config's directory."
+- "Reference a module's output from the root config as module.<block_label>.<output_name>."
+- "Resources inside a module show up in state prefixed with module.<label>., e.g. module.billing.terraform_data.instance."
+
