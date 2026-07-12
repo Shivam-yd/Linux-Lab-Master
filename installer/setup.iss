@@ -257,13 +257,22 @@ begin
   end;
 
   // ── Step 6: Pre-pull lab container images ─────────────────────────────────
-  // These are the images the API server will use for lab sandboxes.
-  // Pulling them now means lab startup is instant for the user.
-  WizardForm.StatusLabel.Caption := 'Downloading lab environments (ubuntu, alpine, terraform)...';
-  ExecOK('docker', 'pull ubuntu:24.04',               AppDir);
-  ExecOK('docker', 'pull alpine:latest',              AppDir);
-  ExecOK('docker', 'pull hashicorp/terraform:1.9',    AppDir);
-  ExecOK('docker', 'pull rastasheep/ubuntu-sshd:18.04', AppDir);
+  // Pull every image referenced by lab YAML files so sandbox startup is
+  // instant for the user.  Keep this list in sync with installer/install.sh
+  // (the Ubuntu installer) whenever a new lab image is added.
+  //
+  // Shell-compatibility reference (affects setupScript / verifyScript authoring):
+  //   ubuntu:24.04             /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
+  //   alpine:latest            /bin/sh = ash   — [[ ]] supported;     use shell: "sh"
+  //   hashicorp/terraform:1.9  /bin/sh = ash   — [[ ]] supported;     use shell: "sh"
+  //   rastasheep/ubuntu-sshd   /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
+  //   localstack/localstack    /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
+  WizardForm.StatusLabel.Caption := 'Downloading lab environments (ubuntu, alpine, terraform, localstack)...';
+  ExecOK('docker', 'pull ubuntu:24.04',                  AppDir);
+  ExecOK('docker', 'pull alpine:latest',                 AppDir);
+  ExecOK('docker', 'pull hashicorp/terraform:1.9',       AppDir);
+  ExecOK('docker', 'pull rastasheep/ubuntu-sshd:18.04',  AppDir);
+  ExecOK('docker', 'pull localstack/localstack:latest',  AppDir);
 
   // ── Step 7: Install and start the Windows service ─────────────────────────
   WizardForm.StatusLabel.Caption := 'Installing Windows service...';
