@@ -4,8 +4,8 @@
 
 **A self-hosted, hands-on DevOps lab platform — spin up real sandboxes and learn by doing.**
 
-[![Tracks](https://img.shields.io/badge/Tracks-Linux%20·%20Terraform%20·%20Jenkins-22d3ee?style=flat-square)](#-lab-tracks)
-[![Labs](https://img.shields.io/badge/Labs-53%2B-10b981?style=flat-square)](#-lab-tracks)
+[![Tracks](https://img.shields.io/badge/Tracks-Linux%20·%20Terraform%20·%20Jenkins%20·%20Docker%20·%20Git-22d3ee?style=flat-square)](#-lab-tracks)
+[![Labs](https://img.shields.io/badge/Labs-78%2B-10b981?style=flat-square)](#-lab-tracks)
 [![Platform](https://img.shields.io/badge/Platform-Ubuntu%20·%20Windows-6366f1?style=flat-square)](#-installation)
 
 </div>
@@ -30,6 +30,8 @@ Linux Lab Master is a self-hosted web application that provides **browser-based 
 | **Linux** | L1 · L2 · L3 | 29 | Filesystem, processes, networking, permissions, scripting, system administration |
 | **Terraform** | L1 · L2 · L3 | 48+ | Infrastructure as Code — variables, modules, state, workspaces, lifecycle rules |
 | **Jenkins** | L1 | 5 | CI/CD fundamentals — server setup, plugins, user access, jobs, folders |
+| **Docker** | L1 | 5 | Images, containers, exec/logs, Dockerfiles, volumes — all taught via a realistic in-sandbox simulator |
+| **Git** | L1 | 5 | Init, commits, branching, remotes, stash & reset |
 
 > Labs are fetched directly from this repository. Click **Fetch Labs** inside the app at any time to pull the latest content without restarting.
 

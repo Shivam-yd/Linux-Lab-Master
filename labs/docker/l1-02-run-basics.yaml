@@ -319,7 +319,7 @@ setupScript: |
       echo "Error: No such container: $name" >&2
       exit 1
     fi
-    sh -c "$*"
+    "$@"
   }
   
   cmd_build() {
