@@ -225,7 +225,7 @@ export async function verifyLab(
   }
   const result = await runExec(container, [lab.shell ?? "sh", "-lc", lab.verifyScript], { user: "root" });
   const taskLabelMap = new Map(lab.tasks.map((t) => [t.id, t.description]));
-  const checks: { id: string; label: string | null; passed: boolean; message: string }[] = [];
+  const byId = new Map<string, { id: string; label: string | null; passed: boolean; message: string }>();
   const lineRe = /^CHECK:([^:]+):(PASS|FAIL):(.*)$/;
   for (const rawLine of result.output.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -233,11 +233,27 @@ export async function verifyLab(
     if (!match) continue;
     const [, id, verdict, message] = match;
     if (!id || !message) continue;
-    checks.push({ id, label: taskLabelMap.get(id) ?? null, passed: verdict === "PASS", message });
+    byId.set(id, { id, label: taskLabelMap.get(id) ?? null, passed: verdict === "PASS", message });
   }
-  if (checks.length === 0) {
+  if (byId.size === 0) {
     logger.warn({ labId, studentId, output: result.output }, "Verify script produced no CHECK lines");
   }
+  // Guarantee exactly one result per declared task, even if the verify script
+  // crashed, timed out, or otherwise failed to emit a CHECK line for one of
+  // them — otherwise a missing line silently drops the denominator used to
+  // decide "all checks passed" and the lab can be marked complete while a
+  // task was never actually verified.
+  const checks = lab.tasks.map((task) => {
+    const found = byId.get(task.id);
+    if (found) return found;
+    logger.warn({ labId, studentId, taskId: task.id }, "Verify script did not report a result for task");
+    return {
+      id: task.id,
+      label: task.description,
+      passed: false,
+      message: "Verification script did not report a result for this check — click Verify again.",
+    };
+  });
   return checks;
 }
 
