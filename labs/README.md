@@ -256,30 +256,73 @@ hints:
 
 ### Step 6 — Write the instructions (Markdown)
 
-The `instructions` field is full Markdown displayed in the lab workspace.  A good structure:
+The `instructions` field is full Markdown displayed in the lab workspace.
+Every lab must follow this structure — it matches what students see in the
+rendered UI and keeps the experience consistent across all tracks.
 
 ```yaml
 instructions: |
   ## Cron Jobs & Automation
 
-  A short paragraph explaining what cron is and why it matters.
+  **Scenario**
+  Your ops team needs to back up the database every night at 2 AM without
+  anyone manually triggering it. Right now nothing is scheduled — every
+  backup is done by hand. Your job is to automate it with cron so it runs
+  unattended from tonight onwards.
 
-  ### What you need to do
+  **Your task:** create a backup script and schedule it to run automatically
+  every day at 2 AM using cron.
 
-  1. Create `/usr/local/bin/backup.sh` and make it executable.
-  2. Schedule it to run every day at 2 AM using `crontab -e`.
+  No text editor is installed — create or edit files with shell redirection:
+  `echo "content" > file` or `cat > file <<'EOF' ... EOF`
 
-  ### Reference
+  **What You'll Deliver**
+  - `/usr/local/bin/backup.sh` created and made executable
+  - A cron job scheduled to run it every day at 2 AM
 
-  | Field | Meaning |
-  |---|---|
-  | `0 2 * * *` | At 02:00, every day |
+  ## Steps
 
-  ```bash
-  # Example crontab entry
-  0 2 * * * /usr/local/bin/backup.sh
-  ```
+  1. Create the backup script:
+     `echo '#!/bin/sh' > /usr/local/bin/backup.sh && echo 'echo backup ran' >> /usr/local/bin/backup.sh`
+  2. Make it executable: `chmod +x /usr/local/bin/backup.sh`
+  3. Add the cron job: `echo "0 2 * * * /usr/local/bin/backup.sh" | crontab -`
+  4. Verify the schedule: `crontab -l`
 ```
+
+**How the UI renders this structure**
+
+| Section | What it becomes in the UI |
+|---|---|
+| `## Title` | Page heading |
+| `**Scenario**` | Narrative context block |
+| `**Your task:**` | Single-sentence goal |
+| Tool/editor caveat line | Plain note below the task |
+| `**What You'll Deliver**` | Bullet list of deliverables |
+| `## Steps` | Extracted and hidden behind a **"Reveal Step-by-Step Guide"** button — students click to expand it only if stuck |
+
+> **Important:** The `## Steps` heading is magic — the workspace parser
+> splits it out of the main instructions and renders it as a collapsible
+> panel. Keep it as a level-2 heading (`##`) and do not rename it.
+> Everything before `## Steps` is always visible; everything under it is
+> hidden until the student asks for help.
+
+**Guidelines for each section**
+
+- **Scenario** — 2–4 sentences. Write it as a real-world incident or
+  task, not a tutorial intro. The student should know *why* they're doing
+  this before they read the steps.
+- **Your task** — one sentence summarising the entire goal. Make it
+  concrete: name the files, commands, or end-states expected.
+- **Caveat line** — include a "No text editor is installed" note for any
+  lab where students need to create or edit files. Skip it if the lab
+  doesn't require file edits.
+- **What You'll Deliver** — bullet list that mirrors the `tasks[]` entries.
+  One bullet per task, written as a deliverable ("X created", "Y configured"),
+  not as an action ("Create X", "Configure Y").
+- **## Steps** — numbered list of exact commands. Be specific: show the
+  full command the student should run, not a paraphrase. This section is
+  only revealed on request, so it can be as detailed as needed without
+  cluttering the main view.
 
 ---
 
