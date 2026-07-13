@@ -21,15 +21,39 @@ instructions: |
   ## Set Up Jenkins Server
 
   Jenkins stores everything — jobs, plugins, build history, credentials — in one
-  directory called **JENKINS_HOME**. Before you can run Jenkins you need to:
+  directory called **JENKINS_HOME**. Before Jenkins can run, you need to tell it
+  where that directory is, create the expected sub-directories inside it, and
+  prepare a launch script so it can be started consistently.
 
-  1. **Set JENKINS_HOME** so Jenkins knows where to store its data.
-  2. **Create the required sub-directories** that Jenkins expects on first boot.
-  3. **Write a launch script** so Jenkins can be started consistently.
+  ### Your tasks
+
+  1. Add `JENKINS_HOME=/var/lib/jenkins` to `/etc/environment`
+  2. Create the five standard sub-directories Jenkins expects inside that path
+  3. Write and make executable `/usr/local/bin/start-jenkins.sh`
+
+  ### Key directories
+
+  | Directory | Purpose |
+  |-----------|---------|
+  | `jobs/` | Each job stored as a sub-directory |
+  | `plugins/` | Installed `.jpi`/`.hpi` plugin archives |
+  | `workspace/` | Cloned source code during builds |
+  | `logs/` | `jenkins.log` and GC logs |
+  | `secrets/` | Encrypted credentials |
+
+  ### Launch script requirements
+
+  The script at `/usr/local/bin/start-jenkins.sh` must:
+  - Export `JENKINS_HOME`
+  - Launch `/opt/jenkins/jenkins.war` with `exec java -jar`
+  - Set `--httpPort=8080`
+  - Be executable (`chmod +x`)
+
+  ## Steps
 
   ### Step 1 — Set JENKINS_HOME
 
-  Persist the variable system-wide by adding it to `/etc/environment`:
+  Persist the variable system-wide:
 
   ```bash
   echo 'JENKINS_HOME=/var/lib/jenkins' >> /etc/environment
@@ -38,26 +62,11 @@ instructions: |
 
   ### Step 2 — Create the directory structure
 
-  Jenkins expects these directories inside JENKINS_HOME:
-
-  ```
-  /var/lib/jenkins/
-  ├── jobs/        — stores each job as a sub-directory
-  ├── plugins/     — installed .jpi/.hpi plugin archives
-  ├── workspace/   — cloned source code during builds
-  ├── logs/        — jenkins.log and GC logs
-  └── secrets/     — encrypted credentials
-  ```
-
-  Create them all at once:
-
   ```bash
   mkdir -p /var/lib/jenkins/{jobs,plugins,workspace,logs,secrets}
   ```
 
-  ### Step 3 — Write a launch script
-
-  Create `/usr/local/bin/start-jenkins.sh`:
+  ### Step 3 — Write the launch script
 
   ```bash
   cat > /usr/local/bin/start-jenkins.sh << 'EOF'
@@ -68,6 +77,14 @@ instructions: |
     --logfile=$JENKINS_HOME/logs/jenkins.log
   EOF
   chmod +x /usr/local/bin/start-jenkins.sh
+  ```
+
+  Verify it works:
+
+  ```bash
+  grep JENKINS_HOME /etc/environment
+  ls /var/lib/jenkins/
+  /usr/local/bin/start-jenkins.sh --help 2>/dev/null || echo "Script exists and is executable"
   ```
 
 tasks:
@@ -123,4 +140,4 @@ hints:
   - "Use `echo 'JENKINS_HOME=/var/lib/jenkins' >> /etc/environment` — one `>` would overwrite the whole file!"
   - "Brace expansion lets you create all five directories in one command: `mkdir -p /var/lib/jenkins/{jobs,plugins,workspace,logs,secrets}`"
   - "Write the script with a heredoc (`cat > /path << 'EOF' ... EOF`), then make it executable with `chmod +x`."
-  - "After writing, verify with `grep JENKINS_HOME /usr/local/bin/start-jenkins.sh && grep 8080 /usr/local/bin/start-jenkins.sh`."
+  - "After writing, verify: `grep JENKINS_HOME /usr/local/bin/start-jenkins.sh && grep 8080 /usr/local/bin/start-jenkins.sh`"

@@ -20,22 +20,30 @@ objectives:
 instructions: |
   ## Organize Jenkins Jobs with Folders
 
-  In Jenkins every job — including **Folders** — is simply a directory inside
-  `$JENKINS_HOME/jobs/`. A Folder is just a job whose `config.xml` declares the
-  `com.cloudbees.hudson.plugins.folder.Folder` project class. Inside a folder,
-  nested jobs live in its own `jobs/` sub-directory.
+  In Jenkins every job — including **Folders** — is a directory inside
+  `$JENKINS_HOME/jobs/`. A Folder is just a special job whose `config.xml`
+  declares the `com.cloudbees.hudson.plugins.folder.Folder` project class.
+  Nested jobs live inside the folder's own `jobs/` sub-directory.
 
   ```
   /var/lib/jenkins/jobs/
   ├── production/                ← Folder job
-  │   ├── config.xml             ← declares project-class Folder
+  │   ├── config.xml             ← declares class Folder
   │   └── jobs/
-  │       └── deploy-app/        ← real job nested inside folder
+  │       └── test-job/          ← job nested inside the folder
   │           └── config.xml
-  └── test-job/                  ← a flat job to be moved
+  └── build-app/                 ← flat job (stays at root)
   ```
 
-  ### Step 1 — Create the `production` folder
+  ### Your tasks
+
+  1. Create the `production` folder by writing its `config.xml` with the Folder class
+  2. Move `test-job` into the folder's `jobs/` sub-directory
+  3. Write the string `/var/lib/jenkins/jobs/production/config.xml` to `/root/folder-path.txt`
+
+  ## Steps
+
+  ### Step 1 — Create the production folder
 
   ```bash
   mkdir -p /var/lib/jenkins/jobs/production/jobs
@@ -49,27 +57,24 @@ instructions: |
   EOF
   ```
 
-  ### Step 2 — Move `test-job` into the folder
-
-  Move the existing flat job into the folder's `jobs/` directory:
+  ### Step 2 — Move test-job into the folder
 
   ```bash
   mv /var/lib/jenkins/jobs/test-job \
      /var/lib/jenkins/jobs/production/jobs/test-job
   ```
 
-  ### Step 3 — Verify the structure
-
-  Confirm the job is nested correctly:
-
-  ```bash
-  find /var/lib/jenkins/jobs -name config.xml
-  ```
-
-  Write the folder's config.xml path to `/root/folder-path.txt`:
+  ### Step 3 — Record the folder config path
 
   ```bash
   echo "/var/lib/jenkins/jobs/production/config.xml" > /root/folder-path.txt
+  ```
+
+  Verify the full structure:
+
+  ```bash
+  find /var/lib/jenkins/jobs -name config.xml
+  cat /root/folder-path.txt
   ```
 
 tasks:
@@ -131,6 +136,6 @@ verifyScript: |
 
 hints:
   - "Create the folder's jobs sub-directory first: `mkdir -p /var/lib/jenkins/jobs/production/jobs`"
-  - "The config.xml for a Folder must contain the string 'Folder' in the root XML tag — copy the example from the instructions."
-  - "`mv source destination` moves the entire directory — make sure the destination path is the new location, not just the parent."
+  - "The config.xml for a Folder must contain the string 'Folder' in the root XML element — copy the example from the Steps guide."
+  - "`mv source destination` moves the entire directory — the destination is the new full path, not just the parent."
   - "Use `find /var/lib/jenkins/jobs -type f -name config.xml` to verify the structure before recording the path."

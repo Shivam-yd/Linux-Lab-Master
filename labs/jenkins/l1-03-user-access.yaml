@@ -20,25 +20,40 @@ objectives:
 instructions: |
   ## Configure Jenkins User Access
 
-  A freshly installed Jenkins runs with **no security** — anyone can access it.
-  The first thing a real admin does is enable authentication.
+  A freshly installed Jenkins runs with **no security** — anyone with network
+  access can make changes. The first admin task is always enabling
+  authentication.
 
   Jenkins stores its security configuration in `$JENKINS_HOME/config.xml`.
   User accounts live in `$JENKINS_HOME/users/<username>/config.xml`.
 
-  ### Step 1 — Enable security in config.xml
+  ### Your tasks
 
-  Open `/var/lib/jenkins/config.xml` and set `useSecurity` to `true`:
+  1. Set `<useSecurity>` to `true` in `/var/lib/jenkins/config.xml`
+  2. Create `/var/lib/jenkins/users/devops/config.xml` for a user named **devops**
+  3. Add **devops** as an `adminids` entry inside `<authorizationStrategy>`
+
+  ### config.xml security fields
+
+  | Field | Purpose |
+  |-------|---------|
+  | `<useSecurity>` | Master on/off switch for authentication |
+  | `<authorizationStrategy>` | Controls who can do what |
+  | `<securityRealm>` | Where user passwords are stored |
+
+  ## Steps
+
+  ### Step 1 — Enable security
+
+  Use `sed` to flip the flag in-place:
 
   ```bash
   sed -i 's|<useSecurity>false</useSecurity>|<useSecurity>true</useSecurity>|' \
     /var/lib/jenkins/config.xml
+  grep useSecurity /var/lib/jenkins/config.xml
   ```
 
-  ### Step 2 — Create the admin user account
-
-  Jenkins stores each user under `users/<username>/config.xml`. Create the
-  directory and a minimal user file for a user named **devops**:
+  ### Step 2 — Create the devops user account
 
   ```bash
   mkdir -p /var/lib/jenkins/users/devops
@@ -53,17 +68,11 @@ instructions: |
 
   ### Step 3 — Grant admin permissions
 
-  Jenkins keeps a list of admin user IDs in config.xml. Add **devops** to that
-  list:
+  Add the user ID inside the `<authorizationStrategy>` block:
 
   ```bash
   sed -i 's|</authorizationStrategy>|  <adminids>devops</adminids>\n</authorizationStrategy>|' \
     /var/lib/jenkins/config.xml
-  ```
-
-  Verify with:
-
-  ```bash
   grep -n "useSecurity\|adminids\|devops" /var/lib/jenkins/config.xml
   ```
 
@@ -117,15 +126,15 @@ verifyScript: |
   fi
 
   # CHECK: grant-admin
-  if grep -q "devops" /var/lib/jenkins/config.xml \
-     && grep -q "adminids\|adminId\|devops" /var/lib/jenkins/config.xml; then
+  if grep -q "adminids\|adminId" /var/lib/jenkins/config.xml \
+     && grep -q "devops" /var/lib/jenkins/config.xml; then
     echo "CHECK:grant-admin:PASS:devops found in config.xml admin configuration"
   else
     echo "CHECK:grant-admin:FAIL:devops not found in authorizationStrategy section of config.xml"
   fi
 
 hints:
-  - "Use `sed -i 's|old|new|' file` to replace text in-place — the `|` delimiter avoids conflicts with `/` in XML tags."
+  - "Use `sed -i 's|old|new|' file` — the `|` delimiter avoids conflicts with `/` characters inside XML tags."
   - "Check the current value first: `grep useSecurity /var/lib/jenkins/config.xml`"
   - "The users directory path is exactly: `/var/lib/jenkins/users/devops/config.xml` — capitalisation matters."
-  - "After the sed for adminids, verify with `grep adminids /var/lib/jenkins/config.xml` to confirm the line was added."
+  - "After the sed for adminids, verify: `grep adminids /var/lib/jenkins/config.xml`"
