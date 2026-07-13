@@ -5,6 +5,7 @@ import { Route, Switch, Router as WouterRouter } from 'wouter';
 
 import Catalog from '@/pages/catalog';
 import Workspace from '@/pages/workspace';
+import About from '@/pages/about';
 
 // NotFound placeholder
 function NotFound() {
@@ -31,6 +32,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Catalog} />
+      <Route path="/about" component={About} />
       <Route path="/labs/:labId" component={Workspace} />
       <Route component={NotFound} />
     </Switch>
