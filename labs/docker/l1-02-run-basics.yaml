@@ -1,0 +1,448 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Lab: Running & Managing Containers
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "docker-run-basics"
+title: "Running & Managing Containers"
+track: "docker"
+level: 1
+category: "Docker Fundamentals"
+difficulty: "beginner"
+summary: "Start containers in the foreground and background, list them, and clean them up with stop and rm."
+estimatedMinutes: 15
+order: 200
+
+objectives:
+  - "Start a detached (background) container with docker run -d --name"
+  - "List running containers with docker ps and all containers with docker ps -a"
+  - "Stop a running container with docker stop"
+  - "Remove a stopped container with docker rm"
+
+instructions: |
+  ## From image to running container
+
+  `docker run` creates a **container** from an image and starts it.
+
+  ```sh
+  docker run -d --name <name> <image> <command>   # start in the background
+  docker ps                                        # list RUNNING containers only
+  docker ps -a                                      # list ALL containers, including stopped
+  docker stop <name>                                # stop a running container
+  docker rm <name>                                  # remove a stopped container
+  ```
+
+  A container keeps running as long as its main command keeps running. Once
+  the command exits (or you `stop` it), the container becomes `exited` —
+  it still exists (visible with `ps -a`) until you `rm` it.
+
+  ### What to do
+
+  1. Start a background container named `app1` from `busybox`, running a
+     command that keeps going (e.g. `sh -c "while true; do echo alive; sleep 1; done"`).
+     Confirm it shows up in `docker ps`.
+  2. Start a second background container named `app2` from `busybox`, then
+     stop it with `docker stop app2`. Confirm it disappears from `docker ps`
+     but still appears in `docker ps -a`.
+  3. Start a throwaway container named `temp` from `busybox` that runs
+     `sh -c "touch /root/work/.temp-ran; echo done"` — since it has no `-d`,
+     it runs in the foreground and exits immediately. Then remove it with
+     `docker rm temp` so it no longer appears in `docker ps -a`.
+
+tasks:
+  - id: "app1_running"
+    description: "Container app1 is running in the background from busybox"
+  - id: "app2_stopped"
+    description: "Container app2 exists but is stopped (docker stop), not removed"
+  - id: "temp_cleaned_up"
+    description: "Container temp ran, produced /root/work/.temp-ran, and was removed with docker rm"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/work"
+
+setupScript: |
+  mkdir -p /usr/local/bin /var/lib/fakedocker/images /var/lib/fakedocker/containers /var/lib/fakedocker/volumes /root/work
+  cat > /usr/local/bin/docker <<'DOCKEREOF'
+  #!/bin/sh
+  # Minimal educational Docker CLI simulator.
+  # This sandbox has no privileged/nested-container support, so real dockerd
+  # cannot run here. This script implements the real subset of `docker`
+  # commands/output format needed to teach the concept: it really spawns and
+  # kills processes for containers, really writes/reads log files, and really
+  # persists data through symlinked volume directories.
+  ROOT=/var/lib/fakedocker
+  IMAGES="$ROOT/images"
+  CONTAINERS="$ROOT/containers"
+  VOLUMES="$ROOT/volumes"
+  mkdir -p "$IMAGES" "$CONTAINERS" "$VOLUMES"
+  
+  image_size() {
+    case "$1" in
+      busybox) echo 4 ;;
+      alpine) echo 7 ;;
+      nginx) echo 142 ;;
+      ubuntu) echo 78 ;;
+      *) echo 10 ;;
+    esac
+  }
+  
+  fake_id() {
+    n="$1-$$-$RANDOM_SEED"
+    echo "$n" | cksum | cut -d' ' -f1 | cut -c1-12
+  }
+  RANDOM_SEED=0
+  
+  norm_image() {
+    # Ensure IMAGE has a :TAG, defaulting to :latest
+    case "$1" in
+      *:*) echo "$1" ;;
+      *) echo "$1:latest" ;;
+    esac
+  }
+  
+  ensure_image() {
+    img=$(norm_image "$1")
+    dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then
+      repo=${img%%:*}
+      mkdir -p "$dir"
+      fake_id "$img" > "$dir/id"
+      image_size "$repo" > "$dir/size"
+      echo "base" > "$dir/kind"
+    fi
+    echo "$dir"
+  }
+  
+  cmd_pull() {
+    img=$(norm_image "$1")
+    echo "$img: Pulling from library/${img%%:*}"
+    echo "Digest: sha256:$(fake_id "$img")0000000000000000000000000000000000000000000000"
+    ensure_image "$img" >/dev/null
+    echo "$img" >> "$ROOT/pull_history.log"
+    echo "Status: Downloaded newer image for $img"
+  }
+  
+  cmd_images() {
+    printf "%-20s %-10s %-15s %s\n" "REPOSITORY" "TAG" "IMAGE ID" "SIZE"
+    for d in "$IMAGES"/*/; do
+      [ -d "$d" ] || continue
+      name=$(basename "$d")
+      repo=${name%%:*}
+      tag=${name#*:}
+      id=$(cat "$d/id" 2>/dev/null || echo "unknown")
+      size=$(cat "$d/size" 2>/dev/null || echo "0")
+      printf "%-20s %-10s %-15s %sMB\n" "$repo" "$tag" "$id" "$size"
+    done
+  }
+  
+  cmd_rmi() {
+    img=$(norm_image "$1")
+    dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then
+      echo "Error: No such image: $img" >&2
+      exit 1
+    fi
+    # Refuse if a container (running or stopped) still references this image, like real docker.
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue
+      if [ "$(cat "$c/image" 2>/dev/null)" = "$img" ]; then
+        echo "Error response from daemon: conflict: unable to remove repository reference \"$img\" (must force) - container $(basename "$c") is using its referenced image" >&2
+        exit 1
+      fi
+    done
+    rm -rf "$dir"
+    echo "Untagged: $img"
+    echo "Deleted: sha256:$(fake_id "$img")"
+  }
+  
+  cmd_inspect() {
+    target="$1"
+    img="$IMAGES/$(norm_image "$target")"
+    if [ -d "$img" ]; then
+      echo "{"
+      echo "  \"Type\": \"image\","
+      echo "  \"RepoTags\": [\"$(norm_image "$target")\"],"
+      echo "  \"Id\": \"sha256:$(cat "$img/id")\","
+      echo "  \"Size\": $(cat "$img/size")000000"
+      echo "}"
+      return 0
+    fi
+    c="$CONTAINERS/$target"
+    if [ -d "$c" ]; then
+      echo "{"
+      echo "  \"Type\": \"container\","
+      echo "  \"Name\": \"/$target\","
+      echo "  \"Image\": \"$(cat "$c/image")\","
+      echo "  \"State\": { \"Status\": \"$(cat "$c/status")\" }"
+      echo "}"
+      return 0
+    fi
+    echo "Error: No such object: $target" >&2
+    exit 1
+  }
+  
+  cmd_run() {
+    DETACH=0
+    NAME=""
+    VOL_SPEC=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -d|--detach) DETACH=1; shift ;;
+        --name) NAME="$2"; shift 2 ;;
+        -v) VOL_SPEC="$2"; shift 2 ;;
+        *) break ;;
+      esac
+    done
+    IMAGE="$1"
+    if [ -z "$IMAGE" ]; then
+      echo "docker: run requires an image name" >&2
+      exit 1
+    fi
+    shift
+    # Remaining "$@" is the exact command argv to run inside the container --
+    # kept as a real array (not flattened to a string) so quoting like
+    # `sh -c "echo x > file"` survives intact.
+  
+    img=$(norm_image "$IMAGE")
+    ensure_image "$img" >/dev/null
+  
+    if [ -z "$NAME" ]; then
+      NAME="container_$(fake_id "$img")"
+    fi
+    cdir="$CONTAINERS/$NAME"
+    if [ -d "$cdir" ] && [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then
+      echo "Error response from daemon: Conflict. The container name \"/$NAME\" is already in use" >&2
+      exit 1
+    fi
+    rm -rf "$cdir"
+    mkdir -p "$cdir"
+    echo "$img" > "$cdir/image"
+    cid=$(fake_id "$NAME")
+    echo "$cid" > "$cdir/id"
+    : > "$cdir/log"
+  
+    if [ -n "$VOL_SPEC" ]; then
+      volname=${VOL_SPEC%%:*}
+      mountpath=${VOL_SPEC#*:}
+      mkdir -p "$VOLUMES/$volname"
+      rm -rf "$mountpath"
+      mkdir -p "$(dirname "$mountpath")"
+      ln -sfn "$VOLUMES/$volname" "$mountpath"
+      echo "$VOL_SPEC" > "$cdir/volume"
+    fi
+  
+    if [ "$DETACH" = "1" ]; then
+      echo "running" > "$cdir/status"
+      if [ $# -gt 0 ]; then
+        "$@" >"$cdir/log" 2>&1 &
+        echo $! > "$cdir/pid"
+      else
+        sh -c 'while true; do sleep 3600; done' >"$cdir/log" 2>&1 &
+        echo $! > "$cdir/pid"
+      fi
+      echo "$cid"
+    else
+      echo "running" > "$cdir/status"
+      if [ $# -gt 0 ]; then
+        "$@" 2>&1 | tee "$cdir/log"
+      fi
+      echo "exited" > "$cdir/status"
+    fi
+  }
+  
+  cmd_ps() {
+    show_all=0
+    [ "$1" = "-a" ] && show_all=1
+    printf "%-14s %-20s %-10s %s\n" "CONTAINER ID" "IMAGE" "STATUS" "NAMES"
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue
+      name=$(basename "$c")
+      status=$(cat "$c/status" 2>/dev/null || echo "unknown")
+      if [ "$status" != "running" ] && [ "$show_all" != "1" ]; then
+        continue
+      fi
+      id=$(cat "$c/id" 2>/dev/null || echo "??")
+      img=$(cat "$c/image" 2>/dev/null || echo "??")
+      printf "%-14s %-20s %-10s %s\n" "$id" "$img" "$status" "$name"
+    done
+  }
+  
+  cmd_stop() {
+    name="$1"
+    cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ]; then
+      echo "Error: No such container: $name" >&2
+      exit 1
+    fi
+    if [ -f "$cdir/pid" ]; then
+      pid=$(cat "$cdir/pid")
+      kill "$pid" 2>/dev/null
+      # also kill any child sh -c process tree started under it
+      pkill -P "$pid" 2>/dev/null
+    fi
+    echo "exited" > "$cdir/status"
+    echo "$name"
+  }
+  
+  cmd_rm() {
+    name="$1"
+    cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ]; then
+      echo "Error: No such container: $name" >&2
+      exit 1
+    fi
+    if [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then
+      echo "Error response from daemon: You cannot remove a running container $name. Stop it first." >&2
+      exit 1
+    fi
+    rm -rf "$cdir"
+    echo "$name"
+  }
+  
+  cmd_logs() {
+    name="$1"
+    cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ]; then
+      echo "Error: No such container: $name" >&2
+      exit 1
+    fi
+    cat "$cdir/log" 2>/dev/null
+  }
+  
+  cmd_exec() {
+    name="$1"; shift
+    cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ] || [ "$(cat "$cdir/status" 2>/dev/null)" != "running" ]; then
+      echo "Error: No such container: $name" >&2
+      exit 1
+    fi
+    sh -c "$*"
+  }
+  
+  cmd_build() {
+    tag=""
+    ctx="."
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -t) tag="$2"; shift 2 ;;
+        *) ctx="$1"; shift ;;
+      esac
+    done
+    dockerfile="$ctx/Dockerfile"
+    if [ ! -f "$dockerfile" ]; then
+      echo "unable to prepare context: unable to evaluate symlinks in Dockerfile path: Dockerfile: no such file or directory" >&2
+      exit 1
+    fi
+    if ! grep -qE '^FROM[[:space:]]+' "$dockerfile"; then
+      echo "Error: Dockerfile is missing a FROM instruction" >&2
+      exit 1
+    fi
+    base=$(grep -E '^FROM[[:space:]]+' "$dockerfile" | head -1 | awk '{print $2}')
+    steps=$(grep -cE '^(RUN|COPY|ADD|CMD|ENTRYPOINT|ENV|EXPOSE|WORKDIR|LABEL)[[:space:]]' "$dockerfile")
+    if [ -z "$tag" ]; then
+      echo "docker: build requires -t NAME:TAG" >&2
+      exit 1
+    fi
+    img=$(norm_image "$tag")
+    n=1
+    total=$((steps + 1))
+    echo "Sending build context to Docker daemon"
+    echo "Step 1/$total : FROM $base"
+    i=1
+    while IFS= read -r line; do
+      case "$line" in
+        FROM*) continue ;;
+        "") continue ;;
+        \#*) continue ;;
+      esac
+      i=$((i + 1))
+      echo "Step $i/$total : $line"
+    done < "$dockerfile"
+    dir=$(ensure_image "$img")
+    echo "custom" > "$dir/kind"
+    echo "$base" > "$dir/base"
+    cp "$dockerfile" "$dir/Dockerfile"
+    echo "Successfully built $(fake_id "$img")"
+    echo "Successfully tagged $img"
+  }
+  
+  cmd_volume() {
+    sub="$1"; shift
+    case "$sub" in
+      create)
+        name="$1"
+        mkdir -p "$VOLUMES/$name"
+        echo "$name"
+        ;;
+      ls)
+        printf "%-20s %s\n" "DRIVER" "VOLUME NAME"
+        for d in "$VOLUMES"/*/; do
+          [ -d "$d" ] || continue
+          printf "%-20s %s\n" "local" "$(basename "$d")"
+        done
+        ;;
+      rm)
+        rm -rf "${VOLUMES:?}/$1"
+        echo "$1"
+        ;;
+      *)
+        echo "docker volume: unknown subcommand $sub" >&2
+        exit 1
+        ;;
+    esac
+  }
+  
+  case "$1" in
+    pull) shift; cmd_pull "$@" ;;
+    images) shift; cmd_images "$@" ;;
+    rmi) shift; cmd_rmi "$@" ;;
+    inspect) shift; cmd_inspect "$@" ;;
+    run) shift; cmd_run "$@" ;;
+    ps) shift; cmd_ps "$@" ;;
+    stop) shift; cmd_stop "$@" ;;
+    rm) shift; cmd_rm "$@" ;;
+    logs) shift; cmd_logs "$@" ;;
+    exec) shift; cmd_exec "$@" ;;
+    build) shift; cmd_build "$@" ;;
+    volume) shift; cmd_volume "$@" ;;
+    version) echo "Docker version 24.0.0 (lab-sandbox)" ;;
+    *)
+      echo "docker: unknown command '$1'" >&2
+      exit 1
+      ;;
+  esac
+  DOCKEREOF
+  chmod +x /usr/local/bin/docker
+
+verifyScript: |
+  CONTAINERS=/var/lib/fakedocker/containers
+
+  # CHECK: app1_running
+  if [ -d "$CONTAINERS/app1" ] && [ "$(cat "$CONTAINERS/app1/status" 2>/dev/null)" = "running" ]; then
+    echo "CHECK:app1_running:PASS:app1 is running"
+  else
+    echo "CHECK:app1_running:FAIL:app1 is not running — start it with docker run -d --name app1 busybox ..."
+  fi
+
+  # CHECK: app2_stopped
+  if [ -d "$CONTAINERS/app2" ] && [ "$(cat "$CONTAINERS/app2/status" 2>/dev/null)" = "exited" ]; then
+    echo "CHECK:app2_stopped:PASS:app2 exists and is stopped"
+  else
+    echo "CHECK:app2_stopped:FAIL:app2 should exist and be stopped — run docker run -d --name app2 busybox ..., then docker stop app2"
+  fi
+
+  # CHECK: temp_cleaned_up
+  if [ -f /root/work/.temp-ran ] && [ ! -d "$CONTAINERS/temp" ]; then
+    echo "CHECK:temp_cleaned_up:PASS:temp ran and was removed"
+  else
+    echo "CHECK:temp_cleaned_up:FAIL:Run the temp container (creates /root/work/.temp-ran), then docker rm temp"
+  fi
+
+hints:
+  - "docker ps only shows running containers — use docker ps -a to see stopped ones too."
+  - "A container with no -d runs in the foreground and exits as soon as its command finishes."
+  - "docker rm refuses to remove a container that is still running — stop it first."
+  - "docker run -d --name app1 busybox sh -c \"while true; do echo alive; sleep 1; done\""

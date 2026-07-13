@@ -1,0 +1,109 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Your First Commits
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-init-commit"
+title: "Your First Commits"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Initialize a repository, stage files, and record your first commits with git add and git commit."
+estimatedMinutes: 15
+order: 100
+
+objectives:
+  - "Understand the working directory, staging area, and commit history"
+  - "Stage changes with git add"
+  - "Record a snapshot with git commit"
+  - "View history with git log"
+
+instructions: |
+  ## The three states of a Git file
+
+  Every file in a Git repo is in one of three states:
+
+  1. **Working directory** — the file as it sits on disk right now.
+  2. **Staging area (the index)** — changes you've marked with `git add`,
+     ready to be committed.
+  3. **Repository (committed history)** — permanent snapshots made with
+     `git commit`.
+
+  ```sh
+  git status         # see what's changed / staged
+  git add <file>      # move changes into the staging area
+  git commit -m "..."  # record a snapshot of the staged changes
+  git log             # view commit history
+  ```
+
+  A repository named `project` already exists at `/root/project` with one
+  commit (`README.md`). Your job is to build on it.
+
+  ### What to do
+
+  1. `cd /root/project`
+  2. Add a new line to `README.md` describing the project, then stage and
+     commit it with a real message (e.g. `git commit -m "describe the project"`).
+  3. Create a new file `NOTES.md` with any content, stage it, and commit it
+     separately.
+  4. Run `git log` — you should see three commits total (the original
+     "initial commit" plus your two).
+
+tasks:
+  - id: "second_commit_readme"
+    description: "README.md was edited, staged, and committed in a new commit"
+  - id: "notes_file_committed"
+    description: "A new file NOTES.md was created, staged, and committed"
+  - id: "three_commits_total"
+    description: "git log on /root/project shows at least 3 commits"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  echo "# Project" > README.md
+  git add README.md
+  git commit -q -m "initial commit"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: second_commit_readme
+  # README must have grown beyond its original one-line content AND that
+  # change must be committed (present in HEAD, not just the working tree).
+  if git show HEAD:README.md 2>/dev/null | grep -qv "^# Project$" && [ "$(git show HEAD:README.md 2>/dev/null | wc -l)" -gt 1 ]; then
+    echo "CHECK:second_commit_readme:PASS:README.md has committed changes beyond the original"
+  else
+    echo "CHECK:second_commit_readme:FAIL:Add content to README.md, then git add README.md && git commit"
+  fi
+
+  # CHECK: notes_file_committed
+  if git show HEAD -- NOTES.md >/dev/null 2>&1 || git log --all --name-only --format= | grep -qx "NOTES.md"; then
+    echo "CHECK:notes_file_committed:PASS:NOTES.md was committed"
+  else
+    echo "CHECK:notes_file_committed:FAIL:Create NOTES.md, then git add NOTES.md && git commit"
+  fi
+
+  # CHECK: three_commits_total
+  count=$(git log --oneline | wc -l)
+  if [ "$count" -ge 3 ]; then
+    echo "CHECK:three_commits_total:PASS:$count commits found"
+  else
+    echo "CHECK:three_commits_total:FAIL:Only $count commit(s) found — you need at least 3 (initial + your 2)"
+  fi
+
+hints:
+  - "git add stages a file's current content; git commit permanently records what's staged."
+  - "You can check exactly what's staged vs. not with git status before committing."
+  - "git commit -m \"message\" commits in one step without opening an editor."
+  - "git log --oneline gives a compact view of your commit history."

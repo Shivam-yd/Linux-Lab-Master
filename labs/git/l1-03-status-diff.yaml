@@ -1,0 +1,104 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Status, Diff & Discarding Changes
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-status-diff"
+title: "Status, Diff & Discarding Changes"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Inspect uncommitted changes with status and diff, then decide which ones to keep and which to throw away."
+estimatedMinutes: 15
+order: 300
+
+objectives:
+  - "Read git status to see what's modified, staged, or untracked"
+  - "Inspect exact line changes with git diff"
+  - "Commit a change you want to keep"
+  - "Discard a change you don't want with git restore"
+
+instructions: |
+  ## Not every edit deserves a commit
+
+  `git status` tells you which files changed. `git diff` shows you exactly
+  which lines. Once you know what changed, you choose: commit it, or throw
+  it away.
+
+  ```sh
+  git status                # what's modified / staged / untracked
+  git diff <file>            # exact line-by-line changes, uncommitted
+  git restore <file>          # discard uncommitted changes, back to last commit
+  ```
+
+  A repository named `project` exists at `/root/project` with two tracked
+  files already committed: `file_a.txt` and `file_b.txt`.
+
+  ### What to do
+
+  1. `cd /root/project`
+  2. Edit `file_a.txt` — add a new line to it. Run `git diff file_a.txt` to
+     see the change, then stage and commit it (this is a change you want to keep).
+  3. Edit `file_b.txt` — change its content to anything else. Look at it
+     with `git status` / `git diff`, then decide you don't want this change
+     and discard it: `git restore file_b.txt`.
+  4. Run `git status` — it should report a clean working tree.
+
+tasks:
+  - id: "file_a_change_committed"
+    description: "file_a.txt was edited and the change was committed"
+  - id: "file_b_change_discarded"
+    description: "file_b.txt was edited then reverted back to its original committed content with git restore"
+  - id: "working_tree_clean"
+    description: "git status shows a clean working tree at the end"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  printf "line1\nline2\nline3\n" > file_a.txt
+  printf "keep me unchanged\n" > file_b.txt
+  git add file_a.txt file_b.txt
+  git commit -q -m "initial commit"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: file_a_change_committed
+  orig_lines=3
+  head_lines=$(git show HEAD:file_a.txt 2>/dev/null | wc -l)
+  if [ "$head_lines" -gt "$orig_lines" ]; then
+    echo "CHECK:file_a_change_committed:PASS:file_a.txt has a committed change"
+  else
+    echo "CHECK:file_a_change_committed:FAIL:Add a line to file_a.txt, then git add file_a.txt && git commit"
+  fi
+
+  # CHECK: file_b_change_discarded
+  if [ "$(cat file_b.txt 2>/dev/null)" = "keep me unchanged" ]; then
+    echo "CHECK:file_b_change_discarded:PASS:file_b.txt is back to its original content"
+  else
+    echo "CHECK:file_b_change_discarded:FAIL:Edit file_b.txt, inspect it, then run git restore file_b.txt to discard the edit"
+  fi
+
+  # CHECK: working_tree_clean
+  if [ -z "$(git status --porcelain)" ]; then
+    echo "CHECK:working_tree_clean:PASS:working tree is clean"
+  else
+    echo "CHECK:working_tree_clean:FAIL:git status --porcelain is not empty — commit or discard remaining changes"
+  fi
+
+hints:
+  - "git diff with no arguments shows unstaged changes across the whole repo."
+  - "Once a change is committed, git restore can't undo it — restore only affects the working tree."
+  - "git restore file_b.txt throws away uncommitted edits and brings the file back to HEAD's version."
+  - "git status --porcelain prints nothing at all when the working tree is fully clean."

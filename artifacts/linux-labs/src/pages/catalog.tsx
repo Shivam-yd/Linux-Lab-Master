@@ -7,7 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
-  Award, Hourglass, Unlock, Zap, Server, RefreshCw, CloudDownload, Github
+  Award, Hourglass, Unlock, Zap, Server, RefreshCw, CloudDownload, Github,
+  Container, GitBranch
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -84,6 +85,22 @@ const TRACK_META: Record<string, {
     accentClass: "text-orange-400",
     accentHex: "#f97316",
     gradient: "from-orange-500/20 to-yellow-500/10",
+  },
+  docker: {
+    label: "Docker",
+    description: "Learn containers from the ground up — images, running containers, Dockerfiles, and volumes.",
+    icon: Container,
+    accentClass: "text-sky-400",
+    accentHex: "#38bdf8",
+    gradient: "from-sky-500/20 to-blue-500/10",
+  },
+  git: {
+    label: "Git",
+    description: "Master version control — commits, branches, merges, remotes, and undoing mistakes.",
+    icon: GitBranch,
+    accentClass: "text-red-400",
+    accentHex: "#f87171",
+    gradient: "from-red-500/20 to-orange-500/10",
   },
 }
 
@@ -243,7 +260,7 @@ export default function Catalog() {
   const trackLevelCards = useMemo(() => {
     if (!labs) return [] as { track: string; level: number; lvlLabs: LabItem[]; passed: number; total: number }[]
     const cards: { track: string; level: number; lvlLabs: LabItem[]; passed: number; total: number }[] = []
-    const trackOrder = ["linux", "terraform", "jenkins"]
+    const trackOrder = ["linux", "terraform", "jenkins", "docker", "git"]
     const allTracks = [...new Set(labs.map((l: LabItem) => l.track))]
     const sorted = [...trackOrder.filter(t => allTracks.includes(t)), ...allTracks.filter(t => !trackOrder.includes(t))]
     

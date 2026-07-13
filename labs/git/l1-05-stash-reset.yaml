@@ -1,0 +1,110 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Stash & Reset — Undoing Things Safely
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-stash-reset"
+title: "Stash & Reset: Undoing Things Safely"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Shelve unfinished work with git stash, then permanently undo a bad commit with git reset --hard."
+estimatedMinutes: 20
+order: 500
+
+objectives:
+  - "Temporarily shelve uncommitted work with git stash"
+  - "Bring stashed work back with git stash pop"
+  - "Permanently discard the most recent commit(s) with git reset --hard"
+
+instructions: |
+  ## Two different kinds of "undo"
+
+  `git stash` is for work you're not ready to commit yet, but need to set
+  aside (e.g. to switch tasks) — it's temporary and recoverable.
+
+  `git reset --hard` is for commits you're sure you don't want anymore — it
+  moves the branch pointer backward and throws away the matching changes.
+  It's permanent, so use it carefully.
+
+  ```sh
+  git stash            # shelve uncommitted changes, working tree becomes clean
+  git stash list         # see what's shelved
+  git stash pop          # re-apply the most recent stash and remove it from the list
+  git reset --hard <ref>  # move the current branch to <ref>, discarding later commits
+  ```
+
+  A repository `/root/project` already exists with 2 commits on `file.txt`.
+
+  ### What to do
+
+  1. `cd /root/project`
+  2. Add a third line to `file.txt` but don't commit it yet. Run
+     `git stash` — notice `git status` now shows a clean tree.
+  3. Bring it back with `git stash pop`, then commit it as commit 3
+     (`git commit -am "commit 3: add line3"`).
+  4. Now make a mistake on purpose: add a line `oops` to `file.txt` and
+     commit it as commit 4.
+  5. Undo that mistake completely: `git reset --hard HEAD~1`. This should
+     bring you back to exactly 3 commits, with `oops` gone from the file.
+
+tasks:
+  - id: "stashed_work_committed"
+    description: "Line3 was added via a stash/pop workflow and committed as a real commit"
+  - id: "bad_commit_reset_away"
+    description: "A 4th 'oops' commit was made, then git reset --hard undid it, leaving exactly 3 commits"
+  - id: "working_tree_clean"
+    description: "git status shows a clean working tree and no stash entries remain"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  echo "line1" > file.txt
+  git add file.txt
+  git commit -q -m "commit 1: add file.txt"
+  echo "line2" >> file.txt
+  git add file.txt
+  git commit -q -m "commit 2: add line2"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: stashed_work_committed
+  if git log --oneline | grep -q "line3\|commit 3" && git show HEAD:file.txt 2>/dev/null | grep -q "line3"; then
+    echo "CHECK:stashed_work_committed:PASS:line3 was committed after a stash workflow"
+  else
+    echo "CHECK:stashed_work_committed:FAIL:Add line3, git stash, git stash pop, then commit it"
+  fi
+
+  # CHECK: bad_commit_reset_away
+  count=$(git log --oneline | wc -l)
+  if [ "$count" -eq 3 ] && ! grep -q "oops" file.txt 2>/dev/null; then
+    echo "CHECK:bad_commit_reset_away:PASS:exactly 3 commits remain and the oops line is gone"
+  else
+    echo "CHECK:bad_commit_reset_away:FAIL:Commit an 'oops' line as a 4th commit, then git reset --hard HEAD~1 (currently $count commits)"
+  fi
+
+  # CHECK: working_tree_clean
+  stash_count=$(git stash list | wc -l)
+  if [ -z "$(git status --porcelain)" ] && [ "$stash_count" -eq 0 ]; then
+    echo "CHECK:working_tree_clean:PASS:working tree clean, no leftover stash entries"
+  else
+    echo "CHECK:working_tree_clean:FAIL:Working tree must be clean with no remaining git stash entries"
+  fi
+
+hints:
+  - "git stash saves uncommitted changes onto a stack and cleans your working tree."
+  - "git stash pop re-applies the most recent stash AND removes it from the stash list (git stash apply keeps it, pop does not)."
+  - "HEAD~1 means 'one commit before HEAD' — git reset --hard HEAD~1 rewinds the branch pointer by one commit."
+  - "git reset --hard permanently discards the commit's changes from your working tree too — there's no stash safety net for it."

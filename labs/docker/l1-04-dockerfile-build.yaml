@@ -1,0 +1,458 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Lab: Writing Your First Dockerfile
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "docker-dockerfile-build"
+title: "Writing Your First Dockerfile"
+track: "docker"
+level: 1
+category: "Docker Fundamentals"
+difficulty: "beginner"
+summary: "Write a Dockerfile with FROM, RUN, COPY, and CMD, build it into a tagged image, and run a container from it."
+estimatedMinutes: 20
+order: 400
+
+objectives:
+  - "Write a valid Dockerfile using FROM, RUN, COPY, and CMD"
+  - "Build an image from a Dockerfile with docker build -t"
+  - "Confirm the new image appears in docker images"
+  - "Run a container from your own image"
+
+instructions: |
+  ## A Dockerfile is a recipe for an image
+
+  Each line in a Dockerfile is an instruction that adds a layer to the image:
+
+  ```dockerfile
+  FROM alpine:latest        # start from a base image
+  RUN echo "building..."    # run a command while building (bakes into the image)
+  COPY . /app                # copy files from the build context into the image
+  CMD ["echo", "hello"]      # the default command when a container starts
+  ```
+
+  `docker build -t <name>:<tag> <path>` reads the Dockerfile in `<path>`
+  and produces a new image tagged `<name>:<tag>`.
+
+  ### What to do
+
+  1. In `/root/work/app`, create a file `Dockerfile` with at least:
+     - a `FROM` line (use `alpine:latest`)
+     - a `RUN` line
+     - a `COPY` line
+     - a `CMD` line
+  2. Build it: `docker build -t myapp:v1 /root/work/app`
+  3. Confirm `myapp:v1` shows up in `docker images`.
+  4. Run a container from it: `docker run --name myapp-test myapp:v1`
+
+tasks:
+  - id: "dockerfile_written"
+    description: "Dockerfile at /root/work/app/Dockerfile has FROM, RUN, COPY, and CMD instructions"
+  - id: "image_built"
+    description: "docker build -t myapp:v1 succeeded and myapp:v1 appears in docker images"
+  - id: "ran_from_custom_image"
+    description: "A container was run from myapp:v1"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/work"
+
+setupScript: |
+  mkdir -p /usr/local/bin /var/lib/fakedocker/images /var/lib/fakedocker/containers /var/lib/fakedocker/volumes /root/work
+  cat > /usr/local/bin/docker <<'DOCKEREOF'
+  #!/bin/sh
+  # Minimal educational Docker CLI simulator.
+  # This sandbox has no privileged/nested-container support, so real dockerd
+  # cannot run here. This script implements the real subset of `docker`
+  # commands/output format needed to teach the concept: it really spawns and
+  # kills processes for containers, really writes/reads log files, and really
+  # persists data through symlinked volume directories.
+  ROOT=/var/lib/fakedocker
+  IMAGES="$ROOT/images"
+  CONTAINERS="$ROOT/containers"
+  VOLUMES="$ROOT/volumes"
+  mkdir -p "$IMAGES" "$CONTAINERS" "$VOLUMES"
+  
+  image_size() {
+    case "$1" in
+      busybox) echo 4 ;;
+      alpine) echo 7 ;;
+      nginx) echo 142 ;;
+      ubuntu) echo 78 ;;
+      *) echo 10 ;;
+    esac
+  }
+  
+  fake_id() {
+    n="$1-$$-$RANDOM_SEED"
+    echo "$n" | cksum | cut -d' ' -f1 | cut -c1-12
+  }
+  RANDOM_SEED=0
+  
+  norm_image() {
+    # Ensure IMAGE has a :TAG, defaulting to :latest
+    case "$1" in
+      *:*) echo "$1" ;;
+      *) echo "$1:latest" ;;
+    esac
+  }
+  
+  ensure_image() {
+    img=$(norm_image "$1")
+    dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then
+      repo=${img%%:*}
+      mkdir -p "$dir"
+      fake_id "$img" > "$dir/id"
+      image_size "$repo" > "$dir/size"
+      echo "base" > "$dir/kind"
+    fi
+    echo "$dir"
+  }
+  
+  cmd_pull() {
+    img=$(norm_image "$1")
+    echo "$img: Pulling from library/${img%%:*}"
+    echo "Digest: sha256:$(fake_id "$img")0000000000000000000000000000000000000000000000"
+    ensure_image "$img" >/dev/null
+    echo "$img" >> "$ROOT/pull_history.log"
+    echo "Status: Downloaded newer image for $img"
+  }
+  
+  cmd_images() {
+    printf "%-20s %-10s %-15s %s\n" "REPOSITORY" "TAG" "IMAGE ID" "SIZE"
+    for d in "$IMAGES"/*/; do
+      [ -d "$d" ] || continue
+      name=$(basename "$d")
+      repo=${name%%:*}
+      tag=${name#*:}
+      id=$(cat "$d/id" 2>/dev/null || echo "unknown")
+      size=$(cat "$d/size" 2>/dev/null || echo "0")
+      printf "%-20s %-10s %-15s %sMB\n" "$repo" "$tag" "$id" "$size"
+    done
+  }
+  
+  cmd_rmi() {
+    img=$(norm_image "$1")
+    dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then
+      echo "Error: No such image: $img" >&2
+      exit 1
+    fi
+    # Refuse if a container (running or stopped) still references this image, like real docker.
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue
+      if [ "$(cat "$c/image" 2>/dev/null)" = "$img" ]; then
+        echo "Error response from daemon: conflict: unable to remove repository reference \"$img\" (must force) - container $(basename "$c") is using its referenced image" >&2
+        exit 1
+      fi
+    done
+    rm -rf "$dir"
+    echo "Untagged: $img"
+    echo "Deleted: sha256:$(fake_id "$img")"
+  }
+  
+  cmd_inspect() {
+    target="$1"
+    img="$IMAGES/$(norm_image "$target")"
+    if [ -d "$img" ]; then
+      echo "{"
+      echo "  \"Type\": \"image\","
+      echo "  \"RepoTags\": [\"$(norm_image "$target")\"],"
+      echo "  \"Id\": \"sha256:$(cat "$img/id")\","
+      echo "  \"Size\": $(cat "$img/size")000000"
+      echo "}"
+      return 0
+    fi
+    c="$CONTAINERS/$target"
+    if [ -d "$c" ]; then
+      echo "{"
+      echo "  \"Type\": \"container\","
+      echo "  \"Name\": \"/$target\","
+      echo "  \"Image\": \"$(cat "$c/image")\","
+      echo "  \"State\": { \"Status\": \"$(cat "$c/status")\" }"
+      echo "}"
+      return 0
+    fi
+    echo "Error: No such object: $target" >&2
+    exit 1
+  }
+  
+  cmd_run() {
+    DETACH=0
+    NAME=""
+    VOL_SPEC=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -d|--detach) DETACH=1; shift ;;
+        --name) NAME="$2"; shift 2 ;;
+        -v) VOL_SPEC="$2"; shift 2 ;;
+        *) break ;;
+      esac
+    done
+    IMAGE="$1"
+    if [ -z "$IMAGE" ]; then
+      echo "docker: run requires an image name" >&2
+      exit 1
+    fi
+    shift
+    # Remaining "$@" is the exact command argv to run inside the container --
+    # kept as a real array (not flattened to a string) so quoting like
+    # `sh -c "echo x > file"` survives intact.
+  
+    img=$(norm_image "$IMAGE")
+    ensure_image "$img" >/dev/null
+  
+    if [ -z "$NAME" ]; then
+      NAME="container_$(fake_id "$img")"
+    fi
+    cdir="$CONTAINERS/$NAME"
+    if [ -d "$cdir" ] && [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then
+      echo "Error response from daemon: Conflict. The container name \"/$NAME\" is already in use" >&2
+      exit 1
+    fi
+    rm -rf "$cdir"
+    mkdir -p "$cdir"
+    echo "$img" > "$cdir/image"
+    cid=$(fake_id "$NAME")
+    echo "$cid" > "$cdir/id"
+    : > "$cdir/log"
+  
+    if [ -n "$VOL_SPEC" ]; then
+      volname=${VOL_SPEC%%:*}
+      mountpath=${VOL_SPEC#*:}
+      mkdir -p "$VOLUMES/$volname"
+      rm -rf "$mountpath"
+      mkdir -p "$(dirname "$mountpath")"
+      ln -sfn "$VOLUMES/$volname" "$mountpath"
+      echo "$VOL_SPEC" > "$cdir/volume"
+    fi
+  
+    if [ "$DETACH" = "1" ]; then
+      echo "running" > "$cdir/status"
+      if [ $# -gt 0 ]; then
+        "$@" >"$cdir/log" 2>&1 &
+        echo $! > "$cdir/pid"
+      else
+        sh -c 'while true; do sleep 3600; done' >"$cdir/log" 2>&1 &
+        echo $! > "$cdir/pid"
+      fi
+      echo "$cid"
+    else
+      echo "running" > "$cdir/status"
+      if [ $# -gt 0 ]; then
+        "$@" 2>&1 | tee "$cdir/log"
+      fi
+      echo "exited" > "$cdir/status"
+    fi
+  }
+  
+  cmd_ps() {
+    show_all=0
+    [ "$1" = "-a" ] && show_all=1
+    printf "%-14s %-20s %-10s %s\n" "CONTAINER ID" "IMAGE" "STATUS" "NAMES"
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue
+      name=$(basename "$c")
+      status=$(cat "$c/status" 2>/dev/null || echo "unknown")
+      if [ "$status" != "running" ] && [ "$show_all" != "1" ]; then
+        continue
+      fi
+      id=$(cat "$c/id" 2>/dev/null || echo "??")
+      img=$(cat "$c/image" 2>/dev/null || echo "??")
+      printf "%-14s %-20s %-10s %s\n" "$id" "$img" "$status" "$name"
+    done
+  }
+  
+  cmd_stop() {
+    name="$1"
+    cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ]; then
+      echo "Error: No such container: $name" >&2
+      exit 1
+    fi
+    if [ -f "$cdir/pid" ]; then
+      pid=$(cat "$cdir/pid")
+      kill "$pid" 2>/dev/null
+      # also kill any child sh -c process tree started under it
+      pkill -P "$pid" 2>/dev/null
+    fi
+    echo "exited" > "$cdir/status"
+    echo "$name"
+  }
+  
+  cmd_rm() {
+    name="$1"
+    cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ]; then
+      echo "Error: No such container: $name" >&2
+      exit 1
+    fi
+    if [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then
+      echo "Error response from daemon: You cannot remove a running container $name. Stop it first." >&2
+      exit 1
+    fi
+    rm -rf "$cdir"
+    echo "$name"
+  }
+  
+  cmd_logs() {
+    name="$1"
+    cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ]; then
+      echo "Error: No such container: $name" >&2
+      exit 1
+    fi
+    cat "$cdir/log" 2>/dev/null
+  }
+  
+  cmd_exec() {
+    name="$1"; shift
+    cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ] || [ "$(cat "$cdir/status" 2>/dev/null)" != "running" ]; then
+      echo "Error: No such container: $name" >&2
+      exit 1
+    fi
+    sh -c "$*"
+  }
+  
+  cmd_build() {
+    tag=""
+    ctx="."
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -t) tag="$2"; shift 2 ;;
+        *) ctx="$1"; shift ;;
+      esac
+    done
+    dockerfile="$ctx/Dockerfile"
+    if [ ! -f "$dockerfile" ]; then
+      echo "unable to prepare context: unable to evaluate symlinks in Dockerfile path: Dockerfile: no such file or directory" >&2
+      exit 1
+    fi
+    if ! grep -qE '^FROM[[:space:]]+' "$dockerfile"; then
+      echo "Error: Dockerfile is missing a FROM instruction" >&2
+      exit 1
+    fi
+    base=$(grep -E '^FROM[[:space:]]+' "$dockerfile" | head -1 | awk '{print $2}')
+    steps=$(grep -cE '^(RUN|COPY|ADD|CMD|ENTRYPOINT|ENV|EXPOSE|WORKDIR|LABEL)[[:space:]]' "$dockerfile")
+    if [ -z "$tag" ]; then
+      echo "docker: build requires -t NAME:TAG" >&2
+      exit 1
+    fi
+    img=$(norm_image "$tag")
+    n=1
+    total=$((steps + 1))
+    echo "Sending build context to Docker daemon"
+    echo "Step 1/$total : FROM $base"
+    i=1
+    while IFS= read -r line; do
+      case "$line" in
+        FROM*) continue ;;
+        "") continue ;;
+        \#*) continue ;;
+      esac
+      i=$((i + 1))
+      echo "Step $i/$total : $line"
+    done < "$dockerfile"
+    dir=$(ensure_image "$img")
+    echo "custom" > "$dir/kind"
+    echo "$base" > "$dir/base"
+    cp "$dockerfile" "$dir/Dockerfile"
+    echo "Successfully built $(fake_id "$img")"
+    echo "Successfully tagged $img"
+  }
+  
+  cmd_volume() {
+    sub="$1"; shift
+    case "$sub" in
+      create)
+        name="$1"
+        mkdir -p "$VOLUMES/$name"
+        echo "$name"
+        ;;
+      ls)
+        printf "%-20s %s\n" "DRIVER" "VOLUME NAME"
+        for d in "$VOLUMES"/*/; do
+          [ -d "$d" ] || continue
+          printf "%-20s %s\n" "local" "$(basename "$d")"
+        done
+        ;;
+      rm)
+        rm -rf "${VOLUMES:?}/$1"
+        echo "$1"
+        ;;
+      *)
+        echo "docker volume: unknown subcommand $sub" >&2
+        exit 1
+        ;;
+    esac
+  }
+  
+  case "$1" in
+    pull) shift; cmd_pull "$@" ;;
+    images) shift; cmd_images "$@" ;;
+    rmi) shift; cmd_rmi "$@" ;;
+    inspect) shift; cmd_inspect "$@" ;;
+    run) shift; cmd_run "$@" ;;
+    ps) shift; cmd_ps "$@" ;;
+    stop) shift; cmd_stop "$@" ;;
+    rm) shift; cmd_rm "$@" ;;
+    logs) shift; cmd_logs "$@" ;;
+    exec) shift; cmd_exec "$@" ;;
+    build) shift; cmd_build "$@" ;;
+    volume) shift; cmd_volume "$@" ;;
+    version) echo "Docker version 24.0.0 (lab-sandbox)" ;;
+    *)
+      echo "docker: unknown command '$1'" >&2
+      exit 1
+      ;;
+  esac
+  DOCKEREOF
+  chmod +x /usr/local/bin/docker
+  mkdir -p /root/work/app
+
+verifyScript: |
+  DOCKERFILE=/root/work/app/Dockerfile
+  IMAGES=/var/lib/fakedocker/images
+  CONTAINERS=/var/lib/fakedocker/containers
+
+  # CHECK: dockerfile_written
+  if [ -f "$DOCKERFILE" ] \
+     && grep -qE '^FROM[[:space:]]' "$DOCKERFILE" \
+     && grep -qE '^RUN[[:space:]]' "$DOCKERFILE" \
+     && grep -qE '^COPY[[:space:]]' "$DOCKERFILE" \
+     && grep -qE '^CMD[[:space:]]' "$DOCKERFILE"; then
+    echo "CHECK:dockerfile_written:PASS:Dockerfile has FROM, RUN, COPY, and CMD"
+  else
+    echo "CHECK:dockerfile_written:FAIL:Write /root/work/app/Dockerfile with FROM, RUN, COPY, and CMD instructions"
+  fi
+
+  # CHECK: image_built
+  if [ -d "$IMAGES/myapp:v1" ]; then
+    echo "CHECK:image_built:PASS:myapp:v1 was built"
+  else
+    echo "CHECK:image_built:FAIL:Run docker build -t myapp:v1 /root/work/app"
+  fi
+
+  # CHECK: ran_from_custom_image
+  found=0
+  for c in "$CONTAINERS"/*/; do
+    [ -d "$c" ] || continue
+    if [ "$(cat "$c/image" 2>/dev/null)" = "myapp:v1" ]; then
+      found=1
+    fi
+  done
+  if [ "$found" = "1" ]; then
+    echo "CHECK:ran_from_custom_image:PASS:A container was run from myapp:v1"
+  else
+    echo "CHECK:ran_from_custom_image:FAIL:Run a container from your image, e.g. docker run --name myapp-test myapp:v1"
+  fi
+
+hints:
+  - "Every Dockerfile needs a FROM as its first real instruction."
+  - "COPY . /app copies the build context (the directory you pass to docker build) into the image."
+  - "docker build -t NAME:TAG PATH — PATH is the directory containing the Dockerfile."
+  - "After building, docker run --name myapp-test myapp:v1 creates a container from your new image."

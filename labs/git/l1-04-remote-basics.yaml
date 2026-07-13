@@ -1,0 +1,103 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Remotes — Push, Fetch & Clone
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-remote-basics"
+title: "Remotes: Push, Fetch & Clone"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Connect a local repo to a remote, push your history to it, and clone it somewhere else."
+estimatedMinutes: 20
+order: 400
+
+objectives:
+  - "Register a remote with git remote add"
+  - "Publish local commits to a remote with git push"
+  - "Create a fresh working copy of a remote with git clone"
+
+instructions: |
+  ## A remote is just another copy of the repo
+
+  In real projects the remote lives on a server (GitHub, GitLab, ...). The
+  mechanics are identical for a remote on your own disk — which is exactly
+  what this sandbox uses, since there's no internet access here: a **bare
+  repository** at `/root/remote.git` (bare = no working directory, only
+  the `.git` history — exactly what a server-hosted repo looks like).
+
+  ```sh
+  git remote add <name> <url-or-path>   # register a remote
+  git remote -v                          # list remotes
+  git push -u <remote> <branch>          # publish local commits, set upstream
+  git clone <url-or-path> <dir>          # create a fresh working copy
+  ```
+
+  A working repo `/root/project` already exists on branch `main` with one
+  commit, and an empty bare repo already exists at `/root/remote.git` —
+  but they aren't connected yet.
+
+  ### What to do
+
+  1. `cd /root/project`
+  2. Add `/root/remote.git` as a remote named `origin`.
+  3. Push `main` to it, setting the upstream: `git push -u origin main`.
+  4. Clone the remote into a brand new directory: `git clone /root/remote.git /root/clone`.
+  5. Confirm `/root/clone/README.md` exists with the same content.
+
+tasks:
+  - id: "remote_added"
+    description: "origin remote is registered on /root/project, pointing at /root/remote.git"
+  - id: "pushed_to_remote"
+    description: "main was pushed to origin so /root/remote.git has the commit"
+  - id: "cloned_from_remote"
+    description: "/root/remote.git was cloned into /root/clone and contains README.md"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/remote.git /root/project
+  git init -q --bare /root/remote.git
+  cd /root/project
+  git init -q -b main
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  echo "# Project" > README.md
+  git add README.md
+  git commit -q -m "initial commit"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: remote_added
+  if git remote -v 2>/dev/null | grep -q "origin.*remote.git"; then
+    echo "CHECK:remote_added:PASS:origin remote points at /root/remote.git"
+  else
+    echo "CHECK:remote_added:FAIL:Run git remote add origin /root/remote.git"
+  fi
+
+  # CHECK: pushed_to_remote
+  if git --git-dir=/root/remote.git log main >/dev/null 2>&1 && [ -n "$(git --git-dir=/root/remote.git log main 2>/dev/null)" ]; then
+    echo "CHECK:pushed_to_remote:PASS:remote.git has the pushed main branch"
+  else
+    echo "CHECK:pushed_to_remote:FAIL:Run git push -u origin main"
+  fi
+
+  # CHECK: cloned_from_remote
+  if [ -d /root/clone/.git ] && [ -f /root/clone/README.md ]; then
+    echo "CHECK:cloned_from_remote:PASS:/root/clone was cloned from the remote"
+  else
+    echo "CHECK:cloned_from_remote:FAIL:Run git clone /root/remote.git /root/clone"
+  fi
+
+hints:
+  - "A bare repo (created with git init --bare) has no working directory — it's storage only, just like a server-hosted repo."
+  - "git remote add origin <path> registers the remote; it doesn't push anything by itself."
+  - "-u in git push -u origin main sets main to track origin/main, so future git push/pull need no arguments."
+  - "git clone works with a local path just as well as a URL — that's how this sandbox simulates a real remote."

@@ -1,0 +1,102 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Branching & Merging
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-branching-basics"
+title: "Branching & Merging"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Create a feature branch, commit on it, then merge it back into main."
+estimatedMinutes: 15
+order: 200
+
+objectives:
+  - "Create a new branch without touching main"
+  - "Switch between branches"
+  - "Commit changes on a feature branch"
+  - "Merge a feature branch back into main"
+
+instructions: |
+  ## Branches let you work without disturbing main
+
+  A branch is just a movable pointer to a commit. Creating one is instant and
+  free — it doesn't copy any files.
+
+  ```sh
+  git branch <name>          # create a branch (doesn't switch to it)
+  git switch <name>           # switch to a branch (or: git checkout <name>)
+  git switch -c <name>        # create AND switch in one step
+  git merge <name>             # merge <name> into the branch you're currently on
+  ```
+
+  A repository named `project` already exists at `/root/project` with one
+  commit on `main`.
+
+  ### What to do
+
+  1. `cd /root/project`
+  2. Create and switch to a branch called `feature`.
+  3. On `feature`, create a file `feature.txt` with any content, then
+     commit it.
+  4. Switch back to `main` — notice `feature.txt` is gone from your working
+     directory (it only exists on `feature`).
+  5. Merge `feature` into `main`: `git merge feature`.
+  6. Confirm `feature.txt` now exists on `main` too.
+
+tasks:
+  - id: "feature_branch_created"
+    description: "A branch named feature exists"
+  - id: "feature_branch_has_commit"
+    description: "feature.txt was created and committed on the feature branch"
+  - id: "merged_into_main"
+    description: "feature was merged into main, so main's history now includes feature.txt"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  echo "# Project" > README.md
+  git add README.md
+  git commit -q -m "initial commit"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: feature_branch_created
+  if git branch --list feature | grep -q feature; then
+    echo "CHECK:feature_branch_created:PASS:feature branch exists"
+  else
+    echo "CHECK:feature_branch_created:FAIL:Create it with git branch feature (or git switch -c feature)"
+  fi
+
+  # CHECK: feature_branch_has_commit
+  if git show feature:feature.txt >/dev/null 2>&1; then
+    echo "CHECK:feature_branch_has_commit:PASS:feature.txt is committed on the feature branch"
+  else
+    echo "CHECK:feature_branch_has_commit:FAIL:On the feature branch, create feature.txt, then git add + git commit"
+  fi
+
+  # CHECK: merged_into_main
+  if git show main:feature.txt >/dev/null 2>&1; then
+    echo "CHECK:merged_into_main:PASS:main now contains feature.txt via merge"
+  else
+    echo "CHECK:merged_into_main:FAIL:Switch to main (git switch main) and run git merge feature"
+  fi
+
+hints:
+  - "git switch -c feature creates and checks out the branch in one command."
+  - "Committing on feature never changes main — the two branches diverge until you merge."
+  - "You must be ON main (git switch main) before running git merge feature."
+  - "After a successful merge, git log --oneline --graph --all shows both branches joining."
