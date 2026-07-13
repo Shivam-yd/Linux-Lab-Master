@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Write a `main.tf` in `/root/tf-lab` defining `terraform_data.network_setup` and `terraform_data.app_deploy`, where `app_deploy` uses `depends_on` to explicitly require `network_setup` first, then apply both resources.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `terraform_data.app_deploy` configured with `depends_on = [terraform_data.network_setup]`
   - Both resources applied and recorded in state

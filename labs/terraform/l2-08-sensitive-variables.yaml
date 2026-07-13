@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Write \`variables.tf\` and \`main.tf\` in \`/root/tf-lab\` declaring \`api_token\` as \`sensitive = true\`, apply the config while capturing the apply log, and confirm the raw token never appears in the log even though it's still present in state.
 
-  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
-
   **What You'll Deliver**
   - \`variables.tf\` declaring \`api_token\` with \`sensitive = true\`
   - \`/root/tf-lab/apply-log.txt\` with no raw token value anywhere in it

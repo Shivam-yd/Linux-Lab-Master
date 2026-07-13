@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Create two local modules in \`/root/tf-lab\` — \`modules/network\` (exposing a \`vpc_id\` output) and \`modules/app\` (accepting a \`vpc_id\` input) — then wire the root config so \`module.app\`'s \`vpc_id\` comes directly from \`module.network.vpc_id\`, and apply the chain.
 
-  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
-
   **What You'll Deliver**
   - \`modules/network/\` with \`variables.tf\`, \`main.tf\`, and \`outputs.tf\` exposing \`vpc_id\`
   - \`modules/app/\` with \`variables.tf\` and \`main.tf\` accepting a \`vpc_id\` variable

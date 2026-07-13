@@ -27,8 +27,6 @@ instructions: |
 
   **Your task:** Install a root crontab that appends the current date to `/var/log/heartbeat-cron.log` every minute, confirm the job has executed at least once, and schedule a one-off `at` job that writes `scheduled-task-ran` to `/root/at-output.txt`.
 
-  No text editor is installed — use shell redirection: `echo "..." >> file` or `cat > file <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - Root crontab entry running `date >> /var/log/heartbeat-cron.log` every minute
   - `/var/log/heartbeat-cron.log` with at least one entry confirming the job ran

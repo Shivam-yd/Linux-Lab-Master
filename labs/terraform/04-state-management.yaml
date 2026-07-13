@@ -26,8 +26,6 @@ instructions: |
 
   **Your task:** Apply an initial config with `terraform_data.web_server`, rename the resource to `app_server` in `main.tf`, run `terraform state mv` to reconcile state, confirm `terraform plan` shows no changes, then add and apply a `scratch` resource and remove it from state with `terraform state rm`.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `main.tf` updated to define `terraform_data.app_server` with no remaining reference to `web_server`
   - State reconciled via `terraform state mv` so `terraform plan` reports "No changes"

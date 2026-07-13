@@ -26,8 +26,6 @@ instructions: |
 
   **Your task:** Write `variables.tf` with a `release_version` variable, write `main.tf` with a `terraform_data` resource that uses `triggers_replace` and a `local-exec` provisioner that appends to `/root/tf-lab/deploy.log`, then apply twice with different versions and confirm both lines appear in the log.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `main.tf` with a `terraform_data` resource containing a `local-exec` provisioner and `triggers_replace`
   - `/root/tf-lab/deploy.log` containing at least two distinct deployed-version lines

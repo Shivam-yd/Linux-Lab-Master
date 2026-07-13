@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Write \`variables.tf\` and \`main.tf\` in \`/root/tf-lab\` where \`terraform_data.tier\`'s input is set with a ternary expression based on \`var.is_production\`, then apply with \`is_production=true\` so the production branch lands in state.
 
-  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
-
   **What You'll Deliver**
   - \`terraform_data.tier\`'s input set via \`var.is_production ? "high-availability" : "single-instance"\`
   - Config applied with \`is_production=true\`, so state reflects the high-availability branch

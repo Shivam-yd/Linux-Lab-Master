@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Write `variables.tf` with `project` and `environment` variables, write `main.tf` with a `locals` block computing `resource_name` from those variables, have `terraform_data.tagged` reference `local.resource_name`, then apply and confirm state shows `"orion-prod"`.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `main.tf` with a `locals` block computing `resource_name` from `var.project` and `var.environment`
   - `terraform_data.tagged` resource referencing `local.resource_name` (not a repeated inline expression)

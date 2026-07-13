@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Write `variables.tf` with `service_name` and `regions` variables, write `main.tf` using `format()` and `upper()` for `terraform_data.label` and `join()` for `terraform_data.region_list`, then apply and confirm state shows `"service=BILLING"` and the comma-joined region string.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `main.tf` using `format()` and `upper()` together to build `terraform_data.label`'s input
   - `main.tf` using `join(",", var.regions)` to build `terraform_data.region_list`'s input

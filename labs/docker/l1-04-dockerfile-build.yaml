@@ -31,8 +31,8 @@ instructions: |
   tagged image called `myapp:v1`, and run a container from it.
 
   This sandbox runs a teaching-mode `docker` CLI — same commands and output
-  as the real thing. No text editor is installed — create your Dockerfile
-  using shell redirection: `cat > Dockerfile <<'EOF' ... EOF`
+  as the real thing. `vi` is available if you want it, or use shell
+  redirection: `cat > Dockerfile <<'EOF' ... EOF`
 
   **What You'll Deliver**
   - `Dockerfile` at `/root/work/app/Dockerfile` with `FROM`, `RUN`, `COPY`, and `CMD`

@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Rotate a grown log file by hand, enforce a 3-archive retention policy on an existing set of archives, and schedule the rotation script to run automatically via cron.
 
-  No text editor is installed — use shell redirection (`>`) or heredocs (`cat > file <<'EOF' ... EOF`) to create or edit files.
-
   **What You'll Deliver**
   - `/var/log/app/app.log` rotated into a compressed `app.log.1.gz`, with the live file truncated (not deleted — the app still has it open)
   - `access.log.4.gz` removed so at most 3 `access.log.*.gz` archives remain

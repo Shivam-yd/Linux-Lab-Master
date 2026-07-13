@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Apply a "producer" config in \`/root/tf-lab/producer\` that exposes a \`vpc_id\` output, then create a "consumer" config in \`/root/tf-lab/consumer\` that reads that output via \`terraform_remote_state\` and applies a resource built from it.
 
-  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
-
   **What You'll Deliver**
   - \`producer/main.tf\` applied, with a \`vpc_id\` output recorded in \`producer/terraform.tfstate\`
   - \`consumer/main.tf\` declaring \`data "terraform_remote_state" "network"\` with \`backend = "local"\` pointing at the producer's state file

@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Write `main.tf` in `/root/tf-lab` with two `terraform_data` resources, save a binary plan with `terraform plan -out=tfplan.binary`, convert it to `plan.json` with `terraform show -json`, then apply the saved plan file directly.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `tfplan.binary` — a saved binary plan file
   - `plan.json` — the JSON rendering of that plan containing a `resource_changes` key

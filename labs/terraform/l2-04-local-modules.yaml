@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Create a local module at \`modules/service\` in \`/root/tf-lab\` and call it twice from the root config (as \`billing\` and \`auth\`) with different \`service_name\` values, reading one module's output back into a root-level output.
 
-  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
-
   **What You'll Deliver**
   - \`modules/service/\` with its own \`variables.tf\`, \`main.tf\`, and \`outputs.tf\`
   - Root config calling the module twice (\`module "billing"\` and \`module "auth"\`) with distinct \`service_name\` values

@@ -25,7 +25,10 @@ instructions: |
 
   **Your task:** Fix the stale `/etc/hosts` mapping for `api.internal` using the authoritative service manifest, document the container's routing table, and confirm the fix by resolving the hostname manually.
 
-  No text editor is installed — use shell redirection (`>`) or heredocs (`cat > file <<'EOF' ... EOF`) to edit files. Note: `/etc/hosts` is a bind-mounted file in this sandbox, so `sed -i` (which renames a temp file over it) will fail with "Resource busy" — write filtered content back with `>` instead, which truncates the existing file in place.
+  Note: `/etc/hosts` is a bind-mounted file in this sandbox, so `sed -i`
+  (which renames a temp file over it) will fail with "Resource busy" — write
+  filtered content back with `>` instead, which truncates the existing file
+  in place.
 
   **What You'll Deliver**
   - `/etc/hosts` mapping `api.internal` to the IP in `/etc/app/service-manifest.txt`, with the stale entry completely removed

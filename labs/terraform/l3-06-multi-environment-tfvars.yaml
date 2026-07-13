@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Create \`dev.tfvars\` and \`prod.tfvars\` in \`/root/tf-lab\` with different values, apply the same config against each, and leave the final applied state on prod.
 
-  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
-
   **What You'll Deliver**
   - \`dev.tfvars\` and \`prod.tfvars\`, each setting distinct \`instance_count\` and \`environment_label\` values
   - \`terraform.tfstate\` reflecting the prod environment's values (\`environment_label=prod\`, \`instance_count=5\`) as the final applied state

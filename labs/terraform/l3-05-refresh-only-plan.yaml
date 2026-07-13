@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Apply a resource in \`/root/tf-lab\` normally, simulate drift by editing \`terraform.tfstate\` directly, then run a refresh-only plan and apply to practice the reconciliation workflow. (Since \`terraform_data\` has no real backing system, a genuine refresh won't detect the simulated edit on its own — the point of this lab is practicing the correct command sequence.)
 
-  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
-
   **What You'll Deliver**
   - \`terraform_data.config_flag\` applied at least once, recorded in \`terraform.tfstate\`
   - A refresh-only apply run after the initial apply
