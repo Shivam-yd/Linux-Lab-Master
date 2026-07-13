@@ -18,59 +18,40 @@ objectives:
 - "Confirm from the plan output that the new instance is created before the old one is destroyed"
 
 instructions: |
-  ## Default replacement order vs. create_before_destroy
+  ## Zero-Downtime Replacement with create_before_destroy
 
-  By default, when a change forces replacement, Terraform destroys the old
-  resource *first*, then creates the new one — for something serving live
-  traffic, that's a gap with nothing available. create_before_destroy
-  flips the order: create the replacement, then destroy the original,
-  eliminating the gap.
+  **Scenario**
+  A resource serving live traffic needs to be replaced, but by default Terraform destroys the old instance *first* and creates the new one after — a gap where nothing is available. You've been asked to eliminate that gap using \`create_before_destroy\`, which flips the order: create the replacement, then destroy the original.
 
-  terraform_data forces replacement when its input_sensitive-independent
-  triggers_replace or id-affecting arguments change; here we use its
-  input_sensitive-free trigger via a simple approach: changing input alone
-  does NOT force replacement for terraform_data (it just updates output in
-  place). Instead, this lab forces replacement explicitly with a
-  triggers_replace value, which is the idiomatic way to force a
-  terraform_data replacement deliberately.
+  **Your task:** Write \`main.tf\` in \`/root/tf-lab\` with \`lifecycle { create_before_destroy = true }\`, apply an initial version, then deliberately force a replacement (via \`triggers_replace\`, since plain \`input\` changes update \`terraform_data\` in place rather than replacing it) and inspect the plan's create-then-destroy ordering.
 
-  Working directory: \`/root/tf-lab\`
+  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
 
-  ---
+  **What You'll Deliver**
+  - \`terraform_data.release\` with \`lifecycle { create_before_destroy = true }\`
+  - \`main.tf\` using \`triggers_replace\` to force replacement deliberately, rather than relying on \`input\` alone
+  - \`terraform.tfstate\` showing the resource applied at the \`"v2"\` value after the forced replacement
 
   ## Steps
 
-  ### 1 — main.tf (initial version)
+  1. \`mkdir -p /root/tf-lab && cd /root/tf-lab\`
+  2. Create \`main.tf\` (initial version):
+     \`\`\`hcl
+     resource "terraform_data" "release" {
+       input = "v1"
 
-  \`\`\`hcl
-  resource "terraform_data" "release" {
-    input = "v1"
+       triggers_replace = "v1"
 
-    triggers_replace = "v1"
-
-    lifecycle {
-      create_before_destroy = true
-    }
-  }
-  \`\`\`
-
-  ### 2 — Apply the initial version
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  \`\`\`
-
-  ### 3 — Bump triggers_replace to force a replacement, and inspect the plan
-
-  Change both \`input\` and \`triggers_replace\` to \`"v2"\`, then:
-
-  \`\`\`sh
-  terraform plan
-  # Look for: "+/- terraform_data.release" and note the plan explains
-  # create_before_destroy ordering
-  terraform apply -auto-approve
-  \`\`\`
+       lifecycle {
+         create_before_destroy = true
+       }
+     }
+     \`\`\`
+  3. \`terraform init\`
+  4. \`terraform apply -auto-approve\`
+  5. Change both \`input\` and \`triggers_replace\` to \`"v2"\`
+  6. Inspect the plan: \`terraform plan\` (look for \`"+/- terraform_data.release"\` — the plan explains the create_before_destroy ordering)
+  7. \`terraform apply -auto-approve\`
 
 tasks:
 - id: "create_before_destroy_set"

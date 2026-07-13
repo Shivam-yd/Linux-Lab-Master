@@ -18,63 +18,59 @@ objectives:
 - "Confirm the consumer's resource picked up the value from the producer's state"
 
 instructions: |
-  ## Sharing state between configs without a network backend
+  ## Reading State with terraform_remote_state
 
-  Real teams usually share state via a remote backend (S3, Terraform Cloud,
-  etc.), but the mechanism for *reading* it is the same regardless of
-  backend: the terraform_remote_state data source. This lab uses
-  backend = "local", pointing at a state file on disk, so it works with zero
-  network access — but the data source usage is identical to the S3/GCS case.
+  **Scenario**
+  Your networking team's config lives in its own directory and applies independently, but the app team's config needs to know the VPC ID it produced. Real teams usually share state via a remote backend (S3, Terraform Cloud, etc.), but the mechanism for *reading* it is identical regardless of backend: the \`terraform_remote_state\` data source. This lab uses \`backend = "local"\`, pointing at a state file on disk, so it works with zero network access.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Apply a "producer" config in \`/root/tf-lab/producer\` that exposes a \`vpc_id\` output, then create a "consumer" config in \`/root/tf-lab/consumer\` that reads that output via \`terraform_remote_state\` and applies a resource built from it.
 
-  ---
+  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
+
+  **What You'll Deliver**
+  - \`producer/main.tf\` applied, with a \`vpc_id\` output recorded in \`producer/terraform.tfstate\`
+  - \`consumer/main.tf\` declaring \`data "terraform_remote_state" "network"\` with \`backend = "local"\` pointing at the producer's state file
+  - \`consumer/terraform.tfstate\` showing a resource built from the producer's \`vpc_id\`
 
   ## Steps
 
-  ### 1 — producer/main.tf
+  1. \`mkdir -p /root/tf-lab/producer /root/tf-lab/consumer\`
+  2. Create \`producer/main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "network" {
+       input = "vpc-12345"
+     }
 
-  \`\`\`hcl
-  resource "terraform_data" "network" {
-    input = "vpc-12345"
-  }
+     output "vpc_id" {
+       value = terraform_data.network.output
+     }
+     \`\`\`
+  3. Apply the producer:
+     \`\`\`sh
+     cd /root/tf-lab/producer
+     terraform init
+     terraform apply -auto-approve
+     cd /root/tf-lab
+     \`\`\`
+  4. Create \`consumer/main.tf\`, reading the producer's state:
+     \`\`\`hcl
+     data "terraform_remote_state" "network" {
+       backend = "local"
+       config = {
+         path = "../producer/terraform.tfstate"
+       }
+     }
 
-  output "vpc_id" {
-    value = terraform_data.network.output
-  }
-  \`\`\`
-
-  ### 2 — Apply the producer
-
-  \`\`\`sh
-  cd /root/tf-lab/producer
-  terraform init
-  terraform apply -auto-approve
-  cd /root/tf-lab
-  \`\`\`
-
-  ### 3 — consumer/main.tf reading the producer's state
-
-  \`\`\`hcl
-  data "terraform_remote_state" "network" {
-    backend = "local"
-    config = {
-      path = "../producer/terraform.tfstate"
-    }
-  }
-
-  resource "terraform_data" "app" {
-    input = "deployed-into-\${data.terraform_remote_state.network.outputs.vpc_id}"
-  }
-  \`\`\`
-
-  ### 4 — Apply the consumer
-
-  \`\`\`sh
-  cd /root/tf-lab/consumer
-  terraform init
-  terraform apply -auto-approve
-  \`\`\`
+     resource "terraform_data" "app" {
+       input = "deployed-into-\${data.terraform_remote_state.network.outputs.vpc_id}"
+     }
+     \`\`\`
+  5. Apply the consumer:
+     \`\`\`sh
+     cd /root/tf-lab/consumer
+     terraform init
+     terraform apply -auto-approve
+     \`\`\`
 
 tasks:
 - id: "producer_applied"

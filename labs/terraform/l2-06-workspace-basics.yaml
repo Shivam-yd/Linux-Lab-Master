@@ -18,46 +18,34 @@ objectives:
 - "Use terraform.workspace inside a resource to make behavior workspace-aware"
 
 instructions: |
-  ## One config, isolated state per workspace
+  ## Terraform Workspaces
 
-  By default every config has a single workspace, "default". Additional
-  named workspaces let the *same* .tf files maintain completely separate
-  state — useful for keeping dev and staging isolated without duplicating
-  code into separate directories.
+  **Scenario**
+  Your team wants dev and staging to run off the exact same .tf files, without duplicating code into separate directories and without the two environments' state ever colliding. Named workspaces solve exactly this: the same config, isolated state per workspace, switched with a single command.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write \`main.tf\` in \`/root/tf-lab\` referencing \`terraform.workspace\`, apply it in the default workspace, then create and apply a \`staging\` workspace so its state is stored separately.
 
-  ---
+  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
+
+  **What You'll Deliver**
+  - \`main.tf\`'s \`terraform_data.env_marker\` input referencing \`terraform.workspace\`
+  - A workspace named \`staging\` created and listed by \`terraform workspace list\`
+  - \`terraform.tfstate.d/staging/terraform.tfstate\` showing \`"running-in-staging"\`, isolated from the default workspace's state
 
   ## Steps
 
-  ### 1 — main.tf using terraform.workspace
-
-  \`\`\`hcl
-  resource "terraform_data" "env_marker" {
-    input = "running-in-\${terraform.workspace}"
-  }
-  \`\`\`
-
-  ### 2 — Apply in default, then create and switch to staging
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  # default workspace → "running-in-default"
-
-  terraform workspace new staging
-  terraform apply -auto-approve
-  # staging workspace → "running-in-staging", stored in a SEPARATE state file
-  \`\`\`
-
-  ### 3 — Confirm isolation
-
-  \`\`\`sh
-  terraform workspace list
-  ls terraform.tfstate.d/
-  # → staging/terraform.tfstate exists separately from the root terraform.tfstate
-  \`\`\`
+  1. \`mkdir -p /root/tf-lab && cd /root/tf-lab\`
+  2. Create \`main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "env_marker" {
+       input = "running-in-\${terraform.workspace}"
+     }
+     \`\`\`
+  3. \`terraform init\`
+  4. \`terraform apply -auto-approve\` (default workspace → \`"running-in-default"\`)
+  5. \`terraform workspace new staging\`
+  6. \`terraform apply -auto-approve\` (staging workspace → \`"running-in-staging"\`, stored in a separate state file)
+  7. Confirm isolation: \`terraform workspace list\` and \`ls terraform.tfstate.d/\` → \`staging/terraform.tfstate\` exists separately from the root \`terraform.tfstate\`
 
 tasks:
 - id: "workspace_aware_resource"

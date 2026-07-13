@@ -18,51 +18,43 @@ objectives:
 - "Apply successfully once the input satisfies the validation rule"
 
 instructions: |
-  ## Fail fast, before touching any resource
+  ## Variable Validation Blocks
 
-  A validation block runs at plan time, before Terraform evaluates any
-  resource — so bad input never gets anywhere near real infrastructure. This
-  is stricter (and earlier) than a lifecycle precondition, which only
-  guards one specific resource.
+  **Scenario**
+  A teammate almost shipped a config with a firewall-blocked port because nothing stopped them before it reached the resource. You've been asked to add a guardrail: a validation block that rejects bad input at plan time, before Terraform ever touches a resource — stricter and earlier than a lifecycle precondition, which only guards one specific resource.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write \`variables.tf\` and \`main.tf\` in \`/root/tf-lab\` where the \`port\` variable has a \`validation\` block enforcing \`1024 <= port <= 65535\`, then apply successfully with a valid port.
 
-  ---
+  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
+
+  **What You'll Deliver**
+  - \`variables.tf\`'s \`port\` variable with a \`validation\` block (\`condition\` + \`error_message\`)
+  - Config applied with a valid port (>= 1024) recorded in state
 
   ## Steps
 
-  ### 1 — variables.tf with a validation block
+  1. \`mkdir -p /root/tf-lab && cd /root/tf-lab\`
+  2. Create \`variables.tf\`:
+     \`\`\`hcl
+     variable "port" {
+       type    = number
+       default = 8080
 
-  \`\`\`hcl
-  variable "port" {
-    type    = number
-    default = 8080
-
-    validation {
-      condition     = var.port >= 1024 && var.port <= 65535
-      error_message = "port must be between 1024 and 65535 (unprivileged range)."
-    }
-  }
-  \`\`\`
-
-  ### 2 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "listener" {
-    input = "port-\${var.port}"
-  }
-  \`\`\`
-
-  ### 3 — Trigger the failure, then fix it
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve -var="port=80"
-  # Expect: "port must be between 1024 and 65535 (unprivileged range)."
-
-  terraform apply -auto-approve -var="port=9090"
-  # Succeeds
-  \`\`\`
+       validation {
+         condition     = var.port >= 1024 && var.port <= 65535
+         error_message = "port must be between 1024 and 65535 (unprivileged range)."
+       }
+     }
+     \`\`\`
+  3. Create \`main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "listener" {
+       input = "port-\${var.port}"
+     }
+     \`\`\`
+  4. \`terraform init\`
+  5. Trigger the failure: \`terraform apply -auto-approve -var="port=80"\` (expect: "port must be between 1024 and 65535 (unprivileged range).")
+  6. Fix it: \`terraform apply -auto-approve -var="port=9090"\` (succeeds)
 
 tasks:
 - id: "validation_block_present"

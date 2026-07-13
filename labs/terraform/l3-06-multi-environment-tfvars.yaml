@@ -18,61 +18,51 @@ objectives:
 - "Confirm each environment's applied result reflects its own tfvars file"
 
 instructions: |
-  ## -var-file: explicit, named environments
+  ## Multi-Environment Configs with -var-file
 
-  terraform.tfvars loads automatically, but named files like dev.tfvars or
-  prod.tfvars do not — they must be passed explicitly with -var-file. This
-  is the standard pattern for keeping multiple environments' values
-  side-by-side without ambiguity about which one is active.
+  **Scenario**
+  Your team runs the same Terraform config against dev and prod, but with different sizing. \`terraform.tfvars\` loads automatically, which is exactly the ambiguity you don't want when multiple environments are involved — named files like \`dev.tfvars\` and \`prod.tfvars\` must be passed explicitly with \`-var-file\`, so it's always clear which environment is active.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Create \`dev.tfvars\` and \`prod.tfvars\` in \`/root/tf-lab\` with different values, apply the same config against each, and leave the final applied state on prod.
 
-  ---
+  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
+
+  **What You'll Deliver**
+  - \`dev.tfvars\` and \`prod.tfvars\`, each setting distinct \`instance_count\` and \`environment_label\` values
+  - \`terraform.tfstate\` reflecting the prod environment's values (\`environment_label=prod\`, \`instance_count=5\`) as the final applied state
 
   ## Steps
 
-  ### 1 — variables.tf
+  1. \`mkdir -p /root/tf-lab && cd /root/tf-lab\`
+  2. Create \`variables.tf\`:
+     \`\`\`hcl
+     variable "instance_count" {
+       type = number
+     }
 
-  \`\`\`hcl
-  variable "instance_count" {
-    type = number
-  }
-
-  variable "environment_label" {
-    type = string
-  }
-  \`\`\`
-
-  ### 2 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "fleet" {
-    input = "\${var.environment_label}:\${var.instance_count}"
-  }
-  \`\`\`
-
-  ### 3 — dev.tfvars and prod.tfvars
-
-  \`\`\`hcl
-  # dev.tfvars
-  instance_count     = 1
-  environment_label  = "dev"
-  \`\`\`
-
-  \`\`\`hcl
-  # prod.tfvars
-  instance_count     = 5
-  environment_label  = "prod"
-  \`\`\`
-
-  ### 4 — Apply against prod (the final, checked state)
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve -var-file=dev.tfvars
-  # ...later, switch environments:
-  terraform apply -auto-approve -var-file=prod.tfvars
-  \`\`\`
+     variable "environment_label" {
+       type = string
+     }
+     \`\`\`
+  3. Create \`main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "fleet" {
+       input = "\${var.environment_label}:\${var.instance_count}"
+     }
+     \`\`\`
+  4. Create \`dev.tfvars\`:
+     \`\`\`hcl
+     instance_count     = 1
+     environment_label  = "dev"
+     \`\`\`
+  5. Create \`prod.tfvars\`:
+     \`\`\`hcl
+     instance_count     = 5
+     environment_label  = "prod"
+     \`\`\`
+  6. \`terraform init\`
+  7. \`terraform apply -auto-approve -var-file=dev.tfvars\`
+  8. Switch environments, leaving this as the final applied state: \`terraform apply -auto-approve -var-file=prod.tfvars\`
 
 tasks:
 - id: "both_tfvars_files_exist"

@@ -18,52 +18,33 @@ objectives:
 - "Run terraform plan -refresh-only to see the drift, then terraform apply -refresh-only to accept it into state"
 
 instructions: |
-  ## Drift: when real-world state diverges from Terraform's record
+  ## Detecting Drift with -refresh-only
 
-  In real infrastructure, someone might change a resource outside of
-  Terraform (a manual console edit, another tool). A refresh-only plan
-  shows the difference between recorded state and current reality, without
-  proposing any resource changes — and refresh-only apply updates just the
-  state record to match, without touching any resource.
+  **Scenario**
+  A resource in your infrastructure got changed outside of Terraform — a manual console edit, another tool — and now state no longer matches reality. Before touching anything, you need to see exactly what drifted without Terraform proposing to "fix" it by recreating resources. A refresh-only plan shows the difference between recorded state and current reality without proposing any resource changes; refresh-only apply updates just the state record to match.
 
-  We simulate drift here by editing state directly, since terraform_data
-  has no external system to drift against on its own.
+  **Your task:** Apply a resource in \`/root/tf-lab\` normally, simulate drift by editing \`terraform.tfstate\` directly, then run a refresh-only plan and apply to practice the reconciliation workflow. (Since \`terraform_data\` has no real backing system, a genuine refresh won't detect the simulated edit on its own — the point of this lab is practicing the correct command sequence.)
 
-  Working directory: \`/root/tf-lab\`
+  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
 
-  ---
+  **What You'll Deliver**
+  - \`terraform_data.config_flag\` applied at least once, recorded in \`terraform.tfstate\`
+  - A refresh-only apply run after the initial apply
 
   ## Steps
 
-  ### 1 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "config_flag" {
-    input = "enabled"
-  }
-  \`\`\`
-
-  ### 2 — Apply, then simulate drift with sed
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-
-  # Simulate an out-of-band change directly in state
-  sed -i 's/"enabled"/"disabled-by-someone-else"/' terraform.tfstate
-  \`\`\`
-
-  ### 3 — Run a refresh-only plan and apply
-
-  \`\`\`sh
-  terraform plan -refresh-only
-  terraform apply -auto-approve -refresh-only
-  \`\`\`
-
-  Note: because terraform_data has no real backing system, a genuine
-  refresh won't detect the sed edit on its own — but running the
-  refresh-only apply is still the correct workflow motion to practice, and
-  this lab's checks focus on demonstrating that workflow end-to-end.
+  1. \`mkdir -p /root/tf-lab && cd /root/tf-lab\`
+  2. Create \`main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "config_flag" {
+       input = "enabled"
+     }
+     \`\`\`
+  3. \`terraform init\`
+  4. \`terraform apply -auto-approve\`
+  5. Simulate an out-of-band change directly in state: \`sed -i 's/"enabled"/"disabled-by-someone-else"/' terraform.tfstate\`
+  6. Run a refresh-only plan: \`terraform plan -refresh-only\`
+  7. Run a refresh-only apply: \`terraform apply -auto-approve -refresh-only\`
 
 tasks:
 - id: "resource_applied"

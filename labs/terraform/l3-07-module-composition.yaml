@@ -18,78 +18,68 @@ objectives:
 - "Confirm the second module's applied resource used a value computed by the first"
 
 instructions: |
-  ## Modules that depend on each other
+  ## Composing Modules Together
 
-  A single module reused twice (like the earlier local-modules lab) is one
-  pattern. Composition is different: here, module B's *input* is module
-  A's *output* — Terraform automatically works out that A must apply
-  before B, purely from the reference.
+  **Scenario**
+  Reusing one module twice (as in the earlier local-modules lab) is one pattern. Composition is different: your app tier needs a VPC ID that only exists after the network module applies, and you want Terraform to work that ordering out on its own — purely from module B's input referencing module A's output, with no manual sequencing.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Create two local modules in \`/root/tf-lab\` — \`modules/network\` (exposing a \`vpc_id\` output) and \`modules/app\` (accepting a \`vpc_id\` input) — then wire the root config so \`module.app\`'s \`vpc_id\` comes directly from \`module.network.vpc_id\`, and apply the chain.
 
-  ---
+  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
+
+  **What You'll Deliver**
+  - \`modules/network/\` with \`variables.tf\`, \`main.tf\`, and \`outputs.tf\` exposing \`vpc_id\`
+  - \`modules/app/\` with \`variables.tf\` and \`main.tf\` accepting a \`vpc_id\` variable
+  - Root config setting \`module "app"\`'s \`vpc_id = module.network.vpc_id\`, chaining the two modules
+  - \`terraform.tfstate\` showing \`module.app.terraform_data.server\`'s input built from \`module.network\`'s applied value
 
   ## Steps
 
-  ### 1 — modules/network/{variables.tf,main.tf,outputs.tf}
+  1. \`mkdir -p /root/tf-lab/modules/network /root/tf-lab/modules/app && cd /root/tf-lab\`
+  2. Create \`modules/network/variables.tf\`:
+     \`\`\`hcl
+     variable "cidr_block" {
+       type = string
+     }
+     \`\`\`
+  3. Create \`modules/network/main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "vpc" {
+       input = "vpc-\${var.cidr_block}"
+     }
+     \`\`\`
+  4. Create \`modules/network/outputs.tf\`:
+     \`\`\`hcl
+     output "vpc_id" {
+       value = terraform_data.vpc.output
+     }
+     \`\`\`
+  5. Create \`modules/app/variables.tf\`:
+     \`\`\`hcl
+     variable "vpc_id" {
+       type = string
+     }
+     \`\`\`
+  6. Create \`modules/app/main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "server" {
+       input = "server-in-\${var.vpc_id}"
+     }
+     \`\`\`
+  7. Create the root \`main.tf\`, composing them:
+     \`\`\`hcl
+     module "network" {
+       source     = "./modules/network"
+       cidr_block = "10.0.0.0/16"
+     }
 
-  \`\`\`hcl
-  # variables.tf
-  variable "cidr_block" {
-    type = string
-  }
-  \`\`\`
-
-  \`\`\`hcl
-  # main.tf
-  resource "terraform_data" "vpc" {
-    input = "vpc-\${var.cidr_block}"
-  }
-  \`\`\`
-
-  \`\`\`hcl
-  # outputs.tf
-  output "vpc_id" {
-    value = terraform_data.vpc.output
-  }
-  \`\`\`
-
-  ### 2 — modules/app/{variables.tf,main.tf}
-
-  \`\`\`hcl
-  # variables.tf
-  variable "vpc_id" {
-    type = string
-  }
-  \`\`\`
-
-  \`\`\`hcl
-  # main.tf
-  resource "terraform_data" "server" {
-    input = "server-in-\${var.vpc_id}"
-  }
-  \`\`\`
-
-  ### 3 — root main.tf composing them
-
-  \`\`\`hcl
-  module "network" {
-    source     = "./modules/network"
-    cidr_block = "10.0.0.0/16"
-  }
-
-  module "app" {
-    source = "./modules/app"
-    vpc_id = module.network.vpc_id
-  }
-  \`\`\`
-
-  ### 4 — Apply
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  \`\`\`
+     module "app" {
+       source = "./modules/app"
+       vpc_id = module.network.vpc_id
+     }
+     \`\`\`
+  8. \`terraform init\`
+  9. \`terraform apply -auto-approve\`
 
 tasks:
 - id: "network_module_exists"

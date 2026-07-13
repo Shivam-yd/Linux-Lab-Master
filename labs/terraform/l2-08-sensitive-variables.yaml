@@ -18,48 +18,40 @@ objectives:
 - "Understand that the raw value is still stored in plaintext in terraform.tfstate"
 
 instructions: |
-  ## sensitive = true redacts output, not storage
+  ## Sensitive Variables
 
-  Marking a variable sensitive stops Terraform from ever printing its value
-  in plan or apply output — protecting against it leaking into CI logs or a
-  terminal over someone's shoulder. It does **not** encrypt the value in
-  state: terraform.tfstate still contains it in plaintext. State encryption
-  and access control are a separate concern.
+  **Scenario**
+  A CI log from last month showed an API token in plaintext because a variable was never marked sensitive. You've been asked to fix that for a similar variable — and to understand exactly what \`sensitive = true\` protects (console/log output) versus what it doesn't (state file storage), so nobody on the team mistakes it for encryption.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write \`variables.tf\` and \`main.tf\` in \`/root/tf-lab\` declaring \`api_token\` as \`sensitive = true\`, apply the config while capturing the apply log, and confirm the raw token never appears in the log even though it's still present in state.
 
-  ---
+  No text editor is installed — use heredoc redirection: \`cat > main.tf <<'EOF' ... EOF\`
+
+  **What You'll Deliver**
+  - \`variables.tf\` declaring \`api_token\` with \`sensitive = true\`
+  - \`/root/tf-lab/apply-log.txt\` with no raw token value anywhere in it
+  - \`terraform.tfstate\` still containing the raw token in plaintext, confirming \`sensitive\` only affects output, not storage
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  \`\`\`hcl
-  variable "api_token" {
-    type      = string
-    sensitive = true
-    default   = "shh-do-not-print-me"
-  }
-  \`\`\`
-
-  ### 2 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "client" {
-    input = var.api_token
-  }
-  \`\`\`
-
-  ### 3 — Apply and inspect the output
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve 2>&1 | tee /root/tf-lab/apply-log.txt
-  # apply-log.txt should show "(sensitive value)", never the raw token
-
-  grep "shh-do-not-print-me" terraform.tfstate
-  # ...but the raw value IS still in the state file
-  \`\`\`
+  1. \`mkdir -p /root/tf-lab && cd /root/tf-lab\`
+  2. Create \`variables.tf\`:
+     \`\`\`hcl
+     variable "api_token" {
+       type      = string
+       sensitive = true
+       default   = "shh-do-not-print-me"
+     }
+     \`\`\`
+  3. Create \`main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "client" {
+       input = var.api_token
+     }
+     \`\`\`
+  4. \`terraform init\`
+  5. Apply and capture the log: \`terraform apply -auto-approve 2>&1 | tee /root/tf-lab/apply-log.txt\` (should show \`"(sensitive value)"\`, never the raw token)
+  6. Confirm the raw value is still in state: \`grep "shh-do-not-print-me" terraform.tfstate\`
 
 tasks:
 - id: "sensitive_flag_set"
