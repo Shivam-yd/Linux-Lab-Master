@@ -49,6 +49,22 @@ async function runExec(
   return { exitCode: inspect.ExitCode ?? -1, output: Buffer.concat(chunks).toString("utf8") };
 }
 
+async function ensureImagePresent(image: string): Promise<void> {
+  const list = await docker.listImages({ filters: { reference: [image] } });
+  if (list.length > 0) return; // already cached locally
+  logger.info({ image }, "Image not cached — pulling on demand");
+  await new Promise<void>((resolve, reject) => {
+    docker.pull(image, (err: Error | null, stream?: NodeJS.ReadableStream) => {
+      if (err || !stream) return reject(err ?? new Error("docker.pull returned no stream"));
+      docker.modem.followProgress(stream, (progressErr: Error | null) => {
+        if (progressErr) return reject(progressErr);
+        resolve();
+      });
+    });
+  });
+  logger.info({ image }, "Image pulled successfully");
+}
+
 async function findExistingContainer(name: string): Promise<Docker.Container | null> {
   const list = await docker.listContainers({ all: true, filters: { name: [name] } });
   const match = list.find((c) => c.Names.some((n) => n === `/${name}`));
@@ -114,6 +130,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
   await upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
 
   try {
+    await ensureImagePresent(lab.image);
     const container = await docker.createContainer({
       Image: lab.image,
       name,
