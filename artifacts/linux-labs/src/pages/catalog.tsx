@@ -506,68 +506,55 @@ export default function Catalog() {
                         {/* Expanded lab rows */}
                         {isOpen && (
                           <div className="border-t border-border/50 bg-background/30 divide-y divide-border/40">
-                            {lvlLabs.map(lab => {
+                            {lvlLabs.map((lab, idx) => {
                               const prog = progressByLabId[lab.id]
                               const isPassed     = prog?.status === "passed"
                               const isInProgress = prog?.status === "in_progress"
                               const score = prog?.bestScore ?? 0
                               
                               return (
-                                <div key={lab.id} className="flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-4 hover:bg-muted/10 transition-colors group">
-                                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                                    {/* Status Icon */}
-                                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
-                                      {isPassed
-                                        ? <div className="w-6 h-6 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" /></div>
+                                <div key={lab.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/10 transition-colors group">
+                                  {/* Row number */}
+                                  <span className="w-6 text-right text-xs font-mono text-muted-foreground/50 shrink-0 select-none">
+                                    {String(idx + 1).padStart(2, "0")}
+                                  </span>
+
+                                  {/* Status dot */}
+                                  <div className="shrink-0">
+                                    {isPassed
+                                      ? <div className="w-5 h-5 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center"><CheckCircle2 className="w-3 h-3 text-green-500" /></div>
+                                      : isInProgress
+                                      ? <div className="w-5 h-5 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center"><PlayCircle className="w-3 h-3 text-cyan-400" /></div>
+                                      : <div className="w-5 h-5 rounded-full bg-background border border-muted-foreground/25 group-hover:border-primary/40 transition-colors" />
+                                    }
+                                  </div>
+
+                                  {/* Title */}
+                                  <span className="flex-1 min-w-0 text-sm font-medium text-foreground/85 group-hover:text-primary transition-colors truncate">
+                                    {lab.title}
+                                  </span>
+
+                                  {/* Meta */}
+                                  <span className="hidden sm:flex items-center gap-3 text-xs font-mono text-muted-foreground/50 shrink-0">
+                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{lab.estimatedMinutes}m</span>
+                                    {score > 0 && <span className="text-green-400/70">{score}%</span>}
+                                  </span>
+
+                                  {/* Action button */}
+                                  <Link href={`/labs/${lab.id}`} className="shrink-0">
+                                    <button className={cn(
+                                      "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all duration-200",
+                                      isPassed
+                                        ? "bg-background border border-border text-muted-foreground hover:text-foreground hover:border-border/80"
                                         : isInProgress
-                                        ? <div className="w-6 h-6 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center"><PlayCircle className="w-3.5 h-3.5 text-cyan-400" /></div>
-                                        : <div className="w-6 h-6 rounded-full bg-background border-2 border-muted-foreground/30 group-hover:border-primary/50 transition-colors" />
-                                      }
-                                    </div>
-                                    
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-3 mb-1.5">
-                                        <span className="text-base font-semibold text-foreground/90 group-hover:text-primary transition-colors truncate">
-                                          {lab.title}
-                                        </span>
-                                        <Badge variant="outline" className={cn("text-[10px] px-2 py-0 h-5 font-mono border", DIFFICULTY_BADGE[lab.difficulty])}>
-                                          {lab.difficulty}
-                                        </Badge>
-                                      </div>
-                                      <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
-                                        {lab.summary}
-                                      </p>
-                                      <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground/80">
-                                        <span className="flex items-center gap-1.5"><Terminal className="w-3.5 h-3.5" />{lab.category}</span>
-                                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{lab.estimatedMinutes}m</span>
-                                        {score > 0 && (
-                                          <span className="flex items-center gap-1.5 text-green-400/80">
-                                            <Trophy className="w-3.5 h-3.5" />
-                                            {score}%
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Actions */}
-                                  <div className="pl-12 sm:pl-0 shrink-0">
-                                    <Link href={`/labs/${lab.id}`}>
-                                      <button className={cn(
-                                        "w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200",
-                                        isPassed
-                                          ? "bg-background border border-border text-foreground hover:bg-muted hover:border-border/80"
-                                          : isInProgress
-                                          ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25"
-                                          : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.2)] hover:shadow-[0_0_20px_rgba(var(--primary),0.4)]"
-                                      )}>
-                                        {isPassed ? "Review"
-                                          : isInProgress ? "Continue"
-                                          : "Deploy Sandbox"}
-                                      </button>
-                                    </Link>
-                                  </div>
+                                        ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25"
+                                        : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                                    )}>
+                                      {isPassed ? <><CheckCircle2 className="w-3 h-3" />Review</>
+                                        : isInProgress ? <><PlayCircle className="w-3 h-3" />Continue</>
+                                        : <><Terminal className="w-3 h-3" />Deploy</>}
+                                    </button>
+                                  </Link>
                                 </div>
                               )
                             })}
