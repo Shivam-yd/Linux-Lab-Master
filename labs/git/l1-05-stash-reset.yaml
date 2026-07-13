@@ -18,35 +18,34 @@ objectives:
   - "Permanently discard the most recent commit(s) with git reset --hard"
 
 instructions: |
-  ## Two different kinds of "undo"
+  ## Stash & Reset: Undoing Things Safely
 
-  `git stash` is for work you're not ready to commit yet, but need to set
-  aside (e.g. to switch tasks) — it's temporary and recoverable.
+  **Scenario**
+  You're mid-way through adding a third line to `file.txt` when your lead
+  asks for an urgent context switch. You need to park your unfinished work
+  without committing it, do the other task, then come back. Later you make
+  a bad commit by accident and need to erase it completely.
 
-  `git reset --hard` is for commits you're sure you don't want anymore — it
-  moves the branch pointer backward and throws away the matching changes.
-  It's permanent, so use it carefully.
+  **Your task:** use `git stash` to park unfinished work and bring it back,
+  then use `git reset --hard` to permanently remove a bad commit.
 
-  ```sh
-  git stash            # shelve uncommitted changes, working tree becomes clean
-  git stash list         # see what's shelved
-  git stash pop          # re-apply the most recent stash and remove it from the list
-  git reset --hard <ref>  # move the current branch to <ref>, discarding later commits
-  ```
+  No text editor is installed — use `echo "text" >> file` to append lines.
 
-  A repository `/root/project` already exists with 2 commits on `file.txt`.
+  **What You'll Deliver**
+  - `line3` added to `file.txt` via a stash/pop workflow and committed
+  - A 4th "oops" commit made then fully undone with `git reset --hard`
+  - Clean working tree with exactly 3 commits remaining
 
-  ### What to do
+  ## Steps
 
   1. `cd /root/project`
-  2. Add a third line to `file.txt` but don't commit it yet. Run
-     `git stash` — notice `git status` now shows a clean tree.
-  3. Bring it back with `git stash pop`, then commit it as commit 3
-     (`git commit -am "commit 3: add line3"`).
-  4. Now make a mistake on purpose: add a line `oops` to `file.txt` and
-     commit it as commit 4.
-  5. Undo that mistake completely: `git reset --hard HEAD~1`. This should
-     bring you back to exactly 3 commits, with `oops` gone from the file.
+  2. Add a third line but don't commit: `echo "line3" >> file.txt`
+  3. Stash it: `git stash` — run `git status` to confirm a clean tree
+  4. Bring it back: `git stash pop` — the line reappears
+  5. Commit it: `git commit -am "commit 3: add line3"`
+  6. Make a bad commit on purpose: `echo "oops" >> file.txt && git commit -am "oops commit"`
+  7. Undo it completely: `git reset --hard HEAD~1`
+  8. Confirm: `git log --oneline` shows exactly 3 commits, `cat file.txt` shows no "oops"
 
 tasks:
   - id: "stashed_work_committed"

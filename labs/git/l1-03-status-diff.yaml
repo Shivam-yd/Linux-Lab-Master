@@ -19,30 +19,35 @@ objectives:
   - "Discard a change you don't want with git restore"
 
 instructions: |
-  ## Not every edit deserves a commit
+  ## Status, Diff & Discarding Changes
 
-  `git status` tells you which files changed. `git diff` shows you exactly
-  which lines. Once you know what changed, you choose: commit it, or throw
-  it away.
+  **Scenario**
+  A colleague pushed some half-finished edits before going on leave. The repo
+  has two modified files: the change to `file_a.txt` is good and should be
+  committed, but the change to `file_b.txt` was a mistake and needs to be
+  thrown away. You need to sort it out before the rest of the team pulls.
 
-  ```sh
-  git status                # what's modified / staged / untracked
-  git diff <file>            # exact line-by-line changes, uncommitted
-  git restore <file>          # discard uncommitted changes, back to last commit
-  ```
+  **Your task:** commit the wanted change to `file_a.txt` and discard the
+  unwanted edit to `file_b.txt`, leaving a clean working tree.
 
-  A repository named `project` exists at `/root/project` with two tracked
-  files already committed: `file_a.txt` and `file_b.txt`.
+  No text editor is installed — use `echo "some text" >> file_a.txt` to
+  append a line.
 
-  ### What to do
+  **What You'll Deliver**
+  - `file_a.txt` edited and the change committed
+  - `file_b.txt` edited then reverted to its original committed content
+  - `git status` shows a clean working tree
+
+  ## Steps
 
   1. `cd /root/project`
-  2. Edit `file_a.txt` — add a new line to it. Run `git diff file_a.txt` to
-     see the change, then stage and commit it (this is a change you want to keep).
-  3. Edit `file_b.txt` — change its content to anything else. Look at it
-     with `git status` / `git diff`, then decide you don't want this change
-     and discard it: `git restore file_b.txt`.
-  4. Run `git status` — it should report a clean working tree.
+  2. Append a line to file_a: `echo "extra line" >> file_a.txt`
+  3. Inspect the change: `git diff file_a.txt`
+  4. Stage and commit it: `git add file_a.txt && git commit -m "update file_a"`
+  5. Make an unwanted edit to file_b: `echo "oops" >> file_b.txt`
+  6. Inspect it: `git status` then `git diff file_b.txt`
+  7. Discard the edit: `git restore file_b.txt`
+  8. Confirm everything is clean: `git status` should show nothing to commit
 
 tasks:
   - id: "file_a_change_committed"

@@ -18,32 +18,31 @@ objectives:
   - "Create a fresh working copy of a remote with git clone"
 
 instructions: |
-  ## A remote is just another copy of the repo
+  ## Remotes: Push, Fetch & Clone
 
-  In real projects the remote lives on a server (GitHub, GitLab, ...). The
-  mechanics are identical for a remote on your own disk — which is exactly
-  what this sandbox uses, since there's no internet access here: a **bare
-  repository** at `/root/remote.git` (bare = no working directory, only
-  the `.git` history — exactly what a server-hosted repo looks like).
+  **Scenario**
+  You've been working locally on a repository that no one else can reach. The
+  team needs access, so you're wiring it up to a central bare repository — the
+  local-disk equivalent of a GitHub remote (no internet here, same mechanics).
+  Once it's connected you'll push your history to it and hand a fresh clone to
+  a teammate.
 
-  ```sh
-  git remote add <name> <url-or-path>   # register a remote
-  git remote -v                          # list remotes
-  git push -u <remote> <branch>          # publish local commits, set upstream
-  git clone <url-or-path> <dir>          # create a fresh working copy
-  ```
+  **Your task:** connect `/root/project` to the bare repo at `/root/remote.git`,
+  push `main` to it, then clone it into `/root/clone`.
 
-  A working repo `/root/project` already exists on branch `main` with one
-  commit, and an empty bare repo already exists at `/root/remote.git` —
-  but they aren't connected yet.
+  **What You'll Deliver**
+  - `origin` remote registered on `/root/project` pointing at `/root/remote.git`
+  - `main` pushed to `origin` so the remote has the commit history
+  - `/root/remote.git` cloned into `/root/clone`, with `README.md` present
 
-  ### What to do
+  ## Steps
 
   1. `cd /root/project`
-  2. Add `/root/remote.git` as a remote named `origin`.
-  3. Push `main` to it, setting the upstream: `git push -u origin main`.
-  4. Clone the remote into a brand new directory: `git clone /root/remote.git /root/clone`.
-  5. Confirm `/root/clone/README.md` exists with the same content.
+  2. Register the remote: `git remote add origin /root/remote.git`
+  3. Verify it was added: `git remote -v`
+  4. Push main and set the upstream: `git push -u origin main`
+  5. Clone the remote to a new directory: `git clone /root/remote.git /root/clone`
+  6. Confirm the clone worked: `ls /root/clone` — you should see `README.md`
 
 tasks:
   - id: "remote_added"

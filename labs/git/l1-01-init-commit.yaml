@@ -19,35 +19,34 @@ objectives:
   - "View history with git log"
 
 instructions: |
-  ## The three states of a Git file
+  ## Your First Commits
 
-  Every file in a Git repo is in one of three states:
+  **Scenario**
+  A project directory has been handed to you with a skeleton `README.md` and
+  one existing commit. Your lead wants the docs fleshed out and a notes file
+  added before the rest of the team starts working on it — and each change
+  should be its own commit so the history stays clean and reviewable.
 
-  1. **Working directory** — the file as it sits on disk right now.
-  2. **Staging area (the index)** — changes you've marked with `git add`,
-     ready to be committed.
-  3. **Repository (committed history)** — permanent snapshots made with
-     `git commit`.
+  **Your task:** add two commits to the existing repo — one updating
+  `README.md` and one adding a new `NOTES.md` file.
 
-  ```sh
-  git status         # see what's changed / staged
-  git add <file>      # move changes into the staging area
-  git commit -m "..."  # record a snapshot of the staged changes
-  git log             # view commit history
-  ```
+  No text editor is installed — use shell redirection to create or edit files:
+  `echo "some text" >> file` to append, or `printf "line1\nline2\n" > file`
+  to write from scratch.
 
-  A repository named `project` already exists at `/root/project` with one
-  commit (`README.md`). Your job is to build on it.
+  **What You'll Deliver**
+  - `README.md` edited and committed
+  - `NOTES.md` created and committed separately
+  - `git log` shows at least 3 commits total
 
-  ### What to do
+  ## Steps
 
   1. `cd /root/project`
-  2. Add a new line to `README.md` describing the project, then stage and
-     commit it with a real message (e.g. `git commit -m "describe the project"`).
-  3. Create a new file `NOTES.md` with any content, stage it, and commit it
-     separately.
-  4. Run `git log` — you should see three commits total (the original
-     "initial commit" plus your two).
+  2. Append a description to the README: `echo "A project for learning Git." >> README.md`
+  3. Stage and commit it: `git add README.md && git commit -m "describe the project"`
+  4. Create a notes file: `echo "Lab notes go here." > NOTES.md`
+  5. Stage and commit it separately: `git add NOTES.md && git commit -m "add notes"`
+  6. Confirm history: `git log --oneline` — you should see three commits
 
 tasks:
   - id: "second_commit_readme"

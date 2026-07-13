@@ -19,31 +19,32 @@ objectives:
   - "Merge a feature branch back into main"
 
 instructions: |
-  ## Branches let you work without disturbing main
+  ## Branching & Merging
 
-  A branch is just a movable pointer to a commit. Creating one is instant and
-  free — it doesn't copy any files.
+  **Scenario**
+  You're about to add a new feature to a shared codebase but you can't risk
+  breaking `main` while you work — other people are pulling from it. The
+  standard approach is to create a short-lived feature branch, do your work
+  there in isolation, then merge it in once it's ready.
 
-  ```sh
-  git branch <name>          # create a branch (doesn't switch to it)
-  git switch <name>           # switch to a branch (or: git checkout <name>)
-  git switch -c <name>        # create AND switch in one step
-  git merge <name>             # merge <name> into the branch you're currently on
-  ```
+  **Your task:** create a branch called `feature`, commit a file on it, then
+  merge it back into `main`.
 
-  A repository named `project` already exists at `/root/project` with one
-  commit on `main`.
+  **What You'll Deliver**
+  - A branch called `feature` exists in the repo
+  - `feature.txt` committed on the `feature` branch
+  - `feature` merged into `main` so `main` now contains `feature.txt`
 
-  ### What to do
+  ## Steps
 
   1. `cd /root/project`
-  2. Create and switch to a branch called `feature`.
-  3. On `feature`, create a file `feature.txt` with any content, then
-     commit it.
-  4. Switch back to `main` — notice `feature.txt` is gone from your working
-     directory (it only exists on `feature`).
-  5. Merge `feature` into `main`: `git merge feature`.
-  6. Confirm `feature.txt` now exists on `main` too.
+  2. Create and switch to the feature branch: `git switch -c feature`
+  3. Create the feature file: `echo "my feature" > feature.txt`
+  4. Stage and commit it: `git add feature.txt && git commit -m "add feature"`
+  5. Switch back to main: `git switch main`
+     (notice `feature.txt` disappears — it only exists on `feature` until you merge)
+  6. Merge the branch in: `git merge feature`
+  7. Confirm the file is now on main: `ls` should show `feature.txt`
 
 tasks:
   - id: "feature_branch_created"
