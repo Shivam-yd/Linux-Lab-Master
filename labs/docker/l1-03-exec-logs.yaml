@@ -18,30 +18,35 @@ objectives:
   - "Understand that exec runs a NEW process inside a container that already exists"
 
 instructions: |
-  ## Once a container is running, you can look inside it
+  ## Logs & Exec: Talking to a Running Container
 
-  `docker logs` shows everything a container has printed to stdout/stderr
-  since it started — invaluable for debugging without stopping anything.
+  **Scenario**
+  A container is running in your environment and something looks off. You
+  need to check its output without stopping it, then run a one-off diagnostic
+  command inside it — again without interrupting the main process. This is
+  the bread-and-butter of live container debugging.
 
-  `docker exec` runs an extra, one-off command inside a container that's
-  already running — useful for poking around without restarting the main
-  process.
+  **Your task:** start a container named `logger`, read its output with
+  `docker logs`, then use `docker exec` to create a proof file inside it
+  while it keeps running.
 
-  ```sh
-  docker logs <name>              # print everything the container has logged
-  docker exec <name> <command>    # run a command inside the running container
-  ```
+  This sandbox runs a teaching-mode `docker` CLI — same commands and output
+  format as the real thing.
 
-  ### What to do
+  **What You'll Deliver**
+  - `logger` running and producing ticking output visible in `docker logs logger`
+  - `/root/work/exec-proof.txt` created via `docker exec` while `logger` stayed running
 
-  1. Start a background container named `logger` from `busybox` running:
-     `sh -c "i=0; while true; do echo tick \$i; i=\$((i+1)); sleep 1; done"`
-  2. Wait a couple of seconds, then run `docker logs logger` and confirm you
-     see `tick 0`, `tick 1`, etc.
-  3. While `logger` is still running, use `docker exec logger` to create
-     `/root/work/exec-proof.txt` containing the text `reached-via-exec`
-     — e.g. `docker exec logger sh -c "echo reached-via-exec > /root/work/exec-proof.txt"`.
-  4. Confirm `logger` is still running afterwards — exec does not stop it.
+  ## Steps
+
+  1. Start logger in the background:
+     `docker run -d --name logger busybox sh -c "i=0; while true; do echo tick \$i; i=\$((i+1)); sleep 1; done"`
+  2. Wait a couple of seconds, then read its output: `docker logs logger`
+  3. Confirm you see `tick 0`, `tick 1`, etc.
+  4. While logger is still running, create a proof file with exec:
+     `docker exec logger sh -c "echo reached-via-exec > /root/work/exec-proof.txt"`
+  5. Confirm logger is still running: `docker ps`
+  6. Verify the file was created: `cat /root/work/exec-proof.txt`
 
 tasks:
   - id: "logger_running_with_output"

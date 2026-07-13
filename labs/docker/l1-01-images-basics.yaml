@@ -19,36 +19,34 @@ objectives:
   - "Remove an image you no longer need with docker rmi"
 
 instructions: |
-  ## Images: the blueprint for a container
+  ## Docker Images 101: Pull, List, Inspect, Remove
 
-  A **Docker image** is a read-only template — application code, a runtime,
-  libraries, and config baked into layers. A **container** is a running
-  instance created *from* an image. You can start many containers from the
-  same image; none of them change the image itself.
+  **Scenario**
+  A teammate just handed you a list of images to prepare for a demo
+  environment. You need to pull two images into the local cache, verify
+  what's there, then remove the one that isn't needed for the demo so the
+  host doesn't fill up with unused images.
 
-  Every image lives in a local cache once you `pull` it, identified by a
-  `repository:tag` pair (e.g. `nginx:latest`) and a short image ID.
+  **Your task:** pull `busybox` and `nginx` into the local image cache, then
+  remove `busybox` to clean up.
 
-  ### Commands you'll use
+  This sandbox runs a teaching-mode `docker` CLI — same commands and output
+  format as the real thing, backed by a local cache instead of a live
+  registry (no internet access here).
 
-  ```sh
-  docker pull <image>       # download an image into the local cache
-  docker images             # list cached images
-  docker inspect <image>    # show an image's metadata (ID, size, tags)
-  docker rmi <image>        # remove an image from the cache
-  ```
+  **What You'll Deliver**
+  - `busybox` pulled into the local image cache
+  - `nginx` pulled and still present in the cache
+  - `busybox` removed with `docker rmi`, leaving only `nginx`
 
-  ### What to do
+  ## Steps
 
-  1. Pull the `busybox` image.
-  2. Pull the `nginx` image.
-  3. Run `docker images` and `docker inspect nginx` to see what's cached.
-  4. You decide you don't need `busybox` anymore — remove it with `docker rmi busybox`.
-  5. Confirm with `docker images` that only `nginx` remains.
-
-  > Note: this sandbox has no internet access, so `docker` here is a local
-  > teaching CLI that behaves like the real thing for pull/images/inspect/rmi,
-  > backed by a small local image cache instead of a real registry.
+  1. Pull busybox: `docker pull busybox`
+  2. Pull nginx: `docker pull nginx`
+  3. List the cache to see both images: `docker images`
+  4. Inspect nginx to see its metadata: `docker inspect nginx`
+  5. Remove busybox: `docker rmi busybox`
+  6. Confirm the cleanup: `docker images` — only `nginx` should remain
 
 tasks:
   - id: "pulled_busybox"

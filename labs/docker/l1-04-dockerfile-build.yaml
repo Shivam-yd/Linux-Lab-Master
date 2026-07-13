@@ -19,30 +19,41 @@ objectives:
   - "Run a container from your own image"
 
 instructions: |
-  ## A Dockerfile is a recipe for an image
+  ## Writing Your First Dockerfile
 
-  Each line in a Dockerfile is an instruction that adds a layer to the image:
+  **Scenario**
+  The team's app currently runs manually on a server. You've been asked to
+  containerize it — write a `Dockerfile` that describes how to build the
+  image, build it into a tagged image, and confirm a container runs from it.
+  This is the entry point for any Docker-based CI/CD pipeline.
 
-  ```dockerfile
-  FROM alpine:latest        # start from a base image
-  RUN echo "building..."    # run a command while building (bakes into the image)
-  COPY . /app                # copy files from the build context into the image
-  CMD ["echo", "hello"]      # the default command when a container starts
-  ```
+  **Your task:** write a `Dockerfile` for a simple app, build it into a
+  tagged image called `myapp:v1`, and run a container from it.
 
-  `docker build -t <name>:<tag> <path>` reads the Dockerfile in `<path>`
-  and produces a new image tagged `<name>:<tag>`.
+  This sandbox runs a teaching-mode `docker` CLI — same commands and output
+  as the real thing. No text editor is installed — create your Dockerfile
+  using shell redirection: `cat > Dockerfile <<'EOF' ... EOF`
 
-  ### What to do
+  **What You'll Deliver**
+  - `Dockerfile` at `/root/work/app/Dockerfile` with `FROM`, `RUN`, `COPY`, and `CMD`
+  - `myapp:v1` built and visible in `docker images`
+  - A container run from `myapp:v1`
 
-  1. In `/root/work/app`, create a file `Dockerfile` with at least:
-     - a `FROM` line (use `alpine:latest`)
-     - a `RUN` line
-     - a `COPY` line
-     - a `CMD` line
-  2. Build it: `docker build -t myapp:v1 /root/work/app`
-  3. Confirm `myapp:v1` shows up in `docker images`.
-  4. Run a container from it: `docker run --name myapp-test myapp:v1`
+  ## Steps
+
+  1. The app directory already exists at `/root/work/app` — `cd /root/work/app`
+  2. Write the Dockerfile using redirection:
+     ```
+     cat > Dockerfile <<'EOF'
+     FROM alpine:latest
+     RUN echo "building app"
+     COPY . /app
+     CMD ["echo", "hello from myapp"]
+     EOF
+     ```
+  3. Build the image: `docker build -t myapp:v1 /root/work/app`
+  4. Confirm it's listed: `docker images`
+  5. Run a container from it: `docker run --name myapp-test myapp:v1`
 
 tasks:
   - id: "dockerfile_written"

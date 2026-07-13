@@ -19,34 +19,38 @@ objectives:
   - "Remove a stopped container with docker rm"
 
 instructions: |
-  ## From image to running container
+  ## Running & Managing Containers
 
-  `docker run` creates a **container** from an image and starts it.
+  **Scenario**
+  You're spinning up a small demo environment with three containers. One
+  needs to stay running in the background indefinitely, another needs to be
+  stopped but kept for later inspection, and a throwaway container should be
+  fully cleaned up once it's done — no dead containers cluttering `docker ps -a`.
 
-  ```sh
-  docker run -d --name <name> <image> <command>   # start in the background
-  docker ps                                        # list RUNNING containers only
-  docker ps -a                                      # list ALL containers, including stopped
-  docker stop <name>                                # stop a running container
-  docker rm <name>                                  # remove a stopped container
-  ```
+  **Your task:** start `app1` as a long-running background container, stop
+  `app2` without removing it, and run then fully clean up `temp`.
 
-  A container keeps running as long as its main command keeps running. Once
-  the command exits (or you `stop` it), the container becomes `exited` —
-  it still exists (visible with `ps -a`) until you `rm` it.
+  This sandbox runs a teaching-mode `docker` CLI — same commands and output
+  format as the real thing.
 
-  ### What to do
+  **What You'll Deliver**
+  - `app1` running in the background from `busybox`
+  - `app2` stopped but still present (visible in `docker ps -a`)
+  - `temp` ran (producing `/root/work/.temp-ran`), then removed with `docker rm`
 
-  1. Start a background container named `app1` from `busybox`, running a
-     command that keeps going (e.g. `sh -c "while true; do echo alive; sleep 1; done"`).
-     Confirm it shows up in `docker ps`.
-  2. Start a second background container named `app2` from `busybox`, then
-     stop it with `docker stop app2`. Confirm it disappears from `docker ps`
-     but still appears in `docker ps -a`.
-  3. Start a throwaway container named `temp` from `busybox` that runs
-     `sh -c "touch /root/work/.temp-ran; echo done"` — since it has no `-d`,
-     it runs in the foreground and exits immediately. Then remove it with
-     `docker rm temp` so it no longer appears in `docker ps -a`.
+  ## Steps
+
+  1. Start app1 in the background:
+     `docker run -d --name app1 busybox sh -c "while true; do echo alive; sleep 1; done"`
+  2. Confirm it's running: `docker ps`
+  3. Start app2 in the background:
+     `docker run -d --name app2 busybox sh -c "while true; do sleep 1; done"`
+  4. Stop app2: `docker stop app2`
+  5. Confirm app2 is stopped but still listed: `docker ps -a`
+  6. Run temp in the foreground (no `-d`):
+     `docker run --name temp busybox sh -c "touch /root/work/.temp-ran; echo done"`
+  7. Remove temp: `docker rm temp`
+  8. Confirm temp is gone: `docker ps -a` should not show it
 
 tasks:
   - id: "app1_running"

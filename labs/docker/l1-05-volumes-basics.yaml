@@ -18,28 +18,38 @@ objectives:
   - "Prove data written to a volume survives container removal and recreation"
 
 instructions: |
-  ## Containers are disposable. Volumes are not.
+  ## Persisting Data with Volumes
 
-  A container's own filesystem disappears when you `docker rm` it. A
-  **volume** is separate, durable storage that you mount into a container —
-  data written there survives even after the container that wrote it is gone.
+  **Scenario**
+  Your app generates data that needs to survive container restarts and
+  replacements. Containers are disposable — their own filesystem disappears
+  when you remove them. A volume is separate, durable storage that outlives
+  any single container, so the next container can pick up exactly where the
+  last one left off.
 
-  ```sh
-  docker volume create <name>            # create a named volume
-  docker run -v <volume>:<path> <image> <cmd>  # mount the volume at <path>
-  ```
+  **Your task:** create a named volume, write data to it from a `writer`
+  container, remove that container, then read the data back from a brand-new
+  `reader` container to prove it persisted.
 
-  ### What to do
+  This sandbox runs a teaching-mode `docker` CLI — same commands and output
+  format as the real thing.
 
-  1. Create a volume named `appdata`.
-  2. Run a container named `writer` from `busybox`, mounting `appdata` at
-     `/data`, that writes `written-by-writer` into `/data/note.txt`:
+  **What You'll Deliver**
+  - A volume named `appdata` created with `docker volume create`
+  - `writer` container wrote `written-by-writer` to the volume, then was removed
+  - `reader` container appended `read-by-reader` to the same volume, then was removed
+
+  ## Steps
+
+  1. Create the volume: `docker volume create appdata`
+  2. Confirm it exists: `docker volume ls`
+  3. Run writer and write data:
      `docker run --name writer -v appdata:/data busybox sh -c "echo written-by-writer > /data/note.txt"`
-  3. Remove `writer`: `docker rm writer`.
-  4. Run a **different** container named `reader`, mounting the **same**
-     volume, that appends `read-by-reader` to `/data/note.txt`:
+  4. Remove writer: `docker rm writer`
+  5. Run reader against the same volume:
      `docker run --name reader -v appdata:/data busybox sh -c "echo read-by-reader >> /data/note.txt"`
-  5. Remove `reader` too. The volume — and its data — should still exist.
+  6. Remove reader: `docker rm reader`
+  7. Prove the data survived — both lines should be present in the volume's file
 
 tasks:
   - id: "volume_created"
