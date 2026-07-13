@@ -20,30 +20,22 @@ objectives:
 instructions: |
   ## Symbolic Links & Inodes
 
-  Zero-downtime deploys often work like this: releases live in versioned
-  folders (`/opt/releases/v1`, `v2`, ...) and a symlink `current` always
-  points at whichever one is live. Switching versions is just repointing
-  one symlink — instant, and easy to roll back.
+  **Scenario**
+  Your team deploys web releases into versioned directories (`/opt/releases/v2`, `v3`, …) and a single symlink `current` always points at the live version. A new release just passed QA and needs to go live — and you also need to create a hard-linked backup of a critical data file so it survives even if the original path is removed.
 
-  ### What you need to do
+  **Your task:** Create and repoint the `/etc/app/current` symlink to track the latest release, and create `/data/file-hardlink` as a hard link to `/data/original.txt` sharing the same inode.
 
-  1. Create `/etc/app/current` as a symlink pointing to `/opt/releases/v2`.
-  2. A new version is ready. Repoint `/etc/app/current` to
-     `/opt/releases/v3` — don't delete and recreate it as a real
-     directory, just repoint the symlink (`ln -sfn` is the standard way).
-  3. Separately: create a **hard link** named `/data/file-hardlink` that
-     points to `/data/original.txt`. Unlike a symlink, a hard link shares
-     the exact same inode as the original — prove you understand this by
-     making sure `stat -c %i` reports the same inode number for both.
+  **What You'll Deliver**
+  - `/etc/app/current` symlink created pointing to `/opt/releases/v2`
+  - `/etc/app/current` atomically repointed to `/opt/releases/v3` without recreating it
+  - `/data/file-hardlink` created as a hard link to `/data/original.txt` (same inode number)
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  ln -s /opt/releases/v2 /etc/app/current      # create symlink
-  ln -sfn /opt/releases/v3 /etc/app/current    # atomically repoint it
-  ln /data/original.txt /data/file-hardlink    # hard link (no -s)
-  stat -c %i /data/original.txt
-  ```
+  1. `ln -s /opt/releases/v2 /etc/app/current`
+  2. `ln -sfn /opt/releases/v3 /etc/app/current`
+  3. `ln /data/original.txt /data/file-hardlink`
+  4. `stat -c %i /data/original.txt /data/file-hardlink`
 
 tasks:
   - id: "create-symlink"

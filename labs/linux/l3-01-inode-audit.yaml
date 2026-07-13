@@ -20,31 +20,24 @@ objectives:
 instructions: |
   ## Auditing Inode & File Count Usage
 
-  Here's a surprising real-world failure: `df -h` shows plenty of free
-  space, yet writes fail with "No space left on device". The cause is
-  almost always **inode exhaustion** — every file (even a 0-byte one)
-  consumes one inode, and a filesystem has a fixed number of them. A
-  directory that accumulates huge numbers of tiny files (session files,
-  temp uploads, cache entries) is the usual culprit.
+  **Scenario**
+  Overnight monitoring flagged write failures on the app server with "No space left on device" — yet `df -h` shows gigabytes free. The real culprit is inode exhaustion: the cache directory has accumulated hundreds of tiny session files, each consuming one inode from a finite pool. You need to find which subdirectory is the offender and clean it out.
 
-  ### What you need to do
+  **Your task:** Count files per subdirectory under `/var/cache/app`, write the counts to `/root/inode-report.txt`, identify the worst offender in `/root/culprit-dir.txt`, then delete all files inside it to reclaim the inodes.
 
-  1. `/var/cache/app` has three subdirectories: `sessions`, `uploads`, and
-     `tmp`. For each one, count the number of files it contains and write
-     one line per directory in the form `<dirname>:<count>` to
-     `/root/inode-report.txt` (dirname only, not the full path).
-  2. Based on your report, identify which directory has by far the most
-     files and write **just its name** (e.g. `sessions`) to
-     `/root/culprit-dir.txt`.
-  3. Delete every file inside that directory to reclaim the inodes (leave
-     the empty directory itself in place).
+  **What You'll Deliver**
+  - `/root/inode-report.txt` with one `dirname:count` line per subdirectory
+  - `/root/culprit-dir.txt` containing the name of the directory with the most files
+  - All files removed from the culprit directory (directory itself left in place)
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  find /var/cache/app/sessions -type f | wc -l
-  find /var/cache/app/<culprit> -type f -delete
-  ```
+  1. `find /var/cache/app/sessions -type f | wc -l`
+  2. `find /var/cache/app/uploads -type f | wc -l`
+  3. `find /var/cache/app/tmp -type f | wc -l`
+  4. `printf 'sessions:%s\nuploads:%s\ntmp:%s\n' $(find /var/cache/app/sessions -type f | wc -l) $(find /var/cache/app/uploads -type f | wc -l) $(find /var/cache/app/tmp -type f | wc -l) > /root/inode-report.txt`
+  5. `echo sessions > /root/culprit-dir.txt`
+  6. `find /var/cache/app/sessions -type f -delete`
 
 tasks:
   - id: "count-per-dir"

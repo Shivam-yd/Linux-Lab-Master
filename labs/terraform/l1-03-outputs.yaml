@@ -18,43 +18,28 @@ objectives:
 - "Redirect a single output's raw value to a file with -raw"
 
 instructions: |
-  ## Outputs surface information after apply
+  ## Output Values
 
-  A resource's attributes are only useful if something can read them.
-  \`output\` blocks expose values after \`apply\` — for a human running
-  \`terraform output\`, or for another config to consume (see the
-  remote-state data source lab later in this track).
+  **Scenario**
+  Your CI pipeline applies Terraform and then needs to pass the resulting resource identifier downstream to a deployment script — but the script has no way to read `terraform.tfstate` directly. The platform team has asked you to add an `output` block so the value is accessible via `terraform output`, and to write the raw value to a file that the downstream script can consume.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write `main.tf` with a `terraform_data.message` resource, write `outputs.tf` declaring a `message_value` output referencing `terraform_data.message.output`, apply the config, and write the raw output value to `/root/tf-lab/message.txt`.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `outputs.tf` declaring `output "message_value"` referencing `terraform_data.message.output`
+  - `/root/tf-lab/message.txt` containing the raw output value written by `terraform output -raw`
 
   ## Steps
 
-  ### 1 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "message" {
-    input = "shipped"
-  }
-  \`\`\`
-
-  ### 2 — outputs.tf
-
-  \`\`\`hcl
-  output "message_value" {
-    value = terraform_data.message.output
-  }
-  \`\`\`
-
-  ### 3 — Apply and read the output
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  terraform output message_value
-  terraform output -raw message_value > /root/tf-lab/message.txt
-  \`\`\`
+  1. `cd /root/tf-lab`
+  2. Write `main.tf` with `resource "terraform_data" "message" { input = "shipped" }`
+  3. Write `outputs.tf` with `output "message_value" { value = terraform_data.message.output }`
+  4. `terraform init`
+  5. `terraform apply -auto-approve`
+  6. `terraform output message_value`
+  7. `terraform output -raw message_value > /root/tf-lab/message.txt`
 
 tasks:
 - id: "output_declared"

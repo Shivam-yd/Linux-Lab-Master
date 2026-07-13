@@ -18,53 +18,46 @@ objectives:
 - "Fix the input so the postcondition passes and apply succeeds"
 
 instructions: |
-  ## postcondition: verify a resource's own result
+  ## Lifecycle Postconditions
 
-  A postcondition lives inside lifecycle {} on a resource or data block and
-  is checked right after that resource is created or read. Unlike a
-  variable validation (checked before anything is touched), a
-  postcondition checks the *result*, which can depend on computed values.
+  **Scenario**
+  A production incident was traced to a deployment that slipped through with only one replica — the engineer had set `replica_count=1` locally for testing and accidentally applied it to staging. Variable validation catches bad types, but it can't inspect the value that Terraform actually computed and stored. You need an in-resource guard that aborts apply whenever the applied replica count falls below the high-availability minimum of 2.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write `variables.tf` and `main.tf` in `/root/tf-lab` where `terraform_data.replicas` has a `lifecycle` block containing a `postcondition` that checks `self.output >= 2`, then demonstrate the failure with `replica_count=1` and a successful apply with `replica_count=3`.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - A `postcondition` block inside `terraform_data.replicas`'s `lifecycle` that references `self.output`
+  - A failed apply attempt with `-var="replica_count=1"` confirming the guard triggers
+  - A successful apply with `-var="replica_count=3"` with state reflecting the valid count
 
   ## Steps
 
-  ### 1 — variables.tf
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `variables.tf`:
+     ```hcl
+     variable "replica_count" {
+       type    = number
+       default = 3
+     }
+     ```
+  3. Create `main.tf`:
+     ```hcl
+     resource "terraform_data" "replicas" {
+       input = var.replica_count
 
-  \`\`\`hcl
-  variable "replica_count" {
-    type    = number
-    default = 3
-  }
-  \`\`\`
-
-  ### 2 — main.tf with a postcondition
-
-  \`\`\`hcl
-  resource "terraform_data" "replicas" {
-    input = var.replica_count
-
-    lifecycle {
-      postcondition {
-        condition     = tonumber(self.output) >= 2
-        error_message = "replica_count must resolve to at least 2 for high availability."
-      }
-    }
-  }
-  \`\`\`
-
-  ### 3 — Trigger the failure, then fix it
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve -var="replica_count=1"
-  # Expect a postcondition failure
-
-  terraform apply -auto-approve -var="replica_count=3"
-  # Succeeds
-  \`\`\`
+       lifecycle {
+         postcondition {
+           condition     = tonumber(self.output) >= 2
+           error_message = "replica_count must resolve to at least 2 for high availability."
+         }
+       }
+     }
+     ```
+  4. `terraform init`
+  5. `terraform apply -auto-approve -var="replica_count=1"` — expect a postcondition failure
+  6. `terraform apply -auto-approve -var="replica_count=3"` — expect success
 
 tasks:
 - id: "postcondition_declared"

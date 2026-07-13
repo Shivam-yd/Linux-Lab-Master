@@ -20,66 +20,22 @@ objectives:
 instructions: |
   ## Configure Jenkins Job for Package Installation
 
-  Every Jenkins **freestyle job** is defined by a `config.xml` inside its job
-  directory. The `<builders>` section lists the build steps that run in order.
-  A **Shell** build step runs arbitrary bash commands inside the job's workspace.
+  **Scenario**
+  A new `install-packages` job was added to Jenkins but was committed with an empty `<builders/>` section — it does nothing when it runs. The pipeline team needs it to install `curl` as a dependency before downstream steps can execute. You need to wire in the shell build step and confirm the XML is valid before anyone tries to run the job in production.
 
-  ### Job config.xml structure
+  **Your task:** Edit `/var/lib/jenkins/jobs/install-packages/config.xml` to replace the empty `<builders/>` tag with a `hudson.tasks.Shell` step that runs `apt-get install -y curl`, then validate the XML with `xmllint` and write `XML OK` to `/root/xml-check.txt`.
 
-  ```xml
-  <?xml version='1.1' encoding='UTF-8'?>
-  <project>
-    <description>...</description>
-    <builders>
-      <hudson.tasks.Shell>
-        <command>your shell command here</command>
-      </hudson.tasks.Shell>
-    </builders>
-    <publishers/>
-    <buildWrappers/>
-  </project>
-  ```
-
-  ### Your tasks
-
-  1. Replace the empty `<builders/>` tag in the job config with a Shell step that runs `apt-get install -y curl`
-  2. Validate the XML with `xmllint` and save the result (`XML OK`) to `/root/xml-check.txt`
+  **What You'll Deliver**
+  - `config.xml` updated with a `hudson.tasks.Shell` build step containing `apt-get install -y curl`
+  - `/root/xml-check.txt` containing `XML OK` confirming the file is well-formed
 
   ## Steps
 
-  ### Step 1 — Inspect the existing job
-
-  ```bash
-  cat /var/lib/jenkins/jobs/install-packages/config.xml
-  ```
-
-  Notice `<builders/>` is self-closing — no build steps yet.
-
-  ### Step 2 — Add the Shell build step
-
-  Replace the empty tag with a full builders block:
-
-  ```bash
-  sed -i 's|<builders/>|<builders>\n  <hudson.tasks.Shell>\n    <command>apt-get install -y curl</command>\n  </hudson.tasks.Shell>\n</builders>|' \
-    /var/lib/jenkins/jobs/install-packages/config.xml
-  ```
-
-  Confirm the change:
-
-  ```bash
-  grep -A4 builders /var/lib/jenkins/jobs/install-packages/config.xml
-  ```
-
-  ### Step 3 — Validate the XML
-
-  Jenkins refuses to load a job with malformed XML. Check it first:
-
-  ```bash
-  xmllint --noout /var/lib/jenkins/jobs/install-packages/config.xml \
-    && echo "XML OK" > /root/xml-check.txt \
-    || echo "XML ERROR" > /root/xml-check.txt
-  cat /root/xml-check.txt
-  ```
+  1. `cat /var/lib/jenkins/jobs/install-packages/config.xml`
+  2. `sed -i 's|<builders/>|<builders>\n  <hudson.tasks.Shell>\n    <command>apt-get install -y curl</command>\n  </hudson.tasks.Shell>\n</builders>|' /var/lib/jenkins/jobs/install-packages/config.xml`
+  3. `grep -A4 builders /var/lib/jenkins/jobs/install-packages/config.xml`
+  4. `xmllint --noout /var/lib/jenkins/jobs/install-packages/config.xml && echo "XML OK" > /root/xml-check.txt || echo "XML ERROR" > /root/xml-check.txt`
+  5. `cat /root/xml-check.txt`
 
 tasks:
   - id: "add-shell-step"

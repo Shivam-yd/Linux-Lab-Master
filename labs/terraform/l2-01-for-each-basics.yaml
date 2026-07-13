@@ -18,46 +18,28 @@ objectives:
 - "Explain when for_each is a better fit than count (stable keys vs. positional index)"
 
 instructions: |
-  ## for_each: keyed instead of indexed
+  ## Multiple Resources with for_each
 
-  count.index is positional — insert an element in the middle of a list and
-  every resource after it gets renumbered, forcing needless
-  destroy/recreate. for_each avoids that: each instance is addressed by a
-  stable key (a map key, or the set element itself), so adding or removing
-  one element only affects that one instance.
+  **Scenario**
+  Your platform team needs to create a workspace resource for each of three product teams. You originally used `count`, but when the billing team was removed from the middle of the list, Terraform renumbered the indices and destroyed the wrong workspaces. You need stable, name-keyed resource addressing so adding or removing one team only affects that one resource.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Create `variables.tf` and `main.tf` in `/root/tf-lab` using a `set(string)` variable `teams` and `for_each` on `terraform_data.team_workspace`, referencing `each.value` in the input, then apply so three keyed instances appear in state.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `variables.tf` declaring `teams` as `type = set(string)` with values `"platform"`, `"billing"`, `"growth"`
+  - `terraform_data.team_workspace` using `for_each = var.teams` and `input` referencing `each.value`
+  - Three keyed instances (`["billing"]`, `["growth"]`, `["platform"]`) confirmed in state
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  \`\`\`hcl
-  variable "teams" {
-    type    = set(string)
-    default = ["platform", "billing", "growth"]
-  }
-  \`\`\`
-
-  ### 2 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "team_workspace" {
-    for_each = var.teams
-    input    = "workspace-for-\${each.value}"
-  }
-  \`\`\`
-
-  ### 3 — Apply and inspect
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  terraform state list
-  # → terraform_data.team_workspace["billing"], ["growth"], ["platform"]
-  \`\`\`
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `variables.tf` with `variable "teams" { type = set(string); default = ["platform", "billing", "growth"] }`
+  3. Create `main.tf` with `terraform_data.team_workspace` using `for_each = var.teams` and `input = "workspace-for-${each.value}"`
+  4. `terraform init`
+  5. `terraform apply -auto-approve`
+  6. `terraform state list`
 
 tasks:
 - id: "for_each_declared"

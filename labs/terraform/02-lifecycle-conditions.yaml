@@ -19,79 +19,29 @@ objectives:
   - "Apply successfully once the input satisfies both conditions"
 
 instructions: |
-  ## Scenario
+  ## Terraform Custom Conditions: Preconditions
 
-  Type constraints and variable `validation {}` blocks only catch bad input
-  *before* Terraform touches any resource. Sometimes you need to assert
-  something about a resource's computed value, or about the relationship
-  between two resources — that's what **custom conditions** (Terraform 1.2+)
-  are for: a `precondition` block inside a resource's `lifecycle {}`, and a
-  `precondition` block on an output. (Note: outputs only support
-  `precondition`, not `postcondition` — only *resource* and *data source*
-  blocks support postconditions.)
+  **Scenario**
+  A colleague passed `replica_count=50` to a shared Terraform module last week and Terraform happily applied it — spinning up 50 instances before anyone noticed the config was wrong. Type validation alone wasn't enough because the constraint requires checking against a range, not just a type. You've been asked to add `precondition` blocks so Terraform fails fast with a clear error before any resource is created or any output is exposed.
 
-  Working directory: `/root/tf-lab`
+  **Your task:** Write `variables.tf` with a `replica_count` variable, write `main.tf` with a `terraform_data` resource that has a lifecycle `precondition` asserting the count is between 1 and 10, write `outputs.tf` with an output `precondition`, then run `terraform apply` with a valid value and verify the failure message appears when you pass an invalid value.
 
-  **Tip**: use heredocs to write files (no text editor installed):
-  ```sh
-  cat > main.tf <<'EOF'
-  # your HCL here
-  EOF
-  ```
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
 
-  ---
+  **What You'll Deliver**
+  - `main.tf` with a `terraform_data` resource containing a `lifecycle { precondition { ... } }` block
+  - `outputs.tf` with an output block containing a `precondition` block
+  - A successful `terraform apply` recorded in state with a valid `replica_count`
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  ```hcl
-  variable "replica_count" {
-    type    = number
-    default = 3
-  }
-  ```
-
-  ### 2 — main.tf with a resource precondition
-
-  Declare a `terraform_data` resource whose `lifecycle` block asserts the
-  replica count is sane *before* Terraform creates it:
-
-  ```hcl
-  resource "terraform_data" "fleet" {
-    input = { replicas = var.replica_count }
-
-    lifecycle {
-      precondition {
-        condition     = var.replica_count >= 1 && var.replica_count <= 10
-        error_message = "replica_count must be between 1 and 10, got ${var.replica_count}."
-      }
-    }
-  }
-  ```
-
-  ### 3 — outputs.tf with an output precondition
-
-  ```hcl
-  output "replicas" {
-    value = terraform_data.fleet.output.replicas
-
-    precondition {
-      condition     = terraform_data.fleet.output.replicas > 0
-      error_message = "replicas output must be a positive number."
-    }
-  }
-  ```
-
-  ### 4 — Apply, then trigger the failure
-
-  ```sh
-  terraform init
-  terraform apply -auto-approve
-  # Now break the assumption on purpose:
-  terraform apply -auto-approve -var="replica_count=50"
-  # Expect: "replica_count must be between 1 and 10, got 50."
-  ```
+  1. `cd /root/tf-lab`
+  2. Write `variables.tf` declaring `variable "replica_count" { type = number; default = 3 }`
+  3. Write `main.tf` with a `terraform_data "fleet"` resource whose `lifecycle` block contains a `precondition` asserting `var.replica_count >= 1 && var.replica_count <= 10`
+  4. Write `outputs.tf` with an `output "replicas"` block whose `precondition` asserts `terraform_data.fleet.output.replicas > 0`
+  5. `terraform init`
+  6. `terraform apply -auto-approve`
+  7. `terraform apply -auto-approve -var="replica_count=50"` — expect the precondition error message
 
 tasks:
   - id: "resource_precondition"

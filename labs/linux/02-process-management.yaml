@@ -17,26 +17,24 @@ objectives:
 instructions: |
   ## Process Management & Signals
 
-  Every running program in Linux is a **process** with a unique PID, owner, and
-  priority.  Understanding how to inspect, control, and prioritise processes is
-  a core sysadmin skill.
+  **Scenario**
+  Your team's app server is running sluggishly and another engineer suspects a runaway background script is consuming CPU. You need to identify the offending process, deprioritise it so production traffic can recover, and then shut it down cleanly — without a hard reboot that would lose in-flight requests.
 
-  ### Key commands
+  **Your task:** Launch a background heartbeat process that logs to `/tmp/heartbeat.log`, record its PID in `/tmp/heartbeat.pid`, lower its scheduling priority to `+10`, then terminate it gracefully with `SIGTERM`.
 
-  ```bash
-  ps aux                      # snapshot of all processes
-  top / htop                  # live view
-  kill -SIGTERM <pid>         # ask process to exit gracefully
-  kill -SIGKILL <pid>         # force-kill (unblockable)
-  kill -SIGHUP  <pid>         # reload config (many daemons)
-  nice  -n 10 <cmd>           # start with lower priority
-  renice -n 5  -p <pid>       # change priority of running process
-  ```
+  **What You'll Deliver**
+  - `/tmp/heartbeat.log` with at least two timestamped entries
+  - `/tmp/heartbeat.pid` containing the process PID
+  - Heartbeat process reniced to `+10`
+  - Process stopped cleanly via `SIGTERM`
 
-  ### niceness
+  ## Steps
 
-  Values run from **-20** (highest priority) to **+19** (lowest).  Only root
-  can set negative nice values.
+  1. `while true; do date >> /tmp/heartbeat.log; sleep 1; done & echo $! > /tmp/heartbeat.pid`
+  2. `cat /tmp/heartbeat.pid | xargs ps -p`
+  3. `renice -n 10 -p $(cat /tmp/heartbeat.pid)`
+  4. `kill -SIGTERM $(cat /tmp/heartbeat.pid)`
+  5. `kill -0 $(cat /tmp/heartbeat.pid) 2>/dev/null && echo "still running" || echo "stopped"`
 
 tasks:
   - id: "background-proc"

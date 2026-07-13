@@ -19,45 +19,29 @@ objectives:
 - "Confirm the override took effect by inspecting state"
 
 instructions: |
-  ## Variables let configs be reused with different inputs
+  ## Variables with Types and Defaults
 
-  Without variables, changing any value means editing the .tf file itself.
-  A `variable` block declares a named input with a type and (optionally) a
-  default, so the same config can be applied with different values.
+  **Scenario**
+  Your team deploys the same Terraform config across three environments — dev, staging, and prod — but a junior engineer has been editing the `.tf` file directly to change the environment name before each apply, accidentally committing prod values into the dev branch twice this month. You need to introduce a typed input variable with a safe default so the config works without edits and the correct value is passed at apply time.
 
-  Working directory: `/root/tf-lab`
+  **Your task:** Write `variables.tf` declaring an `environment_name` string variable with a default of `"dev"`, write `main.tf` referencing `var.environment_name`, apply with the default, then apply again overriding the value to `"staging"` and confirm state reflects the new value.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `variables.tf` declaring `environment_name` as a typed string variable with a default
+  - `main.tf` with a `terraform_data` resource whose `input` references `var.environment_name`
+  - `terraform.tfstate` reflecting the overridden value `"staging"` after the second apply
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  ```hcl
-  variable "environment_name" {
-    type    = string
-    default = "dev"
-  }
-  ```
-
-  ### 2 — main.tf referencing the variable
-
-  ```hcl
-  resource "terraform_data" "environment" {
-    input = var.environment_name
-  }
-  ```
-
-  ### 3 — Apply with the default, then override
-
-  ```sh
-  terraform init
-  terraform apply -auto-approve
-  # environment_name defaults to "dev" — check terraform.tfstate
-
-  terraform apply -auto-approve -var="environment_name=staging"
-  # now the state should show "staging" instead
-  ```
+  1. `cd /root/tf-lab`
+  2. Write `variables.tf` with `variable "environment_name" { type = string; default = "dev" }`
+  3. Write `main.tf` with `resource "terraform_data" "environment" { input = var.environment_name }`
+  4. `terraform init`
+  5. `terraform apply -auto-approve`
+  6. `terraform apply -auto-approve -var="environment_name=staging"`
+  7. `grep staging terraform.tfstate` — confirm the overridden value is recorded
 
 tasks:
 - id: "variable_declared"

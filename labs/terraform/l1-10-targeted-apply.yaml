@@ -18,40 +18,27 @@ objectives:
 - "Confirm the untargeted resource is still present in state"
 
 instructions: |
-  ## -target: operate on one resource at a time
+  ## Targeted Operations with -target
 
-  Normally apply/destroy act on the whole config. -target=<address> scopes
-  the operation to just that resource (and anything it depends on). It's an
-  escape hatch for emergencies, not a normal workflow — but it's essential
-  to know when a full apply/destroy would be too broad.
+  **Scenario**
+  Your team's staging environment has a broken cache instance that needs to be torn down and rebuilt, but the queue next to it is processing live jobs and must not be touched. A full `terraform destroy` would wipe both, causing an outage. You need to surgically remove only the cache resource.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Create a `main.tf` in `/root/tf-lab` defining both `terraform_data.cache` and `terraform_data.queue`, apply both, then destroy only `terraform_data.cache` using `-target`, leaving `queue` untouched in state.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `main.tf` defining both `terraform_data.cache` and `terraform_data.queue`
+  - `terraform_data.cache` destroyed via `-target` while `terraform_data.queue` remains in state
 
   ## Steps
 
-  ### 1 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "cache" {
-    input = "cache-instance"
-  }
-
-  resource "terraform_data" "queue" {
-    input = "queue-instance"
-  }
-  \`\`\`
-
-  ### 2 — Apply everything, then destroy just one resource
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  terraform destroy -auto-approve -target=terraform_data.cache
-  terraform state list
-  # → only terraform_data.queue should remain
-  \`\`\`
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `main.tf` with both `terraform_data.cache` and `terraform_data.queue` resources
+  3. `terraform init`
+  4. `terraform apply -auto-approve`
+  5. `terraform destroy -auto-approve -target=terraform_data.cache`
+  6. `terraform state list`
 
 tasks:
 - id: "both_resources_defined"

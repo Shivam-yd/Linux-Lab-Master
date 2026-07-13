@@ -18,42 +18,25 @@ objectives:
 - "Confirm both resources apply successfully with the dependency declared"
 
 instructions: |
-  ## Implicit vs explicit dependencies
+  ## Resource Dependencies with depends_on
 
-  Normally, if resource B reads an attribute from resource A (like
-  terraform_data.a.output), Terraform automatically creates A first. But
-  sometimes two resources must be ordered even though neither references the
-  other's attributes — that's what depends_on is for.
+  **Scenario**
+  Your team's configuration provisions an application server that must only be deployed after the network layer is ready. The two resources share no attribute references — the app just uses a hardcoded string — so Terraform has no way to infer the correct order on its own. A race condition in staging last week caused the app to start before networking was ready.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write a `main.tf` in `/root/tf-lab` defining `terraform_data.network_setup` and `terraform_data.app_deploy`, where `app_deploy` uses `depends_on` to explicitly require `network_setup` first, then apply both resources.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `terraform_data.app_deploy` configured with `depends_on = [terraform_data.network_setup]`
+  - Both resources applied and recorded in state
 
   ## Steps
 
-  ### 1 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "network_setup" {
-    input = "network-ready"
-  }
-
-  resource "terraform_data" "app_deploy" {
-    input      = "app-deployed"
-    depends_on = [terraform_data.network_setup]
-  }
-  \`\`\`
-
-  Here app_deploy doesn't read anything from network_setup — its input is a
-  plain string. Without depends_on, Terraform would have no reason to order
-  them at all. With it, network_setup is guaranteed to apply first.
-
-  ### 2 — Apply
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  \`\`\`
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `main.tf` with both `terraform_data.network_setup` and `terraform_data.app_deploy`; add `depends_on = [terraform_data.network_setup]` inside `app_deploy`
+  3. `terraform init`
+  4. `terraform apply -auto-approve`
 
 tasks:
 - id: "depends_on_declared"

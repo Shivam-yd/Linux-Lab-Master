@@ -22,31 +22,25 @@ objectives:
 instructions: |
   ## Cron & Task Scheduling
 
-  `cron` runs recurring jobs on a schedule; `at` runs a job once at a future
-  time. Every Linux sysadmin needs to be comfortable scheduling both.
+  **Scenario**
+  Your team needs two automation tasks set up on a production server: a recurring heartbeat job that timestamps a log file every minute (used by the monitoring system to confirm the cron daemon is healthy), and a one-off maintenance task to run shortly after a deployment window opens. Both must be in place before the next deployment in 30 minutes.
 
-  This sandbox is Alpine Linux, so cron is provided by BusyBox's
-  `crond`/`crontab`. There's no text editor besides BusyBox's minimal `vi`,
-  so avoid `crontab -e` and pipe entries straight into `crontab -` instead.
+  **Your task:** Install a root crontab that appends the current date to `/var/log/heartbeat-cron.log` every minute, confirm the job has executed at least once, and schedule a one-off `at` job that writes `scheduled-task-ran` to `/root/at-output.txt`.
 
-  ### Cron expression format
+  No text editor is installed — use shell redirection: `echo "..." >> file` or `cat > file <<'EOF' ... EOF`
 
-  ```
-  * * * * *  command
-  │ │ │ │ │
-  │ │ │ │ └─ day of week (0-6, Sun=0)
-  │ │ │ └─── month (1-12)
-  │ │ └───── day of month (1-31)
-  │ └─────── hour (0-23)
-  └───────── minute (0-59)
-  ```
+  **What You'll Deliver**
+  - Root crontab entry running `date >> /var/log/heartbeat-cron.log` every minute
+  - `/var/log/heartbeat-cron.log` with at least one entry confirming the job ran
+  - `/root/at-output.txt` containing `scheduled-task-ran` from the `at` job
 
-  ### Managing your crontab
+  ## Steps
 
-  ```bash
-  crontab -l       # list current user's cron jobs
-  crontab -e       # edit current user's cron jobs (opens vi — avoid in-browser)
-  ```
+  1. `(crontab -l 2>/dev/null; echo '* * * * * date >> /var/log/heartbeat-cron.log') | crontab -`
+  2. `crontab -l`
+  3. Wait ~60 seconds, then: `cat /var/log/heartbeat-cron.log`
+  4. `echo "echo scheduled-task-ran > /root/at-output.txt" | at now + 1 minute`
+  5. After a minute: `cat /root/at-output.txt`
 
 tasks:
   - id: "install-crontab"

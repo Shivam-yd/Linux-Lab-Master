@@ -20,28 +20,23 @@ objectives:
 instructions: |
   ## Diagnosing Port Conflicts
 
-  "Error: address already in use" is one of the most common deployment
-  failures. The fix is always the same three steps: find who's holding the
-  port, decide whether it's safe to stop, then free it.
+  **Scenario**
+  Your new service fails to start with "Error: address already in use" on port 8080. A legacy process left over from the previous deploy is still holding the port. Until you identify and remove it, your service cannot bind — and the deployment stays broken.
 
-  ### What you need to do
+  **Your task:** Identify the PID holding port 8080, write it to `/root/blocker-pid.txt`, kill it, then start your own listener on port 8080 to confirm the port is now yours.
 
-  1. Something is already listening on port `8080`. Use `netstat -tlnp` to
-     find the **PID** of the process holding it, and write just that PID
-     to `/root/blocker-pid.txt`.
-  2. Kill that exact PID so port 8080 is free.
-  3. Start your own listener on port 8080 (e.g. `nc -lk -p 8080 &`) and
-     confirm it's listening — this will be a **different PID** than the
-     one you killed.
+  **What You'll Deliver**
+  - `/root/blocker-pid.txt` containing the PID of the process that was blocking port 8080
+  - Blocking process killed, freeing port 8080
+  - New listener running on port 8080 under a different PID
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  netstat -tlnp | grep :8080          # last column is pid/program-name
-  kill <pid>
-  nc -lk -p 8080 &
-  netstat -tlnp | grep :8080
-  ```
+  1. `netstat -tlnp | grep :8080`
+  2. `echo <pid> > /root/blocker-pid.txt`
+  3. `kill <pid>`
+  4. `nc -lk -p 8080 &`
+  5. `netstat -tlnp | grep :8080`
 
 tasks:
   - id: "identify-blocker"

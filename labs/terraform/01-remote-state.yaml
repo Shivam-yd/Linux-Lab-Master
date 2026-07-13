@@ -17,30 +17,26 @@ objectives:
 instructions: |
   ## Remote State with S3 Backend
 
-  By default Terraform stores state in a local `terraform.tfstate` file.  This
-  works fine for solo projects but breaks down in teams: two people running
-  `apply` simultaneously can corrupt state.
+  **Scenario**
+  Two engineers on your team ran `terraform apply` at the same time this morning. Both read the same local `terraform.tfstate`, both wrote back conflicting versions, and now state is corrupted — resources exist in AWS that Terraform no longer tracks. Your team lead has asked you to migrate the project to an S3 remote backend with DynamoDB locking so this can never happen again.
 
-  **Remote backends** solve this by:
-  - Storing state in a shared, versioned location (S3)
-  - Locking state during operations so only one apply runs at a time (DynamoDB)
+  **Your task:** Configure an S3 backend in `backend.tf` pointing at LocalStack, create the `tf-state-lab` bucket, run `terraform init` to migrate state to the remote backend, and save the output of `terraform state list` to `/root/state-list.txt`.
 
-  ### Backend configuration
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
 
-  ```hcl
-  terraform {
-    backend "s3" {
-      bucket         = "my-tf-state-bucket"
-      key            = "envs/prod/terraform.tfstate"
-      region         = "us-east-1"
-      dynamodb_table = "terraform-lock"
-      encrypt        = true
-    }
-  }
-  ```
+  **What You'll Deliver**
+  - `backend.tf` created with S3 backend configured to use the LocalStack endpoint
+  - `tf-state-lab` S3 bucket created in LocalStack via the AWS CLI
+  - Terraform initialised against the remote backend (`.terraform` directory present)
+  - `/root/state-list.txt` containing the output of `terraform state list`
 
-  In this lab we use **LocalStack** (an AWS emulator running in the container)
-  so you can practise the full workflow without real AWS credentials.
+  ## Steps
+
+  1. `mkdir -p /root/lab && cd /root/lab`
+  2. Write `backend.tf` with an S3 backend block: `bucket = "tf-state-lab"`, `key = "lab/terraform.tfstate"`, `region = "us-east-1"`, `endpoint = "http://localhost:4566"`, `skip_credentials_validation = true`, `skip_metadata_api_check = true`, `encrypt = true`
+  3. `aws --endpoint-url=http://localhost:4566 s3 mb s3://tf-state-lab`
+  4. `terraform init -migrate-state` (answer `yes` when prompted)
+  5. `terraform state list > /root/state-list.txt`
 
 tasks:
   - id: "write-backend"

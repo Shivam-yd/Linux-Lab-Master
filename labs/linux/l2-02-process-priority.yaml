@@ -20,30 +20,24 @@ objectives:
 instructions: |
   ## Process Priority & Runaway Processes
 
-  A teammate reports the server "feels slow." A classic cause: some
-  background job stuck in an infinite loop, burning 100% of a CPU core
-  while everything else starves for scheduling time.
+  **Scenario**
+  A teammate reports the server "feels slow" after a deployment. Monitoring confirms one CPU core is pegged at 100% — a background job is spinning in an infinite loop, starving every other process of scheduling time. You need to kill the runaway, deprioritise a long-running batch job without restarting it, and launch a new low-priority worker.
 
-  ### What you need to do
+  **Your task:** Kill the `cpu-hog.sh` runaway process, renice the sleeper at `/root/sleeper.pid` to nice value 10, and launch `sleep 300` at nice value 15 saving its PID to `/root/niced.pid`.
 
-  1. There's a runaway process called `cpu-hog.sh` spinning in a busy loop.
-     Kill it (`pkill -f cpu-hog.sh`) so it stops consuming CPU.
-  2. A long-running `sleep` process (its PID is saved in `/root/sleeper.pid`)
-     is currently running at normal priority. Change its priority to
-     **nice value 10** using `renice`, without restarting it.
-  3. Launch a brand-new `sleep 300` in the background at **nice value 15**
-     from the start (`nice -n 15 sleep 300 &`), and save its PID to
-     `/root/niced.pid`.
+  **What You'll Deliver**
+  - `cpu-hog.sh` process terminated
+  - Sleeper process reniced to nice value 10 (in place, without restart)
+  - New `sleep 300` launched at nice value 15 with its PID saved to `/root/niced.pid`
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  pkill -f cpu-hog.sh
-  renice -n 10 -p <pid>
-  nice -n 15 sleep 300 &
-  echo $! > /root/niced.pid
-  cat /proc/<pid>/stat | awk '{print $19}'   # field 19 is the nice value
-  ```
+  1. `pkill -f cpu-hog.sh`
+  2. `cat /root/sleeper.pid`
+  3. `renice -n 10 -p $(cat /root/sleeper.pid)`
+  4. `nice -n 15 sleep 300 &`
+  5. `echo $! > /root/niced.pid`
+  6. `awk '{print $19}' /proc/$(cat /root/niced.pid)/stat`
 
 tasks:
   - id: "kill-hog"

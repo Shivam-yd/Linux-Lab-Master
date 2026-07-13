@@ -18,35 +18,27 @@ objectives:
 - "Confirm the expected number of instances appear in state"
 
 instructions: |
-  ## count: same resource, many copies
+  ## Multiple Resources with count
 
-  \`count\` turns a single resource block into a list of N instances,
-  addressed as \`resource_type.name[0]\`, \`[1]\`, etc. Inside the block,
-  \`count.index\` (0-based) lets each instance differ slightly.
+  **Scenario**
+  Your team needs to provision three identical worker nodes for a batch-processing pipeline. Writing a separate resource block for each one is tedious and error-prone — any change has to be made in three places. You need a single resource block that scales to however many instances the team asks for.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write a `main.tf` in `/root/tf-lab` that uses `count = 3` on a `terraform_data.worker` resource, references `count.index` in its `input`, and apply it so all three instances appear in state.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `terraform_data.worker` resource created with `count = 3`
+  - Each instance distinguished by `count.index` in its input value
+  - Three indexed instances (`worker[0]`, `worker[1]`, `worker[2]`) confirmed in state
 
   ## Steps
 
-  ### 1 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "worker" {
-    count = 3
-    input = "worker-\${count.index}"
-  }
-  \`\`\`
-
-  ### 2 — Apply and inspect
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  terraform state list
-  # → terraform_data.worker[0], terraform_data.worker[1], terraform_data.worker[2]
-  \`\`\`
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `main.tf` with a `terraform_data.worker` resource that sets `count = 3` and `input = "worker-${count.index}"`
+  3. `terraform init`
+  4. `terraform apply -auto-approve`
+  5. `terraform state list`
 
 tasks:
 - id: "count_used"

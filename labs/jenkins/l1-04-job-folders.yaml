@@ -20,62 +20,35 @@ objectives:
 instructions: |
   ## Organize Jenkins Jobs with Folders
 
-  In Jenkins every job — including **Folders** — is a directory inside
-  `$JENKINS_HOME/jobs/`. A Folder is just a special job whose `config.xml`
-  declares the `com.cloudbees.hudson.plugins.folder.Folder` project class.
-  Nested jobs live inside the folder's own `jobs/` sub-directory.
+  **Scenario**
+  Your Jenkins server has grown to dozens of flat jobs and the team can no longer find anything. The tech lead has asked you to introduce Folder organisation — specifically, to move all production-related jobs into a `production` folder so they're isolated from development jobs and easier to manage with folder-level permissions later.
 
-  ```
-  /var/lib/jenkins/jobs/
-  ├── production/                ← Folder job
-  │   ├── config.xml             ← declares class Folder
-  │   └── jobs/
-  │       └── test-job/          ← job nested inside the folder
-  │           └── config.xml
-  └── build-app/                 ← flat job (stays at root)
-  ```
+  **Your task:** Create a `production` Folder job at `/var/lib/jenkins/jobs/production/config.xml` with the correct Folder class declaration, move the existing `test-job` into `production/jobs/`, and record the folder config path in `/root/folder-path.txt`.
 
-  ### Your tasks
+  No text editor is installed — use shell redirection: `echo "..." >> file` or `cat > file <<'EOF' ... EOF`
 
-  1. Create the `production` folder by writing its `config.xml` with the Folder class
-  2. Move `test-job` into the folder's `jobs/` sub-directory
-  3. Write the string `/var/lib/jenkins/jobs/production/config.xml` to `/root/folder-path.txt`
+  **What You'll Deliver**
+  - `/var/lib/jenkins/jobs/production/config.xml` created with the `com.cloudbees.hudson.plugins.folder.Folder` class
+  - `test-job` moved to `/var/lib/jenkins/jobs/production/jobs/test-job`
+  - `/root/folder-path.txt` containing the string `/var/lib/jenkins/jobs/production/config.xml`
 
   ## Steps
 
-  ### Step 1 — Create the production folder
-
-  ```bash
-  mkdir -p /var/lib/jenkins/jobs/production/jobs
-  cat > /var/lib/jenkins/jobs/production/config.xml << 'EOF'
-  <?xml version='1.1' encoding='UTF-8'?>
-  <com.cloudbees.hudson.plugins.folder.Folder>
-    <description>Production pipeline jobs</description>
-    <views/>
-    <viewsTabBar/>
-  </com.cloudbees.hudson.plugins.folder.Folder>
-  EOF
-  ```
-
-  ### Step 2 — Move test-job into the folder
-
-  ```bash
-  mv /var/lib/jenkins/jobs/test-job \
-     /var/lib/jenkins/jobs/production/jobs/test-job
-  ```
-
-  ### Step 3 — Record the folder config path
-
-  ```bash
-  echo "/var/lib/jenkins/jobs/production/config.xml" > /root/folder-path.txt
-  ```
-
-  Verify the full structure:
-
-  ```bash
-  find /var/lib/jenkins/jobs -name config.xml
-  cat /root/folder-path.txt
-  ```
+  1. `mkdir -p /var/lib/jenkins/jobs/production/jobs`
+  2. ```
+     cat > /var/lib/jenkins/jobs/production/config.xml <<'EOF'
+     <?xml version='1.1' encoding='UTF-8'?>
+     <com.cloudbees.hudson.plugins.folder.Folder>
+       <description>Production pipeline jobs</description>
+       <views/>
+       <viewsTabBar/>
+     </com.cloudbees.hudson.plugins.folder.Folder>
+     EOF
+     ```
+  3. `mv /var/lib/jenkins/jobs/test-job /var/lib/jenkins/jobs/production/jobs/test-job`
+  4. `echo "/var/lib/jenkins/jobs/production/config.xml" > /root/folder-path.txt`
+  5. `find /var/lib/jenkins/jobs -name config.xml`
+  6. `cat /root/folder-path.txt`
 
 tasks:
   - id: "create-folder"

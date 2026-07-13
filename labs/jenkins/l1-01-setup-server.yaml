@@ -20,72 +20,34 @@ objectives:
 instructions: |
   ## Set Up Jenkins Server
 
-  Jenkins stores everything — jobs, plugins, build history, credentials — in one
-  directory called **JENKINS_HOME**. Before Jenkins can run, you need to tell it
-  where that directory is, create the expected sub-directories inside it, and
-  prepare a launch script so it can be started consistently.
+  **Scenario**
+  Your team is onboarding a new build server and Jenkins needs to be ready before tomorrow's release cycle begins. The senior engineer has handed you a bare Ubuntu box with the Jenkins WAR already placed at `/opt/jenkins/jenkins.war`. Jenkins won't start correctly without a defined home directory and a consistent launch script — that's your job to sort out before the morning stand-up.
 
-  ### Your tasks
+  **Your task:** Configure the server by adding `JENKINS_HOME=/var/lib/jenkins` to `/etc/environment`, creating the five standard sub-directories inside that path, and writing an executable launch script at `/usr/local/bin/start-jenkins.sh`.
 
-  1. Add `JENKINS_HOME=/var/lib/jenkins` to `/etc/environment`
-  2. Create the five standard sub-directories Jenkins expects inside that path
-  3. Write and make executable `/usr/local/bin/start-jenkins.sh`
+  No text editor is installed — use shell redirection: `echo "..." >> file` or `cat > file <<'EOF' ... EOF`
 
-  ### Key directories
-
-  | Directory | Purpose |
-  |-----------|---------|
-  | `jobs/` | Each job stored as a sub-directory |
-  | `plugins/` | Installed `.jpi`/`.hpi` plugin archives |
-  | `workspace/` | Cloned source code during builds |
-  | `logs/` | `jenkins.log` and GC logs |
-  | `secrets/` | Encrypted credentials |
-
-  ### Launch script requirements
-
-  The script at `/usr/local/bin/start-jenkins.sh` must:
-  - Export `JENKINS_HOME`
-  - Launch `/opt/jenkins/jenkins.war` with `exec java -jar`
-  - Set `--httpPort=8080`
-  - Be executable (`chmod +x`)
+  **What You'll Deliver**
+  - `JENKINS_HOME=/var/lib/jenkins` persisted in `/etc/environment`
+  - Five standard sub-directories (`jobs`, `plugins`, `workspace`, `logs`, `secrets`) created under `/var/lib/jenkins`
+  - `/usr/local/bin/start-jenkins.sh` created, executable, referencing `JENKINS_HOME`, `jenkins.war`, and port `8080`
 
   ## Steps
 
-  ### Step 1 — Set JENKINS_HOME
-
-  Persist the variable system-wide:
-
-  ```bash
-  echo 'JENKINS_HOME=/var/lib/jenkins' >> /etc/environment
-  export JENKINS_HOME=/var/lib/jenkins
-  ```
-
-  ### Step 2 — Create the directory structure
-
-  ```bash
-  mkdir -p /var/lib/jenkins/{jobs,plugins,workspace,logs,secrets}
-  ```
-
-  ### Step 3 — Write the launch script
-
-  ```bash
-  cat > /usr/local/bin/start-jenkins.sh << 'EOF'
-  #!/bin/bash
-  export JENKINS_HOME=/var/lib/jenkins
-  exec java -jar /opt/jenkins/jenkins.war \
-    --httpPort=8080 \
-    --logfile=$JENKINS_HOME/logs/jenkins.log
-  EOF
-  chmod +x /usr/local/bin/start-jenkins.sh
-  ```
-
-  Verify it works:
-
-  ```bash
-  grep JENKINS_HOME /etc/environment
-  ls /var/lib/jenkins/
-  /usr/local/bin/start-jenkins.sh --help 2>/dev/null || echo "Script exists and is executable"
-  ```
+  1. `echo 'JENKINS_HOME=/var/lib/jenkins' >> /etc/environment`
+  2. `export JENKINS_HOME=/var/lib/jenkins`
+  3. `mkdir -p /var/lib/jenkins/{jobs,plugins,workspace,logs,secrets}`
+  4. ```
+     cat > /usr/local/bin/start-jenkins.sh <<'EOF'
+     #!/bin/bash
+     export JENKINS_HOME=/var/lib/jenkins
+     exec java -jar /opt/jenkins/jenkins.war \
+       --httpPort=8080 \
+       --logfile=$JENKINS_HOME/logs/jenkins.log
+     EOF
+     ```
+  5. `chmod +x /usr/local/bin/start-jenkins.sh`
+  6. `grep JENKINS_HOME /etc/environment && ls /var/lib/jenkins/`
 
 tasks:
   - id: "set-jenkins-home"

@@ -19,83 +19,33 @@ objectives:
   - "Remove a resource from state tracking with terraform state rm"
 
 instructions: |
-  ## Scenario
+  ## Terraform State Manipulation: mv & rm
 
-  Refactoring a Terraform config — renaming a resource, splitting a module,
-  reorganizing files — changes a resource's *address* in code, but Terraform
-  doesn't know that's "the same" resource unless you tell it. Left alone, a
-  rename looks like "destroy the old one, create a new one." The state
-  subcommands (`state list`, `state mv`, `state rm`) let you fix that without
-  touching real infrastructure.
+  **Scenario**
+  Your team refactored the infrastructure codebase overnight, renaming `terraform_data.web_server` to `terraform_data.app_server` to match new naming conventions. When a teammate ran `terraform plan` this morning, Terraform wanted to destroy the live web server and create a new one — a production outage. You need to use `terraform state mv` to reconcile the state file with the renamed code, and then use `terraform state rm` to drop a throwaway resource from tracking without destroying it.
 
-  Working directory: `/root/tf-lab`
+  **Your task:** Apply an initial config with `terraform_data.web_server`, rename the resource to `app_server` in `main.tf`, run `terraform state mv` to reconcile state, confirm `terraform plan` shows no changes, then add and apply a `scratch` resource and remove it from state with `terraform state rm`.
 
-  **Tip**: use heredocs to write files (no text editor installed):
-  ```sh
-  cat > main.tf <<'EOF'
-  # your HCL here
-  EOF
-  ```
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
 
-  ---
+  **What You'll Deliver**
+  - `main.tf` updated to define `terraform_data.app_server` with no remaining reference to `web_server`
+  - State reconciled via `terraform state mv` so `terraform plan` reports "No changes"
+  - `terraform_data.scratch` applied and removed from state tracking with `terraform state rm`
 
   ## Steps
 
-  ### 1 — Initial config and apply
-
-  ```hcl
-  resource "terraform_data" "web_server" {
-    input = "nginx"
-  }
-  ```
-
-  ```sh
-  terraform init
-  terraform apply -auto-approve
-  terraform state list
-  # → terraform_data.web_server
-  ```
-
-  ### 2 — Rename in code
-
-  Edit `main.tf` so the resource is now called `app_server` instead of
-  `web_server` (same resource type, new local name):
-
-  ```hcl
-  resource "terraform_data" "app_server" {
-    input = "nginx"
-  }
-  ```
-
-  If you ran `terraform plan` right now, Terraform would want to destroy
-  `web_server` and create `app_server` — a real outage for a real resource.
-
-  ### 3 — Reconcile state with `state mv`
-
-  ```sh
-  terraform state mv terraform_data.web_server terraform_data.app_server
-  terraform plan
-  # → "No changes." — state now matches the renamed resource in code
-  ```
-
-  ### 4 — Remove a resource from state tracking
-
-  Add a second, throwaway resource, apply it, then stop Terraform from
-  managing it (without destroying it) using `state rm`:
-
-  ```hcl
-  resource "terraform_data" "scratch" {
-    input = "temporary"
-  }
-  ```
-
-  ```sh
-  terraform apply -auto-approve
-  touch /root/tf-lab/.scratch_applied   # marks that scratch was really applied, for the checker
-  terraform state rm terraform_data.scratch
-  terraform state list
-  # → scratch is gone from state, but was never destroyed
-  ```
+  1. `cd /root/tf-lab`
+  2. Write `main.tf` with `resource "terraform_data" "web_server" { input = "nginx" }`
+  3. `terraform init && terraform apply -auto-approve`
+  4. `terraform state list` — confirm `terraform_data.web_server` is tracked
+  5. Rewrite `main.tf` renaming the resource to `app_server` (keep `input = "nginx"`)
+  6. `terraform state mv terraform_data.web_server terraform_data.app_server`
+  7. `terraform plan` — confirm "No changes"
+  8. Add `resource "terraform_data" "scratch" { input = "temporary" }` to `main.tf` and run `terraform apply -auto-approve`
+  9. `touch /root/tf-lab/.scratch_applied`
+  10. `terraform state rm terraform_data.scratch`
+  11. `terraform state list` — confirm scratch is gone
 
 tasks:
   - id: "renamed_in_code"

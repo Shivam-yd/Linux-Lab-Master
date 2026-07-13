@@ -20,61 +20,34 @@ objectives:
 instructions: |
   ## Configure Jenkins User Access
 
-  A freshly installed Jenkins runs with **no security** — anyone with network
-  access can make changes. The first admin task is always enabling
-  authentication.
+  **Scenario**
+  A penetration test has just revealed that your company's Jenkins server is running with no authentication — any internal user can trigger builds, alter jobs, or expose credentials. Your manager has asked you to lock it down before the end of the day by enabling security and creating an admin account for the DevOps team.
 
-  Jenkins stores its security configuration in `$JENKINS_HOME/config.xml`.
-  User accounts live in `$JENKINS_HOME/users/<username>/config.xml`.
+  **Your task:** Enable security in `/var/lib/jenkins/config.xml` by setting `<useSecurity>` to `true`, create the `devops` user account at `/var/lib/jenkins/users/devops/config.xml`, and grant that user admin rights by adding `devops` as an `adminids` entry in the `<authorizationStrategy>` block.
 
-  ### Your tasks
+  No text editor is installed — use shell redirection: `echo "..." >> file` or `cat > file <<'EOF' ... EOF`
 
-  1. Set `<useSecurity>` to `true` in `/var/lib/jenkins/config.xml`
-  2. Create `/var/lib/jenkins/users/devops/config.xml` for a user named **devops**
-  3. Add **devops** as an `adminids` entry inside `<authorizationStrategy>`
-
-  ### config.xml security fields
-
-  | Field | Purpose |
-  |-------|---------|
-  | `<useSecurity>` | Master on/off switch for authentication |
-  | `<authorizationStrategy>` | Controls who can do what |
-  | `<securityRealm>` | Where user passwords are stored |
+  **What You'll Deliver**
+  - `<useSecurity>true</useSecurity>` set in `/var/lib/jenkins/config.xml`
+  - `/var/lib/jenkins/users/devops/config.xml` created with the `devops` user ID
+  - `devops` added as an admin ID inside the `<authorizationStrategy>` block
 
   ## Steps
 
-  ### Step 1 — Enable security
-
-  Use `sed` to flip the flag in-place:
-
-  ```bash
-  sed -i 's|<useSecurity>false</useSecurity>|<useSecurity>true</useSecurity>|' \
-    /var/lib/jenkins/config.xml
-  grep useSecurity /var/lib/jenkins/config.xml
-  ```
-
-  ### Step 2 — Create the devops user account
-
-  ```bash
-  mkdir -p /var/lib/jenkins/users/devops
-  cat > /var/lib/jenkins/users/devops/config.xml << 'EOF'
-  <?xml version='1.1' encoding='UTF-8'?>
-  <user>
-    <fullName>DevOps Admin</fullName>
-    <id>devops</id>
-  </user>
-  EOF
-  ```
-
-  ### Step 3 — Grant admin permissions
-
-  Add the user ID inside the `<authorizationStrategy>` block:
-
-  ```bash
-  sed -i 's|</authorizationStrategy>|  <adminids>devops</adminids>\n</authorizationStrategy>|' \
-    /var/lib/jenkins/config.xml
-  grep -n "useSecurity\|adminids\|devops" /var/lib/jenkins/config.xml
-  ```
+  1. `sed -i 's|<useSecurity>false</useSecurity>|<useSecurity>true</useSecurity>|' /var/lib/jenkins/config.xml`
+  2. `grep useSecurity /var/lib/jenkins/config.xml`
+  3. `mkdir -p /var/lib/jenkins/users/devops`
+  4. ```
+     cat > /var/lib/jenkins/users/devops/config.xml <<'EOF'
+     <?xml version='1.1' encoding='UTF-8'?>
+     <user>
+       <fullName>DevOps Admin</fullName>
+       <id>devops</id>
+     </user>
+     EOF
+     ```
+  5. `sed -i 's|</authorizationStrategy>|  <adminids>devops</adminids>\n</authorizationStrategy>|' /var/lib/jenkins/config.xml`
+  6. `grep -n "useSecurity\|adminids\|devops" /var/lib/jenkins/config.xml`
 
 tasks:
   - id: "enable-security"

@@ -20,28 +20,23 @@ objectives:
 instructions: |
   ## Basic Network Diagnostics
 
-  "It works on my machine" often comes down to networking basics: does the
-  hostname resolve, is the port actually listening, what's my own IP? These
-  are the first three things to check before blaming anything more exotic.
+  **Scenario**
+  Your application container just failed its startup health check with two errors: it can't resolve `db.internal` (the internal database hostname), and the health-check endpoint on port `9090` is showing as unreachable. A third ticket asks you to document this container's own IP address for the firewall team before they update the allow-list.
 
-  ### What you need to do
+  **Your task:** Add a static mapping for `db.internal → 10.5.0.9` in `/etc/hosts`, start a background TCP listener on port `9090`, and save this container's `eth0` IPv4 address to `/root/my-ip.txt`.
 
-  1. An app is trying to reach `db.internal`, but nothing maps that name to
-     an IP yet. Add a line to `/etc/hosts` mapping `db.internal` to
-     `10.5.0.9`.
-  2. Start a background listener on TCP port `9090` (e.g. with `nc -lk -p
-     9090 &`) so a health check can confirm the service is up.
-  3. Find this container's own IPv4 address on `eth0` and save just the IP
-     (no prefix, e.g. `172.17.0.2`) to `/root/my-ip.txt`.
+  **What You'll Deliver**
+  - `/etc/hosts` entry mapping `db.internal` to `10.5.0.9`
+  - A background process listening on TCP port `9090`
+  - `/root/my-ip.txt` containing the container's `eth0` IPv4 address
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  echo "10.5.0.9 db.internal" >> /etc/hosts
-  nc -lk -p 9090 &
-  netstat -tln
-  ip -4 addr show eth0
-  ```
+  1. `echo "10.5.0.9 db.internal" >> /etc/hosts`
+  2. `grep db.internal /etc/hosts`
+  3. `nc -lk -p 9090 &`
+  4. `netstat -tln | grep 9090`
+  5. `ip -4 addr show eth0 | awk '/inet /{print $2}' | cut -d/ -f1 > /root/my-ip.txt`
 
 tasks:
   - id: "configure-hosts"

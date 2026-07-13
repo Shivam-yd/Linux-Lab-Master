@@ -18,47 +18,28 @@ objectives:
 - "Confirm the value from the file was applied without any -var flag"
 
 instructions: |
-  ## terraform.tfvars is loaded automatically
+  ## Loading Values from terraform.tfvars
 
-  Typing -var on every command gets old fast. A file literally named
-  terraform.tfvars (or any *.auto.tfvars) in the working directory is
-  loaded automatically by plan/apply — no flag needed.
+  **Scenario**
+  Your team's deployment pipeline runs `terraform apply` across a dozen environments. Passing every variable as a `-var` flag on the command line has become unmanageable and is causing typos in production runs. You need a file-based approach that Terraform picks up automatically — no extra flags, no prompts.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Create `variables.tf`, `main.tf`, and `terraform.tfvars` in `/root/tf-lab` so that `terraform apply -auto-approve` (with no `-var` flag) succeeds and stores the value `"beta"` in state.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `variables.tf` declaring `release_channel` as a required string (no default)
+  - `terraform.tfvars` setting `release_channel = "beta"`, auto-loaded by Terraform
+  - Apply completed without any `-var` flag, with `"beta"` confirmed in state
 
   ## Steps
 
-  ### 1 — variables.tf (no default — this makes the value required)
-
-  \`\`\`hcl
-  variable "release_channel" {
-    type = string
-  }
-  \`\`\`
-
-  ### 2 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "channel" {
-    input = var.release_channel
-  }
-  \`\`\`
-
-  ### 3 — terraform.tfvars
-
-  \`\`\`hcl
-  release_channel = "beta"
-  \`\`\`
-
-  ### 4 — Apply with no -var flag at all
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  # Terraform reads terraform.tfvars automatically — no prompt, no -var needed
-  \`\`\`
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `variables.tf` declaring `variable "release_channel" { type = string }` (no default)
+  3. Create `main.tf` with `terraform_data "channel"` using `input = var.release_channel`
+  4. Create `terraform.tfvars` with `release_channel = "beta"`
+  5. `terraform init`
+  6. `terraform apply -auto-approve`
 
 tasks:
 - id: "required_variable"

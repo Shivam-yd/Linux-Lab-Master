@@ -22,27 +22,26 @@ objectives:
 instructions: |
   ## File Permissions Deep Dive
 
-  Linux uses a three-tier permission model (owner / group / others) plus three
-  special bits (SUID, SGID, sticky).  In this lab you will configure a shared
-  project directory that enforces least-privilege access for a team of users.
+  **Scenario**
+  A security audit flagged two issues on your team's shared build server: developers are accidentally overwriting each other's files in `/shared/project`, and an external auditor needs read access to that directory without being added to the `devteam` group. Your manager has also asked for a report of all SUID binaries — a common attack vector — before the auditor arrives.
 
-  ### Background
+  **Your task:** Harden `/shared/project` with SGID and correct ownership, protect `/shared/uploads` with a sticky bit, grant the `auditor` user read-only ACL access to `/shared/project`, and produce a SUID binary report at `/root/suid-report.txt`.
 
-  | Notation | Octal | Effect on file | Effect on directory |
-  |---|---|---|---|
-  | SUID (`s`) | 4000 | Runs as file owner | — |
-  | SGID (`s`) | 2000 | Runs as file group | New files inherit group |
-  | Sticky (`t`) | 1000 | — | Only owner can delete own files |
+  No text editor is installed — use shell redirection: `echo "..." >> file` or `cat > file <<'EOF' ... EOF`
 
-  ### ACLs
+  **What You'll Deliver**
+  - `/shared/project` owned by `root:devteam` with permissions `2775` (SGID set)
+  - `/shared/uploads` protected with the sticky bit
+  - ACL granting `auditor` read-only access to `/shared/project`
+  - `/root/suid-report.txt` listing all SUID binaries found under `/usr/bin`
 
-  Standard Unix permissions allow one owner and one group.  **ACLs** let you
-  grant access to additional users/groups without changing ownership:
+  ## Steps
 
-  ```bash
-  setfacl -m u:alice:rw /shared/report.txt
-  getfacl /shared/report.txt
-  ```
+  1. `chown root:devteam /shared/project && chmod 2775 /shared/project`
+  2. `chmod +t /shared/uploads`
+  3. `setfacl -m u:auditor:r-x /shared/project`
+  4. `getfacl /shared/project`
+  5. `find /usr/bin -perm -4000 -type f > /root/suid-report.txt`
 
 tasks:
   - id: "create-shared-dir"

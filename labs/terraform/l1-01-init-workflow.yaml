@@ -19,47 +19,30 @@ objectives:
 - "Tear everything down with terraform destroy"
 
 instructions: |
-  ## The four commands you'll use constantly
+  ## Terraform Core Workflow: init, plan, apply, destroy
 
-  Every Terraform workflow boils down to four commands, run in order:
+  **Scenario**
+  You've just joined a platform team and your first task is to prove you can safely manage infrastructure with Terraform before getting access to production. Your team lead wants to see you run the full lifecycle — initialise a working directory, preview changes, apply them, inspect state, and tear everything down cleanly — on a harmless resource before touching anything real.
 
-  1. `terraform init` — downloads providers and sets up the `.terraform`
-     working directory (this lab needs no providers, since we only use the
-     builtin `terraform_data` resource — but init is still required).
-  2. `terraform plan` — shows what *would* change, without touching anything.
-  3. `terraform apply` — makes the change and records it in `terraform.tfstate`.
-  4. `terraform destroy` — removes everything Terraform created.
+  **Your task:** Write `main.tf` in `/root/tf-lab` with a `terraform_data.greeting` resource, then run `terraform init`, `terraform plan`, `terraform apply`, and finally `terraform destroy` — leaving the state file with zero managed resources.
 
-  Working directory: `/root/tf-lab`
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
 
-  ---
+  **What You'll Deliver**
+  - `.terraform` directory created by `terraform init`
+  - `terraform_data.greeting` recorded in `terraform.tfstate` after apply
+  - State file showing zero managed resources after `terraform destroy`
 
   ## Steps
 
-  ### 1 — Write main.tf
-
-  ```hcl
-  resource "terraform_data" "greeting" {
-    input = "hello, terraform"
-  }
-  ```
-
-  ### 2 — Run the workflow
-
-  ```sh
-  terraform init
-  terraform plan
-  terraform apply -auto-approve
-  cat terraform.tfstate   # confirm the resource is recorded
-  ```
-
-  ### 3 — Tear it down
-
-  ```sh
-  terraform destroy -auto-approve
-  ```
-
-  After destroy, `terraform.tfstate` should list zero resources.
+  1. `cd /root/tf-lab`
+  2. Write `main.tf` with `resource "terraform_data" "greeting" { input = "hello, terraform" }`
+  3. `terraform init`
+  4. `terraform plan`
+  5. `terraform apply -auto-approve`
+  6. `cat terraform.tfstate` — confirm the resource is recorded
+  7. `terraform destroy -auto-approve`
+  8. `cat terraform.tfstate` — confirm the resources array is empty
 
 tasks:
 - id: "init_ran"

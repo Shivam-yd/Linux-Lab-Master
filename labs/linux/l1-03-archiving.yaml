@@ -20,27 +20,23 @@ objectives:
 instructions: |
   ## Archiving and Compressing Files
 
-  Before you make any risky change on a server — an upgrade, a config
-  rewrite, a migration — the first habit every experienced engineer has is:
-  **back it up first.** `tar` + `gzip` is the standard Linux way to do that.
+  **Scenario**
+  Your team is about to run a risky database migration on the app server. Before anyone touches the live files, your tech lead has asked you to snapshot the entire `/data/project` directory into a compressed archive, verify its contents, and confirm you can restore from it — so the team has a tested rollback plan ready if something goes wrong.
 
-  ### What you need to do
+  **Your task:** Create `/root/project-backup.tar.gz` from `/data/project`, save the archive's file listing to `/root/archive-contents.txt`, and extract the archive into `/restore` so that `/restore/project/config.yaml` exists.
 
-  1. Archive and compress `/data/project` into `/root/project-backup.tar.gz`.
-     Use `-C /data project` so the archive stores relative paths (`project/...`)
-     instead of absolute ones — this makes it portable to restore anywhere.
-  2. List the archive's contents with `tar tzf` and save the listing to
-     `/root/archive-contents.txt`.
-  3. Extract the archive into `/restore` and confirm the original files are
-     there.
+  **What You'll Deliver**
+  - `/root/project-backup.tar.gz` — a valid compressed tar archive of `/data/project`
+  - `/root/archive-contents.txt` — the file listing produced by `tar tzf`
+  - `/restore/project/config.yaml` confirming the archive extracts correctly
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  tar -czf /root/project-backup.tar.gz -C /data project
-  tar tzf /root/project-backup.tar.gz
-  mkdir -p /restore && tar xzf /root/project-backup.tar.gz -C /restore
-  ```
+  1. `tar -czf /root/project-backup.tar.gz -C /data project`
+  2. `tar tzf /root/project-backup.tar.gz > /root/archive-contents.txt`
+  3. `cat /root/archive-contents.txt`
+  4. `mkdir -p /restore && tar xzf /root/project-backup.tar.gz -C /restore`
+  5. `ls /restore/project/`
 
 tasks:
   - id: "create-archive"

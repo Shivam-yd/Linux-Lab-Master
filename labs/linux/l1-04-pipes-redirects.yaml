@@ -20,27 +20,23 @@ objectives:
 instructions: |
   ## Pipes, Redirects & Text Processing
 
-  Most day-to-day Linux troubleshooting isn't fancy tooling — it's chaining
-  a handful of small commands together with pipes (`|`) to answer a
-  question fast.
+  **Scenario**
+  Your site just experienced a spike in latency and the on-call engineer suspects a single client is hammering the API. You need to analyse the web server access log to surface the top offenders, check the application log for error volume, and add a maintenance flag to the app config — all without opening a text editor, and without accidentally wiping any existing config.
 
-  ### What you need to do
+  **Your task:** Extract the 3 most frequent IP addresses from `/var/log/access.log` into `/root/top-ips.txt`, count `ERROR` lines in `/var/log/app.log` and save the number to `/root/error-count.txt`, and append `MAINTENANCE_MODE=true` to `/etc/app/app.conf` without overwriting its existing content.
 
-  1. `/var/log/access.log` has one request per line, formatted
-     `<ip> <method> <path>`. Find the **3 most frequent IP addresses** and
-     save them to `/root/top-ips.txt`, one per line, most frequent first.
-  2. Count how many lines in `/var/log/app.log` contain `ERROR` and save
-     just the number to `/root/error-count.txt`.
-  3. Append the line `MAINTENANCE_MODE=true` to `/etc/app/app.conf`
-     **without deleting its existing content**.
+  **What You'll Deliver**
+  - `/root/top-ips.txt` listing the 3 most frequent IPs, most frequent first
+  - `/root/error-count.txt` containing the count of `ERROR` lines in `/var/log/app.log`
+  - `/etc/app/app.conf` with `MAINTENANCE_MODE=true` appended and original lines intact
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  awk '{print $1}' file | sort | uniq -c | sort -rn | head -3
-  grep -c ERROR file
-  echo "line" >> file        # >> appends, > overwrites!
-  ```
+  1. `awk '{print $1}' /var/log/access.log | sort | uniq -c | sort -rn | head -3`
+  2. `awk '{print $1}' /var/log/access.log | sort | uniq -c | sort -rn | head -3 | awk '{print $2}' > /root/top-ips.txt`
+  3. `grep -c ERROR /var/log/app.log > /root/error-count.txt`
+  4. `echo "MAINTENANCE_MODE=true" >> /etc/app/app.conf`
+  5. `cat /etc/app/app.conf`
 
 tasks:
   - id: "top-ips"

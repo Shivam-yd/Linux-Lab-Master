@@ -18,51 +18,27 @@ objectives:
 - "Read a value with a fallback default using lookup()"
 
 instructions: |
-  ## Maps: key-value input variables
+  ## Map-Typed Variables and lookup()
 
-  Lists aren't the only useful collection type. A map(string) variable lets
-  you look values up by name instead of by position — handy for
-  per-environment or per-region configuration.
+  **Scenario**
+  Your platform team manages instance sizes across multiple environments. Hard-coding separate variables for each environment is messy, and looking up a missing key crashes the plan. You need a single map variable that covers known environments and gracefully falls back for any environment not yet in the map.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Create `variables.tf` and `main.tf` in `/root/tf-lab` declaring a `map(string)` variable `instance_sizes`, reading the `"dev"` key with bracket syntax and the `"staging"` key with `lookup()` fallback, then apply so both resources are recorded in state.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `variables.tf` with `instance_sizes` declared as `type = map(string)` containing `dev` and `prod` keys
+  - `main.tf` reading `var.instance_sizes["dev"]` for `dev_size` and `lookup(var.instance_sizes, "staging", "medium")` for `staging_size`
+  - Both resources applied with `"small"` and `"medium"` confirmed in state
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  \`\`\`hcl
-  variable "instance_sizes" {
-    type = map(string)
-    default = {
-      dev  = "small"
-      prod = "large"
-    }
-  }
-  \`\`\`
-
-  ### 2 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "dev_size" {
-    input = var.instance_sizes["dev"]
-  }
-
-  resource "terraform_data" "staging_size" {
-    # "staging" isn't in the map — fall back to "medium"
-    input = lookup(var.instance_sizes, "staging", "medium")
-  }
-  \`\`\`
-
-  ### 3 — Apply and confirm
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  # dev_size.output      => "small"
-  # staging_size.output  => "medium"  (the lookup() fallback)
-  \`\`\`
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `variables.tf` with `variable "instance_sizes" { type = map(string); default = { dev = "small", prod = "large" } }`
+  3. Create `main.tf` with `terraform_data.dev_size` using `var.instance_sizes["dev"]` and `terraform_data.staging_size` using `lookup(var.instance_sizes, "staging", "medium")`
+  4. `terraform init`
+  5. `terraform apply -auto-approve`
 
 tasks:
 - id: "map_variable_declared"

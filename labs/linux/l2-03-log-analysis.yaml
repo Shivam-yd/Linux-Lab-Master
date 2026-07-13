@@ -20,30 +20,21 @@ objectives:
 instructions: |
   ## Structured Log Analysis
 
-  When a service degrades, the access log is usually the fastest place to
-  find the answer — but only if you can slice it quickly with `awk` and
-  `grep` instead of reading it line by line.
+  **Scenario**
+  The on-call alert fired: elevated error rate on the API. You have no dashboard — just an nginx access log and a terminal. You need to pull the 5xx errors, identify which endpoint is hammered hardest, and compute average latency, all from the command line, before the incident bridge call starts in five minutes.
 
-  `/var/log/nginx/access.log` has one request per line in the format:
-  `<method> <path> <status> <response_ms>`
+  **Your task:** Parse `/var/log/nginx/access.log` to extract server errors into `/root/server-errors.txt`, write the busiest endpoint to `/root/top-endpoint.txt`, and save the integer average response time (ms) to `/root/avg-response.txt`.
 
-  ### What you need to do
+  **What You'll Deliver**
+  - `/root/server-errors.txt` containing only the 5xx log lines
+  - `/root/top-endpoint.txt` containing the single most-requested endpoint path
+  - `/root/avg-response.txt` containing the integer average response time across all requests
 
-  1. Extract every line whose status code is in the `5xx` range (server
-     errors) and save them to `/root/server-errors.txt`.
-  2. Determine which endpoint (2nd column) was requested the most, and
-     save just that endpoint to `/root/top-endpoint.txt`.
-  3. Compute the average response time (4th column, integer division —
-     drop any decimal) across **all** requests and save the number to
-     `/root/avg-response.txt`.
+  ## Steps
 
-  ### Reference
-
-  ```bash
-  grep -E ' 5[0-9]{2} ' /var/log/nginx/access.log
-  awk '{print $2}' file | sort | uniq -c | sort -rn | head -1
-  awk '{sum+=$4; n++} END{print int(sum/n)}' file
-  ```
+  1. `grep -E ' 5[0-9]{2} ' /var/log/nginx/access.log > /root/server-errors.txt`
+  2. `awk '{print $2}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -1 | awk '{print $2}' > /root/top-endpoint.txt`
+  3. `awk '{sum+=$4; n++} END{print int(sum/n)}' /var/log/nginx/access.log > /root/avg-response.txt`
 
 tasks:
   - id: "extract-5xx"

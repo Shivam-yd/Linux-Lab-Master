@@ -19,65 +19,28 @@ objectives:
   - "Apply twice with different input and confirm the provisioner ran both times"
 
 instructions: |
-  ## Scenario
+  ## Terraform Provisioners: local-exec & Triggers
 
-  Sometimes infrastructure-as-code needs to shell out to do something no
-  provider covers — render a config file, notify a webhook, kick a local
-  script. That's what **provisioners** are for. They're a feature of
-  Terraform core itself (not tied to any provider), so `local-exec` works on
-  any resource, including the built-in `terraform_data`.
+  **Scenario**
+  Your team's deployment pipeline needs to append a timestamped entry to a local audit log every time a new release version is applied — something no Terraform provider handles. After the first deploy the team noticed that re-running apply with a new version did nothing because Terraform saw no diff. You need to wire up a `local-exec` provisioner with `triggers_replace` so the audit log is written on every version change.
 
-  Working directory: `/root/tf-lab`
+  **Your task:** Write `variables.tf` with a `release_version` variable, write `main.tf` with a `terraform_data` resource that uses `triggers_replace` and a `local-exec` provisioner that appends to `/root/tf-lab/deploy.log`, then apply twice with different versions and confirm both lines appear in the log.
 
-  **Tip**: use heredocs to write files (no text editor installed):
-  ```sh
-  cat > main.tf <<'EOF'
-  # your HCL here
-  EOF
-  ```
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
 
-  ---
+  **What You'll Deliver**
+  - `main.tf` with a `terraform_data` resource containing a `local-exec` provisioner and `triggers_replace`
+  - `/root/tf-lab/deploy.log` containing at least two distinct deployed-version lines
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  ```hcl
-  variable "release_version" {
-    type    = string
-    default = "v1.0.0"
-  }
-  ```
-
-  ### 2 — main.tf with a local-exec provisioner
-
-  Use `triggers_replace` so the resource (and therefore its provisioner)
-  reruns whenever `release_version` changes:
-
-  ```hcl
-  resource "terraform_data" "deploy" {
-    input             = var.release_version
-    triggers_replace   = [var.release_version]
-
-    provisioner "local-exec" {
-      command = "echo \"deployed ${self.input}\" >> /root/tf-lab/deploy.log"
-    }
-  }
-  ```
-
-  ### 3 — Apply twice with different versions
-
-  ```sh
-  terraform init
-  terraform apply -auto-approve -var="release_version=v1.0.0"
-  terraform apply -auto-approve -var="release_version=v1.1.0"
-  cat /root/tf-lab/deploy.log
-  # expect two lines: "deployed v1.0.0" and "deployed v1.1.0"
-  ```
-
-  Because `triggers_replace` includes `var.release_version`, changing the
-  version forces `terraform_data.deploy` to be replaced — which reruns the
-  provisioner. Without `triggers_replace`, the second apply would be a no-op.
+  1. `cd /root/tf-lab`
+  2. Write `variables.tf` declaring `variable "release_version" { type = string; default = "v1.0.0" }`
+  3. Write `main.tf` with a `terraform_data "deploy"` resource: set `triggers_replace = [var.release_version]` and a `provisioner "local-exec"` whose command appends `"deployed ${self.input}"` to `/root/tf-lab/deploy.log`
+  4. `terraform init`
+  5. `terraform apply -auto-approve -var="release_version=v1.0.0"`
+  6. `terraform apply -auto-approve -var="release_version=v1.1.0"`
+  7. `cat /root/tf-lab/deploy.log` — confirm two distinct lines appear
 
 tasks:
   - id: "provisioner_defined"

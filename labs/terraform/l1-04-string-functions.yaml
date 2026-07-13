@@ -18,52 +18,29 @@ objectives:
 - "Use join() to combine a list variable into a single string"
 
 instructions: |
-  ## Terraform's expression language
+  ## String Interpolation and Built-in Functions
 
-  HCL supports string interpolation and a large library of built-in
-  functions. You don't need a provider to practise these — they work on any
-  string, number, or list, anywhere in a config.
+  **Scenario**
+  Your team generates resource labels and region inventory strings from Terraform variables, but the naming is inconsistent — some labels are lowercase, some uppercase, and region lists are formatted differently in each config. You've been asked to standardise: all service labels must be `service=UPPERCASED_NAME` and region lists must be comma-joined. The fix belongs in the Terraform config itself using built-in functions, not in wrapper scripts.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write `variables.tf` with `service_name` and `regions` variables, write `main.tf` using `format()` and `upper()` for `terraform_data.label` and `join()` for `terraform_data.region_list`, then apply and confirm state shows `"service=BILLING"` and the comma-joined region string.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `main.tf` using `format()` and `upper()` together to build `terraform_data.label`'s input
+  - `main.tf` using `join(",", var.regions)` to build `terraform_data.region_list`'s input
+  - `terraform.tfstate` showing computed values `"service=BILLING"` and the comma-joined region list
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  \`\`\`hcl
-  variable "service_name" {
-    type    = string
-    default = "billing"
-  }
-
-  variable "regions" {
-    type    = list(string)
-    default = ["us-east-1", "eu-west-1", "ap-south-1"]
-  }
-  \`\`\`
-
-  ### 2 — main.tf using functions
-
-  \`\`\`hcl
-  resource "terraform_data" "label" {
-    input = format("service=%s", upper(var.service_name))
-  }
-
-  resource "terraform_data" "region_list" {
-    input = join(",", var.regions)
-  }
-  \`\`\`
-
-  ### 3 — Apply and inspect
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  # terraform_data.label.output should be "service=BILLING"
-  # terraform_data.region_list.output should be "us-east-1,eu-west-1,ap-south-1"
-  \`\`\`
+  1. `cd /root/tf-lab`
+  2. Write `variables.tf` with `variable "service_name" { type = string; default = "billing" }` and `variable "regions" { type = list(string); default = ["us-east-1", "eu-west-1", "ap-south-1"] }`
+  3. Write `main.tf` with `resource "terraform_data" "label" { input = format("service=%s", upper(var.service_name)) }` and `resource "terraform_data" "region_list" { input = join(",", var.regions) }`
+  4. `terraform init`
+  5. `terraform apply -auto-approve`
+  6. `grep "service=BILLING" terraform.tfstate` — confirm label value
+  7. `grep "us-east-1,eu-west-1,ap-south-1" terraform.tfstate` — confirm region list value
 
 tasks:
 - id: "format_upper_used"

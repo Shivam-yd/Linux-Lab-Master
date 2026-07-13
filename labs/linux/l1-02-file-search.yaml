@@ -20,26 +20,23 @@ objectives:
 instructions: |
   ## Finding Files Fast
 
-  A new teammate asks: "Where are all the config files for this app, and
-  which data file is hogging space?" Instead of clicking through folders,
-  a real sysadmin reaches for `find`.
+  **Scenario**
+  A new engineer joining your team needs to audit the app's configuration layout and investigate a storage complaint — some process is filling `/data` faster than expected and the team suspects one oversized dataset file is the culprit. Rather than clicking through directories, you need to surface the answers in seconds using `find`.
 
-  ### What you need to do
+  **Your task:** Find all `*.conf` files under `/etc/app` and save the sorted list to `/root/configs.txt`, find all files over 1 MB under `/data` and save the list to `/root/large-files.txt`, and write the total file count under `/data` to `/root/file-count.txt`.
 
-  1. Find every `*.conf` file under `/etc/app` (recursively) and save the
-     sorted list of paths to `/root/configs.txt`.
-  2. Find every file under `/data` larger than 1 MB (1024k) and save the
-     list of paths to `/root/large-files.txt`.
-  3. Count the total number of files (not directories) under `/data` and
-     write just the number to `/root/file-count.txt`.
+  **What You'll Deliver**
+  - `/root/configs.txt` with a sorted list of all `*.conf` file paths under `/etc/app`
+  - `/root/large-files.txt` listing every file under `/data` larger than 1 MB
+  - `/root/file-count.txt` containing the total number of files under `/data`
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  find /etc/app -name '*.conf' -type f | sort
-  find /data -type f -size +1024k
-  find /data -type f | wc -l
-  ```
+  1. `find /etc/app -name '*.conf' -type f | sort > /root/configs.txt`
+  2. `cat /root/configs.txt`
+  3. `find /data -type f -size +1024k > /root/large-files.txt`
+  4. `cat /root/large-files.txt`
+  5. `find /data -type f | wc -l > /root/file-count.txt`
 
 tasks:
   - id: "find-config-files"

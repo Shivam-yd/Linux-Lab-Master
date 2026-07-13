@@ -18,52 +18,28 @@ objectives:
 - "Explain why locals reduce duplication compared to repeating the same expression"
 
 instructions: |
-  ## locals: compute once, use everywhere
+  ## Local Values
 
-  If the same expression (a concatenation, a lookup, a computed name) is
-  needed in more than one place, hardcoding it twice invites drift. A
-  \`locals\` block names the expression once; every reference reads the same
-  computed value.
+  **Scenario**
+  Your team's Terraform config constructs the same resource name — a concatenation of project and environment — in six different places. When the naming convention changed last sprint, three of those six were updated and three were missed, leaving inconsistent names across the deployment. You need to introduce a `locals` block so the name is computed once and every resource reads from a single source of truth.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write `variables.tf` with `project` and `environment` variables, write `main.tf` with a `locals` block computing `resource_name` from those variables, have `terraform_data.tagged` reference `local.resource_name`, then apply and confirm state shows `"orion-prod"`.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `main.tf` with a `locals` block computing `resource_name` from `var.project` and `var.environment`
+  - `terraform_data.tagged` resource referencing `local.resource_name` (not a repeated inline expression)
+  - `terraform.tfstate` showing the computed value `"orion-prod"`
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  \`\`\`hcl
-  variable "project" {
-    type    = string
-    default = "orion"
-  }
-
-  variable "environment" {
-    type    = string
-    default = "prod"
-  }
-  \`\`\`
-
-  ### 2 — main.tf with a locals block
-
-  \`\`\`hcl
-  locals {
-    resource_name = "\${var.project}-\${var.environment}"
-  }
-
-  resource "terraform_data" "tagged" {
-    input = local.resource_name
-  }
-  \`\`\`
-
-  ### 3 — Apply and confirm
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  # terraform_data.tagged.output should read "orion-prod"
-  \`\`\`
+  1. `cd /root/tf-lab`
+  2. Write `variables.tf` with `variable "project" { type = string; default = "orion" }` and `variable "environment" { type = string; default = "prod" }`
+  3. Write `main.tf` with a `locals { resource_name = "${var.project}-${var.environment}" }` block and `resource "terraform_data" "tagged" { input = local.resource_name }`
+  4. `terraform init`
+  5. `terraform apply -auto-approve`
+  6. `grep "orion-prod" terraform.tfstate` — confirm the computed value is recorded
 
 tasks:
 - id: "locals_declared"

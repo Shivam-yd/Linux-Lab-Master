@@ -18,58 +18,50 @@ objectives:
 - "Add an if clause to a for expression to filter elements"
 
 instructions: |
-  ## for expressions: HCL's data transformation tool
+  ## for Expressions
 
-  A for expression iterates over a list, set, or map and produces a new
-  collection — the functional-programming equivalent of a loop, but it
-  always produces a value rather than executing statements.
+  **Scenario**
+  Your team manages a platform with dozens of microservices, including several deprecated "legacy-*" workloads still listed in the shared service registry. A new deployment script needs three different views of that list: uppercased names for log labels, a name-to-length map for a config validator, and a filtered list with all legacy services stripped out. Hand-rolling these with count or repeated locals is error-prone — for expressions handle all three in a single pass.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write `variables.tf` and `main.tf` in `/root/tf-lab` that use for expressions to produce `upper_names` (list→list), `name_lengths` (list→map), and `active_names` (list filtered by an `if` clause), then apply the configuration.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `locals.upper_names` built with a for expression that uppercases every element of `var.service_names`
+  - `locals.name_lengths` built with a for expression producing a `name => length(name)` map
+  - `locals.active_names` built with a for expression using an `if` clause to exclude any name containing `"legacy"`
+  - Configuration applied with `legacy-batch` absent from the `active_only` resource's state value
 
   ## Steps
 
-  ### 1 — variables.tf
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `variables.tf`:
+     ```hcl
+     variable "service_names" {
+       type    = list(string)
+       default = ["auth", "billing", "search", "legacy-batch"]
+     }
+     ```
+  3. Create `main.tf`:
+     ```hcl
+     locals {
+       upper_names  = [for name in var.service_names : upper(name)]
+       name_lengths = { for name in var.service_names : name => length(name) }
+       active_names = [for name in var.service_names : name if !strcontains(name, "legacy")]
+     }
 
-  \`\`\`hcl
-  variable "service_names" {
-    type    = list(string)
-    default = ["auth", "billing", "search", "legacy-batch"]
-  }
-  \`\`\`
+     resource "terraform_data" "summary" {
+       input = join(",", local.upper_names)
+     }
 
-  ### 2 — main.tf using for expressions
-
-  \`\`\`hcl
-  locals {
-    # list -> list: uppercase every name
-    upper_names = [for name in var.service_names : upper(name)]
-
-    # list -> map: name -> its string length
-    name_lengths = { for name in var.service_names : name => length(name) }
-
-    # list -> filtered list: drop anything containing "legacy"
-    active_names = [for name in var.service_names : name if !strcontains(name, "legacy")]
-  }
-
-  resource "terraform_data" "summary" {
-    input = join(",", local.upper_names)
-  }
-
-  resource "terraform_data" "active_only" {
-    input = join(",", local.active_names)
-  }
-  \`\`\`
-
-  ### 3 — Apply and confirm
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  # summary.output     => "AUTH,BILLING,SEARCH,LEGACY-BATCH"
-  # active_only.output => "auth,billing,search"  (legacy-batch filtered out)
-  \`\`\`
+     resource "terraform_data" "active_only" {
+       input = join(",", local.active_names)
+     }
+     ```
+  4. `terraform init`
+  5. `terraform apply -auto-approve`
+  6. Confirm: `grep "auth,billing,search" terraform.tfstate` (legacy-batch must be absent)
 
 tasks:
 - id: "list_to_list_for"

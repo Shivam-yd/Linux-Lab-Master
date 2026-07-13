@@ -18,54 +18,44 @@ objectives:
 - "Confirm terraform plan shows no destroy/create — only a state move"
 
 instructions: |
-  ## Renaming a resource without recreating it
+  ## Refactoring Safely with moved Blocks
 
-  Renaming a resource label in .tf code makes Terraform think the old
-  resource was removed and a brand new one added — by default, that means
-  destroy + create. A moved block tells Terraform "this is the same
-  resource under a new address," so it updates state in place instead.
+  **Scenario**
+  Your team standardised resource naming conventions after a compliance audit. The Terraform config for the caching layer still uses the old label `cache_instance`, but the new standard requires `cache_primary`. Simply renaming the label in the `.tf` file would cause Terraform to destroy the live Redis instance and create a fresh one — an outage your SLA cannot absorb. You need to rename the resource in code without touching the running infrastructure.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Apply `terraform_data.cache_instance` under its original name, then rename it to `cache_primary` in `main.tf` and add a `moved` block so that `terraform plan` reports a state move with zero destroys or creates.
 
-  ---
+  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `terraform_data.cache_instance` applied under its original name
+  - A `moved` block in `main.tf` declaring `from = terraform_data.cache_instance` and `to = terraform_data.cache_primary`
+  - State showing only `terraform_data.cache_primary` with no recreation (zero destroys)
 
   ## Steps
 
-  ### 1 — main.tf (original name) — apply this first
+  1. `mkdir -p /root/tf-lab && cd /root/tf-lab`
+  2. Create `main.tf` with the original resource name:
+     ```hcl
+     resource "terraform_data" "cache_instance" {
+       input = "redis-primary"
+     }
+     ```
+  3. `terraform init && terraform apply -auto-approve`
+  4. Update `main.tf` to rename the resource and add the `moved` block:
+     ```hcl
+     resource "terraform_data" "cache_primary" {
+       input = "redis-primary"
+     }
 
-  \`\`\`hcl
-  resource "terraform_data" "cache_instance" {
-    input = "redis-primary"
-  }
-  \`\`\`
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  \`\`\`
-
-  ### 2 — Rename in main.tf and add a moved block
-
-  \`\`\`hcl
-  resource "terraform_data" "cache_primary" {
-    input = "redis-primary"
-  }
-
-  moved {
-    from = terraform_data.cache_instance
-    to   = terraform_data.cache_primary
-  }
-  \`\`\`
-
-  ### 3 — Plan and apply again
-
-  \`\`\`sh
-  terraform plan
-  # Plan should show: 1 to move, 0 to add, 0 to change, 0 to destroy
-  terraform apply -auto-approve
-  terraform state list
-  # → terraform_data.cache_primary (cache_instance is gone from state, no recreation happened)
-  \`\`\`
+     moved {
+       from = terraform_data.cache_instance
+       to   = terraform_data.cache_primary
+     }
+     ```
+  5. `terraform plan` — verify output shows `1 to move, 0 to add, 0 to change, 0 to destroy`
+  6. `terraform apply -auto-approve`
+  7. `terraform state list` — confirm only `terraform_data.cache_primary` appears
 
 tasks:
 - id: "original_applied"

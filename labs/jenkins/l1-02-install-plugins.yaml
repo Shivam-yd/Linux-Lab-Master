@@ -20,63 +20,23 @@ objectives:
 instructions: |
   ## Install Jenkins Plugins
 
-  Jenkins functionality is extended through **plugins** — packaged as `.jpi`
-  (or legacy `.hpi`) archive files stored in `$JENKINS_HOME/plugins/`.
+  **Scenario**
+  A security audit flagged that the LDAP plugin on your Jenkins server has a known vulnerability and should be disabled immediately. At the same time, the QA team is demanding JUnit test result parsing for their pipelines, which requires the `junit` plugin to be present. You need to make both changes now — before Jenkins is restarted for tonight's maintenance window.
 
-  Jenkins reads this directory at startup:
-  - A `.jpi` file = plugin is installed and active
-  - A `.jpi.disabled` file alongside it = plugin is installed but disabled
-  - A `.jpi.pinned` file = plugin is locked at its current version
+  **Your task:** Count the existing `.jpi` files in `/var/lib/jenkins/plugins/` and record the count in `/root/plugin-count.txt`, install the `junit` plugin by creating `junit.jpi`, and disable the `ldap` plugin by creating the `ldap.jpi.disabled` marker file.
 
-  ### Your tasks
-
-  1. Count the `.jpi` files already in `/var/lib/jenkins/plugins/` and write the number to `/root/plugin-count.txt`
-  2. Install the `junit` plugin by creating `/var/lib/jenkins/plugins/junit.jpi`
-  3. Disable the `ldap` plugin by creating `/var/lib/jenkins/plugins/ldap.jpi.disabled`
-
-  ### Plugin directory layout
-
-  ```
-  /var/lib/jenkins/plugins/
-  ├── git.jpi
-  ├── credentials.jpi
-  ├── ldap.jpi            ← installed
-  └── ldap.jpi.disabled   ← this disables it on next restart
-  ```
+  **What You'll Deliver**
+  - `/root/plugin-count.txt` containing the count of pre-installed `.jpi` files
+  - `/var/lib/jenkins/plugins/junit.jpi` created (plugin installed)
+  - `/var/lib/jenkins/plugins/ldap.jpi.disabled` created (plugin disabled)
 
   ## Steps
 
-  ### Step 1 — Count installed plugins
-
-  ```bash
-  ls /var/lib/jenkins/plugins/*.jpi | wc -l > /root/plugin-count.txt
-  cat /root/plugin-count.txt
-  ```
-
-  ### Step 2 — Install the junit plugin
-
-  In production you'd copy a real `.jpi` downloaded from plugins.jenkins.io.
-  The file placement is identical — Jenkins treats any `.jpi` file as a plugin:
-
-  ```bash
-  touch /var/lib/jenkins/plugins/junit.jpi
-  ```
-
-  ### Step 3 — Disable the ldap plugin
-
-  Create a `.disabled` marker file next to the plugin archive:
-
-  ```bash
-  touch /var/lib/jenkins/plugins/ldap.jpi.disabled
-  ```
-
-  Verify all three tasks:
-
-  ```bash
-  cat /root/plugin-count.txt
-  ls /var/lib/jenkins/plugins/junit.jpi
-  ls /var/lib/jenkins/plugins/ldap.jpi.disabled
-  ```
+  1. `ls /var/lib/jenkins/plugins/*.jpi | wc -l > /root/plugin-count.txt`
+  2. `cat /root/plugin-count.txt`
+  3. `touch /var/lib/jenkins/plugins/junit.jpi`
+  4. `touch /var/lib/jenkins/plugins/ldap.jpi.disabled`
+  5. `ls /var/lib/jenkins/plugins/junit.jpi /var/lib/jenkins/plugins/ldap.jpi.disabled`
 
 tasks:
   - id: "list-plugins"

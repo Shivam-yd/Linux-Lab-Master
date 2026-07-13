@@ -20,29 +20,23 @@ objectives:
 instructions: |
   ## Disk Usage Investigation
 
-  Your monitoring system just paged you: `/` is at 90% capacity on the app
-  server. This is one of the most common real-world Linux incidents — and
-  almost always the fix is the same: find what's eating space, confirm it's
-  safe to remove, then remove it.
+  **Scenario**
+  At 2 AM, PagerDuty fires: the root filesystem on your app server is at 90% capacity and the application is failing to write new logs. You need to find the file consuming the most space, clean up stale rotated logs that are no longer needed, and capture a disk usage snapshot to attach to the incident ticket before your manager asks for it.
 
-  ### What you need to do
+  **Your task:** Identify the largest file under `/var/log/app` and write its full path to `/root/largest-log.txt`, delete all `*.old` files under `/var/log/app/archive/`, and save `df -h /` output to `/root/disk-report.txt`.
 
-  1. Somewhere under `/var/log/app` there's an unusually large file. Find it
-     with `find /var/log/app -type f -printf '%s %p\n' | sort -rn | head -1`
-     (or `du -a /var/log/app | sort -rn | head -1`) and write **just its full
-     path** to `/root/largest-log.txt`.
-  2. `/var/log/app/archive/` contains old rotated logs ending in `.old` that
-     are no longer needed. Delete all of them.
-  3. Run `df -h /` and save the full output to `/root/disk-report.txt` — this
-     is the kind of evidence you'd attach to an incident ticket.
+  **What You'll Deliver**
+  - `/root/largest-log.txt` containing the full path of the largest file under `/var/log/app`
+  - All `*.old` files removed from `/var/log/app/archive/`
+  - `/root/disk-report.txt` containing the output of `df -h /`
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  df -h /                          # overall disk usage
-  du -sh /var/log/app/*            # size per file/dir
-  find /var/log/app -type f -printf '%s %p\n' | sort -rn
-  ```
+  1. `find /var/log/app -type f -printf '%s %p\n' | sort -rn | head -5`
+  2. `echo "/var/log/app/huge.log" > /root/largest-log.txt`
+  3. `rm /var/log/app/archive/*.old`
+  4. `ls /var/log/app/archive/`
+  5. `df -h / > /root/disk-report.txt`
 
 tasks:
   - id: "identify-culprit"
