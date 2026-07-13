@@ -64,7 +64,7 @@ terminals:
 setupScript: |
   mkdir -p /root/project
   cd /root/project
-  git init -q
+  git init -q -b main
   git config user.name "Lab Student"
   git config user.email "student@lab.local"
   echo "# Project" > README.md

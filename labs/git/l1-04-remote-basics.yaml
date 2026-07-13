@@ -63,7 +63,7 @@ terminals:
 
 setupScript: |
   mkdir -p /root/remote.git /root/project
-  git init -q --bare /root/remote.git
+  git init -q --bare -b main /root/remote.git
   cd /root/project
   git init -q -b main
   git config user.name "Lab Student"
