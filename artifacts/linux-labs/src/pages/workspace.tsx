@@ -401,7 +401,7 @@ export default function Workspace() {
             {lab.objectives && lab.objectives.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Target className="w-4 h-4 text-primary" /> What You'll Deliver
+                  <Target className="w-4 h-4 text-primary" /> Learning Objectives
                 </h3>
                 <ul className="space-y-2 list-disc list-inside">
                   {lab.objectives.map((objective: string, i: number) => (
