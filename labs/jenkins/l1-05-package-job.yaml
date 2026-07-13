@@ -97,7 +97,7 @@ terminals:
 setupScript: |
   mkdir -p /var/lib/jenkins/jobs/install-packages
   cat > /var/lib/jenkins/jobs/install-packages/config.xml << 'EOF'
-  <?xml version='1.1' encoding='UTF-8'?>
+  <?xml version='1.0' encoding='UTF-8'?>
   <project>
     <description>Job that installs system packages</description>
     <keepDependencies>false</keepDependencies>
