@@ -4,6 +4,7 @@ import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Info } from "lucide-react"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -373,7 +374,14 @@ export default function Catalog() {
         </nav>
 
         {/* Footer */}
-        <div className="px-6 py-5 border-t border-border/50 bg-muted/10">
+        <div className="px-6 py-5 border-t border-border/50 bg-muted/10 space-y-3">
+          <Link
+            href="/about"
+            className="flex items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Info className="w-3.5 h-3.5" />
+            About
+          </Link>
           <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
             <span>SYS_STAT</span>
             <span className="flex items-center gap-1.5 text-primary"><div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"/> ONLINE</span>
