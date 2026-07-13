@@ -157,9 +157,12 @@ export default function About() {
                 </div>
 
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-                  DevOps engineer and open-source builder. Shivam created Linux Lab Master to give
-                  engineers a hands-on, friction-free way to build real command-line skills —
-                  no VMs to configure, no cloud bills, just a shell and a task to complete.
+                  DevOps engineer and open-source developer focused on building practical tools for
+                  infrastructure and cloud learning. I created Linux Lab Master to provide engineers
+                  with a hands-on, streamlined environment for developing real command-line
+                  skills—eliminating the need to configure virtual machines or manage cloud
+                  infrastructure, and allowing learners to focus on solving real-world tasks
+                  directly from the shell.
                 </p>
 
                 {/* Links */}
