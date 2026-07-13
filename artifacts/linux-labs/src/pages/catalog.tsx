@@ -77,6 +77,14 @@ const TRACK_META: Record<string, {
     accentHex: "#c084fc",
     gradient: "from-purple-500/20 to-pink-500/10",
   },
+  jenkins: {
+    label: "Jenkins",
+    description: "Master CI/CD pipelines — install, configure, and manage Jenkins automation.",
+    icon: Server,
+    accentClass: "text-orange-400",
+    accentHex: "#f97316",
+    gradient: "from-orange-500/20 to-yellow-500/10",
+  },
 }
 
 // Level display names and accent colors
@@ -136,7 +144,7 @@ export default function Catalog() {
   const tracks = useMemo(() => {
     if (!labs) return []
     const seen = new Set<string>()
-    const order = ["linux", "terraform"]
+    const order = ["linux", "terraform", "jenkins"]
     labs.forEach(l => seen.add(l.track))
     const known = order.filter(t => seen.has(t))
     const rest = [...seen].filter(t => !order.includes(t))
@@ -235,7 +243,7 @@ export default function Catalog() {
   const trackLevelCards = useMemo(() => {
     if (!labs) return [] as { track: string; level: number; lvlLabs: LabItem[]; passed: number; total: number }[]
     const cards: { track: string; level: number; lvlLabs: LabItem[]; passed: number; total: number }[] = []
-    const trackOrder = ["linux", "terraform"]
+    const trackOrder = ["linux", "terraform", "jenkins"]
     const allTracks = [...new Set(labs.map((l: LabItem) => l.track))]
     const sorted = [...trackOrder.filter(t => allTracks.includes(t)), ...allTracks.filter(t => !trackOrder.includes(t))]
     

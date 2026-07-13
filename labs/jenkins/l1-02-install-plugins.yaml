@@ -1,0 +1,128 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Install Jenkins Plugins (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-install-plugins"
+title: "Install Jenkins Plugins"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Manage Jenkins plugins by examining installed .jpi files, deploying a new plugin manually, and disabling one that is no longer needed."
+estimatedMinutes: 20
+order: 11
+
+objectives:
+  - "Understand that plugins live as .jpi files inside JENKINS_HOME/plugins/"
+  - "Install a new plugin by placing its archive in the plugins directory"
+  - "Disable a plugin without uninstalling it using a .jpi.disabled marker file"
+
+instructions: |
+  ## Install Jenkins Plugins
+
+  Jenkins functionality is extended through **plugins** — packaged as `.jpi`
+  (or legacy `.hpi`) archive files stored in `$JENKINS_HOME/plugins/`.
+
+  Jenkins reads this directory at startup. Installing a plugin = dropping the
+  right file in the right place. Disabling a plugin = adding a `.disabled`
+  marker file alongside it.
+
+  ### How the plugins directory is organised
+
+  ```
+  /var/lib/jenkins/plugins/
+  ├── git.jpi               ← plugin archive
+  ├── git.jpi.pinned        ← optional: prevents auto-upgrade
+  ├── pipeline-model-definition.jpi
+  └── credentials.jpi.disabled  ← plugin is installed but disabled
+  ```
+
+  ### Step 1 — List installed plugins
+
+  ```bash
+  ls /var/lib/jenkins/plugins/*.jpi
+  ```
+
+  Write the count of installed (non-disabled) plugins to `/root/plugin-count.txt`:
+
+  ```bash
+  ls /var/lib/jenkins/plugins/*.jpi | wc -l > /root/plugin-count.txt
+  ```
+
+  ### Step 2 — Install the `junit` plugin
+
+  Simulate installing a new plugin by creating its archive file:
+
+  ```bash
+  touch /var/lib/jenkins/plugins/junit.jpi
+  ```
+
+  In production you would copy a real `.jpi` downloaded from
+  `https://plugins.jenkins.io` — the file placement is identical.
+
+  ### Step 3 — Disable the `ldap` plugin
+
+  Create a `.disabled` marker next to the plugin archive:
+
+  ```bash
+  touch /var/lib/jenkins/plugins/ldap.jpi.disabled
+  ```
+
+  Jenkins reads this marker at startup and skips loading the plugin.
+
+tasks:
+  - id: "list-plugins"
+    description: "Write the count of .jpi files in /var/lib/jenkins/plugins/ to /root/plugin-count.txt"
+  - id: "install-junit"
+    description: "Install the junit plugin by creating /var/lib/jenkins/plugins/junit.jpi"
+  - id: "disable-ldap"
+    description: "Disable the ldap plugin by creating /var/lib/jenkins/plugins/ldap.jpi.disabled"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/lib/jenkins/plugins
+  for p in git pipeline-model-definition credentials mailer ldap workflow-aggregator; do
+    touch /var/lib/jenkins/plugins/${p}.jpi
+  done
+  echo "Pre-installed 6 plugins in /var/lib/jenkins/plugins/"
+
+verifyScript: |
+  # CHECK: list-plugins
+  if [ -f /root/plugin-count.txt ]; then
+    count=$(cat /root/plugin-count.txt | tr -d '[:space:]')
+    # After setup 6 plugins exist; after install-junit 7 will exist.
+    # Accept anything >= 6 (they may complete tasks in any order).
+    if [ "$count" -ge 6 ] 2>/dev/null; then
+      echo "CHECK:list-plugins:PASS:plugin-count.txt contains a valid count ($count)"
+    else
+      echo "CHECK:list-plugins:FAIL:plugin-count.txt contains '$count' — expected a number >= 6"
+    fi
+  else
+    echo "CHECK:list-plugins:FAIL:/root/plugin-count.txt does not exist"
+  fi
+
+  # CHECK: install-junit
+  if [ -f /var/lib/jenkins/plugins/junit.jpi ]; then
+    echo "CHECK:install-junit:PASS:junit.jpi found in plugins directory"
+  else
+    echo "CHECK:install-junit:FAIL:/var/lib/jenkins/plugins/junit.jpi not found"
+  fi
+
+  # CHECK: disable-ldap
+  if [ -f /var/lib/jenkins/plugins/ldap.jpi.disabled ]; then
+    echo "CHECK:disable-ldap:PASS:ldap.jpi.disabled marker file exists"
+  else
+    echo "CHECK:disable-ldap:FAIL:/var/lib/jenkins/plugins/ldap.jpi.disabled not found"
+  fi
+
+hints:
+  - "List all .jpi files with `ls /var/lib/jenkins/plugins/*.jpi` then pipe to `wc -l` and redirect to the file."
+  - "`touch /var/lib/jenkins/plugins/junit.jpi` creates the archive placeholder — Jenkins treats any file with a .jpi extension as a plugin."
+  - "The disabled marker must sit next to the plugin: `touch /var/lib/jenkins/plugins/ldap.jpi.disabled`."
+  - "Check your work: `ls /var/lib/jenkins/plugins/` should show both junit.jpi and ldap.jpi.disabled."

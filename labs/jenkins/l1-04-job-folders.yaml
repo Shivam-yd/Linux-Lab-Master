@@ -1,0 +1,136 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Organize Jenkins Jobs with Folders (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-job-folders"
+title: "Organize Jenkins Jobs with Folders"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Organise a cluttered Jenkins jobs directory by creating a Folder job, moving a flat job inside it, and verifying the resulting structure."
+estimatedMinutes: 20
+order: 13
+
+objectives:
+  - "Understand that Jenkins jobs are directories under JENKINS_HOME/jobs/"
+  - "Create a Folder job using the correct config.xml project class"
+  - "Nest an existing job inside a folder by moving its directory"
+
+instructions: |
+  ## Organize Jenkins Jobs with Folders
+
+  In Jenkins every job — including **Folders** — is simply a directory inside
+  `$JENKINS_HOME/jobs/`. A Folder is just a job whose `config.xml` declares the
+  `com.cloudbees.hudson.plugins.folder.Folder` project class. Inside a folder,
+  nested jobs live in its own `jobs/` sub-directory.
+
+  ```
+  /var/lib/jenkins/jobs/
+  ├── production/                ← Folder job
+  │   ├── config.xml             ← declares project-class Folder
+  │   └── jobs/
+  │       └── deploy-app/        ← real job nested inside folder
+  │           └── config.xml
+  └── test-job/                  ← a flat job to be moved
+  ```
+
+  ### Step 1 — Create the `production` folder
+
+  ```bash
+  mkdir -p /var/lib/jenkins/jobs/production/jobs
+  cat > /var/lib/jenkins/jobs/production/config.xml << 'EOF'
+  <?xml version='1.1' encoding='UTF-8'?>
+  <com.cloudbees.hudson.plugins.folder.Folder>
+    <description>Production pipeline jobs</description>
+    <views/>
+    <viewsTabBar/>
+  </com.cloudbees.hudson.plugins.folder.Folder>
+  EOF
+  ```
+
+  ### Step 2 — Move `test-job` into the folder
+
+  Move the existing flat job into the folder's `jobs/` directory:
+
+  ```bash
+  mv /var/lib/jenkins/jobs/test-job \
+     /var/lib/jenkins/jobs/production/jobs/test-job
+  ```
+
+  ### Step 3 — Verify the structure
+
+  Confirm the job is nested correctly:
+
+  ```bash
+  find /var/lib/jenkins/jobs -name config.xml
+  ```
+
+  Write the folder's config.xml path to `/root/folder-path.txt`:
+
+  ```bash
+  echo "/var/lib/jenkins/jobs/production/config.xml" > /root/folder-path.txt
+  ```
+
+tasks:
+  - id: "create-folder"
+    description: "Create /var/lib/jenkins/jobs/production/config.xml containing the Folder project class"
+  - id: "move-job"
+    description: "Move test-job into /var/lib/jenkins/jobs/production/jobs/"
+  - id: "record-folder-path"
+    description: "Write the string '/var/lib/jenkins/jobs/production/config.xml' to /root/folder-path.txt"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/lib/jenkins/jobs/test-job
+  cat > /var/lib/jenkins/jobs/test-job/config.xml << 'EOF'
+  <?xml version='1.1' encoding='UTF-8'?>
+  <project>
+    <description>A test pipeline job</description>
+    <builders>
+      <hudson.tasks.Shell>
+        <command>echo hello</command>
+      </hudson.tasks.Shell>
+    </builders>
+  </project>
+  EOF
+  mkdir -p /var/lib/jenkins/jobs/build-app
+  touch /var/lib/jenkins/jobs/build-app/config.xml
+  echo "Created flat jobs: test-job, build-app"
+
+verifyScript: |
+  # CHECK: create-folder
+  if [ -f /var/lib/jenkins/jobs/production/config.xml ] \
+     && grep -q "Folder" /var/lib/jenkins/jobs/production/config.xml; then
+    echo "CHECK:create-folder:PASS:production/config.xml exists and contains Folder class declaration"
+  else
+    echo "CHECK:create-folder:FAIL:/var/lib/jenkins/jobs/production/config.xml missing or does not reference Folder"
+  fi
+
+  # CHECK: move-job
+  if [ -d /var/lib/jenkins/jobs/production/jobs/test-job ] \
+     && [ -f /var/lib/jenkins/jobs/production/jobs/test-job/config.xml ]; then
+    echo "CHECK:move-job:PASS:test-job is correctly nested under production/jobs/"
+  else
+    echo "CHECK:move-job:FAIL:test-job not found at /var/lib/jenkins/jobs/production/jobs/test-job"
+  fi
+
+  # CHECK: record-folder-path
+  if [ -f /root/folder-path.txt ] \
+     && grep -q "/var/lib/jenkins/jobs/production/config.xml" /root/folder-path.txt; then
+    echo "CHECK:record-folder-path:PASS:/root/folder-path.txt contains the correct folder config.xml path"
+  else
+    echo "CHECK:record-folder-path:FAIL:/root/folder-path.txt missing or contains wrong path"
+  fi
+
+hints:
+  - "Create the folder's jobs sub-directory first: `mkdir -p /var/lib/jenkins/jobs/production/jobs`"
+  - "The config.xml for a Folder must contain the string 'Folder' in the root XML tag — copy the example from the instructions."
+  - "`mv source destination` moves the entire directory — make sure the destination path is the new location, not just the parent."
+  - "Use `find /var/lib/jenkins/jobs -type f -name config.xml` to verify the structure before recording the path."

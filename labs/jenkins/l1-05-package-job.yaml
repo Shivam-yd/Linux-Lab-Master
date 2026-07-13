@@ -1,0 +1,132 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Configure Jenkins Job for Package Installation (Level 1)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-package-job"
+title: "Configure Jenkins Job for Package Installation"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Edit a Jenkins freestyle job's config.xml to add a shell build step that installs a package, then validate the XML is well-formed."
+estimatedMinutes: 25
+order: 14
+
+objectives:
+  - "Understand the structure of a Jenkins freestyle job config.xml"
+  - "Add a Shell build step that runs an apt-get install command"
+  - "Validate the resulting XML with xmllint"
+
+instructions: |
+  ## Configure Jenkins Job for Package Installation
+
+  Every Jenkins **freestyle job** is defined by a `config.xml` inside its job
+  directory. The `<builders>` section lists the build steps that run in order.
+  A **Shell** build step is the most common — it runs an arbitrary bash command
+  inside the job's workspace.
+
+  ### Job config.xml structure
+
+  ```xml
+  <?xml version='1.1' encoding='UTF-8'?>
+  <project>
+    <description>...</description>
+    <builders>
+      <!-- Build steps go here -->
+      <hudson.tasks.Shell>
+        <command>your shell command here</command>
+      </hudson.tasks.Shell>
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+  </project>
+  ```
+
+  ### Step 1 — Inspect the existing job
+
+  ```bash
+  cat /var/lib/jenkins/jobs/install-packages/config.xml
+  ```
+
+  Notice the `<builders/>` tag is self-closing — it has no build steps yet.
+
+  ### Step 2 — Add a shell build step
+
+  Replace the empty `<builders/>` tag with a Shell step that installs `curl`:
+
+  ```bash
+  sed -i 's|<builders/>|<builders>\n  <hudson.tasks.Shell>\n    <command>apt-get install -y curl</command>\n  </hudson.tasks.Shell>\n</builders>|' \
+    /var/lib/jenkins/jobs/install-packages/config.xml
+  ```
+
+  ### Step 3 — Validate the XML
+
+  Jenkins will refuse to load a job with malformed XML. Check it before Jenkins
+  tries:
+
+  ```bash
+  apt-get install -y libxml2-utils 2>/dev/null
+  xmllint --noout /var/lib/jenkins/jobs/install-packages/config.xml && echo "XML OK"
+  ```
+
+  Save the validation result to `/root/xml-check.txt`:
+
+  ```bash
+  xmllint --noout /var/lib/jenkins/jobs/install-packages/config.xml \
+    && echo "XML OK" > /root/xml-check.txt \
+    || echo "XML ERROR" > /root/xml-check.txt
+  ```
+
+tasks:
+  - id: "add-shell-step"
+    description: "Add a hudson.tasks.Shell build step with 'apt-get install -y curl' to the install-packages job config.xml"
+  - id: "validate-xml"
+    description: "Validate the config.xml with xmllint and save the result to /root/xml-check.txt"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/lib/jenkins/jobs/install-packages
+  cat > /var/lib/jenkins/jobs/install-packages/config.xml << 'EOF'
+  <?xml version='1.1' encoding='UTF-8'?>
+  <project>
+    <description>Job that installs system packages</description>
+    <keepDependencies>false</keepDependencies>
+    <builders/>
+    <publishers/>
+    <buildWrappers/>
+  </project>
+  EOF
+  # Pre-install xmllint so students don't need internet
+  apt-get update -qq 2>/dev/null && apt-get install -y -qq libxml2-utils 2>/dev/null || true
+  echo "Job config.xml created; xmllint available"
+
+verifyScript: |
+  CONFIG=/var/lib/jenkins/jobs/install-packages/config.xml
+
+  # CHECK: add-shell-step
+  if grep -q "hudson.tasks.Shell" "$CONFIG" \
+     && grep -q "apt-get install" "$CONFIG"; then
+    echo "CHECK:add-shell-step:PASS:Shell build step with apt-get install found in config.xml"
+  else
+    echo "CHECK:add-shell-step:FAIL:config.xml does not contain a hudson.tasks.Shell step with apt-get install"
+  fi
+
+  # CHECK: validate-xml
+  if [ -f /root/xml-check.txt ] && grep -q "XML OK" /root/xml-check.txt; then
+    echo "CHECK:validate-xml:PASS:/root/xml-check.txt confirms XML is valid"
+  else
+    echo "CHECK:validate-xml:FAIL:/root/xml-check.txt missing or does not contain 'XML OK' — XML may be malformed"
+  fi
+
+hints:
+  - "Check the current file first: `cat /var/lib/jenkins/jobs/install-packages/config.xml` — you need to replace `<builders/>` with a full block."
+  - "The sed command uses `|` as a delimiter to avoid clashing with the `/` characters in XML tags."
+  - "If sed doesn't seem to work, open the file with a text editor: the `<builders/>` tag must match exactly."
+  - "xmllint is already installed — run `xmllint --noout config.xml && echo 'XML OK' > /root/xml-check.txt` directly."
+  - "After editing, check the file with `grep -A3 builders /var/lib/jenkins/jobs/install-packages/config.xml` to confirm the step was inserted."
