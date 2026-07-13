@@ -74,7 +74,7 @@ The installer will:
 **3. Open the app**
 
 ```
-http://localhost
+http://localhost or http://ServerIP
 ```
 
 #### Managing the service
