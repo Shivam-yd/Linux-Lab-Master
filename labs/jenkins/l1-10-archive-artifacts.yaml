@@ -1,0 +1,146 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Archiving Build Artifacts & Log Rotation (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-archive-artifacts"
+title: "Archiving Build Artifacts & Log Rotation"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Configure a freestyle job to produce a build log, archive it as an artifact, and limit stored builds with a log rotator."
+estimatedMinutes: 20
+order: 95
+
+objectives:
+  - "Understand the Jenkins ArtifactArchiver post-build action"
+  - "Configure a shell build step that writes output to a file"
+  - "Add the ArtifactArchiver block to archive *.log files"
+  - "Add a LogRotator (BuildDiscarder) to keep only the last 5 builds"
+
+instructions: |
+  ## Archiving Build Artifacts & Log Rotation
+
+  **Scenario**
+  Your build job currently just echoes a message to the console and throws it
+  away when the build finishes. The team has started asking "what exactly did
+  the last deployment produce?" and "why is the Jenkins server disk filling up?"
+  — two problems with one solution. You need to make the job write its output
+  to a file, archive that file as a build artifact so it's downloadable later,
+  and stop Jenkins from keeping every build forever.
+
+  **Your task:** edit the freestyle job at
+  `/var/lib/jenkins/jobs/build-app/config.xml` to update the shell builder so
+  it writes output to `build.log`, add an `ArtifactArchiver` post-build action
+  targeting `*.log`, and add a `LogRotator` build discarder that keeps the last
+  5 builds.
+
+  No text editor is installed — use shell redirection: `echo "..." > file` or
+  `cat > file <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - Shell build step updated to redirect output into `build.log`
+  - `ArtifactArchiver` post-build action configured to archive `*.log`
+  - `LogRotator` build discarder configured to keep `numToKeep` = 5
+
+  ## Steps
+
+  1. Inspect the current job config to understand its structure:
+     `cat /var/lib/jenkins/jobs/build-app/config.xml`
+  2. Rewrite the config with all three changes in one pass:
+     ```
+     cat > /var/lib/jenkins/jobs/build-app/config.xml <<'EOF'
+     <?xml version='1.1' encoding='UTF-8'?>
+     <project>
+       <description>Build and archive application output</description>
+       <properties/>
+       <buildDiscarder>
+         <strategy class="hudson.tasks.LogRotator">
+           <daysToKeep>-1</daysToKeep>
+           <numToKeep>5</numToKeep>
+           <artifactDaysToKeep>-1</artifactDaysToKeep>
+           <artifactNumToKeep>-1</artifactNumToKeep>
+         </strategy>
+       </buildDiscarder>
+       <builders>
+         <hudson.tasks.Shell>
+           <command>echo "Build completed at $(date)" > build.log</command>
+         </hudson.tasks.Shell>
+       </builders>
+       <publishers>
+         <hudson.tasks.ArtifactArchiver>
+           <artifacts>*.log</artifacts>
+           <allowEmptyArchive>false</allowEmptyArchive>
+           <onlyIfSuccessful>false</onlyIfSuccessful>
+         </hudson.tasks.ArtifactArchiver>
+       </publishers>
+       <buildWrappers/>
+     </project>
+     EOF
+     ```
+  3. Confirm the archiver block is present:
+     `grep -c "ArtifactArchiver" /var/lib/jenkins/jobs/build-app/config.xml`
+  4. Confirm the log rotator is present:
+     `grep -c "LogRotator" /var/lib/jenkins/jobs/build-app/config.xml`
+
+tasks:
+  - id: "shell_writes_log"
+    description: "Shell build step writes output to build.log"
+  - id: "archiver_configured"
+    description: "ArtifactArchiver post-build action configured to archive *.log"
+  - id: "log_rotator_set"
+    description: "LogRotator build discarder configured with numToKeep = 5"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/var/lib/jenkins/jobs/build-app"
+
+setupScript: |
+  mkdir -p /var/lib/jenkins/jobs/build-app
+  cat > /var/lib/jenkins/jobs/build-app/config.xml <<'EOF'
+  <?xml version='1.1' encoding='UTF-8'?>
+  <project>
+    <description>Build and archive application output</description>
+    <properties/>
+    <builders>
+      <hudson.tasks.Shell>
+        <command>echo "Build completed"</command>
+      </hudson.tasks.Shell>
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+  </project>
+  EOF
+
+verifyScript: |
+  CONFIG=/var/lib/jenkins/jobs/build-app/config.xml
+
+  # CHECK: shell_writes_log
+  if grep -q "build\.log" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:shell_writes_log:PASS:Shell step references build.log"
+  else
+    echo "CHECK:shell_writes_log:FAIL:Shell build step does not write to build.log — update the <command> to redirect output: echo '...' > build.log"
+  fi
+
+  # CHECK: archiver_configured
+  if grep -q "ArtifactArchiver" "$CONFIG" 2>/dev/null && grep -q "\*\.log" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:archiver_configured:PASS:ArtifactArchiver configured to archive *.log"
+  else
+    echo "CHECK:archiver_configured:FAIL:ArtifactArchiver not found or not targeting *.log — add a <publishers> section with <hudson.tasks.ArtifactArchiver>"
+  fi
+
+  # CHECK: log_rotator_set
+  if grep -q "LogRotator" "$CONFIG" 2>/dev/null && grep -q "<numToKeep>5</numToKeep>" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:log_rotator_set:PASS:LogRotator configured with numToKeep=5"
+  else
+    echo "CHECK:log_rotator_set:FAIL:LogRotator missing or numToKeep is not 5 — add a <buildDiscarder> block with <numToKeep>5</numToKeep>"
+  fi
+
+hints:
+  - "The ArtifactArchiver goes in the <publishers> section of config.xml, not <builders>."
+  - "The shell <command> needs to use > or >> to write to a file: `echo 'output' > build.log`"
+  - "The LogRotator sits inside a <buildDiscarder> element, directly under <project>."
+  - "Use `grep -c 'ArtifactArchiver' config.xml` to confirm the block was written — it should return 1 or more."
