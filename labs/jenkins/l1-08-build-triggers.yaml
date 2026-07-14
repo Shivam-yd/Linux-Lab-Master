@@ -222,4 +222,3 @@ hints:
   - "H in a Jenkins cron spec means 'hash' — Jenkins picks a consistent-but-spread-out minute automatically instead of a fixed one."
   - "Keep schedule.txt's content identical to the <spec> value you put in config.xml, or the match check will fail."
   - "xmllint is already installed — run xmllint --noout config.xml && echo 'XML OK' > /root/trigger-xml-check.txt directly."
->>>>>>> b61d80a90d87131f70fa73db6522c6e6f965977f
