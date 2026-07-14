@@ -1,0 +1,237 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Lab: Application Update Workflow
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "docker-update-workflow"
+title: "Application Update Workflow"
+track: "docker"
+level: 1
+category: "Docker Fundamentals"
+difficulty: "beginner"
+summary: "Follow the standard stop-remove-rebuild-redeploy cycle to update a running containerised application to a new version."
+estimatedMinutes: 20
+order: 1000
+
+objectives:
+  - "Stop and remove a running container safely"
+  - "Build a new image version from an updated Dockerfile"
+  - "Start a new container from the updated image"
+  - "Understand why containers are replaced rather than updated in-place"
+
+instructions: |
+  ## Application Update Workflow
+
+  **Scenario**
+  Your app is currently running as `app-v1`, built from the original Dockerfile.
+  The team has shipped a bug fix and you need to deploy `v2`. In the container
+  world, you don't patch a running container — you stop the old one, build a
+  new image, and start a fresh container from it. This immutable approach keeps
+  the host clean and makes rollback trivial (just re-run the old image).
+
+  **Your task:** stop and remove the `app-v1` container, build `webapp:v2` from
+  the updated Dockerfile, and start a new `app-v2` container from it.
+
+  No text editor is installed — update the Dockerfile using `cat > … <<'EOF' … EOF`.
+
+  **What You'll Deliver**
+  - `app-v1` container stopped and removed
+  - `webapp:v2` image built from an updated Dockerfile
+  - `app-v2` container running from `webapp:v2`
+
+  ## Steps
+
+  1. Check what's currently running: `docker ps`
+  2. Stop the old container: `docker stop app-v1`
+  3. Remove it: `docker rm app-v1`
+  4. Confirm it's gone: `docker ps -a`
+  5. Update the Dockerfile (bump the version and echo message):
+     ```
+     cat > /root/work/app/Dockerfile <<'EOF'
+     FROM alpine:latest
+     LABEL version="2.0"
+     RUN echo "building v2 with bug fix applied"
+     COPY . /app
+     CMD ["echo", "webapp v2 — bug fix deployed"]
+     EOF
+     ```
+  6. Build the new image: `docker build -t webapp:v2 /root/work/app`
+  7. Start the new container:
+     `docker run -d --name app-v2 webapp:v2 sh -c "while true; do echo 'v2 running'; sleep 2; done"`
+  8. Verify the new container is up: `docker ps`
+
+tasks:
+  - id: "old_container_removed"
+    description: "Container app-v1 has been stopped and removed"
+  - id: "new_image_built"
+    description: "webapp:v2 image exists in the local cache"
+  - id: "new_container_running"
+    description: "Container app-v2 is running from webapp:v2"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/work"
+
+setupScript: |
+  mkdir -p /usr/local/bin /var/lib/fakedocker/images /var/lib/fakedocker/containers /var/lib/fakedocker/volumes /root/work/app
+  cat > /usr/local/bin/docker <<'DOCKEREOF'
+  #!/bin/sh
+  ROOT=/var/lib/fakedocker
+  IMAGES="$ROOT/images"
+  CONTAINERS="$ROOT/containers"
+  VOLUMES="$ROOT/volumes"
+  mkdir -p "$IMAGES" "$CONTAINERS" "$VOLUMES"
+  image_size() { case "$1" in busybox) echo 4 ;; alpine) echo 7 ;; webapp) echo 12 ;; *) echo 10 ;; esac; }
+  fake_id() { n="$1-$$-$RANDOM_SEED"; echo "$n" | cksum | cut -d' ' -f1 | cut -c1-12; }
+  RANDOM_SEED=0
+  norm_image() { case "$1" in *:*) echo "$1" ;; *) echo "$1:latest" ;; esac; }
+  ensure_image() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then repo=${img%%:*}; mkdir -p "$dir"; fake_id "$img" > "$dir/id"; image_size "$repo" > "$dir/size"; echo "base" > "$dir/kind"; fi
+    echo "$dir"
+  }
+  cmd_pull() {
+    img=$(norm_image "$1"); echo "$img: Pulling from library/${img%%:*}"
+    ensure_image "$img" >/dev/null; echo "$img" >> "$ROOT/pull_history.log"; echo "Status: Downloaded newer image for $img"
+  }
+  cmd_images() {
+    printf "%-20s %-10s %-15s %s\n" "REPOSITORY" "TAG" "IMAGE ID" "SIZE"
+    for d in "$IMAGES"/*/; do [ -d "$d" ] || continue; name=$(basename "$d"); repo=${name%%:*}; tag=${name#*:}; id=$(cat "$d/id" 2>/dev/null || echo "unknown"); size=$(cat "$d/size" 2>/dev/null || echo "0"); printf "%-20s %-10s %-15s %sMB\n" "$repo" "$tag" "$id" "$size"; done
+  }
+  cmd_rmi() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"; [ ! -d "$dir" ] && { echo "Error: No such image: $img" >&2; exit 1; }
+    for c in "$CONTAINERS"/*/; do [ -d "$c" ] || continue; [ "$(cat "$c/image" 2>/dev/null)" = "$img" ] && { echo "Error response from daemon: conflict: unable to remove $img — container in use" >&2; exit 1; }; done
+    rm -rf "$dir"; echo "Untagged: $img"
+  }
+  cmd_inspect() {
+    target="$1"; img="$IMAGES/$(norm_image "$target")"
+    if [ -d "$img" ]; then echo "{"; echo "  \"Type\": \"image\","; echo "  \"RepoTags\": [\"$(norm_image "$target")\"],"; echo "  \"Id\": \"sha256:$(cat "$img/id")\""; echo "}"; return 0; fi
+    c="$CONTAINERS/$target"
+    if [ -d "$c" ]; then echo "{"; echo "  \"Type\": \"container\","; echo "  \"Name\": \"/$target\","; echo "  \"Image\": \"$(cat "$c/image")\","; echo "  \"State\": { \"Status\": \"$(cat "$c/status")\" }"; echo "}"; return 0; fi
+    echo "Error: No such object: $target" >&2; exit 1
+  }
+  cmd_run() {
+    DETACH=0; NAME=""; VOL_SPEC=""
+    while [ $# -gt 0 ]; do case "$1" in -d|--detach) DETACH=1; shift ;; --name) NAME="$2"; shift 2 ;; -v) VOL_SPEC="$2"; shift 2 ;; *) break ;; esac; done
+    IMAGE="$1"; [ -z "$IMAGE" ] && { echo "docker: run requires an image name" >&2; exit 1; }
+    shift; img=$(norm_image "$IMAGE"); ensure_image "$img" >/dev/null
+    [ -z "$NAME" ] && NAME="container_$(fake_id "$img")"
+    cdir="$CONTAINERS/$NAME"
+    if [ -d "$cdir" ] && [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then echo "Error response from daemon: Conflict. The container name \"/$NAME\" is already in use" >&2; exit 1; fi
+    rm -rf "$cdir"; mkdir -p "$cdir"; echo "$img" > "$cdir/image"; cid=$(fake_id "$NAME"); echo "$cid" > "$cdir/id"; : > "$cdir/log"
+    if [ -n "$VOL_SPEC" ]; then volname=${VOL_SPEC%%:*}; mountpath=${VOL_SPEC#*:}; mkdir -p "$VOLUMES/$volname"; rm -rf "$mountpath"; mkdir -p "$(dirname "$mountpath")"; ln -sfn "$VOLUMES/$volname" "$mountpath"; echo "$VOL_SPEC" > "$cdir/volume"; fi
+    if [ "$DETACH" = "1" ]; then
+      echo "running" > "$cdir/status"
+      if [ $# -gt 0 ]; then "$@" >"$cdir/log" 2>&1 & echo $! > "$cdir/pid"; else sh -c 'while true; do sleep 3600; done' >"$cdir/log" 2>&1 & echo $! > "$cdir/pid"; fi
+      echo "$cid"
+    else
+      echo "running" > "$cdir/status"; [ $# -gt 0 ] && "$@" 2>&1 | tee "$cdir/log"; echo "exited" > "$cdir/status"
+    fi
+  }
+  cmd_ps() {
+    show_all=0; [ "$1" = "-a" ] && show_all=1
+    printf "%-14s %-20s %-10s %s\n" "CONTAINER ID" "IMAGE" "STATUS" "NAMES"
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue; name=$(basename "$c"); status=$(cat "$c/status" 2>/dev/null || echo "unknown")
+      [ "$status" != "running" ] && [ "$show_all" != "1" ] && continue
+      id=$(cat "$c/id" 2>/dev/null || echo "??"); img=$(cat "$c/image" 2>/dev/null || echo "??")
+      printf "%-14s %-20s %-10s %s\n" "$id" "$img" "$status" "$name"
+    done
+  }
+  cmd_stop() {
+    name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ -f "$cdir/pid" ] && { pid=$(cat "$cdir/pid"); kill "$pid" 2>/dev/null; pkill -P "$pid" 2>/dev/null; }
+    echo "exited" > "$cdir/status"; echo "$name"
+  }
+  cmd_rm() {
+    name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ] && { echo "Error response from daemon: You cannot remove a running container $name. Stop it first." >&2; exit 1; }
+    rm -rf "$cdir"; echo "$name"
+  }
+  cmd_logs() { name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }; cat "$cdir/log" 2>/dev/null; }
+  cmd_exec() {
+    name="$1"; shift; cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ] || [ "$(cat "$cdir/status" 2>/dev/null)" != "running" ]; then echo "Error: No such container: $name" >&2; exit 1; fi
+    "$@"
+  }
+  cmd_build() {
+    tag=""; ctx="."
+    while [ $# -gt 0 ]; do case "$1" in -t) tag="$2"; shift 2 ;; *) ctx="$1"; shift ;; esac; done
+    dockerfile="$ctx/Dockerfile"; [ ! -f "$dockerfile" ] && { echo "unable to prepare context: Dockerfile not found" >&2; exit 1; }
+    grep -qE '^FROM[[:space:]]+' "$dockerfile" || { echo "Error: Dockerfile missing FROM" >&2; exit 1; }
+    base=$(grep -E '^FROM[[:space:]]+' "$dockerfile" | head -1 | awk '{print $2}')
+    steps=$(grep -cE '^(RUN|COPY|ADD|CMD|ENTRYPOINT|ENV|EXPOSE|WORKDIR|LABEL)[[:space:]]' "$dockerfile")
+    [ -z "$tag" ] && { echo "docker: build requires -t NAME:TAG" >&2; exit 1; }
+    img=$(norm_image "$tag"); total=$((steps + 1))
+    echo "Sending build context to Docker daemon"; echo "Step 1/$total : FROM $base"
+    i=1; while IFS= read -r line; do case "$line" in FROM*|""|"#"*) continue ;; esac; i=$((i+1)); echo "Step $i/$total : $line"; done < "$dockerfile"
+    dir=$(ensure_image "$img"); echo "custom" > "$dir/kind"; echo "$base" > "$dir/base"; cp "$dockerfile" "$dir/Dockerfile"
+    echo "Successfully built $(fake_id "$img")"; echo "Successfully tagged $img"
+  }
+  cmd_volume() {
+    sub="$1"; shift
+    case "$sub" in
+      create) name="$1"; mkdir -p "$VOLUMES/$name"; echo "$name" ;;
+      ls) printf "%-20s %s\n" "DRIVER" "VOLUME NAME"; for d in "$VOLUMES"/*/; do [ -d "$d" ] || continue; printf "%-20s %s\n" "local" "$(basename "$d")"; done ;;
+      rm) rm -rf "${VOLUMES:?}/$1"; echo "$1" ;;
+      *) echo "docker volume: unknown subcommand $sub" >&2; exit 1 ;;
+    esac
+  }
+  case "$1" in
+    pull) shift; cmd_pull "$@" ;; images) shift; cmd_images "$@" ;; rmi) shift; cmd_rmi "$@" ;;
+    inspect) shift; cmd_inspect "$@" ;; run) shift; cmd_run "$@" ;; ps) shift; cmd_ps "$@" ;;
+    stop) shift; cmd_stop "$@" ;; rm) shift; cmd_rm "$@" ;; logs) shift; cmd_logs "$@" ;;
+    exec) shift; cmd_exec "$@" ;; build) shift; cmd_build "$@" ;; volume) shift; cmd_volume "$@" ;;
+    version) echo "Docker version 24.0.0 (lab-sandbox)" ;;
+    *) echo "docker: unknown command '$1'" >&2; exit 1 ;;
+  esac
+  DOCKEREOF
+  chmod +x /usr/local/bin/docker
+  # Seed webapp:v1 image and a running app-v1 container
+  cat > /root/work/app/Dockerfile <<'EOF'
+  FROM alpine:latest
+  LABEL version="1.0"
+  RUN echo "building v1"
+  COPY . /app
+  CMD ["echo", "webapp v1 starting"]
+  EOF
+  docker build -t webapp:v1 /root/work/app >/dev/null 2>&1
+  docker run -d --name app-v1 webapp:v1 sh -c "while true; do echo 'v1 running'; sleep 2; done" >/dev/null
+
+verifyScript: |
+  C=/var/lib/fakedocker/containers
+  I=/var/lib/fakedocker/images
+
+  # CHECK: old_container_removed
+  if [ ! -d "$C/app-v1" ]; then
+    echo "CHECK:old_container_removed:PASS:app-v1 container has been removed"
+  else
+    status=$(cat "$C/app-v1/status" 2>/dev/null)
+    if [ "$status" = "running" ]; then
+      echo "CHECK:old_container_removed:FAIL:app-v1 is still running — stop it first: docker stop app-v1 && docker rm app-v1"
+    else
+      echo "CHECK:old_container_removed:FAIL:app-v1 is stopped but not removed — run: docker rm app-v1"
+    fi
+  fi
+
+  # CHECK: new_image_built
+  if [ -d "$I/webapp:v2" ] && [ "$(cat "$I/webapp:v2/kind" 2>/dev/null)" = "custom" ]; then
+    echo "CHECK:new_image_built:PASS:webapp:v2 image built from updated Dockerfile"
+  else
+    echo "CHECK:new_image_built:FAIL:webapp:v2 not found — update the Dockerfile, then: docker build -t webapp:v2 /root/work/app"
+  fi
+
+  # CHECK: new_container_running
+  if [ -d "$C/app-v2" ] && [ "$(cat "$C/app-v2/status" 2>/dev/null)" = "running" ]; then
+    echo "CHECK:new_container_running:PASS:app-v2 is running from the new image"
+  else
+    echo "CHECK:new_container_running:FAIL:app-v2 not running — start it: docker run -d --name app-v2 webapp:v2 sh -c 'while true; do sleep 1; done'"
+  fi
+
+hints:
+  - "The workflow is always: docker stop → docker rm → docker build -t new:tag → docker run. Never patch a running container."
+  - "docker rm refuses to remove a running container — you must docker stop it first."
+  - "docker build -t webapp:v2 /root/work/app reads /root/work/app/Dockerfile and creates a new image tag."
+  - "Update the Dockerfile before building v2 — change at least the LABEL or CMD so the build produces something visibly different."

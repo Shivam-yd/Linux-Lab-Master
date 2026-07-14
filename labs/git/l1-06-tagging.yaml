@@ -1,0 +1,112 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Tagging Releases with git tag
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-tagging"
+title: "Tagging Releases with git tag"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Mark important commits with lightweight and annotated tags to track milestones and releases."
+estimatedMinutes: 15
+order: 600
+
+objectives:
+  - "Understand the difference between lightweight and annotated tags"
+  - "Create both tag types with git tag and git tag -a"
+  - "List tags with git tag -l"
+  - "Delete a tag with git tag -d"
+
+instructions: |
+  ## Tagging Releases with git tag
+
+  **Scenario**
+  Your team just merged the features for the 1.0 release and the commit is
+  sitting in `main`. Before the CI/CD pipeline can package it, it needs a tag
+  — that's how the pipeline knows which commit is a release. Your lead also
+  wants an annotated tag (not just a lightweight one) so the release message
+  is permanently stored alongside the code.
+
+  **Your task:** create a lightweight tag `v0.1` as a scratch marker, then
+  create an annotated tag `v1.0` with a proper release message, and finally
+  delete `v0.1` since scratch markers shouldn't appear in the release history.
+
+  No text editor is installed — pass the tag message inline with `-m`.
+
+  **What You'll Deliver**
+  - Annotated tag `v1.0` created with a release message
+  - Lightweight tag `v0.1` deleted, leaving only `v1.0`
+  - `git tag -l` shows exactly one tag
+
+  ## Steps
+
+  1. `cd /root/project`
+  2. Check the current commit: `git log --oneline -1`
+  3. Create a lightweight scratch marker: `git tag v0.1`
+  4. Verify it exists: `git tag -l`
+  5. Create the annotated release tag: `git tag -a v1.0 -m "Release 1.0 — initial stable release"`
+  6. Inspect the annotated tag to see its metadata: `git show v1.0`
+  7. Delete the scratch marker: `git tag -d v0.1`
+  8. Confirm only `v1.0` remains: `git tag -l`
+
+tasks:
+  - id: "annotated_tag_exists"
+    description: "An annotated tag v1.0 exists with a commit message"
+  - id: "lightweight_tag_deleted"
+    description: "Tag v0.1 has been deleted and no longer appears in git tag -l"
+  - id: "only_one_tag"
+    description: "Exactly one tag (v1.0) exists in the repository"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  echo "# Stable App" > README.md
+  git add README.md
+  git commit -q -m "initial commit: stable release candidate"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: annotated_tag_exists
+  if git tag -l | grep -qx "v1\.0"; then
+    if git cat-file -t v1.0 2>/dev/null | grep -qx "tag"; then
+      echo "CHECK:annotated_tag_exists:PASS:v1.0 is an annotated tag with metadata"
+    else
+      echo "CHECK:annotated_tag_exists:FAIL:v1.0 exists but is lightweight — recreate it with: git tag -d v1.0 && git tag -a v1.0 -m 'message'"
+    fi
+  else
+    echo "CHECK:annotated_tag_exists:FAIL:Tag v1.0 not found — run: git tag -a v1.0 -m 'Release 1.0'"
+  fi
+
+  # CHECK: lightweight_tag_deleted
+  if git tag -l | grep -qx "v0\.1"; then
+    echo "CHECK:lightweight_tag_deleted:FAIL:Tag v0.1 still exists — delete it with: git tag -d v0.1"
+  else
+    echo "CHECK:lightweight_tag_deleted:PASS:v0.1 has been deleted"
+  fi
+
+  # CHECK: only_one_tag
+  count=$(git tag -l | wc -l | tr -d ' ')
+  if [ "$count" -eq 1 ]; then
+    echo "CHECK:only_one_tag:PASS:Exactly 1 tag found (v1.0)"
+  else
+    echo "CHECK:only_one_tag:FAIL:Expected 1 tag, found $count — delete v0.1 with: git tag -d v0.1"
+  fi
+
+hints:
+  - "A lightweight tag is just a pointer to a commit — no extra metadata. Create with: git tag v0.1"
+  - "An annotated tag stores the tagger name, date, and a message as a full Git object. Create with: git tag -a v1.0 -m 'message'"
+  - "git show v1.0 displays the tag object itself (tagger, date, message) before showing the commit."
+  - "git tag -d tagname deletes the tag locally without affecting the commit it pointed at."

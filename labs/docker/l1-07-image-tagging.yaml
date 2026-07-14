@@ -1,0 +1,245 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Lab: Building Versioned Images
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "docker-image-tagging"
+title: "Building Versioned Images"
+track: "docker"
+level: 1
+category: "Docker Fundamentals"
+difficulty: "beginner"
+summary: "Build an application image at two different version tags so the team can roll back to v1 if v2 has problems."
+estimatedMinutes: 20
+order: 700
+
+objectives:
+  - "Write a Dockerfile with FROM, RUN, COPY, CMD, and LABEL instructions"
+  - "Build an image with a specific version tag using docker build -t"
+  - "Update the Dockerfile and build a second version under a new tag"
+  - "Confirm both version tags coexist in docker images"
+
+instructions: |
+  ## Building Versioned Images
+
+  **Scenario**
+  Your app's Docker image has always been built as `webapp:latest`, which means
+  there is no easy rollback — `latest` just gets overwritten with every build.
+  After an outage last week caused by a bad release, the team decided: every
+  build must produce a version-tagged image (`webapp:v1`, `webapp:v2`, …) so
+  ops can roll back by running the previous tag. You're implementing that policy
+  starting now.
+
+  **Your task:** build the existing app as `webapp:v1`, update the Dockerfile
+  to add a version label and a new echo command, then build it again as
+  `webapp:v2`. Both tags must appear in `docker images`.
+
+  No text editor is installed — update the Dockerfile using `cat > … <<'EOF' … EOF`.
+
+  **What You'll Deliver**
+  - `webapp:v1` built from the original Dockerfile
+  - `webapp:v2` built after updating the Dockerfile
+  - Both version tags visible in `docker images`
+
+  ## Steps
+
+  1. Inspect the starter Dockerfile: `cat /root/work/app/Dockerfile`
+  2. Build v1: `docker build -t webapp:v1 /root/work/app`
+  3. Confirm it appears: `docker images`
+  4. Update the Dockerfile to add a LABEL and change the CMD:
+     ```
+     cat > /root/work/app/Dockerfile <<'EOF'
+     FROM alpine:latest
+     LABEL version="2.0"
+     RUN echo "building v2"
+     COPY . /app
+     CMD ["echo", "webapp v2 starting"]
+     EOF
+     ```
+  5. Build v2: `docker build -t webapp:v2 /root/work/app`
+  6. Confirm both tags exist: `docker images` — you should see `webapp v1` and `webapp v2`
+
+tasks:
+  - id: "v1_built"
+    description: "webapp:v1 image exists in the local cache"
+  - id: "v2_built"
+    description: "webapp:v2 image exists in the local cache"
+  - id: "both_tags_present"
+    description: "Both webapp:v1 and webapp:v2 appear in docker images simultaneously"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/work"
+
+setupScript: |
+  mkdir -p /usr/local/bin /var/lib/fakedocker/images /var/lib/fakedocker/containers /var/lib/fakedocker/volumes /root/work/app
+  cat > /usr/local/bin/docker <<'DOCKEREOF'
+  #!/bin/sh
+  ROOT=/var/lib/fakedocker
+  IMAGES="$ROOT/images"
+  CONTAINERS="$ROOT/containers"
+  VOLUMES="$ROOT/volumes"
+  mkdir -p "$IMAGES" "$CONTAINERS" "$VOLUMES"
+  image_size() {
+    case "$1" in busybox) echo 4 ;; alpine) echo 7 ;; nginx) echo 142 ;; ubuntu) echo 78 ;; webapp) echo 12 ;; *) echo 10 ;; esac
+  }
+  fake_id() { n="$1-$$-$RANDOM_SEED"; echo "$n" | cksum | cut -d' ' -f1 | cut -c1-12; }
+  RANDOM_SEED=0
+  norm_image() { case "$1" in *:*) echo "$1" ;; *) echo "$1:latest" ;; esac; }
+  ensure_image() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then repo=${img%%:*}; mkdir -p "$dir"; fake_id "$img" > "$dir/id"; image_size "$repo" > "$dir/size"; echo "base" > "$dir/kind"; fi
+    echo "$dir"
+  }
+  cmd_pull() {
+    img=$(norm_image "$1"); echo "$img: Pulling from library/${img%%:*}"
+    echo "Digest: sha256:$(fake_id "$img")0000000000000000000000000000000000000000000000"
+    ensure_image "$img" >/dev/null; echo "$img" >> "$ROOT/pull_history.log"; echo "Status: Downloaded newer image for $img"
+  }
+  cmd_images() {
+    printf "%-20s %-10s %-15s %s\n" "REPOSITORY" "TAG" "IMAGE ID" "SIZE"
+    for d in "$IMAGES"/*/; do
+      [ -d "$d" ] || continue; name=$(basename "$d"); repo=${name%%:*}; tag=${name#*:}
+      id=$(cat "$d/id" 2>/dev/null || echo "unknown"); size=$(cat "$d/size" 2>/dev/null || echo "0")
+      printf "%-20s %-10s %-15s %sMB\n" "$repo" "$tag" "$id" "$size"
+    done
+  }
+  cmd_rmi() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"
+    [ ! -d "$dir" ] && { echo "Error: No such image: $img" >&2; exit 1; }
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue
+      [ "$(cat "$c/image" 2>/dev/null)" = "$img" ] && { echo "Error response from daemon: conflict: unable to remove repository reference \"$img\"" >&2; exit 1; }
+    done
+    rm -rf "$dir"; echo "Untagged: $img"; echo "Deleted: sha256:$(fake_id "$img")"
+  }
+  cmd_inspect() {
+    target="$1"; img="$IMAGES/$(norm_image "$target")"
+    if [ -d "$img" ]; then
+      echo "{"; echo "  \"Type\": \"image\","; echo "  \"RepoTags\": [\"$(norm_image "$target")\"],"; echo "  \"Id\": \"sha256:$(cat "$img/id")\","; echo "  \"Size\": $(cat "$img/size")000000"; echo "}"; return 0
+    fi
+    c="$CONTAINERS/$target"
+    if [ -d "$c" ]; then
+      echo "{"; echo "  \"Type\": \"container\","; echo "  \"Name\": \"/$target\","; echo "  \"Image\": \"$(cat "$c/image")\","; echo "  \"State\": { \"Status\": \"$(cat "$c/status")\" }"; echo "}"; return 0
+    fi
+    echo "Error: No such object: $target" >&2; exit 1
+  }
+  cmd_run() {
+    DETACH=0; NAME=""; VOL_SPEC=""
+    while [ $# -gt 0 ]; do case "$1" in -d|--detach) DETACH=1; shift ;; --name) NAME="$2"; shift 2 ;; -v) VOL_SPEC="$2"; shift 2 ;; *) break ;; esac; done
+    IMAGE="$1"; [ -z "$IMAGE" ] && { echo "docker: run requires an image name" >&2; exit 1; }
+    shift; img=$(norm_image "$IMAGE"); ensure_image "$img" >/dev/null
+    [ -z "$NAME" ] && NAME="container_$(fake_id "$img")"
+    cdir="$CONTAINERS/$NAME"
+    if [ -d "$cdir" ] && [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then echo "Error response from daemon: Conflict. The container name \"/$NAME\" is already in use" >&2; exit 1; fi
+    rm -rf "$cdir"; mkdir -p "$cdir"; echo "$img" > "$cdir/image"; cid=$(fake_id "$NAME"); echo "$cid" > "$cdir/id"; : > "$cdir/log"
+    if [ -n "$VOL_SPEC" ]; then volname=${VOL_SPEC%%:*}; mountpath=${VOL_SPEC#*:}; mkdir -p "$VOLUMES/$volname"; rm -rf "$mountpath"; mkdir -p "$(dirname "$mountpath")"; ln -sfn "$VOLUMES/$volname" "$mountpath"; echo "$VOL_SPEC" > "$cdir/volume"; fi
+    if [ "$DETACH" = "1" ]; then
+      echo "running" > "$cdir/status"
+      if [ $# -gt 0 ]; then "$@" >"$cdir/log" 2>&1 & echo $! > "$cdir/pid"; else sh -c 'while true; do sleep 3600; done' >"$cdir/log" 2>&1 & echo $! > "$cdir/pid"; fi
+      echo "$cid"
+    else
+      echo "running" > "$cdir/status"; [ $# -gt 0 ] && "$@" 2>&1 | tee "$cdir/log"; echo "exited" > "$cdir/status"
+    fi
+  }
+  cmd_ps() {
+    show_all=0; [ "$1" = "-a" ] && show_all=1
+    printf "%-14s %-20s %-10s %s\n" "CONTAINER ID" "IMAGE" "STATUS" "NAMES"
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue; name=$(basename "$c"); status=$(cat "$c/status" 2>/dev/null || echo "unknown")
+      [ "$status" != "running" ] && [ "$show_all" != "1" ] && continue
+      id=$(cat "$c/id" 2>/dev/null || echo "??"); img=$(cat "$c/image" 2>/dev/null || echo "??")
+      printf "%-14s %-20s %-10s %s\n" "$id" "$img" "$status" "$name"
+    done
+  }
+  cmd_stop() {
+    name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ -f "$cdir/pid" ] && { pid=$(cat "$cdir/pid"); kill "$pid" 2>/dev/null; pkill -P "$pid" 2>/dev/null; }
+    echo "exited" > "$cdir/status"; echo "$name"
+  }
+  cmd_rm() {
+    name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ] && { echo "Error response from daemon: You cannot remove a running container $name. Stop it first." >&2; exit 1; }
+    rm -rf "$cdir"; echo "$name"
+  }
+  cmd_logs() { name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }; cat "$cdir/log" 2>/dev/null; }
+  cmd_exec() {
+    name="$1"; shift; cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ] || [ "$(cat "$cdir/status" 2>/dev/null)" != "running" ]; then echo "Error: No such container: $name" >&2; exit 1; fi
+    "$@"
+  }
+  cmd_build() {
+    tag=""; ctx="."
+    while [ $# -gt 0 ]; do case "$1" in -t) tag="$2"; shift 2 ;; *) ctx="$1"; shift ;; esac; done
+    dockerfile="$ctx/Dockerfile"
+    [ ! -f "$dockerfile" ] && { echo "unable to prepare context: Dockerfile not found in $ctx" >&2; exit 1; }
+    grep -qE '^FROM[[:space:]]+' "$dockerfile" || { echo "Error: Dockerfile is missing a FROM instruction" >&2; exit 1; }
+    base=$(grep -E '^FROM[[:space:]]+' "$dockerfile" | head -1 | awk '{print $2}')
+    steps=$(grep -cE '^(RUN|COPY|ADD|CMD|ENTRYPOINT|ENV|EXPOSE|WORKDIR|LABEL)[[:space:]]' "$dockerfile")
+    [ -z "$tag" ] && { echo "docker: build requires -t NAME:TAG" >&2; exit 1; }
+    img=$(norm_image "$tag"); total=$((steps + 1))
+    echo "Sending build context to Docker daemon"; echo "Step 1/$total : FROM $base"
+    i=1; while IFS= read -r line; do
+      case "$line" in FROM*|""|"#"*) continue ;; esac; i=$((i + 1)); echo "Step $i/$total : $line"
+    done < "$dockerfile"
+    dir=$(ensure_image "$img"); echo "custom" > "$dir/kind"; echo "$base" > "$dir/base"; cp "$dockerfile" "$dir/Dockerfile"
+    echo "Successfully built $(fake_id "$img")"; echo "Successfully tagged $img"
+  }
+  cmd_volume() {
+    sub="$1"; shift
+    case "$sub" in
+      create) name="$1"; mkdir -p "$VOLUMES/$name"; echo "$name" ;;
+      ls) printf "%-20s %s\n" "DRIVER" "VOLUME NAME"; for d in "$VOLUMES"/*/; do [ -d "$d" ] || continue; printf "%-20s %s\n" "local" "$(basename "$d")"; done ;;
+      rm) rm -rf "${VOLUMES:?}/$1"; echo "$1" ;;
+      *) echo "docker volume: unknown subcommand $sub" >&2; exit 1 ;;
+    esac
+  }
+  case "$1" in
+    pull) shift; cmd_pull "$@" ;; images) shift; cmd_images "$@" ;; rmi) shift; cmd_rmi "$@" ;;
+    inspect) shift; cmd_inspect "$@" ;; run) shift; cmd_run "$@" ;; ps) shift; cmd_ps "$@" ;;
+    stop) shift; cmd_stop "$@" ;; rm) shift; cmd_rm "$@" ;; logs) shift; cmd_logs "$@" ;;
+    exec) shift; cmd_exec "$@" ;; build) shift; cmd_build "$@" ;; volume) shift; cmd_volume "$@" ;;
+    version) echo "Docker version 24.0.0 (lab-sandbox)" ;;
+    *) echo "docker: unknown command '$1'" >&2; exit 1 ;;
+  esac
+  DOCKEREOF
+  chmod +x /usr/local/bin/docker
+  # Seed a starter Dockerfile for v1
+  cat > /root/work/app/Dockerfile <<'EOF'
+  FROM alpine:latest
+  RUN echo "building v1"
+  COPY . /app
+  CMD ["echo", "webapp v1 starting"]
+  EOF
+
+verifyScript: |
+  I=/var/lib/fakedocker/images
+
+  # CHECK: v1_built
+  if [ -d "$I/webapp:v1" ] && [ "$(cat "$I/webapp:v1/kind" 2>/dev/null)" = "custom" ]; then
+    echo "CHECK:v1_built:PASS:webapp:v1 image built successfully"
+  else
+    echo "CHECK:v1_built:FAIL:webapp:v1 not found — run: docker build -t webapp:v1 /root/work/app"
+  fi
+
+  # CHECK: v2_built
+  if [ -d "$I/webapp:v2" ] && [ "$(cat "$I/webapp:v2/kind" 2>/dev/null)" = "custom" ]; then
+    echo "CHECK:v2_built:PASS:webapp:v2 image built successfully"
+  else
+    echo "CHECK:v2_built:FAIL:webapp:v2 not found — update the Dockerfile then: docker build -t webapp:v2 /root/work/app"
+  fi
+
+  # CHECK: both_tags_present
+  if [ -d "$I/webapp:v1" ] && [ -d "$I/webapp:v2" ]; then
+    echo "CHECK:both_tags_present:PASS:Both webapp:v1 and webapp:v2 are present in the image cache"
+  else
+    echo "CHECK:both_tags_present:FAIL:One or both version tags missing — build each with a distinct -t flag"
+  fi
+
+hints:
+  - "docker build -t webapp:v1 /root/work/app reads /root/work/app/Dockerfile and tags the result webapp:v1."
+  - "Building v2 does NOT replace v1 — each -t flag creates a separate image entry with its own tag."
+  - "Use cat > /root/work/app/Dockerfile <<'EOF' ... EOF to update the Dockerfile without a text editor."
+  - "docker images shows all local images — confirm both v1 and v2 appear before clicking 'Check my work'."

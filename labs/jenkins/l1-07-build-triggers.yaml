@@ -1,0 +1,130 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Build Triggers — Timer & SCM Poll (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-build-triggers"
+title: "Build Triggers: Timer and SCM Polling"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Configure a freestyle job to build on a schedule and to poll source control for changes."
+estimatedMinutes: 20
+order: 70
+
+objectives:
+  - "Understand the Jenkins <triggers> block in config.xml"
+  - "Configure a TimerTrigger with a cron expression"
+  - "Configure an SCMTrigger to poll for source changes"
+  - "Verify trigger configuration with grep and xmllint"
+
+instructions: |
+  ## Build Triggers: Timer and SCM Polling
+
+  **Scenario**
+  Your nightly integration tests run manually right now — someone on the team
+  has to remember to kick them off every night. On three separate occasions
+  this month, the tests weren't run at all. Your manager wants two things: an
+  automatic nightly run at 2 AM, and a second trigger that fires whenever a
+  developer pushes to the repository (by polling every 5 minutes). Both are
+  configured in the same `<triggers>` block in the job's `config.xml`.
+
+  **Your task:** add a `TimerTrigger` (2 AM daily) and an `SCMTrigger` (every
+  5 minutes) to the `nightly-tests` job's `config.xml`.
+
+  No text editor is installed — use shell redirection: `cat > file <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `<triggers>` block present in the nightly-tests job config
+  - `TimerTrigger` configured with cron spec `H 2 * * *`
+  - `SCMTrigger` configured with poll spec `H/5 * * * *`
+
+  ## Steps
+
+  1. Inspect the existing config: `cat /var/lib/jenkins/jobs/nightly-tests/config.xml`
+  2. Rewrite with triggers:
+     ```
+     cat > /var/lib/jenkins/jobs/nightly-tests/config.xml <<'EOF'
+     <?xml version='1.1' encoding='UTF-8'?>
+     <project>
+       <description>Nightly integration test suite</description>
+       <triggers>
+         <hudson.triggers.TimerTrigger>
+           <spec>H 2 * * *</spec>
+         </hudson.triggers.TimerTrigger>
+         <hudson.triggers.SCMTrigger>
+           <spec>H/5 * * * *</spec>
+         </hudson.triggers.SCMTrigger>
+       </triggers>
+       <builders>
+         <hudson.tasks.Shell>
+           <command>echo "Running nightly integration tests"</command>
+         </hudson.tasks.Shell>
+       </builders>
+     </project>
+     EOF
+     ```
+  3. Validate the XML: `xmllint --noout /var/lib/jenkins/jobs/nightly-tests/config.xml && echo "XML OK"`
+  4. Confirm both triggers are present:
+     `grep -E "TimerTrigger|SCMTrigger" /var/lib/jenkins/jobs/nightly-tests/config.xml`
+
+tasks:
+  - id: "triggers_block_present"
+    description: "<triggers> block is present in the nightly-tests job config.xml"
+  - id: "timer_trigger_configured"
+    description: "TimerTrigger is present with a cron spec containing '2'"
+  - id: "scm_trigger_configured"
+    description: "SCMTrigger is present with a poll spec containing 'H/5'"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/var/lib/jenkins/jobs/nightly-tests"
+
+setupScript: |
+  apt-get install -y -qq libxml2-utils >/dev/null 2>&1 || true
+  mkdir -p /var/lib/jenkins/jobs/nightly-tests
+  cat > /var/lib/jenkins/jobs/nightly-tests/config.xml <<'EOF'
+  <?xml version='1.1' encoding='UTF-8'?>
+  <project>
+    <description>Nightly integration test suite</description>
+    <builders>
+      <hudson.tasks.Shell>
+        <command>echo "Running nightly integration tests"</command>
+      </hudson.tasks.Shell>
+    </builders>
+    <publishers/>
+  </project>
+  EOF
+
+verifyScript: |
+  CONFIG=/var/lib/jenkins/jobs/nightly-tests/config.xml
+
+  # CHECK: triggers_block_present
+  if grep -q "<triggers>" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:triggers_block_present:PASS:<triggers> block found in config.xml"
+  else
+    echo "CHECK:triggers_block_present:FAIL:No <triggers> block in config.xml — add it between <description> and <builders>"
+  fi
+
+  # CHECK: timer_trigger_configured
+  if grep -q "TimerTrigger" "$CONFIG" 2>/dev/null && grep -A2 "TimerTrigger" "$CONFIG" | grep -q "2"; then
+    echo "CHECK:timer_trigger_configured:PASS:TimerTrigger found with an hour-2 cron spec"
+  else
+    echo "CHECK:timer_trigger_configured:FAIL:TimerTrigger missing or its <spec> does not include hour 2 — use 'H 2 * * *'"
+  fi
+
+  # CHECK: scm_trigger_configured
+  if grep -q "SCMTrigger" "$CONFIG" 2>/dev/null && grep -A2 "SCMTrigger" "$CONFIG" | grep -q "H/5"; then
+    echo "CHECK:scm_trigger_configured:PASS:SCMTrigger found with H/5 poll schedule"
+  else
+    echo "CHECK:scm_trigger_configured:FAIL:SCMTrigger missing or its <spec> does not contain 'H/5' — use 'H/5 * * * *'"
+  fi
+
+hints:
+  - "Triggers go inside a <triggers> element at the top level of <project>."
+  - "TimerTrigger uses Jenkins' H-syntax: 'H 2 * * *' means 'once a day, somewhere in the 2 AM hour'."
+  - "SCMTrigger polls for changes: 'H/5 * * * *' means every 5 minutes, offset by a hash of the job name."
+  - "Validate XML with: xmllint --noout config.xml — any error here means the XML won't load in Jenkins."

@@ -1,0 +1,221 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Lab: Inspecting Containers & Documenting State
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "docker-inspect-report"
+title: "Inspecting Containers & Documenting State"
+track: "docker"
+level: 1
+category: "Docker Fundamentals"
+difficulty: "beginner"
+summary: "Start named containers, use docker inspect and docker ps to interrogate their state, and save an inventory file."
+estimatedMinutes: 15
+order: 900
+
+objectives:
+  - "Start multiple named containers in the background"
+  - "Use docker inspect to retrieve detailed container metadata"
+  - "Use docker ps -a to list all containers and their status"
+  - "Redirect command output to files for documentation and auditing"
+
+instructions: |
+  ## Inspecting Containers & Documenting State
+
+  **Scenario**
+  You've just joined an incident bridge call. The on-call engineer asks
+  "what's actually running on that host right now?" The answer lives in
+  `docker inspect` and `docker ps` — but it needs to be captured to a file so
+  you can paste it into the incident ticket and not lose it when the terminal
+  session closes. Your job is to start a known set of containers, then produce
+  two documentation files: detailed metadata for the `web` container and a
+  full inventory of all containers.
+
+  **Your task:** start `web` and `db` containers in the background, save
+  `docker inspect web` output to `/root/work/web-info.txt`, and save
+  `docker ps -a` output to `/root/work/inventory.txt`.
+
+  This sandbox runs a teaching-mode `docker` CLI — same commands and output
+  format as the real thing.
+
+  **What You'll Deliver**
+  - `web` and `db` containers running in the background
+  - `/root/work/web-info.txt` containing `docker inspect web` output
+  - `/root/work/inventory.txt` containing `docker ps -a` output
+
+  ## Steps
+
+  1. Start the web container:
+     `docker run -d --name web busybox sh -c "while true; do echo 'web serving'; sleep 2; done"`
+  2. Start the db container:
+     `docker run -d --name db busybox sh -c "while true; do echo 'db ready'; sleep 2; done"`
+  3. Confirm both are running: `docker ps`
+  4. Inspect the web container and save the output:
+     `docker inspect web > /root/work/web-info.txt`
+  5. View what was saved: `cat /root/work/web-info.txt`
+  6. Capture the full container inventory:
+     `docker ps -a > /root/work/inventory.txt`
+  7. View the inventory: `cat /root/work/inventory.txt`
+
+tasks:
+  - id: "web_container_running"
+    description: "Container named 'web' is running in the background"
+  - id: "inspect_saved"
+    description: "docker inspect web output saved to /root/work/web-info.txt"
+  - id: "inventory_created"
+    description: "docker ps -a output saved to /root/work/inventory.txt"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/work"
+
+setupScript: |
+  mkdir -p /usr/local/bin /var/lib/fakedocker/images /var/lib/fakedocker/containers /var/lib/fakedocker/volumes /root/work
+  cat > /usr/local/bin/docker <<'DOCKEREOF'
+  #!/bin/sh
+  ROOT=/var/lib/fakedocker
+  IMAGES="$ROOT/images"
+  CONTAINERS="$ROOT/containers"
+  VOLUMES="$ROOT/volumes"
+  mkdir -p "$IMAGES" "$CONTAINERS" "$VOLUMES"
+  image_size() { case "$1" in busybox) echo 4 ;; alpine) echo 7 ;; *) echo 10 ;; esac; }
+  fake_id() { n="$1-$$-$RANDOM_SEED"; echo "$n" | cksum | cut -d' ' -f1 | cut -c1-12; }
+  RANDOM_SEED=0
+  norm_image() { case "$1" in *:*) echo "$1" ;; *) echo "$1:latest" ;; esac; }
+  ensure_image() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then repo=${img%%:*}; mkdir -p "$dir"; fake_id "$img" > "$dir/id"; image_size "$repo" > "$dir/size"; echo "base" > "$dir/kind"; fi
+    echo "$dir"
+  }
+  cmd_pull() {
+    img=$(norm_image "$1"); echo "$img: Pulling from library/${img%%:*}"
+    ensure_image "$img" >/dev/null; echo "$img" >> "$ROOT/pull_history.log"; echo "Status: Downloaded newer image for $img"
+  }
+  cmd_images() {
+    printf "%-20s %-10s %-15s %s\n" "REPOSITORY" "TAG" "IMAGE ID" "SIZE"
+    for d in "$IMAGES"/*/; do [ -d "$d" ] || continue; name=$(basename "$d"); repo=${name%%:*}; tag=${name#*:}; id=$(cat "$d/id" 2>/dev/null || echo "unknown"); size=$(cat "$d/size" 2>/dev/null || echo "0"); printf "%-20s %-10s %-15s %sMB\n" "$repo" "$tag" "$id" "$size"; done
+  }
+  cmd_rmi() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"; [ ! -d "$dir" ] && { echo "Error: No such image: $img" >&2; exit 1; }
+    for c in "$CONTAINERS"/*/; do [ -d "$c" ] || continue; [ "$(cat "$c/image" 2>/dev/null)" = "$img" ] && { echo "Error response from daemon: conflict: unable to remove $img" >&2; exit 1; }; done
+    rm -rf "$dir"; echo "Untagged: $img"
+  }
+  cmd_inspect() {
+    target="$1"; img="$IMAGES/$(norm_image "$target")"
+    if [ -d "$img" ]; then echo "{"; echo "  \"Type\": \"image\","; echo "  \"RepoTags\": [\"$(norm_image "$target")\"],"; echo "  \"Id\": \"sha256:$(cat "$img/id")\""; echo "}"; return 0; fi
+    c="$CONTAINERS/$target"
+    if [ -d "$c" ]; then
+      echo "{"; echo "  \"Type\": \"container\","; echo "  \"Name\": \"/$target\","; echo "  \"Image\": \"$(cat "$c/image")\","; echo "  \"State\": { \"Status\": \"$(cat "$c/status")\" },"; echo "  \"Id\": \"$(cat "$c/id")\""; echo "}"
+      return 0
+    fi
+    echo "Error: No such object: $target" >&2; exit 1
+  }
+  cmd_run() {
+    DETACH=0; NAME=""; VOL_SPEC=""
+    while [ $# -gt 0 ]; do case "$1" in -d|--detach) DETACH=1; shift ;; --name) NAME="$2"; shift 2 ;; -v) VOL_SPEC="$2"; shift 2 ;; *) break ;; esac; done
+    IMAGE="$1"; [ -z "$IMAGE" ] && { echo "docker: run requires an image name" >&2; exit 1; }
+    shift; img=$(norm_image "$IMAGE"); ensure_image "$img" >/dev/null
+    [ -z "$NAME" ] && NAME="container_$(fake_id "$img")"
+    cdir="$CONTAINERS/$NAME"
+    if [ -d "$cdir" ] && [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then echo "Error response from daemon: Conflict. The container name \"/$NAME\" is already in use" >&2; exit 1; fi
+    rm -rf "$cdir"; mkdir -p "$cdir"; echo "$img" > "$cdir/image"; cid=$(fake_id "$NAME"); echo "$cid" > "$cdir/id"; : > "$cdir/log"
+    if [ -n "$VOL_SPEC" ]; then volname=${VOL_SPEC%%:*}; mountpath=${VOL_SPEC#*:}; mkdir -p "$VOLUMES/$volname"; rm -rf "$mountpath"; mkdir -p "$(dirname "$mountpath")"; ln -sfn "$VOLUMES/$volname" "$mountpath"; echo "$VOL_SPEC" > "$cdir/volume"; fi
+    if [ "$DETACH" = "1" ]; then
+      echo "running" > "$cdir/status"
+      if [ $# -gt 0 ]; then "$@" >"$cdir/log" 2>&1 & echo $! > "$cdir/pid"; else sh -c 'while true; do sleep 3600; done' >"$cdir/log" 2>&1 & echo $! > "$cdir/pid"; fi
+      echo "$cid"
+    else
+      echo "running" > "$cdir/status"; [ $# -gt 0 ] && "$@" 2>&1 | tee "$cdir/log"; echo "exited" > "$cdir/status"
+    fi
+  }
+  cmd_ps() {
+    show_all=0; [ "$1" = "-a" ] && show_all=1
+    printf "%-14s %-20s %-10s %s\n" "CONTAINER ID" "IMAGE" "STATUS" "NAMES"
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue; name=$(basename "$c"); status=$(cat "$c/status" 2>/dev/null || echo "unknown")
+      [ "$status" != "running" ] && [ "$show_all" != "1" ] && continue
+      id=$(cat "$c/id" 2>/dev/null || echo "??"); img=$(cat "$c/image" 2>/dev/null || echo "??")
+      printf "%-14s %-20s %-10s %s\n" "$id" "$img" "$status" "$name"
+    done
+  }
+  cmd_stop() {
+    name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ -f "$cdir/pid" ] && { pid=$(cat "$cdir/pid"); kill "$pid" 2>/dev/null; pkill -P "$pid" 2>/dev/null; }
+    echo "exited" > "$cdir/status"; echo "$name"
+  }
+  cmd_rm() {
+    name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ] && { echo "Error response from daemon: You cannot remove a running container $name. Stop it first." >&2; exit 1; }
+    rm -rf "$cdir"; echo "$name"
+  }
+  cmd_logs() { name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }; cat "$cdir/log" 2>/dev/null; }
+  cmd_exec() {
+    name="$1"; shift; cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ] || [ "$(cat "$cdir/status" 2>/dev/null)" != "running" ]; then echo "Error: No such container: $name" >&2; exit 1; fi
+    "$@"
+  }
+  cmd_build() {
+    tag=""; ctx="."
+    while [ $# -gt 0 ]; do case "$1" in -t) tag="$2"; shift 2 ;; *) ctx="$1"; shift ;; esac; done
+    dockerfile="$ctx/Dockerfile"; [ ! -f "$dockerfile" ] && { echo "unable to prepare context: Dockerfile not found" >&2; exit 1; }
+    grep -qE '^FROM[[:space:]]+' "$dockerfile" || { echo "Error: Dockerfile missing FROM" >&2; exit 1; }
+    base=$(grep -E '^FROM[[:space:]]+' "$dockerfile" | head -1 | awk '{print $2}')
+    steps=$(grep -cE '^(RUN|COPY|ADD|CMD|ENTRYPOINT|ENV|EXPOSE|WORKDIR|LABEL)[[:space:]]' "$dockerfile")
+    [ -z "$tag" ] && { echo "docker: build requires -t NAME:TAG" >&2; exit 1; }
+    img=$(norm_image "$tag"); total=$((steps + 1))
+    echo "Sending build context to Docker daemon"; echo "Step 1/$total : FROM $base"
+    i=1; while IFS= read -r line; do case "$line" in FROM*|""|"#"*) continue ;; esac; i=$((i+1)); echo "Step $i/$total : $line"; done < "$dockerfile"
+    dir=$(ensure_image "$img"); echo "custom" > "$dir/kind"; echo "$base" > "$dir/base"; cp "$dockerfile" "$dir/Dockerfile"
+    echo "Successfully built $(fake_id "$img")"; echo "Successfully tagged $img"
+  }
+  cmd_volume() {
+    sub="$1"; shift
+    case "$sub" in
+      create) name="$1"; mkdir -p "$VOLUMES/$name"; echo "$name" ;;
+      ls) printf "%-20s %s\n" "DRIVER" "VOLUME NAME"; for d in "$VOLUMES"/*/; do [ -d "$d" ] || continue; printf "%-20s %s\n" "local" "$(basename "$d")"; done ;;
+      rm) rm -rf "${VOLUMES:?}/$1"; echo "$1" ;;
+      *) echo "docker volume: unknown subcommand $sub" >&2; exit 1 ;;
+    esac
+  }
+  case "$1" in
+    pull) shift; cmd_pull "$@" ;; images) shift; cmd_images "$@" ;; rmi) shift; cmd_rmi "$@" ;;
+    inspect) shift; cmd_inspect "$@" ;; run) shift; cmd_run "$@" ;; ps) shift; cmd_ps "$@" ;;
+    stop) shift; cmd_stop "$@" ;; rm) shift; cmd_rm "$@" ;; logs) shift; cmd_logs "$@" ;;
+    exec) shift; cmd_exec "$@" ;; build) shift; cmd_build "$@" ;; volume) shift; cmd_volume "$@" ;;
+    version) echo "Docker version 24.0.0 (lab-sandbox)" ;;
+    *) echo "docker: unknown command '$1'" >&2; exit 1 ;;
+  esac
+  DOCKEREOF
+  chmod +x /usr/local/bin/docker
+
+verifyScript: |
+  C=/var/lib/fakedocker/containers
+
+  # CHECK: web_container_running
+  if [ -d "$C/web" ] && [ "$(cat "$C/web/status" 2>/dev/null)" = "running" ]; then
+    echo "CHECK:web_container_running:PASS:web container is running"
+  else
+    echo "CHECK:web_container_running:FAIL:web container not running — start it: docker run -d --name web busybox sh -c 'while true; do sleep 1; done'"
+  fi
+
+  # CHECK: inspect_saved
+  if [ -f /root/work/web-info.txt ] && grep -q "container\|Type\|Image" /root/work/web-info.txt 2>/dev/null; then
+    echo "CHECK:inspect_saved:PASS:/root/work/web-info.txt contains docker inspect output"
+  else
+    echo "CHECK:inspect_saved:FAIL:/root/work/web-info.txt missing or empty — run: docker inspect web > /root/work/web-info.txt"
+  fi
+
+  # CHECK: inventory_created
+  if [ -f /root/work/inventory.txt ] && grep -q "CONTAINER\|NAMES" /root/work/inventory.txt 2>/dev/null; then
+    echo "CHECK:inventory_created:PASS:/root/work/inventory.txt contains docker ps output"
+  else
+    echo "CHECK:inventory_created:FAIL:/root/work/inventory.txt missing or incomplete — run: docker ps -a > /root/work/inventory.txt"
+  fi
+
+hints:
+  - "docker run -d --name web busybox sh -c 'while true; do sleep 1; done' starts a container in the background."
+  - "docker inspect web prints JSON-like metadata. Redirect it with: docker inspect web > /root/work/web-info.txt"
+  - "docker ps -a shows ALL containers including stopped ones. Redirect: docker ps -a > /root/work/inventory.txt"
+  - "Use cat /root/work/web-info.txt to verify the file has content before clicking 'Check my work'."

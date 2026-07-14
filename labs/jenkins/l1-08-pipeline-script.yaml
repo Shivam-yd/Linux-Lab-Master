@@ -1,0 +1,133 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Pipeline Script (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-pipeline-script"
+title: "Creating a Pipeline Job"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Create a Jenkins Pipeline job with a Groovy script defining Build, Test, and Deploy stages."
+estimatedMinutes: 25
+order: 80
+
+objectives:
+  - "Understand the difference between a freestyle job and a Pipeline job"
+  - "Create a Pipeline job config.xml with the correct project class"
+  - "Write a Jenkinsfile-style Groovy script with named stages"
+  - "Embed the script inline in config.xml using the <script> element"
+
+instructions: |
+  ## Creating a Pipeline Job
+
+  **Scenario**
+  Your team's deploy job is a long freestyle job whose steps are invisible in
+  the Jenkins UI — when it fails you have to dig through 400 lines of console
+  output to find which step broke. A Pipeline job solves this: each stage
+  appears as a named block in the Stage View, so you can see at a glance that
+  `Test` passed but `Deploy` failed. Your task is to create the Pipeline job
+  by writing its `config.xml` with an embedded Groovy script.
+
+  **Your task:** create a Pipeline job for `build-pipeline` at
+  `/var/lib/jenkins/jobs/build-pipeline/config.xml` with three stages —
+  `Build`, `Test`, and `Deploy` — embedded as a Groovy script.
+
+  No text editor is installed — use shell redirection: `cat > file <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `config.xml` using the `org.jenkinsci.plugins.workflow.job.WorkflowJob` project class
+  - Groovy script with `pipeline { agent any stages { ... } }` syntax
+  - All three stages present: `Build`, `Test`, `Deploy`
+
+  ## Steps
+
+  1. Create the job directory: `mkdir -p /var/lib/jenkins/jobs/build-pipeline`
+  2. Write the Pipeline config:
+     ```
+     cat > /var/lib/jenkins/jobs/build-pipeline/config.xml <<'EOF'
+     <?xml version='1.1' encoding='UTF-8'?>
+     <flow-definition plugin="workflow-job">
+       <description>CI/CD pipeline for the main application</description>
+       <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition">
+         <script>
+     pipeline {
+       agent any
+       stages {
+         stage('Build') {
+           steps {
+             echo 'Compiling source code...'
+           }
+         }
+         stage('Test') {
+           steps {
+             echo 'Running unit tests...'
+           }
+         }
+         stage('Deploy') {
+           steps {
+             echo 'Deploying to staging environment...'
+           }
+         }
+       }
+     }
+         </script>
+         <sandbox>true</sandbox>
+       </definition>
+     </flow-definition>
+     EOF
+     ```
+  3. Validate the XML: `xmllint --noout /var/lib/jenkins/jobs/build-pipeline/config.xml && echo "XML OK"`
+  4. Confirm all three stages: `grep "stage(" /var/lib/jenkins/jobs/build-pipeline/config.xml`
+
+tasks:
+  - id: "pipeline_job_created"
+    description: "config.xml exists and uses the WorkflowJob / flow-definition class"
+  - id: "script_has_stages"
+    description: "The embedded Groovy script contains a stages { } block"
+  - id: "all_three_stages"
+    description: "Build, Test, and Deploy stages are all present in the script"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/var/lib/jenkins/jobs"
+
+setupScript: |
+  apt-get install -y -qq libxml2-utils >/dev/null 2>&1 || true
+  mkdir -p /var/lib/jenkins/jobs
+
+verifyScript: |
+  CONFIG=/var/lib/jenkins/jobs/build-pipeline/config.xml
+
+  # CHECK: pipeline_job_created
+  if [ -f "$CONFIG" ] && (grep -q "flow-definition" "$CONFIG" || grep -q "WorkflowJob" "$CONFIG"); then
+    echo "CHECK:pipeline_job_created:PASS:Pipeline job config.xml found with correct project type"
+  else
+    echo "CHECK:pipeline_job_created:FAIL:config.xml missing or not a Pipeline job — use <flow-definition> as the root element"
+  fi
+
+  # CHECK: script_has_stages
+  if grep -q "stages" "$CONFIG" 2>/dev/null && grep -q "<script>" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:script_has_stages:PASS:Groovy script with stages block found"
+  else
+    echo "CHECK:script_has_stages:FAIL:No stages block found in the embedded script — add pipeline { agent any stages { } } inside <script>"
+  fi
+
+  # CHECK: all_three_stages
+  has_build=$(grep -c "stage('Build')\|stage(\"Build\")" "$CONFIG" 2>/dev/null || echo 0)
+  has_test=$(grep -c "stage('Test')\|stage(\"Test\")" "$CONFIG" 2>/dev/null || echo 0)
+  has_deploy=$(grep -c "stage('Deploy')\|stage(\"Deploy\")" "$CONFIG" 2>/dev/null || echo 0)
+  if [ "$has_build" -ge 1 ] && [ "$has_test" -ge 1 ] && [ "$has_deploy" -ge 1 ]; then
+    echo "CHECK:all_three_stages:PASS:Build, Test, and Deploy stages all present"
+  else
+    echo "CHECK:all_three_stages:FAIL:Missing at least one stage — need stage('Build'), stage('Test'), and stage('Deploy')"
+  fi
+
+hints:
+  - "A Pipeline job's root XML element is <flow-definition>, not <project>."
+  - "The Groovy script goes inside <definition class='org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition'><script>...</script>."
+  - "Stage names are case-sensitive — 'Build' and 'build' are different."
+  - "After writing, xmllint --noout config.xml validates the XML structure before Jenkins ever sees it."

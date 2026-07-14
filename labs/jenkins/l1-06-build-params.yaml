@@ -1,0 +1,144 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Parameterised Builds (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-build-params"
+title: "Parameterised Builds"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Add string and choice parameters to a freestyle job so builds can be targeted to different environments without editing the config."
+estimatedMinutes: 20
+order: 60
+
+objectives:
+  - "Understand the Jenkins job config.xml <parameterDefinitions> block"
+  - "Add a StringParameterDefinition with a sensible default"
+  - "Add a ChoiceParameterDefinition with multiple options"
+  - "Reference parameters in a shell build step"
+
+instructions: |
+  ## Parameterised Builds
+
+  **Scenario**
+  Your team runs the same deploy job against dev, staging, and production — but
+  right now the target environment is hard-coded in the job. Every time someone
+  needs to deploy to a different environment they clone the job and change one
+  line, leaving the folder full of near-identical jobs that all drift over time.
+  The fix is to make the job parameterised: the operator picks the environment
+  at trigger time, and the job uses `$ENVIRONMENT` wherever it needs to know.
+
+  **Your task:** edit the freestyle job at `/var/lib/jenkins/jobs/deploy-app/config.xml`
+  to add a `StringParameterDefinition` for `APP_VERSION` (default `1.0.0`) and a
+  `ChoiceParameterDefinition` for `ENVIRONMENT` (choices: `dev`, `staging`, `production`),
+  then update the shell builder to echo both parameters.
+
+  No text editor is installed — use shell redirection: `echo "..." >> file` or
+  `cat > file <<'EOF' ... EOF`
+
+  **What You'll Deliver**
+  - `<parameterDefinitions>` block present in the job's `config.xml`
+  - `APP_VERSION` StringParameterDefinition with default `1.0.0`
+  - `ENVIRONMENT` ChoiceParameterDefinition with choices `dev`, `staging`, `production`
+
+  ## Steps
+
+  1. Inspect the existing job config: `cat /var/lib/jenkins/jobs/deploy-app/config.xml`
+  2. Rewrite the config with parameters and an updated shell step:
+     ```
+     cat > /var/lib/jenkins/jobs/deploy-app/config.xml <<'EOF'
+     <?xml version='1.1' encoding='UTF-8'?>
+     <project>
+       <description>Deploy application to target environment</description>
+       <properties>
+         <hudson.model.ParametersDefinitionProperty>
+           <parameterDefinitions>
+             <hudson.model.StringParameterDefinition>
+               <name>APP_VERSION</name>
+               <defaultValue>1.0.0</defaultValue>
+               <description>Version of the app to deploy</description>
+             </hudson.model.StringParameterDefinition>
+             <hudson.model.ChoiceParameterDefinition>
+               <name>ENVIRONMENT</name>
+               <choices>dev
+     staging
+     production</choices>
+               <description>Target deployment environment</description>
+             </hudson.model.ChoiceParameterDefinition>
+           </parameterDefinitions>
+         </hudson.model.ParametersDefinitionProperty>
+       </properties>
+       <builders>
+         <hudson.tasks.Shell>
+           <command>echo "Deploying version $APP_VERSION to $ENVIRONMENT"</command>
+         </hudson.tasks.Shell>
+       </builders>
+     </project>
+     EOF
+     ```
+  3. Validate the XML is well-formed: `xmllint --noout /var/lib/jenkins/jobs/deploy-app/config.xml && echo "XML OK"`
+  4. Confirm the parameter block is present: `grep -c "ParameterDefinition" /var/lib/jenkins/jobs/deploy-app/config.xml`
+
+tasks:
+  - id: "params_block_present"
+    description: "<parameterDefinitions> block is present in the deploy-app job config.xml"
+  - id: "app_version_param"
+    description: "APP_VERSION StringParameterDefinition with default '1.0.0' is defined"
+  - id: "environment_choices"
+    description: "ENVIRONMENT ChoiceParameterDefinition contains dev, staging, and production"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/var/lib/jenkins/jobs/deploy-app"
+
+setupScript: |
+  apt-get install -y -qq libxml2-utils >/dev/null 2>&1 || true
+  mkdir -p /var/lib/jenkins/jobs/deploy-app
+  cat > /var/lib/jenkins/jobs/deploy-app/config.xml <<'EOF'
+  <?xml version='1.1' encoding='UTF-8'?>
+  <project>
+    <description>Deploy application to target environment</description>
+    <builders>
+      <hudson.tasks.Shell>
+        <command>echo "Deploying app"</command>
+      </hudson.tasks.Shell>
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+  </project>
+  EOF
+
+verifyScript: |
+  CONFIG=/var/lib/jenkins/jobs/deploy-app/config.xml
+
+  # CHECK: params_block_present
+  if grep -q "parameterDefinitions" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:params_block_present:PASS:<parameterDefinitions> block found in config.xml"
+  else
+    echo "CHECK:params_block_present:FAIL:No <parameterDefinitions> block in config.xml — add a <properties> section with parameter definitions"
+  fi
+
+  # CHECK: app_version_param
+  if grep -q "APP_VERSION" "$CONFIG" 2>/dev/null && grep -q "StringParameterDefinition" "$CONFIG" 2>/dev/null && grep -q "1\.0\.0" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:app_version_param:PASS:APP_VERSION StringParameterDefinition with default 1.0.0 found"
+  else
+    echo "CHECK:app_version_param:FAIL:APP_VERSION parameter missing or default is not 1.0.0 — check the StringParameterDefinition block"
+  fi
+
+  # CHECK: environment_choices
+  if grep -q "ENVIRONMENT" "$CONFIG" 2>/dev/null && grep -q "ChoiceParameterDefinition" "$CONFIG" 2>/dev/null \
+     && grep -q "staging" "$CONFIG" 2>/dev/null && grep -q "production" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:environment_choices:PASS:ENVIRONMENT ChoiceParameterDefinition with dev/staging/production found"
+  else
+    echo "CHECK:environment_choices:FAIL:ENVIRONMENT ChoiceParameterDefinition missing or choices incomplete — add dev, staging, production"
+  fi
+
+hints:
+  - "Parameters go inside <properties><hudson.model.ParametersDefinitionProperty><parameterDefinitions>..."
+  - "StringParameterDefinition needs <name>, <defaultValue>, and optionally <description>."
+  - "ChoiceParameterDefinition uses a <choices> element where each option is on its own line."
+  - "After editing, run: xmllint --noout config.xml — silence means valid XML."

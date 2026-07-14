@@ -1,0 +1,271 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Lab: Container & Image Cleanup Hygiene
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "docker-cleanup"
+title: "Container & Image Cleanup Hygiene"
+track: "docker"
+level: 1
+category: "Docker Fundamentals"
+difficulty: "beginner"
+summary: "Remove stopped containers, delete an unused image, and clean up an orphaned volume to reclaim disk space."
+estimatedMinutes: 15
+order: 600
+
+objectives:
+  - "List all containers including stopped ones with docker ps -a"
+  - "Remove stopped containers with docker rm"
+  - "Remove an unused image with docker rmi"
+  - "Remove an orphaned volume with docker volume rm"
+
+instructions: |
+  ## Container & Image Cleanup Hygiene
+
+  **Scenario**
+  The dev server is running low on disk space. A quick investigation reveals the
+  culprit: months of stopped containers that nobody ever cleaned up, an old image
+  from a project that was cancelled, and an orphaned volume that hasn't been
+  mounted by any container in weeks. You've been asked to clear it all before
+  the 6 PM backup window.
+
+  **Your task:** remove the three stopped containers (`app-old`, `cache-stale`,
+  `worker-done`), delete the `old-webapp:v1` image, and remove the
+  `orphan-data` volume.
+
+  This sandbox runs a teaching-mode `docker` CLI — same commands and output
+  format as the real thing.
+
+  **What You'll Deliver**
+  - All three stopped containers removed (none appear in `docker ps -a`)
+  - `old-webapp:v1` image removed from the local cache
+  - `orphan-data` volume removed
+
+  ## Steps
+
+  1. Survey the damage: `docker ps -a` and `docker images` and `docker volume ls`
+  2. Remove the stopped containers one at a time (or note that `docker rm` refuses running ones):
+     `docker rm app-old && docker rm cache-stale && docker rm worker-done`
+  3. Now that no container references `old-webapp:v1`, remove it:
+     `docker rmi old-webapp:v1`
+  4. Remove the orphaned volume: `docker volume rm orphan-data`
+  5. Verify everything is clean: `docker ps -a` then `docker images` then `docker volume ls`
+
+tasks:
+  - id: "containers_cleared"
+    description: "All three stopped containers (app-old, cache-stale, worker-done) have been removed"
+  - id: "old_image_removed"
+    description: "The old-webapp:v1 image has been removed from the local cache"
+  - id: "volume_removed"
+    description: "The orphan-data volume has been removed"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/work"
+
+setupScript: |
+  mkdir -p /usr/local/bin /var/lib/fakedocker/images /var/lib/fakedocker/containers /var/lib/fakedocker/volumes /root/work
+  cat > /usr/local/bin/docker <<'DOCKEREOF'
+  #!/bin/sh
+  ROOT=/var/lib/fakedocker
+  IMAGES="$ROOT/images"
+  CONTAINERS="$ROOT/containers"
+  VOLUMES="$ROOT/volumes"
+  mkdir -p "$IMAGES" "$CONTAINERS" "$VOLUMES"
+  image_size() {
+    case "$1" in
+      busybox) echo 4 ;; alpine) echo 7 ;; nginx) echo 142 ;;
+      ubuntu) echo 78 ;; old-webapp) echo 55 ;; *) echo 10 ;;
+    esac
+  }
+  fake_id() { n="$1-$$-$RANDOM_SEED"; echo "$n" | cksum | cut -d' ' -f1 | cut -c1-12; }
+  RANDOM_SEED=0
+  norm_image() { case "$1" in *:*) echo "$1" ;; *) echo "$1:latest" ;; esac; }
+  ensure_image() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then
+      repo=${img%%:*}; mkdir -p "$dir"
+      fake_id "$img" > "$dir/id"; image_size "$repo" > "$dir/size"; echo "base" > "$dir/kind"
+    fi
+    echo "$dir"
+  }
+  cmd_pull() {
+    img=$(norm_image "$1")
+    echo "$img: Pulling from library/${img%%:*}"
+    echo "Digest: sha256:$(fake_id "$img")0000000000000000000000000000000000000000000000"
+    ensure_image "$img" >/dev/null
+    echo "$img" >> "$ROOT/pull_history.log"
+    echo "Status: Downloaded newer image for $img"
+  }
+  cmd_images() {
+    printf "%-20s %-10s %-15s %s\n" "REPOSITORY" "TAG" "IMAGE ID" "SIZE"
+    for d in "$IMAGES"/*/; do
+      [ -d "$d" ] || continue
+      name=$(basename "$d"); repo=${name%%:*}; tag=${name#*:}
+      id=$(cat "$d/id" 2>/dev/null || echo "unknown"); size=$(cat "$d/size" 2>/dev/null || echo "0")
+      printf "%-20s %-10s %-15s %sMB\n" "$repo" "$tag" "$id" "$size"
+    done
+  }
+  cmd_rmi() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then echo "Error: No such image: $img" >&2; exit 1; fi
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue
+      if [ "$(cat "$c/image" 2>/dev/null)" = "$img" ]; then
+        echo "Error response from daemon: conflict: unable to remove repository reference \"$img\" — container $(basename "$c") is using it" >&2; exit 1
+      fi
+    done
+    rm -rf "$dir"; echo "Untagged: $img"; echo "Deleted: sha256:$(fake_id "$img")"
+  }
+  cmd_inspect() {
+    target="$1"; img="$IMAGES/$(norm_image "$target")"
+    if [ -d "$img" ]; then
+      echo "{"; echo "  \"Type\": \"image\","; echo "  \"RepoTags\": [\"$(norm_image "$target")\"],"; echo "  \"Id\": \"sha256:$(cat "$img/id")\","; echo "  \"Size\": $(cat "$img/size")000000"; echo "}"; return 0
+    fi
+    c="$CONTAINERS/$target"
+    if [ -d "$c" ]; then
+      echo "{"; echo "  \"Type\": \"container\","; echo "  \"Name\": \"/$target\","; echo "  \"Image\": \"$(cat "$c/image")\","; echo "  \"State\": { \"Status\": \"$(cat "$c/status")\" }"; echo "}"; return 0
+    fi
+    echo "Error: No such object: $target" >&2; exit 1
+  }
+  cmd_run() {
+    DETACH=0; NAME=""; VOL_SPEC=""
+    while [ $# -gt 0 ]; do
+      case "$1" in -d|--detach) DETACH=1; shift ;; --name) NAME="$2"; shift 2 ;; -v) VOL_SPEC="$2"; shift 2 ;; *) break ;; esac
+    done
+    IMAGE="$1"; [ -z "$IMAGE" ] && { echo "docker: run requires an image name" >&2; exit 1; }
+    shift; img=$(norm_image "$IMAGE"); ensure_image "$img" >/dev/null
+    [ -z "$NAME" ] && NAME="container_$(fake_id "$img")"
+    cdir="$CONTAINERS/$NAME"
+    if [ -d "$cdir" ] && [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then
+      echo "Error response from daemon: Conflict. The container name \"/$NAME\" is already in use" >&2; exit 1
+    fi
+    rm -rf "$cdir"; mkdir -p "$cdir"; echo "$img" > "$cdir/image"; cid=$(fake_id "$NAME"); echo "$cid" > "$cdir/id"; : > "$cdir/log"
+    if [ -n "$VOL_SPEC" ]; then
+      volname=${VOL_SPEC%%:*}; mountpath=${VOL_SPEC#*:}
+      mkdir -p "$VOLUMES/$volname"; rm -rf "$mountpath"; mkdir -p "$(dirname "$mountpath")"; ln -sfn "$VOLUMES/$volname" "$mountpath"
+      echo "$VOL_SPEC" > "$cdir/volume"
+    fi
+    if [ "$DETACH" = "1" ]; then
+      echo "running" > "$cdir/status"
+      if [ $# -gt 0 ]; then "$@" >"$cdir/log" 2>&1 & echo $! > "$cdir/pid"; else sh -c 'while true; do sleep 3600; done' >"$cdir/log" 2>&1 & echo $! > "$cdir/pid"; fi
+      echo "$cid"
+    else
+      echo "running" > "$cdir/status"
+      [ $# -gt 0 ] && "$@" 2>&1 | tee "$cdir/log"
+      echo "exited" > "$cdir/status"
+    fi
+  }
+  cmd_ps() {
+    show_all=0; [ "$1" = "-a" ] && show_all=1
+    printf "%-14s %-20s %-10s %s\n" "CONTAINER ID" "IMAGE" "STATUS" "NAMES"
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue; name=$(basename "$c"); status=$(cat "$c/status" 2>/dev/null || echo "unknown")
+      [ "$status" != "running" ] && [ "$show_all" != "1" ] && continue
+      id=$(cat "$c/id" 2>/dev/null || echo "??"); img=$(cat "$c/image" 2>/dev/null || echo "??")
+      printf "%-14s %-20s %-10s %s\n" "$id" "$img" "$status" "$name"
+    done
+  }
+  cmd_stop() {
+    name="$1"; cdir="$CONTAINERS/$name"
+    [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ -f "$cdir/pid" ] && { pid=$(cat "$cdir/pid"); kill "$pid" 2>/dev/null; pkill -P "$pid" 2>/dev/null; }
+    echo "exited" > "$cdir/status"; echo "$name"
+  }
+  cmd_rm() {
+    name="$1"; cdir="$CONTAINERS/$name"
+    [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ] && { echo "Error response from daemon: You cannot remove a running container $name. Stop it first." >&2; exit 1; }
+    rm -rf "$cdir"; echo "$name"
+  }
+  cmd_logs() {
+    name="$1"; cdir="$CONTAINERS/$name"
+    [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    cat "$cdir/log" 2>/dev/null
+  }
+  cmd_exec() {
+    name="$1"; shift; cdir="$CONTAINERS/$name"
+    if [ ! -d "$cdir" ] || [ "$(cat "$cdir/status" 2>/dev/null)" != "running" ]; then echo "Error: No such container: $name" >&2; exit 1; fi
+    "$@"
+  }
+  cmd_build() {
+    tag=""; ctx="."
+    while [ $# -gt 0 ]; do case "$1" in -t) tag="$2"; shift 2 ;; *) ctx="$1"; shift ;; esac; done
+    dockerfile="$ctx/Dockerfile"
+    [ ! -f "$dockerfile" ] && { echo "unable to prepare context: Dockerfile not found in $ctx" >&2; exit 1; }
+    grep -qE '^FROM[[:space:]]+' "$dockerfile" || { echo "Error: Dockerfile is missing a FROM instruction" >&2; exit 1; }
+    base=$(grep -E '^FROM[[:space:]]+' "$dockerfile" | head -1 | awk '{print $2}')
+    steps=$(grep -cE '^(RUN|COPY|ADD|CMD|ENTRYPOINT|ENV|EXPOSE|WORKDIR|LABEL)[[:space:]]' "$dockerfile")
+    [ -z "$tag" ] && { echo "docker: build requires -t NAME:TAG" >&2; exit 1; }
+    img=$(norm_image "$tag"); total=$((steps + 1))
+    echo "Sending build context to Docker daemon"; echo "Step 1/$total : FROM $base"
+    i=1; while IFS= read -r line; do
+      case "$line" in FROM*|""|"#"*) continue ;; esac; i=$((i + 1)); echo "Step $i/$total : $line"
+    done < "$dockerfile"
+    dir=$(ensure_image "$img"); echo "custom" > "$dir/kind"; echo "$base" > "$dir/base"; cp "$dockerfile" "$dir/Dockerfile"
+    echo "Successfully built $(fake_id "$img")"; echo "Successfully tagged $img"
+  }
+  cmd_volume() {
+    sub="$1"; shift
+    case "$sub" in
+      create) name="$1"; mkdir -p "$VOLUMES/$name"; echo "$name" ;;
+      ls) printf "%-20s %s\n" "DRIVER" "VOLUME NAME"; for d in "$VOLUMES"/*/; do [ -d "$d" ] || continue; printf "%-20s %s\n" "local" "$(basename "$d")"; done ;;
+      rm) rm -rf "${VOLUMES:?}/$1"; echo "$1" ;;
+      *) echo "docker volume: unknown subcommand $sub" >&2; exit 1 ;;
+    esac
+  }
+  case "$1" in
+    pull) shift; cmd_pull "$@" ;; images) shift; cmd_images "$@" ;; rmi) shift; cmd_rmi "$@" ;;
+    inspect) shift; cmd_inspect "$@" ;; run) shift; cmd_run "$@" ;; ps) shift; cmd_ps "$@" ;;
+    stop) shift; cmd_stop "$@" ;; rm) shift; cmd_rm "$@" ;; logs) shift; cmd_logs "$@" ;;
+    exec) shift; cmd_exec "$@" ;; build) shift; cmd_build "$@" ;; volume) shift; cmd_volume "$@" ;;
+    version) echo "Docker version 24.0.0 (lab-sandbox)" ;;
+    *) echo "docker: unknown command '$1'" >&2; exit 1 ;;
+  esac
+  DOCKEREOF
+  chmod +x /usr/local/bin/docker
+  # Seed the dirty state the student must clean up
+  docker pull busybox >/dev/null 2>&1
+  docker pull old-webapp:v1 >/dev/null 2>&1
+  docker run -d --name app-old old-webapp:v1 sh -c "while true; do sleep 3600; done" >/dev/null
+  docker stop app-old >/dev/null
+  docker run -d --name cache-stale busybox sh -c "while true; do sleep 3600; done" >/dev/null
+  docker stop cache-stale >/dev/null
+  docker run -d --name worker-done busybox sh -c "sleep 1" >/dev/null
+  docker stop worker-done >/dev/null
+  docker volume create orphan-data >/dev/null
+
+verifyScript: |
+  C=/var/lib/fakedocker/containers
+  I=/var/lib/fakedocker/images
+  V=/var/lib/fakedocker/volumes
+
+  # CHECK: containers_cleared
+  remaining=$(ls "$C" 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$remaining" -eq 0 ]; then
+    echo "CHECK:containers_cleared:PASS:All stopped containers have been removed"
+  else
+    echo "CHECK:containers_cleared:FAIL:$remaining container(s) still present — use docker ps -a then docker rm <name>"
+  fi
+
+  # CHECK: old_image_removed
+  if [ ! -d "$I/old-webapp:v1" ]; then
+    echo "CHECK:old_image_removed:PASS:old-webapp:v1 has been removed from the image cache"
+  else
+    echo "CHECK:old_image_removed:FAIL:old-webapp:v1 still in cache — remove all containers first, then: docker rmi old-webapp:v1"
+  fi
+
+  # CHECK: volume_removed
+  if [ ! -d "$V/orphan-data" ]; then
+    echo "CHECK:volume_removed:PASS:orphan-data volume removed"
+  else
+    echo "CHECK:volume_removed:FAIL:orphan-data volume still exists — run: docker volume rm orphan-data"
+  fi
+
+hints:
+  - "docker ps -a shows running AND stopped containers. docker ps alone only shows running ones."
+  - "docker rm refuses to remove a running container — stop it first with docker stop."
+  - "docker rmi refuses to remove an image that any container (even stopped) still references — remove the containers first."
+  - "docker volume ls shows all volumes. docker volume rm <name> removes one."
