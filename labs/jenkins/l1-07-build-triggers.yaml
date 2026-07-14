@@ -1,13 +1,22 @@
 # ──────────────────────────────────────────────────────────────────────────────
+<<<<<<< HEAD
 # Jenkins Lab: Build Triggers — Timer & SCM Poll (Level 1 - Foundation)
 # ──────────────────────────────────────────────────────────────────────────────
 
 id: "jenkins-build-triggers"
 title: "Build Triggers: Timer and SCM Polling"
+=======
+# Jenkins Lab: Schedule a Job with Build Triggers (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-build-triggers"
+title: "Schedule a Job with Build Triggers"
+>>>>>>> b61d80a90d87131f70fa73db6522c6e6f965977f
 track: "jenkins"
 level: 1
 category: "Jenkins Fundamentals"
 difficulty: "beginner"
+<<<<<<< HEAD
 summary: "Configure a freestyle job to build on a schedule and to poll source control for changes."
 estimatedMinutes: 20
 order: 70
@@ -75,12 +84,59 @@ tasks:
     description: "TimerTrigger is present with a cron spec containing '2'"
   - id: "scm_trigger_configured"
     description: "SCMTrigger is present with a poll spec containing 'H/5'"
+=======
+summary: "Add a cron-style timer trigger to a job's config.xml so it runs automatically on a schedule, then verify the XML is still valid."
+estimatedMinutes: 20
+order: 16
+
+objectives:
+  - "Understand that scheduled builds are configured via <triggers><hudson.triggers.TimerTrigger> in config.xml"
+  - "Write a Jenkins cron schedule expression"
+  - "Add a build trigger to an existing job without corrupting its XML"
+
+instructions: |
+  ## Schedule a Job with Build Triggers
+
+  **Scenario**
+  The `nightly-cleanup` job currently only runs when someone clicks "Build
+  Now" — which means it's been forgotten more than once. Ops wants it running
+  automatically every night at 2 AM instead. You need to wire up a timer
+  trigger with the right cron spec and double-check the resulting XML is
+  still valid before it goes anywhere near production.
+
+  **Your task:** add a `hudson.triggers.TimerTrigger` with schedule `H 2 * * *`
+  into the job's empty `<triggers/>` block, record the schedule for the ops
+  runbook, and validate the XML.
+
+  **What You'll Deliver**
+  - `/var/lib/jenkins/jobs/nightly-cleanup/config.xml` updated with a `hudson.triggers.TimerTrigger` containing `<spec>H 2 * * *</spec>`
+  - `/root/schedule.txt` containing the cron spec `H 2 * * *`
+  - `/root/trigger-xml-check.txt` containing `XML OK` confirming the file is well-formed
+
+  ## Steps
+
+  1. `cat /var/lib/jenkins/jobs/nightly-cleanup/config.xml`
+  2. `sed -i 's|<triggers/>|<triggers>\n  <hudson.triggers.TimerTrigger>\n    <spec>H 2 * * *</spec>\n  </hudson.triggers.TimerTrigger>\n</triggers>|' /var/lib/jenkins/jobs/nightly-cleanup/config.xml`
+  3. `grep -A2 TimerTrigger /var/lib/jenkins/jobs/nightly-cleanup/config.xml`
+  4. `echo "H 2 * * *" > /root/schedule.txt`
+  5. `xmllint --noout /var/lib/jenkins/jobs/nightly-cleanup/config.xml && echo "XML OK" > /root/trigger-xml-check.txt || echo "XML ERROR" > /root/trigger-xml-check.txt`
+  6. `cat /root/schedule.txt /root/trigger-xml-check.txt`
+
+tasks:
+  - id: "add-timer-trigger"
+    description: "config.xml contains a hudson.triggers.TimerTrigger with a non-empty <spec>"
+  - id: "record-schedule"
+    description: "/root/schedule.txt contains the same cron spec that was added to config.xml"
+  - id: "validate-xml"
+    description: "Validate config.xml with xmllint and save the result to /root/trigger-xml-check.txt"
+>>>>>>> b61d80a90d87131f70fa73db6522c6e6f965977f
 
 image: "ubuntu:24.04"
 shell: "bash"
 terminals:
   - name: "Terminal"
     user: "root"
+<<<<<<< HEAD
     cwd: "/var/lib/jenkins/jobs/nightly-tests"
 
 setupScript: |
@@ -128,3 +184,59 @@ hints:
   - "TimerTrigger uses Jenkins' H-syntax: 'H 2 * * *' means 'once a day, somewhere in the 2 AM hour'."
   - "SCMTrigger polls for changes: 'H/5 * * * *' means every 5 minutes, offset by a hash of the job name."
   - "Validate XML with: xmllint --noout config.xml — any error here means the XML won't load in Jenkins."
+=======
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/lib/jenkins/jobs/nightly-cleanup
+  cat > /var/lib/jenkins/jobs/nightly-cleanup/config.xml << 'EOF'
+  <?xml version='1.0' encoding='UTF-8'?>
+  <project>
+    <description>Nightly cleanup job</description>
+    <keepDependencies>false</keepDependencies>
+    <triggers/>
+    <builders>
+      <hudson.tasks.Shell>
+        <command>rm -rf /tmp/build-cache/*</command>
+      </hudson.tasks.Shell>
+    </builders>
+  </project>
+  EOF
+  apt-get update -qq 2>/dev/null && apt-get install -y -qq libxml2-utils 2>/dev/null || true
+  echo "nightly-cleanup job created with empty triggers; xmllint available"
+
+verifyScript: |
+  CONFIG=/var/lib/jenkins/jobs/nightly-cleanup/config.xml
+
+  # CHECK: add-timer-trigger
+  if grep -q "hudson.triggers.TimerTrigger" "$CONFIG" 2>/dev/null && grep -qE "<spec>.+</spec>" "$CONFIG" 2>/dev/null; then
+    echo "CHECK:add-timer-trigger:PASS:hudson.triggers.TimerTrigger with a spec found in config.xml"
+  else
+    echo "CHECK:add-timer-trigger:FAIL:config.xml does not contain a TimerTrigger with a <spec> value"
+  fi
+
+  # CHECK: record-schedule
+  if [ -f /root/schedule.txt ] && [ -s /root/schedule.txt ]; then
+    spec_in_file=$(tr -d '\n' < /root/schedule.txt)
+    if grep -qF "$spec_in_file" "$CONFIG" 2>/dev/null; then
+      echo "CHECK:record-schedule:PASS:schedule.txt matches the spec in config.xml"
+    else
+      echo "CHECK:record-schedule:FAIL:schedule.txt content does not match the <spec> added to config.xml"
+    fi
+  else
+    echo "CHECK:record-schedule:FAIL:/root/schedule.txt is missing or empty"
+  fi
+
+  # CHECK: validate-xml
+  if [ -f /root/trigger-xml-check.txt ] && grep -q "XML OK" /root/trigger-xml-check.txt; then
+    echo "CHECK:validate-xml:PASS:/root/trigger-xml-check.txt confirms XML is valid"
+  else
+    echo "CHECK:validate-xml:FAIL:/root/trigger-xml-check.txt missing or does not contain 'XML OK' — XML may be malformed"
+  fi
+
+hints:
+  - "The | delimiter in sed avoids clashing with the / characters already inside the XML tags."
+  - "H in a Jenkins cron spec means 'hash' — Jenkins picks a consistent-but-spread-out minute automatically instead of a fixed one."
+  - "Keep schedule.txt's content identical to the <spec> value you put in config.xml, or the match check will fail."
+  - "xmllint is already installed — run xmllint --noout config.xml && echo 'XML OK' > /root/trigger-xml-check.txt directly."
+>>>>>>> b61d80a90d87131f70fa73db6522c6e6f965977f

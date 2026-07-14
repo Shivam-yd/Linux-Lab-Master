@@ -20,28 +20,21 @@ objectives:
 instructions: |
   ## Resource Limits & Runaway Processes
 
-  A buggy deploy script forked a worker script multiple times without a
-  supervisor to stop it — a classic "fork bomb lite" that can starve a
-  server of CPU and PIDs. Beyond just killing it, a good sysadmin puts a
-  **preventive limit** in place so it can't happen again unnoticed.
+  **Scenario**
+  A buggy deploy script forked a worker script multiple times without a supervisor to stop it — a classic "fork bomb lite" that can starve a server of CPU and PIDs. Beyond just killing it, a good sysadmin puts a preventive limit in place so it can't happen again unnoticed.
 
-  ### What you need to do
+  **Your task:** Count and terminate the runaway `cpu-hog.sh` instances, then configure a per-user process limit so it can't recur.
 
-  1. Several copies of `cpu-hog.sh` are running in a busy loop. Count how
-     many instances are running and write just the number to
-     `/root/runaway-count.txt`.
-  2. Terminate all of them.
-  3. Create `/etc/security/limits.d/lab.conf` with a hard process limit for
-     user `appuser` — a line like `appuser hard nproc 50` — so a future
-     runaway script can't fork unbounded processes for that user.
+  **What You'll Deliver**
+  - `/root/runaway-count.txt` containing the number of running `cpu-hog.sh` instances (counted before killing them)
+  - All `cpu-hog.sh` instances terminated
+  - `/etc/security/limits.d/lab.conf` with a hard `nproc` limit for user `appuser`
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  pgrep -f cpu-hog.sh | wc -l
-  pkill -f cpu-hog.sh
-  echo "appuser hard nproc 50" > /etc/security/limits.d/lab.conf
-  ```
+  1. Count the running instances and save the number: `pgrep -f cpu-hog.sh | wc -l > /root/runaway-count.txt`
+  2. Terminate all of them: `pkill -f cpu-hog.sh`
+  3. Add a preventive limit: `echo "appuser hard nproc 50" > /etc/security/limits.d/lab.conf`
 
 tasks:
   - id: "detect-runaway"

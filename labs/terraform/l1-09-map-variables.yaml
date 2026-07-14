@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Create `variables.tf` and `main.tf` in `/root/tf-lab` declaring a `map(string)` variable `instance_sizes`, reading the `"dev"` key with bracket syntax and the `"staging"` key with `lookup()` fallback, then apply so both resources are recorded in state.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `variables.tf` with `instance_sizes` declared as `type = map(string)` containing `dev` and `prod` keys
   - `main.tf` reading `var.instance_sizes["dev"]` for `dev_size` and `lookup(var.instance_sizes, "staging", "medium")` for `staging_size`

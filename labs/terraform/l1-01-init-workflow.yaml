@@ -26,8 +26,6 @@ instructions: |
 
   **Your task:** Write `main.tf` in `/root/tf-lab` with a `terraform_data.greeting` resource, then run `terraform init`, `terraform plan`, `terraform apply`, and finally `terraform destroy` — leaving the state file with zero managed resources.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `.terraform` directory created by `terraform init`
   - `terraform_data.greeting` recorded in `terraform.tfstate` after apply

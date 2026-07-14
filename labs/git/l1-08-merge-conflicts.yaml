@@ -1,0 +1,110 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Resolving a Merge Conflict
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-merge-conflicts"
+title: "Resolving a Merge Conflict"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Merge two branches that changed the same line, resolve the conflict by hand, and complete the merge."
+estimatedMinutes: 20
+order: 800
+
+objectives:
+  - "Understand why Git can't auto-merge overlapping changes"
+  - "Read conflict markers left in a file"
+  - "Edit a file to resolve a conflict"
+  - "Complete a merge with git add and git commit"
+
+instructions: |
+  ## Resolving a Merge Conflict
+
+  **Scenario**
+  Both `main` and `feature` branches edited the same line of `config.txt` in
+  different ways since they diverged. Git can't guess which version is right,
+  so merging `feature` into `main` will stop with a conflict. You need to
+  resolve it by hand and finish the merge.
+
+  **Your task:** merge `feature` into `main`, resolve the conflict in
+  `config.txt` by editing it to a single clean version, then complete the
+  merge commit.
+
+  **What You'll Deliver**
+  - `git merge feature` attempted on `main` (conflict expected)
+  - `config.txt` edited to remove all conflict markers
+  - The merge completed with `git add` + `git commit`, leaving a clean working tree
+
+  ## Steps
+
+  1. `cd /root/project` (you start on `main`)
+  2. Start the merge: `git merge feature` — Git will report a conflict in `config.txt`
+  3. Look at the conflict: `cat config.txt` — you'll see `<<<<<<<`, `=======`, and `>>>>>>>` markers
+  4. Edit the file to keep the content you want and remove all the markers, e.g.: `echo "title=New System" > config.txt`
+  5. Mark it resolved: `git add config.txt`
+  6. Finish the merge: `git commit -m "merge feature: resolve title conflict"`
+  7. Confirm: `git status` is clean and `cat config.txt` has no conflict markers
+
+tasks:
+  - id: "merge_conflict_resolved"
+    description: "config.txt no longer contains any conflict markers"
+  - id: "merge_commit_completed"
+    description: "A merge commit (two parents) exists at HEAD on main"
+  - id: "working_tree_clean"
+    description: "git status shows a clean working tree after the merge"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q -b main
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  echo "title=Old System" > config.txt
+  git add config.txt
+  git commit -q -m "initial commit"
+  git switch -q -c feature
+  echo "title=New System" > config.txt
+  git commit -qam "feature: rename title"
+  git switch -q main
+  echo "title=Old System v2" > config.txt
+  git commit -qam "main: bump version label"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: merge_conflict_resolved
+  if [ -f config.txt ] && ! grep -qE '^(<<<<<<<|=======|>>>>>>>)' config.txt; then
+    echo "CHECK:merge_conflict_resolved:PASS:config.txt has no conflict markers left"
+  else
+    echo "CHECK:merge_conflict_resolved:FAIL:config.txt still contains <<<<<<< / ======= / >>>>>>> markers — edit it to a clean version"
+  fi
+
+  # CHECK: merge_commit_completed
+  parent_count=$(git rev-list --parents -n1 HEAD 2>/dev/null | wc -w)
+  if [ "$parent_count" -ge 3 ]; then
+    echo "CHECK:merge_commit_completed:PASS:HEAD is a merge commit with two parents"
+  else
+    echo "CHECK:merge_commit_completed:FAIL:No merge commit found on HEAD — after resolving, run git add config.txt && git commit"
+  fi
+
+  # CHECK: working_tree_clean
+  if [ -z "$(git status --porcelain)" ]; then
+    echo "CHECK:working_tree_clean:PASS:working tree is clean"
+  else
+    echo "CHECK:working_tree_clean:FAIL:git status still shows changes — finish staging and committing the resolution"
+  fi
+
+hints:
+  - "git merge feature will pause and tell you exactly which files conflicted — it doesn't fail silently."
+  - "Conflict markers show both versions: everything between <<<<<<< HEAD and ======= is your branch's version; between ======= and >>>>>>> feature is theirs."
+  - "You resolve a conflict by editing the file to the final content you want and removing all three marker lines completely."
+  - "git add on a conflicted file tells Git 'this is resolved' — then git commit (with no message needed, but you can add one) completes the merge."

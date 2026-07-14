@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Apply `terraform_data.cache_instance` under its original name, then rename it to `cache_primary` in `main.tf` and add a `moved` block so that `terraform plan` reports a state move with zero destroys or creates.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `terraform_data.cache_instance` applied under its original name
   - A `moved` block in `main.tf` declaring `from = terraform_data.cache_instance` and `to = terraform_data.cache_primary`

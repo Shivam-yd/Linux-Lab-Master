@@ -18,69 +18,59 @@ objectives:
 - "Read a module's output from the root config"
 
 instructions: |
-  ## Modules: reusable, self-contained configs
+  ## Local Modules
 
-  A module is just a directory of .tf files with its own variables and
-  outputs — the root config calls it with a module block and reads results
-  back through module.<name>.<output>. This is how Terraform configs stay
-  DRY across environments or repeated components.
+  **Scenario**
+  Your platform team keeps copy-pasting the same service resource block into every new config, and it's already drifted out of sync twice. You've been asked to factor it into a reusable local module — a directory of .tf files with its own variables and outputs — then call it twice with different inputs, proving it behaves like a real reusable component instead of copy-pasted text.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Create a local module at \`modules/service\` in \`/root/tf-lab\` and call it twice from the root config (as \`billing\` and \`auth\`) with different \`service_name\` values, reading one module's output back into a root-level output.
 
-  ---
+  **What You'll Deliver**
+  - \`modules/service/\` with its own \`variables.tf\`, \`main.tf\`, and \`outputs.tf\`
+  - Root config calling the module twice (\`module "billing"\` and \`module "auth"\`) with distinct \`service_name\` values
+  - A root-level output reading \`module.billing.instance_id\`
+  - Both module instances applied and visible in \`terraform state list\`
 
   ## Steps
 
-  ### 1 — modules/service/variables.tf
+  1. \`mkdir -p /root/tf-lab/modules/service && cd /root/tf-lab\`
+  2. Create \`modules/service/variables.tf\`:
+     \`\`\`hcl
+     variable "service_name" {
+       type = string
+     }
+     \`\`\`
+  3. Create \`modules/service/main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "instance" {
+       input = "service:\${var.service_name}"
+     }
+     \`\`\`
+  4. Create \`modules/service/outputs.tf\`:
+     \`\`\`hcl
+     output "instance_id" {
+       value = terraform_data.instance.id
+     }
+     \`\`\`
+  5. Create the root \`main.tf\`, calling the module twice:
+     \`\`\`hcl
+     module "billing" {
+       source       = "./modules/service"
+       service_name = "billing"
+     }
 
-  \`\`\`hcl
-  variable "service_name" {
-    type = string
-  }
-  \`\`\`
+     module "auth" {
+       source       = "./modules/service"
+       service_name = "auth"
+     }
 
-  ### 2 — modules/service/main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "instance" {
-    input = "service:\${var.service_name}"
-  }
-  \`\`\`
-
-  ### 3 — modules/service/outputs.tf
-
-  \`\`\`hcl
-  output "instance_id" {
-    value = terraform_data.instance.id
-  }
-  \`\`\`
-
-  ### 4 — root main.tf calling the module twice
-
-  \`\`\`hcl
-  module "billing" {
-    source       = "./modules/service"
-    service_name = "billing"
-  }
-
-  module "auth" {
-    source       = "./modules/service"
-    service_name = "auth"
-  }
-
-  output "billing_instance_id" {
-    value = module.billing.instance_id
-  }
-  \`\`\`
-
-  ### 5 — Apply
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  terraform state list
-  # → module.billing.terraform_data.instance, module.auth.terraform_data.instance
-  \`\`\`
+     output "billing_instance_id" {
+       value = module.billing.instance_id
+     }
+     \`\`\`
+  6. \`terraform init\`
+  7. \`terraform apply -auto-approve\`
+  8. Confirm: \`terraform state list\` → \`module.billing.terraform_data.instance\`, \`module.auth.terraform_data.instance\`
 
 tasks:
 - id: "module_directory_exists"

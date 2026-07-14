@@ -26,8 +26,6 @@ instructions: |
 
   **Your task:** Write `variables.tf` declaring an `environment_name` string variable with a default of `"dev"`, write `main.tf` referencing `var.environment_name`, apply with the default, then apply again overriding the value to `"staging"` and confirm state reflects the new value.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `variables.tf` declaring `environment_name` as a typed string variable with a default
   - `main.tf` with a `terraform_data` resource whose `input` references `var.environment_name`

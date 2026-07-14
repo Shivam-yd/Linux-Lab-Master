@@ -25,8 +25,6 @@ instructions: |
 
   **Your task:** Create `variables.tf` and `main.tf` in `/root/tf-lab` using a `set(string)` variable `teams` and `for_each` on `terraform_data.team_workspace`, referencing `each.value` in the input, then apply so three keyed instances appear in state.
 
-  No text editor is installed — use heredoc redirection: `cat > main.tf <<'EOF' ... EOF`
-
   **What You'll Deliver**
   - `variables.tf` declaring `teams` as `type = set(string)` with values `"platform"`, `"billing"`, `"growth"`
   - `terraform_data.team_workspace` using `for_each = var.teams` and `input` referencing `each.value`

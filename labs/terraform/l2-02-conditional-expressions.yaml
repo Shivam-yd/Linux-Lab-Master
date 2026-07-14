@@ -18,46 +18,36 @@ objectives:
 - "Confirm the applied value matches the branch selected by the input"
 
 instructions: |
-  ## HCL has no if statement — it has conditional expressions
+  ## Conditional Expressions
 
-  Terraform's expression language doesn't support imperative if/else
-  statements, but it does support the ternary conditional operator:
-  \`condition ? true_val : false_val\`. This is how most "conditional logic"
-  is written in HCL.
+  **Scenario**
+  Your team's Terraform config needs to size infrastructure differently for production versus everything else, but HCL has no if/else statement — only the ternary conditional operator \`condition ? true_val : false_val\`. You've been asked to wire up a resource whose value branches on a boolean input using this pattern.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Write \`variables.tf\` and \`main.tf\` in \`/root/tf-lab\` where \`terraform_data.tier\`'s input is set with a ternary expression based on \`var.is_production\`, then apply with \`is_production=true\` so the production branch lands in state.
 
-  ---
+  **What You'll Deliver**
+  - \`terraform_data.tier\`'s input set via \`var.is_production ? "high-availability" : "single-instance"\`
+  - Config applied with \`is_production=true\`, so state reflects the high-availability branch
 
   ## Steps
 
-  ### 1 — variables.tf
-
-  \`\`\`hcl
-  variable "is_production" {
-    type    = bool
-    default = false
-  }
-  \`\`\`
-
-  ### 2 — main.tf
-
-  \`\`\`hcl
-  resource "terraform_data" "tier" {
-    input = var.is_production ? "high-availability" : "single-instance"
-  }
-  \`\`\`
-
-  ### 3 — Apply with each branch
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-  # is_production defaults to false → "single-instance"
-
-  terraform apply -auto-approve -var="is_production=true"
-  # now → "high-availability"
-  \`\`\`
+  1. \`mkdir -p /root/tf-lab && cd /root/tf-lab\`
+  2. Create \`variables.tf\`:
+     \`\`\`hcl
+     variable "is_production" {
+       type    = bool
+       default = false
+     }
+     \`\`\`
+  3. Create \`main.tf\`:
+     \`\`\`hcl
+     resource "terraform_data" "tier" {
+       input = var.is_production ? "high-availability" : "single-instance"
+     }
+     \`\`\`
+  4. \`terraform init\`
+  5. \`terraform apply -auto-approve\` (defaults to \`"single-instance"\`)
+  6. \`terraform apply -auto-approve -var="is_production=true"\` (now \`"high-availability"\`)
 
 tasks:
 - id: "ternary_used"

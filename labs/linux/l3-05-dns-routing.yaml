@@ -20,39 +20,32 @@ objectives:
 instructions: |
   ## Advanced Network Troubleshooting: DNS & Routing
 
-  A service reports it can't reach `api.internal`. In environments without
-  full DNS, `/etc/hosts` is often the source of truth for internal service
-  discovery — and a stale entry left over from an old migration is a very
-  common, very real outage cause.
+  **Scenario**
+  A service reports it can't reach `api.internal`. In environments without full DNS, `/etc/hosts` is often the source of truth for internal service discovery — and a stale entry left over from an old migration is a very common, very real outage cause.
 
-  ### What you need to do
+  **Your task:** Fix the stale `/etc/hosts` mapping for `api.internal` using the authoritative service manifest, document the container's routing table, and confirm the fix by resolving the hostname manually.
 
-  1. `/etc/app/service-manifest.txt` is the authoritative record of where
-     `api.internal` should point. `/etc/hosts` currently has the **wrong**
-     IP for it (left over from before a migration). Fix `/etc/hosts` so it
-     matches the manifest, and make sure the old, incorrect mapping is
-     completely gone (not just shadowed by a second line). Note:
-     `/etc/hosts` is a bind-mounted file in this sandbox, so `sed -i`
-     (which renames a temp file over it) will fail with "Resource busy" —
-     write the filtered content back with `>` instead, which truncates the
-     existing file in place.
-  2. Document the container's routing table: save the output of
-     `ip route show` to `/root/routes.txt`. It should show a `default`
-     route — this is what every outbound connection uses when there's no
-     more specific route.
-  3. After fixing the hosts file, resolve `api.internal` (by reading
-     `/etc/hosts`, since there's no real DNS server here) and save just the
-     resolved IP to `/root/resolved-ip.txt`.
+  Note: `/etc/hosts` is a bind-mounted file in this sandbox, so `sed -i`
+  (which renames a temp file over it) will fail with "Resource busy" — write
+  filtered content back with `>` instead, which truncates the existing file
+  in place.
 
-  ### Reference
+  **What You'll Deliver**
+  - `/etc/hosts` mapping `api.internal` to the IP in `/etc/app/service-manifest.txt`, with the stale entry completely removed
+  - `/root/routes.txt` containing the output of `ip route show`, including a `default` route
+  - `/root/resolved-ip.txt` containing the resolved IP for `api.internal`
 
-  ```bash
-  cat /etc/app/service-manifest.txt
-  grep -v api.internal /etc/hosts > /tmp/hosts.new
-  echo "10.20.0.50 api.internal" >> /tmp/hosts.new
-  cat /tmp/hosts.new > /etc/hosts             # > truncates in place; sed -i would fail (bind mount)
-  ip route show > /root/routes.txt
-  ```
+  ## Steps
+
+  1. Read the authoritative mapping: `cat /etc/app/service-manifest.txt`
+  2. Filter out the stale entry and write the correct one, truncating in place (not `sed -i`, which fails on this bind mount):
+     ```bash
+     grep -v api.internal /etc/hosts > /tmp/hosts.new
+     echo "10.20.0.50 api.internal" >> /tmp/hosts.new
+     cat /tmp/hosts.new > /etc/hosts
+     ```
+  3. Document the routing table: `ip route show > /root/routes.txt`
+  4. Resolve `api.internal` from `/etc/hosts` (no real DNS server here) and save just the IP: `grep api.internal /etc/hosts | awk '{print $1}' > /root/resolved-ip.txt`
 
 tasks:
   - id: "fix-hosts-conflict"

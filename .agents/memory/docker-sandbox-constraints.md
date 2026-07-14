@@ -1,11 +1,11 @@
 ---
 name: Docker sandbox constraints in this environment
-description: Containers run with no internet/DNS access; package managers and downloads never work at runtime. Applies to any project that spins up Docker containers on Replit (e.g. lab/sandbox platforms).
+description: Container internet/DNS access has been observed as both unavailable and available at different times — do not assume either way, verify empirically. Applies to any project that spins up Docker containers on Replit (e.g. lab/sandbox platforms).
 ---
 
-- Containers spawned in this Replit environment have **no outbound internet/DNS**. `apt-get`, `apk add`, `pip install`, `npm install`, `curl <url>`, `wget <url>`, `git clone` all fail (often silently) inside a running container.
-  **Why:** confirmed by repeated testing — a lab's `setupScript` ran `apt-get install -y cron at` on `ubuntu:24.04` and it failed silently, so the tools were never present at verify time even though the script "succeeded".
-  **How to apply:** never write a setup/init script that installs packages at container runtime. Instead: (1) pick a pre-built image that already bundles the needed tool, (2) for minimal images prefer Alpine + BusyBox — it bundles crond/crontab, vi, core-utils, etc. (check with `docker run --rm <image> busybox --list`), or (3) if nothing ships the tool, write a small POSIX-`sh` shim in the setup script that fakes the needed behavior (validate input; don't silently no-op on bad input).
+- Container internet/DNS access is **inconsistent across sessions** — do not hardcode an assumption either way.
+  **Why:** on one occasion a lab's `setupScript` ran `apt-get install -y cron at` on `ubuntu:24.04` and it failed silently (no internet/DNS). On a later date (2026-07-14), `apt-get update && apt-get install -y libxml2-utils` on the same `ubuntu:24.04` image succeeded fully (packages downloaded and installed) both via plain `docker run` and via a container created the same way the api-server's `dockerode` code creates lab containers (default bridge network, no explicit `NetworkMode`).
+  **How to apply:** never *assume* network availability when writing or reviewing a `setupScript`/runtime install step — test empirically first with `docker run --rm <image> bash -lc 'apt-get update && apt-get install -y <pkg> && which <tool>'` (or the image's equivalent package manager). Still prefer pre-built images that already bundle required tools where practical, since even when network access works today it may not tomorrow — but do not block or rewrite a working setupScript solely because of the old no-internet assumption without re-testing it live first.
 - `docker pull` for a container's base `image` still works fine (images are pulled ahead of time) — only in-container runtime installs are blocked.
 - Users need `chpasswd` for sshd-style images; `sudo` is unavailable inside containers.
 - If building tooling that manages Docker programmatically (e.g. via `dockerode`), bundle `ssh2`/`@grpc` rather than externalizing them.

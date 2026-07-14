@@ -30,9 +30,6 @@ instructions: |
   **Your task:** commit the wanted change to `file_a.txt` and discard the
   unwanted edit to `file_b.txt`, leaving a clean working tree.
 
-  No text editor is installed — use `echo "some text" >> file_a.txt` to
-  append a line.
-
   **What You'll Deliver**
   - `file_a.txt` edited and the change committed
   - `file_b.txt` edited then reverted to its original committed content

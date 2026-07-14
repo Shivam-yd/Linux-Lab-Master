@@ -30,10 +30,6 @@ instructions: |
   **Your task:** add two commits to the existing repo — one updating
   `README.md` and one adding a new `NOTES.md` file.
 
-  No text editor is installed — use shell redirection to create or edit files:
-  `echo "some text" >> file` to append, or `printf "line1\nline2\n" > file`
-  to write from scratch.
-
   **What You'll Deliver**
   - `README.md` edited and committed
   - `NOTES.md` created and committed separately

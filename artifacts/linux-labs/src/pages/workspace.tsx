@@ -113,14 +113,15 @@ export default function Workspace() {
   const [hintsRevealed, setHintsRevealed] = useState(0)
   const [hintsOpen, setHintsOpen] = useState(false)
 
-  // Steps state
-  const [stepsRevealed, setStepsRevealed] = useState(false)
+  // Steps state — revealed one at a time, like hints, so the guide can't be
+  // skimmed as an answer key
+  const [stepsRevealed, setStepsRevealed] = useState(0)
 
   // Reset when lab changes
   useEffect(() => {
     setHintsRevealed(0)
     setHintsOpen(false)
-    setStepsRevealed(false)
+    setStepsRevealed(0)
     setVerifyResult(null)
     setCloseCountdown(null)
   }, [labId])
@@ -271,6 +272,39 @@ export default function Workspace() {
     }
   }, [lab?.instructions])
 
+  // Split the Steps markdown into individual numbered items so they can be
+  // revealed one at a time (fence-aware — a "1." inside a code block must
+  // not start a new step)
+  const stepsList = useMemo(() => {
+    if (!stepsMarkdown) return [] as string[]
+    const lines = stepsMarkdown.split("\n")
+
+    let start = 0
+    if (/^\s*##\s+Steps\b/i.test(lines[0])) start = 1
+    while (start < lines.length && lines[start].trim() === "") start++
+    const body = lines.slice(start)
+
+    const itemRe = /^\s*\d+\.\s/
+    const items: string[] = []
+    let current: string[] = []
+    let inFence = false
+
+    for (const line of body) {
+      if (/^\s*```/.test(line)) inFence = !inFence
+      if (!inFence && itemRe.test(line) && current.length > 0) {
+        items.push(current.join("\n").trim())
+        current = [line]
+      } else {
+        current.push(line)
+      }
+    }
+    if (current.length > 0) {
+      const joined = current.join("\n").trim()
+      if (joined) items.push(joined)
+    }
+    return items
+  }, [stepsMarkdown])
+
   if (labLoading) {
     return (
       <div className="h-screen bg-background flex items-center justify-center">
@@ -292,6 +326,7 @@ export default function Workspace() {
           <Link href="/" className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-bold font-mono h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all">
             <ArrowLeft className="w-4 h-4 mr-2" /> RETURN_TO_BASE
           </Link>
+          {/* No lab data here (lab lookup failed), so we can't know its track — falls back to the catalog default. */}
         </div>
       </div>
     )
@@ -303,7 +338,7 @@ export default function Workspace() {
       <header className="h-14 shrink-0 border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center justify-between px-4 relative z-20">
         <div className="flex items-center space-x-4">
           <Link
-            href="/"
+            href={`/?track=${encodeURIComponent(lab.track)}`}
             onClick={handleCatalogClick}
             className="text-muted-foreground hover:text-primary transition-colors flex items-center text-sm font-semibold tracking-wide"
           >
@@ -413,29 +448,57 @@ export default function Workspace() {
               </div>
             )}
 
-            {/* ── Steps Panel ── */}
-            {stepsMarkdown && (
-              <div className="mb-8">
-                {stepsRevealed ? (
-                  <div className="p-4 rounded-xl bg-background border border-border/60 animate-in fade-in slide-in-from-top-4 duration-300">
-                    <h3 className="text-sm font-bold font-mono text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <Target className="w-4 h-4 text-primary" /> Execution Steps
-                    </h3>
-                    <div className="prose prose-invert prose-sm max-w-none prose-p:text-muted-foreground prose-ol:text-muted-foreground prose-ul:text-muted-foreground prose-li:marker:text-primary">
-                      <ReactMarkdown>{stepsMarkdown}</ReactMarkdown>
-                    </div>
-                  </div>
-                ) : (
+            {/* ── Steps Panel — revealed one step at a time, like the hints below,
+                 so it stays a nudge rather than a full answer key ── */}
+            {stepsMarkdown && stepsList.length > 0 && (
+              <div className="mb-8 rounded-xl border border-border/60 bg-background/50 overflow-hidden">
+                <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-bold font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                    <Target className="w-4 h-4 text-primary" /> Execution Steps
+                  </h3>
+                  {stepsRevealed > 0 && (
+                    <span className="text-xs text-muted-foreground/60 font-mono">
+                      [{stepsRevealed}/{stepsList.length} revealed]
+                    </span>
+                  )}
+                </div>
+
+                {stepsRevealed === 0 ? (
                   <button
-                    onClick={() => setStepsRevealed(true)}
-                    className="w-full group flex flex-col items-center justify-center gap-2 py-6 rounded-xl border border-dashed border-border/80 bg-background/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-300"
+                    onClick={() => setStepsRevealed(1)}
+                    className="w-full group flex flex-col items-center justify-center gap-2 py-6 hover:bg-primary/5 transition-all duration-300"
                   >
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/20 group-hover:text-primary transition-colors">
                       <Eye className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
                     </div>
-                    <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary">Reveal Step-by-Step Guide</span>
+                    <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary">Reveal First Step</span>
                     <span className="text-xs font-mono text-muted-foreground/50">Only if you're stuck!</span>
                   </button>
+                ) : (
+                  <div className="px-4 pb-4 space-y-3">
+                    {stepsList.slice(0, stepsRevealed).map((step, i) => (
+                      <div
+                        key={i}
+                        className="p-3.5 rounded-lg bg-black/20 border border-border/40 prose prose-invert prose-sm max-w-none prose-p:text-muted-foreground prose-ol:text-muted-foreground prose-ul:text-muted-foreground prose-li:marker:text-primary prose-p:my-0 animate-in fade-in slide-in-from-top-2 duration-300"
+                      >
+                        <ReactMarkdown>{step}</ReactMarkdown>
+                      </div>
+                    ))}
+
+                    {stepsRevealed < stepsList.length ? (
+                      <button
+                        onClick={() => setStepsRevealed(n => n + 1)}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-primary/30 text-primary text-xs font-bold font-mono hover:bg-primary/10 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        {`REVEAL_NEXT_STEP (${stepsList.length - stepsRevealed} left)`}
+                      </button>
+                    ) : (
+                      <p className="text-center text-xs font-mono text-muted-foreground/40 py-2">
+                        // EOF: ALL STEPS REVEALED
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             )}

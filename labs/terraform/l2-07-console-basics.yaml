@@ -18,50 +18,34 @@ objectives:
 - "Read a resource attribute and a local value through the console"
 
 instructions: |
-  ## terraform console: a REPL for your config
+  ## Exploring Expressions with terraform console
 
-  Before committing an expression to a .tf file, it's often faster to test
-  it in terraform console — a read-eval-print loop that has access to your
-  config's variables, locals, and (after apply) resource attributes. It
-  never modifies state.
+  **Scenario**
+  Before committing an expression to a .tf file, it's often faster to test it live than to guess and re-apply. \`terraform console\` is a read-eval-print loop with access to your config's variables, locals, and (after apply) resource attributes — and it never modifies state, so it's safe to explore with.
 
-  Working directory: \`/root/tf-lab\`
+  **Your task:** Apply a small config in \`/root/tf-lab\` with a resource and a local value, then use \`terraform console\` non-interactively (piped input, since this environment has no interactive TTY) to evaluate an expression and save the result to a file.
 
-  ---
+  **What You'll Deliver**
+  - \`terraform_data.sample\` (with input = \`local.greeting\`) applied
+  - \`/root/tf-lab/console-output.txt\` containing the result of evaluating \`terraform_data.sample.output\` through \`terraform console\`
 
   ## Steps
 
-  ### 1 — main.tf
+  1. \`mkdir -p /root/tf-lab && cd /root/tf-lab\`
+  2. Create \`main.tf\`:
+     \`\`\`hcl
+     locals {
+       greeting = "hello from console"
+     }
 
-  \`\`\`hcl
-  locals {
-    greeting = "hello from console"
-  }
-
-  resource "terraform_data" "sample" {
-    input = local.greeting
-  }
-  \`\`\`
-
-  ### 2 — Apply, then query with console
-
-  \`\`\`sh
-  terraform init
-  terraform apply -auto-approve
-
-  echo 'local.greeting' | terraform console
-  echo 'terraform_data.sample.output' | terraform console
-  \`\`\`
-
-  Piping a single expression into \`terraform console\` lets you use it
-  non-interactively — handy for scripting or, in this case, for a lab
-  environment with no interactive TTY.
-
-  ### 3 — Save a console query result to a file
-
-  \`\`\`sh
-  echo 'terraform_data.sample.output' | terraform console > /root/tf-lab/console-output.txt
-  \`\`\`
+     resource "terraform_data" "sample" {
+       input = local.greeting
+     }
+     \`\`\`
+  3. \`terraform init\`
+  4. \`terraform apply -auto-approve\`
+  5. Query with console (piping a single expression in lets you use it non-interactively): \`echo 'local.greeting' | terraform console\` and \`echo 'terraform_data.sample.output' | terraform console\`
+  6. Save a console query result to a file: \`echo 'terraform_data.sample.output' | terraform console > /root/tf-lab/console-output.txt\`
 
 tasks:
 - id: "config_applied"

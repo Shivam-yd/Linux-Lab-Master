@@ -20,30 +20,23 @@ objectives:
 instructions: |
   ## Backup, Restore & Integrity Verification
 
-  The single most common backup failure isn't a missing backup — it's a
-  backup that was **never test-restored** and silently stopped working
-  months ago. A trustworthy backup process always includes a checksum and
-  a periodic restore test.
+  **Scenario**
+  The single most common backup failure isn't a missing backup — it's a backup that was never test-restored and silently stopped working months ago. A trustworthy backup process always includes a checksum and a periodic restore test.
 
-  ### What you need to do
+  **Your task:** Archive `/data/appdata`, generate and validate a checksum for the archive, then prove it actually restores by extracting it and comparing the content.
 
-  1. Archive `/data/appdata` into `/backups/appdata.tar.gz`. Use
-     `-C /data appdata` so the archive stores `appdata/...` as a relative
-     path.
-  2. Generate a SHA-256 checksum for the backup and save it as
-     `/backups/appdata.tar.gz.sha256`, then confirm it validates with
-     `sha256sum -c`.
-  3. Prove the backup actually works: extract it into `/restore-test` and
-     confirm the original data is there and intact.
+  **What You'll Deliver**
+  - `/backups/appdata.tar.gz` containing `/data/appdata`
+  - `/backups/appdata.tar.gz.sha256`, a valid SHA-256 checksum for the archive
+  - `/restore-test/appdata/...` with the original data restored and intact
 
-  ### Reference
+  ## Steps
 
-  ```bash
-  tar -czf /backups/appdata.tar.gz -C /data appdata
-  sha256sum /backups/appdata.tar.gz > /backups/appdata.tar.gz.sha256
-  cd /backups && sha256sum -c appdata.tar.gz.sha256
-  mkdir -p /restore-test && tar xzf /backups/appdata.tar.gz -C /restore-test
-  ```
+  1. Archive the data, keeping relative paths inside the archive: `tar -czf /backups/appdata.tar.gz -C /data appdata`
+  2. Generate a checksum: `sha256sum /backups/appdata.tar.gz > /backups/appdata.tar.gz.sha256`
+  3. Validate it: `cd /backups && sha256sum -c appdata.tar.gz.sha256`
+  4. Test-restore it: `mkdir -p /restore-test && tar xzf /backups/appdata.tar.gz -C /restore-test`
+  5. Confirm the restored data matches the original, e.g. `cat /restore-test/appdata/db.sql`
 
 tasks:
   - id: "create-backup"

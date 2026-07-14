@@ -29,8 +29,6 @@ instructions: |
   **Your task:** use `git stash` to park unfinished work and bring it back,
   then use `git reset --hard` to permanently remove a bad commit.
 
-  No text editor is installed — use `echo "text" >> file` to append lines.
-
   **What You'll Deliver**
   - `line3` added to `file.txt` via a stash/pop workflow and committed
   - A 4th "oops" commit made then fully undone with `git reset --hard`

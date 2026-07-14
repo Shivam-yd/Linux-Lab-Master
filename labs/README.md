@@ -313,9 +313,13 @@ instructions: |
   this before they read the steps.
 - **Your task** — one sentence summarising the entire goal. Make it
   concrete: name the files, commands, or end-states expected.
-- **Caveat line** — include a "No text editor is installed" note for any
-  lab where students need to create or edit files. Skip it if the lab
-  doesn't require file edits.
+- **Caveat line** — `alpine`-based images (`alpine:latest`, `alpine/git:latest`,
+  `hashicorp/terraform:1.9`) ship BusyBox `vi`, so students actually have an
+  editor — skip the "No text editor is installed" note for labs using those
+  images (a quick `which vi vim nano` in the target image confirms this).
+  `ubuntu:24.04` and `localstack/localstack:latest` have no editor at all —
+  keep the caveat for labs using those images, and for any other image once
+  you've confirmed it lacks one the same way.
 - **What You'll Deliver** — bullet list that mirrors the `tasks[]` entries.
   One bullet per task, written as a deliverable ("X created", "Y configured"),
   not as an action ("Create X", "Configure Y").
