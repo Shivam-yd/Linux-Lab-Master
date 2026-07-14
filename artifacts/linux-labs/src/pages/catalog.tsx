@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
-import { Link, useLocation } from "wouter"
+import { Link, useLocation, useSearch } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -169,14 +169,25 @@ export default function Catalog() {
     return [...known, ...rest]
   }, [labs])
 
-  const [activeTrack, setActiveTrack] = useState<string>("linux")
+  const search = useSearch()
+  const trackFromUrl = useMemo(() => new URLSearchParams(search).get("track") ?? "", [search])
+  const [activeTrack, setActiveTrack] = useState<string>(trackFromUrl || "linux")
   const [, navigate] = useLocation()
+
+  // Keep local state in sync if the URL's track param changes externally
+  // (e.g. the user navigates via browser back/forward, or a Workspace "Back" link).
+  useEffect(() => {
+    if (trackFromUrl && trackFromUrl !== activeTrack) {
+      setActiveTrack(trackFromUrl)
+    }
+  }, [trackFromUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ensure activeTrack stays valid once data loads
   const resolvedTrack = tracks.includes(activeTrack) ? activeTrack : (tracks[0] ?? "linux")
 
   const handleTrackChange = (track: string) => {
     setActiveTrack(track)
+    navigate(`/?track=${encodeURIComponent(track)}`, { replace: true })
   }
 
   // Progress map
