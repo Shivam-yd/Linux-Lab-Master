@@ -102,7 +102,7 @@ export default function Workspace() {
   useEffect(() => {
     if (closeCountdown === null) return
     if (closeCountdown === 0) {
-      setLocation('/')
+      setLocation(lab?.track ? `/?track=${encodeURIComponent(lab.track)}` : '/')
       return
     }
     const timer = setTimeout(() => setCloseCountdown(c => (c ?? 1) - 1), 1000)
