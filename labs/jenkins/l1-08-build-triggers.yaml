@@ -1,22 +1,15 @@
 # ──────────────────────────────────────────────────────────────────────────────
-<<<<<<< HEAD
-# Jenkins Lab: Build Triggers — Timer & SCM Poll (Level 1 - Foundation)
-# ──────────────────────────────────────────────────────────────────────────────
 
-id: "jenkins-build-triggers"
-title: "Build Triggers: Timer and SCM Polling"
-=======
 # Jenkins Lab: Schedule a Job with Build Triggers (Level 1 - Foundation)
 # ──────────────────────────────────────────────────────────────────────────────
 
 id: "jenkins-build-triggers"
 title: "Schedule a Job with Build Triggers"
->>>>>>> b61d80a90d87131f70fa73db6522c6e6f965977f
+
 track: "jenkins"
 level: 1
 category: "Jenkins Fundamentals"
 difficulty: "beginner"
-<<<<<<< HEAD
 summary: "Configure a freestyle job to build on a schedule and to poll source control for changes."
 estimatedMinutes: 20
 order: 70
