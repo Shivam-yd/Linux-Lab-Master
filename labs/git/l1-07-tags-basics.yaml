@@ -1,0 +1,103 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Tagging Releases
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-tags-basics"
+title: "Tagging Releases"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Mark an official release with an annotated tag and an internal build with a lightweight tag, then inspect both."
+estimatedMinutes: 15
+order: 700
+
+objectives:
+  - "Understand the difference between annotated and lightweight tags"
+  - "Create an annotated tag with a message using git tag -a"
+  - "Create a lightweight tag with git tag"
+  - "List and inspect tags"
+
+instructions: |
+  ## Tagging Releases
+
+  **Scenario**
+  The current commit on `main` is what's shipping as version 1.0 — it needs a
+  permanent, official marker so anyone can check it out by name later. QA also
+  wants a quick internal marker on the same commit for their own build
+  tracking, but it doesn't need a message or metadata.
+
+  **Your task:** create an annotated tag `v1.0` with a message on the current
+  commit, and a lightweight tag `build-42` on the same commit.
+
+  **What You'll Deliver**
+  - Annotated tag `v1.0` with a message, pointing at the current commit
+  - Lightweight tag `build-42` pointing at the current commit
+  - Both tags visible with `git tag`
+
+  ## Steps
+
+  1. `cd /root/project`
+  2. Create the annotated tag: `git tag -a v1.0 -m "Version 1.0 release"`
+  3. Create the lightweight tag: `git tag build-42`
+  4. List all tags: `git tag`
+  5. Inspect the annotated tag's metadata: `git show v1.0`
+
+tasks:
+  - id: "annotated_tag_created"
+    description: "v1.0 exists as an annotated tag with a message"
+  - id: "lightweight_tag_created"
+    description: "build-42 exists as a lightweight tag (no tag message/object)"
+  - id: "tags_point_to_head"
+    description: "Both v1.0 and build-42 point at the current HEAD commit"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  echo "# Project" > README.md
+  git add README.md
+  git commit -q -m "release candidate"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: annotated_tag_created
+  if git tag -l v1.0 | grep -q v1.0 && [ "$(git cat-file -t v1.0 2>/dev/null)" = "tag" ]; then
+    echo "CHECK:annotated_tag_created:PASS:v1.0 is an annotated tag"
+  else
+    echo "CHECK:annotated_tag_created:FAIL:Create it with git tag -a v1.0 -m \"<message>\""
+  fi
+
+  # CHECK: lightweight_tag_created
+  if git tag -l build-42 | grep -q build-42 && [ "$(git cat-file -t build-42 2>/dev/null)" = "commit" ]; then
+    echo "CHECK:lightweight_tag_created:PASS:build-42 is a lightweight tag"
+  else
+    echo "CHECK:lightweight_tag_created:FAIL:Create it with git tag build-42 (no -a, no -m)"
+  fi
+
+  # CHECK: tags_point_to_head
+  head=$(git rev-parse HEAD 2>/dev/null)
+  v1=$(git rev-list -n1 v1.0 2>/dev/null)
+  b42=$(git rev-list -n1 build-42 2>/dev/null)
+  if [ -n "$head" ] && [ "$v1" = "$head" ] && [ "$b42" = "$head" ]; then
+    echo "CHECK:tags_point_to_head:PASS:both tags point at the current commit"
+  else
+    echo "CHECK:tags_point_to_head:FAIL:Make sure both tags were created on the current HEAD commit"
+  fi
+
+hints:
+  - "git tag -a always needs -m (or it opens an editor, which isn't available here) — combine them: git tag -a v1.0 -m \"message\"."
+  - "A plain git tag <name> with no -a and no -m creates a lightweight tag — just a named pointer to a commit."
+  - "git cat-file -t <ref> tells you the underlying object type: 'tag' for annotated, 'commit' for lightweight."
+  - "git rev-list -n1 <tag> resolves any tag (annotated or lightweight) down to the commit it ultimately points at."

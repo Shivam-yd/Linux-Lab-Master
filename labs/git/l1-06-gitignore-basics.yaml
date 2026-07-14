@@ -1,0 +1,111 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Ignoring Files with .gitignore
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-gitignore-basics"
+title: "Ignoring Files with .gitignore"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Write a .gitignore to keep generated files out of version control, and untrack a file that was committed by mistake."
+estimatedMinutes: 15
+order: 600
+
+objectives:
+  - "Understand that .gitignore only affects untracked files"
+  - "Write ignore patterns for file extensions and directories"
+  - "Remove an already-tracked file from version control with git rm --cached"
+
+instructions: |
+  ## Ignoring Files with .gitignore
+
+  **Scenario**
+  Someone on the team accidentally committed `debug.log` early on, and now every
+  build drops fresh log files and a `build/` directory full of compiled output
+  into the repo. None of that belongs in version control. You need to stop it
+  from happening again — and clean up the file that's already tracked.
+
+  **Your task:** create a `.gitignore` that excludes `*.log` files and the
+  `build/` directory, then untrack the already-committed `debug.log` without
+  deleting it from disk.
+
+  **What You'll Deliver**
+  - `.gitignore` created with patterns for `*.log` and `build/`
+  - `debug.log` removed from Git tracking (still present on disk) and the
+    change committed
+  - New log files and build output no longer show up in `git status`
+
+  ## Steps
+
+  1. `cd /root/project`
+  2. Create the ignore file:
+     ```
+     cat > .gitignore <<'EOF'
+     *.log
+     build/
+     EOF
+     ```
+  3. Stop tracking debug.log but keep it on disk: `git rm --cached debug.log`
+  4. Stage and commit both changes: `git add .gitignore && git commit -m "add gitignore, untrack debug.log"`
+  5. Confirm it works: `touch app.log && mkdir -p build && touch build/output.bin && git status` — neither should appear
+
+tasks:
+  - id: "gitignore_created"
+    description: ".gitignore exists and contains patterns for *.log and build/"
+  - id: "debug_log_untracked"
+    description: "debug.log was removed from Git tracking with git rm --cached but still exists on disk"
+  - id: "new_files_ignored"
+    description: "New .log files and files under build/ are ignored by git status"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  echo "# Project" > README.md
+  echo "2024-01-01 debug entry" > debug.log
+  git add README.md debug.log
+  git commit -q -m "initial commit (debug.log tracked by mistake)"
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # CHECK: gitignore_created
+  if [ -f .gitignore ] && grep -q '\*\.log' .gitignore && grep -q 'build/' .gitignore; then
+    echo "CHECK:gitignore_created:PASS:.gitignore contains patterns for *.log and build/"
+  else
+    echo "CHECK:gitignore_created:FAIL:Create .gitignore with lines for *.log and build/"
+  fi
+
+  # CHECK: debug_log_untracked
+  if [ -f debug.log ] && ! git ls-files --error-unmatch debug.log >/dev/null 2>&1; then
+    echo "CHECK:debug_log_untracked:PASS:debug.log is untracked but still present on disk"
+  else
+    echo "CHECK:debug_log_untracked:FAIL:Run git rm --cached debug.log, then commit the change"
+  fi
+
+  # CHECK: new_files_ignored
+  touch app.log
+  mkdir -p build
+  touch build/output.bin
+  if [ -z "$(git status --porcelain)" ]; then
+    echo "CHECK:new_files_ignored:PASS:new .log files and build/ contents are ignored"
+  else
+    echo "CHECK:new_files_ignored:FAIL:git status still shows untracked files — check your .gitignore patterns"
+  fi
+
+hints:
+  - "A trailing slash in build/ matches the directory itself, ignoring everything inside it."
+  - "git rm --cached removes a file from the index without touching it on disk — perfect for undoing an accidental commit."
+  - ".gitignore has no effect on files that are already tracked — you must untrack them first."
+  - "git status --porcelain prints nothing when there's nothing to report, including ignored files."

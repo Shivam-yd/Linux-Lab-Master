@@ -1,0 +1,135 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Create a Jenkins Pipeline Job (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-pipeline-job"
+title: "Create a Jenkins Pipeline Job"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Convert a freestyle job into a Pipeline job by writing a flow-definition config.xml and a Jenkinsfile with build stages."
+estimatedMinutes: 25
+order: 15
+
+objectives:
+  - "Understand that Pipeline jobs are backed by a <flow-definition> config.xml, not a <project> one"
+  - "Write a declarative Jenkinsfile with multiple stages"
+  - "Point a Pipeline job's config.xml at its Jenkinsfile with scriptPath"
+
+instructions: |
+  ## Create a Jenkins Pipeline Job
+
+  **Scenario**
+  The `deploy-app` job is still a plain freestyle job with a single build step,
+  but the pipeline team wants proper Build, Test, and Deploy stages that show
+  up as distinct steps in the Jenkins UI. That means converting it into a
+  Pipeline job backed by a Jenkinsfile instead of freestyle build steps.
+
+  **Your task:** replace `deploy-app`'s freestyle `config.xml` with a Pipeline
+  (`flow-definition`) config.xml that loads its script from a Jenkinsfile, and
+  write that Jenkinsfile with Build, Test, and Deploy stages.
+
+  **What You'll Deliver**
+  - `/var/lib/jenkins/jobs/deploy-app/config.xml` rewritten as a `<flow-definition>` that references `Jenkinsfile` via `scriptPath`
+  - `/var/lib/jenkins/jobs/deploy-app/workspace/Jenkinsfile` created with `pipeline { ... }` containing Build, Test, and Deploy stages
+  - `config.xml` validated as well-formed XML
+
+  ## Steps
+
+  1. `mkdir -p /var/lib/jenkins/jobs/deploy-app/workspace`
+  2. ```
+     cat > /var/lib/jenkins/jobs/deploy-app/config.xml <<'EOF'
+     <?xml version='1.1' encoding='UTF-8'?>
+     <flow-definition plugin="workflow-job">
+       <description>Pipeline job for deploy-app</description>
+       <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition">
+         <scriptPath>Jenkinsfile</scriptPath>
+       </definition>
+     </flow-definition>
+     EOF
+     ```
+  3. ```
+     cat > /var/lib/jenkins/jobs/deploy-app/workspace/Jenkinsfile <<'EOF'
+     pipeline {
+       agent any
+       stages {
+         stage('Build') {
+           steps { sh 'echo Building...' }
+         }
+         stage('Test') {
+           steps { sh 'echo Testing...' }
+         }
+         stage('Deploy') {
+           steps { sh 'echo Deploying...' }
+         }
+       }
+     }
+     EOF
+     ```
+  4. `xmllint --noout /var/lib/jenkins/jobs/deploy-app/config.xml && echo "XML OK" > /root/pipeline-xml-check.txt || echo "XML ERROR" > /root/pipeline-xml-check.txt`
+  5. `cat /root/pipeline-xml-check.txt`
+
+tasks:
+  - id: "create-pipeline-config"
+    description: "config.xml uses the <flow-definition> root element and references Jenkinsfile via scriptPath"
+  - id: "write-jenkinsfile"
+    description: "Jenkinsfile exists with a pipeline block containing Build, Test, and Deploy stages"
+  - id: "validate-pipeline-xml"
+    description: "Validate config.xml with xmllint and save the result to /root/pipeline-xml-check.txt"
+
+image: "ubuntu:24.04"
+shell: "bash"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/lib/jenkins/jobs/deploy-app
+  cat > /var/lib/jenkins/jobs/deploy-app/config.xml << 'EOF'
+  <?xml version='1.0' encoding='UTF-8'?>
+  <project>
+    <description>Freestyle job to be converted to Pipeline</description>
+    <keepDependencies>false</keepDependencies>
+    <builders>
+      <hudson.tasks.Shell>
+        <command>echo legacy freestyle build</command>
+      </hudson.tasks.Shell>
+    </builders>
+  </project>
+  EOF
+  apt-get update -qq 2>/dev/null && apt-get install -y -qq libxml2-utils 2>/dev/null || true
+  echo "Freestyle deploy-app job created; xmllint available"
+
+verifyScript: |
+  CONFIG=/var/lib/jenkins/jobs/deploy-app/config.xml
+  JFILE=/var/lib/jenkins/jobs/deploy-app/workspace/Jenkinsfile
+
+  # CHECK: create-pipeline-config
+  if [ -f "$CONFIG" ] && grep -q "<flow-definition" "$CONFIG" && grep -q "Jenkinsfile" "$CONFIG"; then
+    echo "CHECK:create-pipeline-config:PASS:config.xml is a flow-definition referencing Jenkinsfile"
+  else
+    echo "CHECK:create-pipeline-config:FAIL:config.xml must use <flow-definition> and reference Jenkinsfile via scriptPath"
+  fi
+
+  # CHECK: write-jenkinsfile
+  if [ -f "$JFILE" ] && grep -q "pipeline" "$JFILE" \
+     && grep -q "Build" "$JFILE" && grep -q "Test" "$JFILE" && grep -q "Deploy" "$JFILE"; then
+    echo "CHECK:write-jenkinsfile:PASS:Jenkinsfile has a pipeline block with Build, Test, and Deploy stages"
+  else
+    echo "CHECK:write-jenkinsfile:FAIL:Jenkinsfile missing or does not declare Build, Test, and Deploy stages"
+  fi
+
+  # CHECK: validate-pipeline-xml
+  if [ -f /root/pipeline-xml-check.txt ] && grep -q "XML OK" /root/pipeline-xml-check.txt; then
+    echo "CHECK:validate-pipeline-xml:PASS:/root/pipeline-xml-check.txt confirms XML is valid"
+  else
+    echo "CHECK:validate-pipeline-xml:FAIL:/root/pipeline-xml-check.txt missing or does not contain 'XML OK'"
+  fi
+
+hints:
+  - "The root element for a Pipeline job's config.xml is <flow-definition>, not <project> — that's what distinguishes it from a freestyle job."
+  - "scriptPath tells Jenkins which file in the job's workspace to run as the Jenkinsfile — it's just 'Jenkinsfile' by convention."
+  - "A declarative Jenkinsfile always starts with pipeline { agent ... stages { ... } } — each stage block needs a name in quotes and a steps block."
+  - "xmllint is already installed — run xmllint --noout config.xml && echo 'XML OK' > /root/pipeline-xml-check.txt directly."
