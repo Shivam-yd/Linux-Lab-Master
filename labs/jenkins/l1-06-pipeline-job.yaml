@@ -30,6 +30,8 @@ instructions: |
   (`flow-definition`) config.xml that loads its script from a Jenkinsfile, and
   write that Jenkinsfile with Build, Test, and Deploy stages.
 
+  No text editor is installed — use shell redirection: `echo "..." >> file` or `cat > file <<'EOF' ... EOF`
+
   **What You'll Deliver**
   - `/var/lib/jenkins/jobs/deploy-app/config.xml` rewritten as a `<flow-definition>` that references `Jenkinsfile` via `scriptPath`
   - `/var/lib/jenkins/jobs/deploy-app/workspace/Jenkinsfile` created with `pipeline { ... }` containing Build, Test, and Deploy stages
