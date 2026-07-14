@@ -77,7 +77,6 @@ tasks:
     description: "TimerTrigger is present with a cron spec containing '2'"
   - id: "scm_trigger_configured"
     description: "SCMTrigger is present with a poll spec containing 'H/5'"
-=======
 summary: "Add a cron-style timer trigger to a job's config.xml so it runs automatically on a schedule, then verify the XML is still valid."
 estimatedMinutes: 20
 order: 16
@@ -122,14 +121,6 @@ tasks:
     description: "/root/schedule.txt contains the same cron spec that was added to config.xml"
   - id: "validate-xml"
     description: "Validate config.xml with xmllint and save the result to /root/trigger-xml-check.txt"
->>>>>>> b61d80a90d87131f70fa73db6522c6e6f965977f
-
-image: "ubuntu:24.04"
-shell: "bash"
-terminals:
-  - name: "Terminal"
-    user: "root"
-<<<<<<< HEAD
     cwd: "/var/lib/jenkins/jobs/nightly-tests"
 
 setupScript: |
@@ -177,7 +168,6 @@ hints:
   - "TimerTrigger uses Jenkins' H-syntax: 'H 2 * * *' means 'once a day, somewhere in the 2 AM hour'."
   - "SCMTrigger polls for changes: 'H/5 * * * *' means every 5 minutes, offset by a hash of the job name."
   - "Validate XML with: xmllint --noout config.xml — any error here means the XML won't load in Jenkins."
-=======
     cwd: "/root"
 
 setupScript: |
