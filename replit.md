@@ -1,51 +1,59 @@
 # Linux Lab Master
 
-A self-hosted DevOps training platform providing browser-based terminal sandboxes with automated lab verification and a progressive curriculum covering Linux, Docker, Git, Terraform, and Jenkins.
+A self-hosted, hands-on DevOps training platform that provides browser-based terminal sandboxes powered by Docker.
 
-## Architecture
+## Stack
 
-This is a pnpm monorepo with the following packages:
+- **Frontend**: React 19 + Vite, Tailwind CSS 4, Radix UI, TanStack Query, Xterm.js, Framer Motion
+- **Backend**: Node.js/Express (ESM), Dockerode, Pino, SSH2
+- **Database**: PostgreSQL via Drizzle ORM (Replit's built-in DB)
+- **Auth**: Clerk
+- **Monorepo**: pnpm workspaces
 
-- **`artifacts/linux-labs`** — React 19 + Vite frontend (Tailwind CSS v4, Radix UI / Shadcn, TanStack Query, Wouter)
-- **`artifacts/api-server`** — Express + TypeScript API server with WebSocket terminal support (Dockerode, ssh2)
-- **`lib/db`** — Drizzle ORM schema + PostgreSQL client (shared library)
-- **`lib/api-spec`** — OpenAPI spec + generated Zod schemas and React Query hooks (Orval)
+## Running the project
 
-## How to Run
+Two workflows are configured and start automatically:
 
-Both services start automatically via their configured workflows:
-
-| Workflow | Command | URL |
+| Workflow | Command | Port |
 |---|---|---|
-| `artifacts/linux-labs: web` | `PORT=21398 BASE_PATH=/ pnpm --filter @workspace/linux-labs run dev` | `/` (preview) |
-| `artifacts/api-server: API Server` | `PORT=8080 pnpm --filter @workspace/api-server run dev` | `/api` |
+| `artifacts/api-server: API Server` | `PORT=8080 pnpm --filter @workspace/api-server run dev` | 8080 |
+| `artifacts/linux-labs: web` | `PORT=21398 BASE_PATH=/ pnpm --filter @workspace/linux-labs run dev` | 21398 |
 
-## Environment Variables
+The frontend dev server proxies `/api` to the API server on port 8080.
 
-| Variable | Source | Notes |
+## Environment variables / secrets
+
+| Variable | Where set | Notes |
 |---|---|---|
-| `DATABASE_URL` | Replit (runtime-managed) | PostgreSQL connection string |
-| `SESSION_SECRET` | Replit Secret | Express session signing key |
-| `CLERK_PUBLISHABLE_KEY` | Replit Secret (optional) | Clerk auth — only needed for production |
-| `CLERK_SECRET_KEY` | Replit Secret (optional) | Clerk auth proxy — only active in production |
+| `CLERK_PUBLISHABLE_KEY` | Replit Secret | Clerk test key from `installer/install.sh` |
+| `CLERK_SECRET_KEY` | Replit Secret | Clerk test key from `installer/install.sh` |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Shared env var | Same value as above, exposed to Vite |
+| `SESSION_SECRET` | Replit Secret | Signs session cookies |
+| `DATABASE_URL` | Replit-managed | Auto-provisioned PostgreSQL |
+
+Optional: `GITHUB_TOKEN` raises GitHub API rate limits for lab YAML sync. `LOG_LEVEL` defaults to `info`.
+
+## Project structure
+
+```
+artifacts/
+  api-server/   — Express backend (entry: src/index.ts)
+  linux-labs/   — React frontend (entry: src/main.tsx)
+lib/
+  db/           — Drizzle ORM schema + migrations
+  api-spec/     — Shared API type specs
+  api-zod/      — Zod validators
+labs/           — YAML lab definitions (synced from GitHub)
+installer/      — Docker Compose + Nginx + install scripts
+```
 
 ## Database
 
-Uses Replit's built-in PostgreSQL. Schema is managed with Drizzle Kit.
-
-To push schema changes:
-```
-cd lib/db && DATABASE_URL="$DATABASE_URL" pnpm run push
+Schema is managed by Drizzle ORM. To push schema changes:
+```bash
+cd lib/db && npx drizzle-kit push
 ```
 
-Tables: `students`, `lab_sessions`, `lab_progress`, `remote_labs`, `lab_sync_log`
+## User preferences
 
-## Key Notes
-
-- **Docker sandboxes** require a Docker host. The Docker socket path and connectivity depend on the environment. On Replit, sandbox _deployment_ won't work without an external Docker host, but the UI and API run fine.
-- The API server warms Docker images on startup and polls GitHub for remote lab definitions every 60 minutes.
-- Clerk proxy middleware is a no-op in development (`NODE_ENV !== 'production'`).
-
-## User Preferences
-
-- Keep project structure as-is (pnpm monorepo with artifacts/ and lib/ directories).
+- Keep the existing monorepo structure and stack — do not restructure or migrate.
