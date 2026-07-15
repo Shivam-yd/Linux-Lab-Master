@@ -160,6 +160,7 @@ header "Step 5/6 — Pull lab images"
 info "Pulling lab sandbox images so labs start instantly..."
 docker pull ubuntu:24.04
 docker pull alpine:latest
+docker pull alpine/git:latest
 docker pull hashicorp/terraform:1.9
 docker pull rastasheep/ubuntu-sshd:18.04
 docker pull localstack/localstack:latest

@@ -11,13 +11,29 @@ sync with the **"Fetch Labs"** button in the app.
 ```
 labs/
   linux/          ← Linux track labs
-    01-file-permissions.yaml
-    02-process-management.yaml
+    l1-01-disk-usage.yaml
+    l1-02-file-search.yaml
+    ...
+    l2-01-file-permissions-deep.yaml
     ...
   terraform/      ← Terraform track labs
-    01-remote-state.yaml
+    l1-01-init-workflow.yaml
+    l2-01-for-each-basics.yaml
+    l3-01-for-expressions.yaml
+    ...
+  docker/         ← Docker track labs
+    l1-01-images-basics.yaml
+    ...
+  git/            ← Git track labs
+    l1-01-init-commit.yaml
+    ...
+  jenkins/        ← Jenkins track labs
+    l1-01-setup-server.yaml
     ...
 ```
+
+File-naming convention: `l<level>-<NN>-<slug>.yaml`
+(e.g. `l2-03-variable-validation.yaml` = Level 2, slot 03).
 
 Sub-folders are just for organisation — the app recursively picks up every
 `*.yaml` file anywhere under `labs/`.
@@ -110,7 +126,9 @@ with no visible error to the student.
 |---|---|---|---|
 | `ubuntu:24.04` | **dash** | ❌ No — `[[: not found` | `"bash"` (bash is pre-installed) |
 | `alpine:latest` | **BusyBox ash** | ✅ Yes | `"sh"` |
+| `alpine/git:latest` | **BusyBox ash** (Alpine-based) | ✅ Yes | `"sh"` |
 | `hashicorp/terraform:1.9` | **BusyBox ash** (Alpine-based) | ✅ Yes | `"sh"` |
+| `rastasheep/ubuntu-sshd:18.04` | **dash** (Ubuntu-based) | ❌ No | `"bash"` |
 | `localstack/localstack:latest` | **dash** (Ubuntu-based) | ❌ No | `"bash"` (bash is pre-installed) |
 | Any other Ubuntu-based image | **dash** | ❌ No | `"bash"` if bash is present |
 | Any other Alpine-based image | **BusyBox ash** | ✅ Yes | `"sh"` |
@@ -151,8 +169,11 @@ no-internet warning above — never plan on installing anything at runtime):
 |---|---|---|
 | `linux` | `alpine:latest` (preferred — BusyBox covers most core-utils/cron needs) or `ubuntu:24.04` (only if you specifically need a tool that requires a glibc environment) | Shell, files, users, networking, scripting |
 | `terraform` | `hashicorp/terraform:1.9` | IaC, providers, state, modules |
+| `docker` | `alpine:latest` | Container concepts, image management |
+| `git` | `alpine/git:latest` | Version control, branching, history |
+| `jenkins` | `ubuntu:24.04` | CI/CD pipelines, job configuration |
 
-If the topic needs a tool that isn't in either base image, find a
+If the topic needs a tool that isn't in any of the images above, find a
 pre-built image that bundles it (e.g. `rastasheep/ubuntu-sshd:18.04` for
 SSH) — don't reach for `ubuntu:24.04` + `apt-get install` by default.
 
@@ -400,7 +421,7 @@ git commit -m "add: Cron Jobs & Automation"
 git push
 ```
 
-The app picks it up within **10 minutes**, or click **"Fetch Labs"** in the catalog for an instant sync.
+The app picks it up within **1 hour** (background sync runs every 60 minutes), or click **"Fetch Labs"** in the catalog for an instant sync.
 
 ---
 

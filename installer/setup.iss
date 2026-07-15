@@ -287,9 +287,10 @@ begin
   //   hashicorp/terraform:1.9  /bin/sh = ash   — [[ ]] supported;     use shell: "sh"
   //   rastasheep/ubuntu-sshd   /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
   //   localstack/localstack    /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
-  WizardForm.StatusLabel.Caption := 'Downloading lab environments (ubuntu, alpine, terraform, localstack)...';
+  WizardForm.StatusLabel.Caption := 'Downloading lab environments (ubuntu, alpine, alpine/git, terraform, localstack)...';
   ExecOK('docker', 'pull ubuntu:24.04',                  AppDir);
   ExecOK('docker', 'pull alpine:latest',                 AppDir);
+  ExecOK('docker', 'pull alpine/git:latest',             AppDir);
   ExecOK('docker', 'pull hashicorp/terraform:1.9',       AppDir);
   ExecOK('docker', 'pull rastasheep/ubuntu-sshd:18.04',  AppDir);
   ExecOK('docker', 'pull localstack/localstack:latest',  AppDir);
