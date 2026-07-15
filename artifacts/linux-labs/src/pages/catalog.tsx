@@ -491,12 +491,6 @@ export default function Catalog() {
 
         {/* Footer */}
         <UserMenu />
-        <div className="px-6 py-4 border-t border-border/50 bg-muted/10">
-          <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
-            <span>SYS_STAT</span>
-            <span className="flex items-center gap-1.5 text-primary"><div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"/> ONLINE</span>
-          </div>
-        </div>
       </aside>
 
       {/* ── Main content ────────────────────────────────── */}
