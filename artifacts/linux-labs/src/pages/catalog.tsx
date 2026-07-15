@@ -5,7 +5,7 @@ import { useUser, useClerk } from "@clerk/react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, LogOut, User } from "lucide-react"
+import { Info, LogOut, User, Home } from "lucide-react"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -44,17 +44,26 @@ function ClerkUserMenu() {
   )
 }
 
-// Rendered in self-hosted guest mode (no Clerk keys).
+// Rendered in guest mode (no Clerk session).
 function GuestUserMenu() {
   return (
-    <div className="flex items-center gap-2.5 px-4 py-3 border-t border-border/50">
-      <div className="w-7 h-7 rounded-full bg-muted/50 border border-border/60 flex items-center justify-center shrink-0">
-        <User className="w-3.5 h-3.5 text-muted-foreground" />
+    <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-border/50">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-7 h-7 rounded-full bg-muted/50 border border-border/60 flex items-center justify-center shrink-0">
+          <User className="w-3.5 h-3.5 text-muted-foreground" />
+        </div>
+        <div className="min-w-0">
+          <span className="text-xs font-medium text-muted-foreground">Guest</span>
+          <p className="text-[10px] text-muted-foreground/50 leading-none mt-0.5">Progress saved by cookie</p>
+        </div>
       </div>
-      <div className="min-w-0">
-        <span className="text-xs font-medium text-muted-foreground">Guest</span>
-        <p className="text-[10px] text-muted-foreground/50 leading-none mt-0.5">Progress saved by cookie</p>
-      </div>
+      <Link
+        href="/"
+        className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+        title="Go to home page"
+      >
+        <Home className="w-3.5 h-3.5" />
+      </Link>
     </div>
   )
 }
