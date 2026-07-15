@@ -206,6 +206,14 @@ export default function Catalog() {
     }))
   }, [labs, progress, tracks, progressByLabId])
 
+  // Overall completion summary across every track (not just the active one)
+  const overallStats = useMemo(() => {
+    if (!labs || !progress) return { passed: 0, total: 0 }
+    const passed = labs.filter(l => progressByLabId[l.id]?.status === "passed").length
+    return { passed, total: labs.length }
+  }, [labs, progress, progressByLabId])
+  const overallPct = overallStats.total > 0 ? Math.round((overallStats.passed / overallStats.total) * 100) : 0
+
   // Build level list for the active track
   const levels = useMemo(() => {
     if (!labs) return []
@@ -322,6 +330,28 @@ export default function Catalog() {
           </div>
         </div>
 
+        {/* Overall completion summary */}
+        <div className="px-4 pt-4">
+          <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Overall
+                </span>
+              </div>
+              {overallStats.total > 0 && overallStats.passed === overallStats.total && (
+                <Award className="w-4 h-4 text-amber-400" />
+              )}
+            </div>
+            <p className="mt-2 text-lg font-black font-mono leading-none">
+              {loading ? "…" : `${overallStats.passed}/${overallStats.total}`}
+              <span className="text-xs font-semibold text-muted-foreground ml-1.5">labs completed</span>
+            </p>
+            <Progress value={overallPct} className="h-1.5 mt-2.5 bg-background border border-border/50" />
+          </div>
+        </div>
+
         {/* Track list + level dropdowns */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">
           <p className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
@@ -338,6 +368,7 @@ export default function Catalog() {
                   const isActive = track === resolvedTrack
                   const sum = trackSummary[track]
                   const pct = sum?.total ? Math.round((sum.passed / sum.total) * 100) : 0
+                  const trackComplete = !!sum && sum.total > 0 && sum.passed === sum.total
 
                   return (
                     <button
@@ -361,10 +392,13 @@ export default function Catalog() {
                           <Icon className={cn("w-4 h-4", isActive ? tm?.accentClass : "text-muted-foreground")} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={cn("text-sm font-semibold leading-tight",
+                          <p className={cn("text-sm font-semibold leading-tight flex items-center gap-1.5",
                             isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/90"
                           )}>
                             {tm?.label ?? track}
+                            {trackComplete && (
+                              <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            )}
                           </p>
                           {sum && (
                             <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
@@ -424,6 +458,11 @@ export default function Catalog() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                 {meta.label} Range
+                {trackStats.total > 0 && trackStats.completed === trackStats.total && (
+                  <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 gap-1.5">
+                    <Award className="w-3.5 h-3.5" /> Track Complete
+                  </Badge>
+                )}
               </h1>
               <p className="text-muted-foreground mt-2 max-w-xl text-sm leading-relaxed">
                 {meta.description}
