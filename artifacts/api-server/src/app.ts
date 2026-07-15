@@ -33,10 +33,11 @@ app.use(
     },
   }),
 );
-const sessionSecret = process.env.SESSION_SECRET;
-if (!sessionSecret) {
-  throw new Error(
-    "SESSION_SECRET environment variable is required but was not provided.",
+const sessionSecret = process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production";
+if (!process.env.SESSION_SECRET) {
+  console.warn(
+    "[warn] SESSION_SECRET is not set — using an insecure default. " +
+    "Set SESSION_SECRET to a long random string in production."
   );
 }
 
