@@ -128,18 +128,16 @@ else
   DETECTED_IP=$(curl -sf https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')
 
   DEFAULT_BETTER_AUTH_URL="http://${DETECTED_IP}:8085"
-  DEFAULT_GOOGLE_CLIENT_ID="680196573745-eekfbd0kmpkilokn83asia4nsmq6q4m7.apps.googleusercontent.com"
-  DEFAULT_GOOGLE_CLIENT_SECRET="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"
 
   echo ""
   read -rp "  BETTER_AUTH_URL     [${DEFAULT_BETTER_AUTH_URL}]: " INPUT_URL
   BETTER_AUTH_URL="${INPUT_URL:-${DEFAULT_BETTER_AUTH_URL}}"
 
-  read -rp "  GOOGLE_CLIENT_ID    [${DEFAULT_GOOGLE_CLIENT_ID}]: " INPUT_CLIENT_ID
-  GOOGLE_CLIENT_ID="${INPUT_CLIENT_ID:-${DEFAULT_GOOGLE_CLIENT_ID}}"
-
-  read -rp "  GOOGLE_CLIENT_SECRET[${DEFAULT_GOOGLE_CLIENT_SECRET}]: " INPUT_CLIENT_SECRET
-  GOOGLE_CLIENT_SECRET="${INPUT_CLIENT_SECRET:-${DEFAULT_GOOGLE_CLIENT_SECRET}}"
+  echo ""
+  echo -e "  ${CYAN}Google OAuth (optional — leave blank to skip; 'Continue with Google' will be hidden)${RESET}"
+  echo -e "  Create credentials at: https://console.cloud.google.com/apis/credentials"
+  read -rp "  GOOGLE_CLIENT_ID    : " GOOGLE_CLIENT_ID
+  read -rp "  GOOGLE_CLIENT_SECRET: " GOOGLE_CLIENT_SECRET
   echo ""
 
   {
