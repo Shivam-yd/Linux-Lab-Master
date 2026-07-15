@@ -16,6 +16,10 @@ const baseURL =
     ? `https://${process.env.REPLIT_DEV_DOMAIN}`
     : "http://localhost:8080");
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleConfigured = !!(googleClientId && googleClientSecret);
+
 export const auth = betterAuth({
   baseURL,
   basePath: "/api/auth",
@@ -29,12 +33,14 @@ export const auth = betterAuth({
     },
   }),
   emailAndPassword: { enabled: true },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  ...(googleConfigured && {
+    socialProviders: {
+      google: {
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
+      },
     },
-  },
+  }),
   secret: process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production",
   trustedOrigins: ["*"],
 });
