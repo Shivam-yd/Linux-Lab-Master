@@ -138,10 +138,6 @@ else
   echo -e "  Create credentials at: https://console.cloud.google.com/apis/credentials"
   read -rp "  GOOGLE_CLIENT_ID    : " GOOGLE_CLIENT_ID
   read -rp "  GOOGLE_CLIENT_SECRET: " GOOGLE_CLIENT_SECRET
-
-  echo ""
-  echo -e "  ${CYAN}GitHub token (optional — leave blank for 60 req/hr; get one at https://github.com/settings/tokens)${RESET}"
-  read -rp "  GITHUB_TOKEN        : " GITHUB_TOKEN
   echo ""
 
   {
@@ -151,7 +147,6 @@ else
     echo "BETTER_AUTH_URL=${BETTER_AUTH_URL}"
     echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
     echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
-    echo "GITHUB_TOKEN=${GITHUB_TOKEN}"
   } > "${ENV_FILE}"
   chmod 600 "${ENV_FILE}"
 
