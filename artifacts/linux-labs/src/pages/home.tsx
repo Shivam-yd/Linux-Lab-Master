@@ -1,7 +1,7 @@
 import { Link } from "wouter"
 import {
   Zap, Terminal, Layers, Server, Container, GitBranch,
-  CheckCircle2, ArrowRight, Github,
+  CheckCircle2, ArrowRight,
 } from "lucide-react"
 
 const TRACKS = [
@@ -122,9 +122,6 @@ export default function Home() {
       <footer className="border-t border-border/60 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground">
           <span>DevLabs — open-source practice range</span>
-          <a href="https://github.com" className="flex items-center gap-1.5 hover:text-foreground transition-colors">
-            <Github className="w-3.5 h-3.5" /> Source
-          </a>
         </div>
       </footer>
     </div>
