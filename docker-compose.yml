@@ -46,6 +46,7 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     # Mount the host Docker socket so the API can spin up lab containers
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
