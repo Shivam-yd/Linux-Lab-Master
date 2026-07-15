@@ -24,7 +24,7 @@ RUN PORT=3000 BASE_PATH=/ pnpm --filter @workspace/linux-labs run build
 # ─────────────────────────────────────────────────────────────────────────────
 FROM builder AS migrate
 
-CMD ["pnpm", "--filter", "@workspace/db", "run", "push"]
+CMD ["pnpm", "--filter", "@workspace/db", "run", "push-force"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
