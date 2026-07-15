@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { Link, useLocation, useSearch } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
-import { useUser, useClerk } from "@clerk/react"
+import { useSession, signOut } from "@/lib/auth-client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -13,16 +13,14 @@ import {
   Container, GitBranch
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { hasClerk } from "@/App"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
-// Rendered only when Clerk is configured — safe to call Clerk hooks here.
-function ClerkUserMenu() {
-  const { user } = useUser()
-  const { signOut } = useClerk()
-  const label = user?.primaryEmailAddress?.emailAddress || user?.fullName || "Account"
-  const initial = (user?.firstName || user?.primaryEmailAddress?.emailAddress || "?").charAt(0).toUpperCase()
+// Rendered when a Better Auth session is active.
+function AuthUserMenu() {
+  const { data: session } = useSession()
+  const label = session?.user?.email || session?.user?.name || "Account"
+  const initial = (session?.user?.name || session?.user?.email || "?").charAt(0).toUpperCase()
 
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-border/50">
@@ -34,7 +32,7 @@ function ClerkUserMenu() {
       </div>
       <button
         type="button"
-        onClick={() => signOut({ redirectUrl: basePath || "/" })}
+        onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = basePath || "/" } } })}
         className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
         title="Sign out"
       >
@@ -69,8 +67,8 @@ function GuestUserMenu() {
 }
 
 function UserMenu() {
-  const { isSignedIn } = useUser()
-  if (isSignedIn) return <ClerkUserMenu />
+  const { data: session } = useSession()
+  if (session?.user) return <AuthUserMenu />
   return <GuestUserMenu />
 }
 

@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { getAuth } from "@clerk/express";
+import { fromNodeHeaders } from "better-auth/node";
+import { auth } from "../lib/auth";
 import { db } from "@workspace/db";
 import { studentsTable } from "@workspace/db/schema";
 import { v4 as uuidv4 } from "uuid";
@@ -19,34 +20,30 @@ const COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7; // 1 week
 /**
  * Auth middleware with two modes:
  *
- * • Clerk mode (CLERK_SECRET_KEY is set): requires a signed-in Clerk user.
- *   JIT-provisions a row in `students` keyed by the Clerk user id.
+ * • Better Auth mode: if a valid Better Auth session cookie is present,
+ *   uses the authenticated user's ID. JIT-provisions a row in `students`.
  *
- * • Guest mode (no CLERK_SECRET_KEY): self-hosted / no-auth fallback.
- *   Reads or creates a signed cookie (_sid) as the anonymous student ID.
- *   Uses SESSION_SECRET for cookie signing via cookie-parser.
+ * • Guest mode fallback: reads or creates a signed cookie (_sid) as the
+ *   anonymous student ID. Uses SESSION_SECRET for cookie signing.
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     let userId: string | null = null;
 
-    if (process.env.CLERK_SECRET_KEY) {
-      // ── Clerk auth with guest fallback ─────────────────────────────────────
-      // Prefer a signed-in Clerk session; fall back to a guest cookie so
-      // unauthenticated users can still use labs without creating an account.
-      const auth = getAuth(req);
-      userId = auth?.userId ?? null;
+    // ── Better Auth session ────────────────────────────────────────────────
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    userId = session?.user?.id ?? null;
 
-      // When a real Clerk session is present, actively clear any lingering
-      // guest cookie so the two identities can never bleed into each other —
-      // e.g. logging out would otherwise revert back to old guest data.
-      if (userId && req.signedCookies[GUEST_COOKIE]) {
-        res.clearCookie(GUEST_COOKIE);
-      }
+    // When a real auth session is present, clear any lingering guest cookie
+    // so the two identities can never bleed into each other.
+    if (userId && req.signedCookies[GUEST_COOKIE]) {
+      res.clearCookie(GUEST_COOKIE);
     }
 
     if (!userId) {
-      // ── Guest / cookie auth ────────────────────────────────────────────────
+      // ── Guest / cookie auth ──────────────────────────────────────────────
       // req.signedCookies is populated by cookie-parser(SESSION_SECRET) in app.ts
       const existing = req.signedCookies[GUEST_COOKIE] as string | undefined;
       if (existing) {
