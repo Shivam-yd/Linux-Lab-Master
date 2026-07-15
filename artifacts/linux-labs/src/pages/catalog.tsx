@@ -60,7 +60,8 @@ function GuestUserMenu() {
 }
 
 function UserMenu() {
-  if (hasClerk) return <ClerkUserMenu />
+  const { isSignedIn } = useUser()
+  if (isSignedIn) return <ClerkUserMenu />
   return <GuestUserMenu />
 }
 
