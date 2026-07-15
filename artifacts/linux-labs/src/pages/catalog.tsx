@@ -370,7 +370,7 @@ export default function Catalog() {
         {/* Brand */}
         <div className="px-6 py-6 border-b border-border/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10" />
-          <div className="flex items-center gap-3 relative z-10">
+          <Link href="/" className="flex items-center gap-3 relative z-10 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(var(--primary),0.15)]">
               <Zap className="w-5 h-5 text-primary fill-primary/20" />
             </div>
@@ -378,7 +378,7 @@ export default function Catalog() {
               <p className="text-lg font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">LinuxLabMaster</p>
               <p className="text-xs text-muted-foreground mt-1 font-medium tracking-wide">PRACTICE RANGE</p>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Overall completion summary */}
