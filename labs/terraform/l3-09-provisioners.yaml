@@ -1,9 +1,9 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# Linux Lab: Terraform Provisioners (local-exec)
+# Terraform Lab: Provisioners (local-exec)
 # ──────────────────────────────────────────────────────────────────────────────
 
 id: "terraform-provisioners"
-title: "Terraform Provisioners: local-exec & Triggers"
+title: "Provisioners: local-exec & Triggers"
 track: "terraform"
 level: 3
 category: "Infrastructure as Code"

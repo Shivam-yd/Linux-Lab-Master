@@ -3,7 +3,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 id: "terraform-workspace-basics"
-title: "Terraform Workspaces"
+title: "Workspaces"
 track: "terraform"
 level: 2
 category: "State Management"

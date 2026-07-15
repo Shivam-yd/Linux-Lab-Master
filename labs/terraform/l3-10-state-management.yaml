@@ -1,9 +1,9 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# Linux Lab: Terraform State Manipulation
+# Terraform Lab: State Manipulation
 # ──────────────────────────────────────────────────────────────────────────────
 
 id: "terraform-state-management"
-title: "Terraform State Manipulation: mv & rm"
+title: "State Manipulation: mv & rm"
 track: "terraform"
 level: 3
 category: "Infrastructure as Code"

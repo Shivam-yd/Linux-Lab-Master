@@ -3,7 +3,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 id: "terraform-init-workflow"
-title: "Terraform Core Workflow: init, plan, apply, destroy"
+title: "Core Workflow: init, plan, apply, destroy"
 track: "terraform"
 level: 1
 category: "Terraform Fundamentals"

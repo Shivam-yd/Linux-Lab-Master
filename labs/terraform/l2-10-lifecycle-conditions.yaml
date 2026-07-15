@@ -1,9 +1,9 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# Linux Lab: Terraform Lifecycle & Output Preconditions
+# Terraform Lab: Lifecycle & Output Preconditions
 # ──────────────────────────────────────────────────────────────────────────────
 
 id: "terraform-lifecycle-conditions"
-title: "Terraform Custom Conditions: Preconditions"
+title: "Custom Conditions: Preconditions"
 track: "terraform"
 level: 2
 category: "Infrastructure as Code"
