@@ -57,3 +57,4 @@ cd lib/db && npx drizzle-kit push
 ## User preferences
 
 - Keep the existing monorepo structure and stack — do not restructure or migrate.
+- Write all code in **ponytail style**: minimum code that works, YAGNI, reuse before building, deletion over addition. See https://github.com/DietrichGebert/ponytail.

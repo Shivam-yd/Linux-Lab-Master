@@ -1,3 +1,4 @@
+- [Ponytail coding style](ponytail-style.md) — all code must use ponytail: minimum code that works, YAGNI, reuse first, deletion over addition.
 - [Docker sandbox constraints in this environment](docker-sandbox-constraints.md) — containers have no internet/DNS (no apt/apk installs), users need chpasswd for sshd, sudo is unavailable, dockerode needs ssh2/@grpc bundled not externalized.
 - [GitHub sync CDN race condition](github-sync-cdn-race.md) — sync may store new SHA + old content if CDN lags; fix by clearing sha='' in remote_labs then re-syncing.
 - [Better Auth migration](better-auth-migration.md) — Clerk replaced with Better Auth; key gotchas: Express 5 wildcard, OpenTelemetry peer dep, BETTER_AUTH_URL env var required.
