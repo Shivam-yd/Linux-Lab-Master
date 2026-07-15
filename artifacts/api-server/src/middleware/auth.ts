@@ -36,6 +36,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       // unauthenticated users can still use labs without creating an account.
       const auth = getAuth(req);
       userId = auth?.userId ?? null;
+
+      // When a real Clerk session is present, actively clear any lingering
+      // guest cookie so the two identities can never bleed into each other —
+      // e.g. logging out would otherwise revert back to old guest data.
+      if (userId && req.signedCookies[GUEST_COOKIE]) {
+        res.clearCookie(GUEST_COOKIE);
+      }
     }
 
     if (!userId) {
