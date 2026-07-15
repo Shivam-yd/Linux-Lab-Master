@@ -15,8 +15,11 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @workspace/api-server run build
 
 # Build frontend (Vite → artifacts/linux-labs/dist/public/)
-# PORT is required by vite.config.ts even during a static build
-RUN PORT=3000 BASE_PATH=/ pnpm --filter @workspace/linux-labs run build
+# VITE_CLERK_PUBLISHABLE_KEY is baked into the bundle at build time — pass it
+# via --build-arg so the same image works with or without Clerk.
+ARG VITE_CLERK_PUBLISHABLE_KEY=""
+RUN PORT=3000 BASE_PATH=/ VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY} \
+    pnpm --filter @workspace/linux-labs run build
 
 
 # ─────────────────────────────────────────────────────────────────────────────

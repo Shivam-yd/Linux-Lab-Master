@@ -150,8 +150,18 @@ fi
 # ── Step 4: Build Docker images ───────────────────────────────────────────────
 header "Step 4/6 — Build images"
 
+# Source the .env so CLERK keys are available as shell vars for the build arg.
+# (They may not be set if the .env already existed before this run.)
+set -o allexport
+# shellcheck source=/dev/null
+source "${ENV_FILE}"
+set +o allexport
+
 info "Building Docker images (first run takes 3–5 minutes)..."
-docker compose --project-directory "${INSTALL_DIR}" build
+# VITE_CLERK_PUBLISHABLE_KEY is picked up by docker-compose.yml as a build arg
+# and baked into the Vite frontend bundle at build time.
+VITE_CLERK_PUBLISHABLE_KEY="${VITE_CLERK_PUBLISHABLE_KEY:-}" \
+  docker compose --project-directory "${INSTALL_DIR}" build
 success "Images built"
 
 # ── Step 5: Pull lab container images ─────────────────────────────────────────
