@@ -222,7 +222,7 @@ systemctl restart "${SERVICE_NAME}"
 # Wait for nginx to respond (up to 90 s)
 info "Waiting for the app to become ready..."
 for i in $(seq 1 30); do
-  if curl -sf http://localhost:1000/ -o /dev/null 2>/dev/null; then
+  if curl -sf http://localhost:8085/ -o /dev/null 2>/dev/null; then
     break
   fi
   sleep 3
@@ -234,7 +234,7 @@ echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━�
 echo -e "${BOLD}${GREEN}  Linux Labs is installed and running!        ${RESET}"
 echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 echo ""
-echo -e "  Open your browser:  ${BOLD}http://localhost:1000${RESET}"
+echo -e "  Open your browser:  ${BOLD}http://localhost:8085${RESET}"
 echo ""
 echo -e "  Service commands:"
 echo -e "    ${CYAN}sudo systemctl status  ${SERVICE_NAME}${RESET}   — check status"

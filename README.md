@@ -76,7 +76,7 @@ The installer will:
 **3. Open the app**
 
 ```
-http://localhost:1000 or http://ServerIP:1000
+http://localhost:8085 or http://ServerIP:8085
 ```
 
 #### Managing the service
@@ -122,7 +122,7 @@ journalctl -u linuxlabs -f         # live logs
    - Pre-pull all lab sandbox images
    - Register a **Windows service** (`LinuxLabs`) set to start automatically
    - Create a desktop shortcut that opens the app in your browser
-5. When the wizard finishes, open **http://localhost:1000** in your browser
+5. When the wizard finishes, open **http://localhost:8085** in your browser
 
 #### Managing the Windows service
 

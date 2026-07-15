@@ -57,7 +57,7 @@ services:
       target: web
     restart: unless-stopped
     ports:
-      - "1000:80"
+      - "8085:80"
     depends_on:
       - api
 
