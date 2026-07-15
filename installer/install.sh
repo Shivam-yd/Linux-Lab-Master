@@ -222,7 +222,7 @@ systemctl restart "${SERVICE_NAME}"
 # Wait for nginx to respond (up to 90 s)
 info "Waiting for the app to become ready..."
 for i in $(seq 1 30); do
-  if curl -sf http://localhost/ -o /dev/null 2>/dev/null; then
+  if curl -sf http://localhost:1000/ -o /dev/null 2>/dev/null; then
     break
   fi
   sleep 3
