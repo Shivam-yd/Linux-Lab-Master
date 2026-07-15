@@ -14,7 +14,7 @@ declare global {
 }
 
 const GUEST_COOKIE = "_sid";
-const COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365 * 5; // 5 years
+const COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7; // 1 week
 
 /**
  * Auth middleware with two modes:
