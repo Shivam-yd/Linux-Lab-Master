@@ -27,6 +27,17 @@ const GITHUB_REPO     = "Linux-Lab-Master";
 const LABS_PATH       = "labs";
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
+/**
+ * Lab IDs that are permanently excluded from sync.
+ * Use this to suppress duplicate or retired labs that still exist in the
+ * upstream GitHub repo but have been superseded by better YAML equivalents.
+ */
+const SYNC_DENY_LIST = new Set([
+  "git-gitignore",        // duplicate of git-gitignore-basics
+  "git-tags-basics",      // duplicate of git-tagging
+  "jenkins-pipeline-script", // duplicate of jenkins-pipeline-job
+]);
+
 // Optional: set GITHUB_TOKEN env var to raise rate limit from 60 → 5 000 req/hr
 const githubHeaders = (): Record<string, string> => {
   const token = process.env["GITHUB_TOKEN"];
@@ -171,6 +182,11 @@ export async function runSync(triggeredBy: "auto" | "manual" = "auto"): Promise<
     for (const file of files) {
       const def = await fetchAndValidateLab(file);
       if (!def) continue;
+
+      if (SYNC_DENY_LIST.has(def.id)) {
+        logger.debug({ labId: def.id }, "github-sync: skipping denied lab");
+        continue;
+      }
 
       const currentSha = shaById.get(def.id);
 
