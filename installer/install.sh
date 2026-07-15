@@ -163,8 +163,8 @@ set -o allexport
 source "${ENV_FILE}"
 set +o allexport
 
-info "Stopping any existing containers and removing volumes (fresh install)..."
-docker compose --project-directory "${INSTALL_DIR}" down -v --remove-orphans 2>/dev/null || true
+info "Stopping any existing containers..."
+docker compose --project-directory "${INSTALL_DIR}" down --remove-orphans 2>/dev/null || true
 
 info "Building Docker images (first run takes 3–5 minutes)..."
 docker compose --project-directory "${INSTALL_DIR}" build
