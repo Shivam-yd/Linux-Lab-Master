@@ -1,2 +1,3 @@
 - [Docker sandbox constraints in this environment](docker-sandbox-constraints.md) — containers have no internet/DNS (no apt/apk installs), users need chpasswd for sshd, sudo is unavailable, dockerode needs ssh2/@grpc bundled not externalized.
 - [GitHub sync CDN race condition](github-sync-cdn-race.md) — sync may store new SHA + old content if CDN lags; fix by clearing sha='' in remote_labs then re-syncing.
+- [Clerk auth on raw WebSocket upgrade requests](clerk-websocket-auth.md) — getAuth(req) doesn't work on raw WS upgrades; use clerkClient.authenticateRequest(request) instead.

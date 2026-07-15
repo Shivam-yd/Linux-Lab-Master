@@ -11,7 +11,7 @@ import {
   VerifyLabResponse,
 } from "@workspace/api-zod";
 import { getLabByIdAsync } from "../lib/labs/registry";
-import { studentIdentity } from "../middleware/student";
+import { requireAuth } from "../middleware/auth";
 import {
   getSessionRow,
   startSession,
@@ -24,7 +24,7 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-router.use(studentIdentity);
+router.use(requireAuth);
 
 function toSessionResponse(labId: string, terminals: string[], row: Awaited<ReturnType<typeof getSessionRow>>) {
   return {

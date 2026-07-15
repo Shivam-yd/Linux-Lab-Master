@@ -10,11 +10,11 @@ import {
 } from "@workspace/api-zod";
 import { getAllLabs, getLabByIdAsync } from "../lib/labs/registry";
 import { runSync, getLastSyncStatus } from "../lib/github-sync";
-import { studentIdentity } from "../middleware/student";
+import { requireAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
-router.use(studentIdentity);
+router.use(requireAuth);
 
 // ── Lab listing ───────────────────────────────────────────────────────────────
 

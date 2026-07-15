@@ -1,10 +1,29 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import type { Duplex } from "node:stream";
+import { clerkClient } from "@clerk/express";
 import { getLabByIdAsync } from "../lib/labs/registry";
 import { getRunningContainer } from "../lib/docker/manager";
-import { studentIdFromCookieHeader } from "../middleware/student";
 import { logger } from "../lib/logger";
+
+/** Authenticates a WebSocket upgrade request via the Clerk session cookie. */
+async function studentIdFromUpgradeRequest(req: IncomingMessage): Promise<string | null> {
+  try {
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value === undefined) continue;
+      headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+    }
+    const url = new URL(req.url ?? "", `http://${req.headers.host ?? "localhost"}`);
+    const request = new Request(url, { headers });
+
+    const state = await clerkClient.authenticateRequest(request);
+    return state.toAuth()?.userId ?? null;
+  } catch (err) {
+    logger.warn({ err }, "Failed to authenticate terminal WebSocket upgrade");
+    return null;
+  }
+}
 
 type ClientMessage =
   | { type: "input"; data: string }
@@ -56,7 +75,7 @@ export function attachTerminalWebSocketServer(server: HttpServer): void {
 async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): Promise<void> {
   const labId = url.searchParams.get("labId");
   const terminalName = url.searchParams.get("terminal");
-  const studentId = studentIdFromCookieHeader(req.headers.cookie);
+  const studentId = await studentIdFromUpgradeRequest(req);
 
   if (!labId || !terminalName || !studentId) {
     sendControl(ws, { type: "status", message: "Missing labId, terminal, or student session." });

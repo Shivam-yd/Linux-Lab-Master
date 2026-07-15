@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { Link, useLocation, useSearch } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
+import { useUser, useClerk } from "@clerk/react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info } from "lucide-react"
+import { Info, LogOut } from "lucide-react"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -12,6 +13,34 @@ import {
   Container, GitBranch
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
+
+function UserMenu() {
+  const { user } = useUser()
+  const { signOut } = useClerk()
+  const label = user?.primaryEmailAddress?.emailAddress || user?.fullName || "Account"
+  const initial = (user?.firstName || user?.primaryEmailAddress?.emailAddress || "?").charAt(0).toUpperCase()
+
+  return (
+    <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-border/50">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 text-xs font-bold text-primary">
+          {initial}
+        </div>
+        <span className="text-xs font-medium text-muted-foreground truncate">{label}</span>
+      </div>
+      <button
+        type="button"
+        onClick={() => signOut({ redirectUrl: basePath || "/" })}
+        className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+        title="Sign out"
+      >
+        <LogOut className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
+}
 
 // ── GitHub sync helpers ───────────────────────────────────────────────────────
 interface SyncStatus {
@@ -439,6 +468,7 @@ export default function Catalog() {
         </nav>
 
         {/* Footer */}
+        <UserMenu />
         <div className="px-6 py-4 border-t border-border/50 bg-muted/10">
           <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
             <span>SYS_STAT</span>
