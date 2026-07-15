@@ -216,7 +216,7 @@ export default function Catalog() {
 
   const handleTrackChange = (track: string) => {
     setActiveTrack(track)
-    navigate(`/?track=${encodeURIComponent(track)}`, { replace: true })
+    navigate(`/dashboard?track=${encodeURIComponent(track)}`, { replace: true })
   }
 
   // Progress map

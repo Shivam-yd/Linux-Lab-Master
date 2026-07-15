@@ -102,7 +102,7 @@ export default function Workspace() {
   useEffect(() => {
     if (closeCountdown === null) return
     if (closeCountdown === 0) {
-      setLocation(lab?.track ? `/?track=${encodeURIComponent(lab.track)}` : '/')
+      setLocation(lab?.track ? `/dashboard?track=${encodeURIComponent(lab.track)}` : '/dashboard')
       return
     }
     const timer = setTimeout(() => setCloseCountdown(c => (c ?? 1) - 1), 1000)
@@ -338,7 +338,7 @@ export default function Workspace() {
       <header className="h-14 shrink-0 border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center justify-between px-4 relative z-20">
         <div className="flex items-center space-x-4">
           <Link
-            href={`/?track=${encodeURIComponent(lab.track)}`}
+            href={`/dashboard?track=${encodeURIComponent(lab.track)}`}
             onClick={handleCatalogClick}
             className="text-muted-foreground hover:text-primary transition-colors flex items-center text-sm font-semibold tracking-wide"
           >
