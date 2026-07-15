@@ -70,4 +70,4 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-BETTER_AUTH_URL = "http://localhost:8080"
+BETTER_AUTH_URL = "https://26073067-c8e0-4623-bf21-1ecc77c254c2-00-2so6iogp7swiu.pike.replit.dev"

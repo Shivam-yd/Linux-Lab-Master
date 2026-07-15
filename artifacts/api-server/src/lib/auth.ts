@@ -8,7 +8,17 @@ import {
   verificationTable,
 } from "@workspace/db/schema";
 
+// Public origin the browser hits — needed so Google can redirect back after OAuth.
+// Priority: BETTER_AUTH_URL env var → REPLIT_DEV_DOMAIN → localhost fallback.
+const baseURL =
+  process.env.BETTER_AUTH_URL ??
+  (process.env.REPLIT_DEV_DOMAIN
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+    : "http://localhost:8080");
+
 export const auth = betterAuth({
+  baseURL,
+  basePath: "/api/auth",
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -18,12 +28,13 @@ export const auth = betterAuth({
       verification: verificationTable,
     },
   }),
-  emailAndPassword: {
-    enabled: true,
+  emailAndPassword: { enabled: true },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
   },
   secret: process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production",
-  basePath: "/api/auth",
-  // Accept requests from any origin — suitable for self-hosted deployments.
-  // Tighten this to specific domains in production if needed.
   trustedOrigins: ["*"],
 });
