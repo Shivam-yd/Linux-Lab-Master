@@ -5,7 +5,7 @@ import { useUser, useClerk } from "@clerk/react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, LogOut } from "lucide-react"
+import { Info, LogOut, User } from "lucide-react"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -13,10 +13,12 @@ import {
   Container, GitBranch
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { hasClerk } from "@/App"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
-function UserMenu() {
+// Rendered only when Clerk is configured — safe to call Clerk hooks here.
+function ClerkUserMenu() {
   const { user } = useUser()
   const { signOut } = useClerk()
   const label = user?.primaryEmailAddress?.emailAddress || user?.fullName || "Account"
@@ -40,6 +42,26 @@ function UserMenu() {
       </button>
     </div>
   )
+}
+
+// Rendered in self-hosted guest mode (no Clerk keys).
+function GuestUserMenu() {
+  return (
+    <div className="flex items-center gap-2.5 px-4 py-3 border-t border-border/50">
+      <div className="w-7 h-7 rounded-full bg-muted/50 border border-border/60 flex items-center justify-center shrink-0">
+        <User className="w-3.5 h-3.5 text-muted-foreground" />
+      </div>
+      <div className="min-w-0">
+        <span className="text-xs font-medium text-muted-foreground">Guest</span>
+        <p className="text-[10px] text-muted-foreground/50 leading-none mt-0.5">Progress saved by cookie</p>
+      </div>
+    </div>
+  )
+}
+
+function UserMenu() {
+  if (hasClerk) return <ClerkUserMenu />
+  return <GuestUserMenu />
 }
 
 // ── GitHub sync helpers ───────────────────────────────────────────────────────

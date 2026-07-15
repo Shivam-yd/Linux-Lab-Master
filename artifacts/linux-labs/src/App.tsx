@@ -29,16 +29,18 @@ const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
+/**
+ * True when Clerk is configured (Replit / any deployment with Clerk keys).
+ * False in self-hosted mode where the backend uses cookie-based guest auth.
+ */
+export const hasClerk = !!clerkPubKey;
+
 // Clerk passes full paths to routerPush/routerReplace, but wouter's
 // setLocation prepends the base — strip it to avoid doubling.
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
     ? path.slice(basePath.length) || '/'
     : path;
-}
-
-if (!clerkPubKey) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
 }
 
 const clerkAppearance = {
@@ -90,7 +92,6 @@ const clerkAppearance = {
   },
 };
 
-// NotFound placeholder
 function NotFound() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background text-foreground">
@@ -101,6 +102,8 @@ function NotFound() {
     </div>
   );
 }
+
+// ── Clerk mode ────────────────────────────────────────────────────────────────
 
 function HomeRedirect() {
   return (
@@ -137,7 +140,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Helps user's webview stay up-to-date when the signed-in user changes by invalidating the QueryClient cache.
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -160,7 +162,7 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
-function Router() {
+function ClerkRouter() {
   return (
     <Switch>
       <Route path="/" component={HomeRedirect} />
@@ -179,7 +181,7 @@ function ClerkProviderWithRoutes() {
 
   return (
     <ClerkProvider
-      publishableKey={clerkPubKey}
+      publishableKey={clerkPubKey!}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
@@ -204,7 +206,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
-          <Router />
+          <ClerkRouter />
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
@@ -212,10 +214,31 @@ function ClerkProviderWithRoutes() {
   );
 }
 
+// ── Guest mode (self-hosted, no Clerk keys) ───────────────────────────────────
+
+function GuestRouter() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Switch>
+          <Route path="/" component={() => <Redirect to="/dashboard" />} />
+          <Route path="/dashboard" component={Catalog} />
+          <Route path="/labs/:labId" component={Workspace} />
+          <Route path="/about" component={About} />
+          <Route component={NotFound} />
+        </Switch>
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
+// ── Root ──────────────────────────────────────────────────────────────────────
+
 function App() {
   return (
     <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
+      {hasClerk ? <ClerkProviderWithRoutes /> : <GuestRouter />}
     </WouterRouter>
   );
 }
