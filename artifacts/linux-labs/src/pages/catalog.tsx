@@ -375,7 +375,7 @@ export default function Catalog() {
               <Zap className="w-5 h-5 text-primary fill-primary/20" />
             </div>
             <div>
-              <p className="text-lg font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">DevLabs</p>
+              <p className="text-lg font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">LinuxLabMaster</p>
               <p className="text-xs text-muted-foreground mt-1 font-medium tracking-wide">PRACTICE RANGE</p>
             </div>
           </div>
