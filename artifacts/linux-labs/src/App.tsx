@@ -9,18 +9,9 @@ import Workspace from '@/pages/workspace';
 import About from '@/pages/about';
 import SignInPage from '@/pages/sign-in';
 import SignUpPage from '@/pages/sign-up';
-import { useSession } from '@/lib/auth-client';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-
-/** Renders children when authenticated; redirects to /sign-in otherwise. */
-function Protected({ component: Component }: { component: React.ComponentType }) {
-  const { data: session, isPending } = useSession();
-  if (isPending) return null;
-  if (!session?.user) return <Redirect to="/sign-in" />;
-  return <Component />;
-}
 
 function NotFound() {
   return (
@@ -40,8 +31,8 @@ function App() {
         <TooltipProvider>
           <Switch>
             <Route path="/" component={Home} />
-            <Route path="/dashboard" component={() => <Protected component={Catalog} />} />
-            <Route path="/labs/:labId" component={() => <Protected component={Workspace} />} />
+            <Route path="/dashboard" component={Catalog} />
+            <Route path="/labs/:labId" component={Workspace} />
             <Route path="/about" component={About} />
             <Route path="/sign-in" component={SignInPage} />
             <Route path="/sign-up" component={SignUpPage} />
