@@ -41,9 +41,11 @@ services:
       DATABASE_URL: postgresql://linuxlabs:${POSTGRES_PASSWORD:-linuxlabs}@postgres:5432/linuxlabs
       SESSION_SECRET: ${SESSION_SECRET}
       NODE_ENV: production
-      # Clerk keys — optional. When absent the API falls back to guest cookie auth.
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
-      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      # Better Auth — public origin used for OAuth redirects.
+      # Set BETTER_AUTH_URL in .env to your server's URL (e.g. http://1.2.3.4:8085).
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     # Mount the host Docker socket so the API can spin up lab containers
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -58,9 +60,6 @@ services:
     build:
       context: .
       target: web
-      args:
-        # Baked into the Vite bundle at build time — must be passed here.
-        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
     restart: unless-stopped
     ports:
       - "8085:80"
