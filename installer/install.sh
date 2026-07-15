@@ -234,7 +234,7 @@ echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━�
 echo -e "${BOLD}${GREEN}  Linux Labs is installed and running!        ${RESET}"
 echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 echo ""
-echo -e "  Open your browser:  ${BOLD}http://localhost${RESET}"
+echo -e "  Open your browser:  ${BOLD}http://localhost:1000${RESET}"
 echo ""
 echo -e "  Service commands:"
 echo -e "    ${CYAN}sudo systemctl status  ${SERVICE_NAME}${RESET}   — check status"
