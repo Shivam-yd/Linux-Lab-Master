@@ -243,7 +243,12 @@ systemctl daemon-reload
 systemctl enable "${SERVICE_NAME}"
 
 info "Starting service..."
-systemctl restart "${SERVICE_NAME}"
+if ! systemctl restart "${SERVICE_NAME}"; then
+  echo ""
+  echo -e "${RED}[✗] Service failed to start. Recent logs:${RESET}"
+  journalctl -u "${SERVICE_NAME}" -n 40 --no-pager
+  die "Fix the error above, then run: sudo systemctl start ${SERVICE_NAME}"
+fi
 
 # Wait for the app to respond (up to 90 s)
 info "Waiting for the app to become ready..."
