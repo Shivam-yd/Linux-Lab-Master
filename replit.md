@@ -1,53 +1,51 @@
 # Linux Lab Master
 
-A self-hosted, browser-based DevOps lab platform. Students spin up real Docker sandboxes and complete hands-on exercises across Linux, Terraform, Jenkins, Git, and Docker tracks. Automatic verification checks their work and reports pass/fail per step.
+A self-hosted DevOps training platform providing browser-based terminal sandboxes with automated lab verification and a progressive curriculum covering Linux, Docker, Git, Terraform, and Jenkins.
 
 ## Architecture
 
-```
-Browser → Vite frontend (port 21398, external port 80)
-       → Express API server (port 8080)
-            └── Docker daemon (spawns lab sandbox containers)
-            └── PostgreSQL (lab progress, sessions)
-```
+This is a pnpm monorepo with the following packages:
 
-- **Frontend**: `artifacts/linux-labs/` — React + Vite + Tailwind + xterm.js
-- **API server**: `artifacts/api-server/` — Node.js/Express, built with esbuild
-- **Database library**: `lib/db/` — Drizzle ORM schema + migrations
-- **Lab definitions**: `labs/<track>/*.yaml` — plain YAML, no code needed to add new labs
+- **`artifacts/linux-labs`** — React 19 + Vite frontend (Tailwind CSS v4, Radix UI / Shadcn, TanStack Query, Wouter)
+- **`artifacts/api-server`** — Express + TypeScript API server with WebSocket terminal support (Dockerode, ssh2)
+- **`lib/db`** — Drizzle ORM schema + PostgreSQL client (shared library)
+- **`lib/api-spec`** — OpenAPI spec + generated Zod schemas and React Query hooks (Orval)
 
-## Running the project
+## How to Run
 
-Both workflows start automatically. To restart manually:
+Both services start automatically via their configured workflows:
 
-```
-# Frontend (dev server, hot reload)
-PORT=21398 BASE_PATH=/ pnpm --filter @workspace/linux-labs run dev
+| Workflow | Command | URL |
+|---|---|---|
+| `artifacts/linux-labs: web` | `PORT=21398 BASE_PATH=/ pnpm --filter @workspace/linux-labs run dev` | `/` (preview) |
+| `artifacts/api-server: API Server` | `PORT=8080 pnpm --filter @workspace/api-server run dev` | `/api` |
 
-# API server (build then start)
-PORT=8080 pnpm --filter @workspace/api-server run dev
-```
+## Environment Variables
+
+| Variable | Source | Notes |
+|---|---|---|
+| `DATABASE_URL` | Replit (runtime-managed) | PostgreSQL connection string |
+| `SESSION_SECRET` | Replit Secret | Express session signing key |
+| `CLERK_PUBLISHABLE_KEY` | Replit Secret (optional) | Clerk auth — only needed for production |
+| `CLERK_SECRET_KEY` | Replit Secret (optional) | Clerk auth proxy — only active in production |
 
 ## Database
 
-Replit's built-in PostgreSQL is used. `DATABASE_URL` is injected automatically at runtime.
+Uses Replit's built-in PostgreSQL. Schema is managed with Drizzle Kit.
 
-To push schema changes after editing `lib/db/src/schema/`:
+To push schema changes:
 ```
-pnpm --filter @workspace/db run push
+cd lib/db && DATABASE_URL="$DATABASE_URL" pnpm run push
 ```
 
-## Environment variables
+Tables: `students`, `lab_sessions`, `lab_progress`, `remote_labs`, `lab_sync_log`
 
-| Variable | Where set | Notes |
-|---|---|---|
-| `DATABASE_URL` | Runtime-managed by Replit | Auto-injected; do not set manually |
-| `SESSION_SECRET` | Replit Secret | Cookie signing key |
-| `LOG_LEVEL` | Optional | Defaults to `info` |
-| `PORT` | Workflow config | Set per-service by workflow |
+## Key Notes
 
-## Lab tracks
+- **Docker sandboxes** require a Docker host. The Docker socket path and connectivity depend on the environment. On Replit, sandbox _deployment_ won't work without an external Docker host, but the UI and API run fine.
+- The API server warms Docker images on startup and polls GitHub for remote lab definitions every 60 minutes.
+- Clerk proxy middleware is a no-op in development (`NODE_ENV !== 'production'`).
 
-Labs live in `labs/<track>/*.yaml`. Each file defines: `id`, `track`, `level`, `category`, `difficulty`, `order`, `instructions`, `setupScript`, `verifyScript`. The API server syncs remote labs from GitHub every hour.
+## User Preferences
 
-## User preferences
+- Keep project structure as-is (pnpm monorepo with artifacts/ and lib/ directories).
