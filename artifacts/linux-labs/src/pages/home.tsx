@@ -68,19 +68,27 @@ export default function Home() {
           Hands-on Linux, Terraform, Jenkins, Docker, and Git labs — each one a real terminal,
           automatically verified. Create a free account to track your progress.
         </p>
-        <div className="mt-10 flex items-center justify-center gap-4">
+        <div className="mt-10 flex flex-col items-center gap-4">
+          <div className="flex items-center justify-center gap-4">
+            <Link
+              href="/sign-up"
+              className="group px-8 py-3.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-[0_0_25px_rgba(45,212,191,0.3)] flex items-center gap-2"
+            >
+              Create Free Account
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+            <Link
+              href="/sign-in"
+              className="px-8 py-3.5 rounded-xl text-sm font-bold border border-border bg-card hover:bg-muted/40 transition-colors"
+            >
+              Sign In
+            </Link>
+          </div>
           <Link
-            href="/sign-up"
-            className="group px-8 py-3.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-[0_0_25px_rgba(45,212,191,0.3)] flex items-center gap-2"
+            href="/dashboard"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
           >
-            Create Free Account
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-          <Link
-            href="/sign-in"
-            className="px-8 py-3.5 rounded-xl text-sm font-bold border border-border bg-card hover:bg-muted/40 transition-colors"
-          >
-            Sign In
+            Continue as Guest
           </Link>
         </div>
       </section>

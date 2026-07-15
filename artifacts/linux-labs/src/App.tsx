@@ -168,8 +168,8 @@ function ClerkRouter() {
       <Route path="/" component={HomeRedirect} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
-      <Route path="/dashboard" component={() => <Protected component={Catalog} />} />
-      <Route path="/labs/:labId" component={() => <Protected component={Workspace} />} />
+      <Route path="/dashboard" component={Catalog} />
+      <Route path="/labs/:labId" component={Workspace} />
       <Route path="/about" component={About} />
       <Route component={NotFound} />
     </Switch>

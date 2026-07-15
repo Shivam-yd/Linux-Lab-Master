@@ -31,14 +31,14 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     let userId: string | null = null;
 
     if (process.env.CLERK_SECRET_KEY) {
-      // ── Clerk auth ─────────────────────────────────────────────────────────
+      // ── Clerk auth with guest fallback ─────────────────────────────────────
+      // Prefer a signed-in Clerk session; fall back to a guest cookie so
+      // unauthenticated users can still use labs without creating an account.
       const auth = getAuth(req);
       userId = auth?.userId ?? null;
-      if (!userId) {
-        res.status(401).json({ error: "Unauthorized" });
-        return;
-      }
-    } else {
+    }
+
+    if (!userId) {
       // ── Guest / cookie auth ────────────────────────────────────────────────
       // req.signedCookies is populated by cookie-parser(SESSION_SECRET) in app.ts
       const existing = req.signedCookies[GUEST_COOKIE] as string | undefined;
