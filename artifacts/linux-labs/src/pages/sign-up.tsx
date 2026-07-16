@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Zap, Loader2 } from "lucide-react"
-import { Link, useLocation } from "wouter"
-import { signUp, signIn } from "@/lib/auth-client"
+import { Link, useLocation, Redirect } from "wouter"
+import { signUp, useSession } from "@/lib/auth-client"
 import { useConfig } from "@/lib/use-config"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,12 +11,18 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 export default function SignUpPage() {
   const [, setLocation] = useLocation()
+  const { data: session, isPending } = useSession()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const { data: config } = useConfig()
+
+  // Already signed in — go straight to dashboard
+  if (!isPending && session?.user) {
+    return <Redirect to="/dashboard" />
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -33,9 +39,12 @@ export default function SignUpPage() {
     }
   }
 
-  async function handleGoogle() {
+  function handleGoogle() {
+    // Force account-picker with prompt=select_account so a previously signed-out
+    // user is never silently re-signed in via Google's cached session.
     const callbackURL = `${window.location.origin}${basePath}/dashboard`
-    await signIn.social({ provider: "google", callbackURL })
+    const params = new URLSearchParams({ provider: "google", callbackURL, prompt: "select_account" })
+    window.location.href = `/api/auth/sign-in/social?${params}`
   }
 
   return (
@@ -47,7 +56,7 @@ export default function SignUpPage() {
             <Zap className="w-5 h-5 text-primary fill-primary/20" />
           </div>
           <span className="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-            LinuxLabMaster
+            DevLabs
           </span>
         </Link>
 

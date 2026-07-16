@@ -37,12 +37,14 @@ if (!process.env.SESSION_SECRET) {
   );
 }
 
+// CORS must be registered FIRST so every response (including auth) carries
+// the correct Access-Control-Allow-* headers and Set-Cookie is honoured.
+app.use(cors({ credentials: true, origin: true }));
+
 // Better Auth handles /api/auth/* — must be registered before body parsers
 // so it can consume the raw request body itself.
 // Use app.use (not app.all) because Express 5 requires named wildcard params.
 app.use("/api/auth", toNodeHandler(auth));
-
-app.use(cors({ credentials: true, origin: true }));
 app.use(cookieParser(sessionSecret));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -1,9 +1,11 @@
 import { Link } from "wouter"
+import { Redirect } from "wouter"
 import {
   Zap, Terminal, Layers, Server, Container, GitBranch,
   CheckCircle2, ArrowRight,
 } from "lucide-react"
 import { useListLabs } from "@workspace/api-client-react"
+import { useSession } from "@/lib/auth-client"
 
 const TRACKS = [
   { label: "Linux", icon: Terminal, color: "#22d3ee" },
@@ -20,9 +22,16 @@ const FEATURES = [
 ]
 
 export default function Home() {
+  const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
   const labCount = labs?.length ?? null
   const trackCount = labs ? new Set(labs.map(l => l.track)).size : null
+
+  // Redirect authenticated users straight to the dashboard.
+  // isPending prevents a flash of the landing page while the session loads.
+  if (!isPending && session?.user) {
+    return <Redirect to="/dashboard" />
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -35,7 +44,7 @@ export default function Home() {
             <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_15px_rgba(45,212,191,0.15)]">
               <Zap className="w-4.5 h-4.5 text-primary fill-primary/20" />
             </div>
-            <span className="font-bold text-[15px] tracking-tight">LinuxLabMaster</span>
+            <span className="font-bold text-[15px] tracking-tight">DevLabs</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/about" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
@@ -134,7 +143,7 @@ export default function Home() {
       {/* ── Footer ── */}
       <footer className="border-t border-border/60 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground">
-          <span>LinuxLabMaster — open-source practice range</span>
+          <span>DevLabs — open-source practice range</span>
         </div>
       </footer>
     </div>
