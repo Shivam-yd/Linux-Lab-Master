@@ -42,7 +42,7 @@ export default function SignInPage() {
     // signIn.social() sends a POST to /api/auth/sign-in/social and handles
     // the redirect to Google — using window.location.href (GET) returns 404.
     const callbackURL = `${window.location.origin}${basePath}/dashboard`
-    await signIn.social({ provider: "google", callbackURL })
+    await signIn.social({ provider: "google", callbackURL, prompt: "select_account" })
   }
 
   return (
