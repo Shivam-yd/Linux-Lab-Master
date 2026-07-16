@@ -35,7 +35,10 @@ function unsignCookie(raw: string, secret: string): string | null {
   if (dotIdx < 0) return null;
   const val = withoutPrefix.slice(0, dotIdx);
   const mac = withoutPrefix.slice(dotIdx + 1);
-  const expected = createHmac("sha256", secret).update(val).digest("base64");
+  // cookie-signature strips trailing '=' from the base64 MAC when signing,
+  // so we must strip them from the expected value before comparing or
+  // timingSafeEqual will always fail (the two buffers have different lengths).
+  const expected = createHmac("sha256", secret).update(val).digest("base64").replace(/=+$/, "");
   try {
     // Use constant-time comparison to prevent timing attacks.
     const macBuf = Buffer.from(mac);

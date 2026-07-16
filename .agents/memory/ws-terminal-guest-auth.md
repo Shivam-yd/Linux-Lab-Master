@@ -10,8 +10,12 @@ the same two-tier identity resolution as the HTTP `requireAuth` middleware:
 2. Signed guest `_sid` cookie → anonymous student ID
 
 The `_sid` cookie is express/cookie-parser signed format: `s:value.hmac_sha256_base64(secret, value)`.
-Verify it using `crypto.createHmac("sha256", secret).update(val).digest("base64")` and
-`crypto.timingSafeEqual` for constant-time comparison.
+**Critical gotcha:** `cookie-signature` strips trailing `=` from the base64 MAC with `.replace(/=+$/, '')`.
+When re-computing the expected HMAC to verify, you MUST also strip trailing `=` before comparing,
+or `timingSafeEqual` always fails because the two buffers have different lengths.
+```ts
+const expected = createHmac("sha256", secret).update(val).digest("base64").replace(/=+$/, "");
+```
 
 **Why:** Without this, any user who clicked "Continue as Guest" could open a lab
 workspace page and reach the start/stop/verify HTTP routes (which use requireAuth and
