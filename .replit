@@ -70,4 +70,4 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-BETTER_AUTH_URL = "https://0dce7887-fdca-403d-a242-5befdb696710-00-yvv5heh1h7bn.sisko.replit.dev"
+BETTER_AUTH_URL = "https://linuxlabmaster.duckdns.org"
