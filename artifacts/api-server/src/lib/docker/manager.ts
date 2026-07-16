@@ -14,6 +14,12 @@ const docker = new Docker({ socketPath: "/var/run/docker.sock" });
 
 const CONTAINER_LABEL = "linuxlabs.managed";
 
+// Safety limits for exec (both setup scripts and verify scripts share these).
+// Verify scripts should finish in seconds; 30 s is generous while still
+// preventing a hung script from blocking an API worker indefinitely.
+const EXEC_TIMEOUT_MS  = 30_000;        // 30 s max wall-clock time
+const MAX_OUTPUT_BYTES = 2 * 1024 * 1024; // 2 MB — prevent OOM from chatty scripts
+
 function containerName(studentId: string, labId: string): string {
   const safeStudent = studentId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 24);
   const safeLab = labId.replace(/[^a-zA-Z0-9-]/g, "");
@@ -23,8 +29,10 @@ function containerName(studentId: string, labId: string): string {
 async function runExec(
   container: Docker.Container,
   cmd: string[],
-  opts: { user?: string; cwd?: string } = {},
+  opts: { user?: string; cwd?: string; timeoutMs?: number } = {},
 ): Promise<{ exitCode: number; output: string }> {
+  const timeoutMs = opts.timeoutMs ?? EXEC_TIMEOUT_MS;
+
   const exec = await container.exec({
     Cmd: cmd,
     User: opts.user ?? "root",
@@ -33,18 +41,42 @@ async function runExec(
     AttachStderr: true,
   });
   const stream = await exec.start({ hijack: true, stdin: false });
+
   const chunks: Buffer[] = [];
-  await new Promise<void>((resolve, reject) => {
-    const sink = new Writable({
-      write(chunk: Buffer, _enc, callback) {
-        chunks.push(chunk);
-        callback();
-      },
-    });
-    container.modem.demuxStream(stream, sink, sink);
-    stream.on("end", resolve);
-    stream.on("error", reject);
-  });
+  let totalBytes = 0;
+
+  // Race the exec stream against a hard timeout so a hung or infinite-looping
+  // verify/setup script can never block an API worker indefinitely.
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      new Promise<void>((resolve, reject) => {
+        const sink = new Writable({
+          write(chunk: Buffer, _enc, callback) {
+            totalBytes += chunk.length;
+            if (totalBytes > MAX_OUTPUT_BYTES) {
+              callback(new Error(`Exec output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MB limit — script may be runaway`));
+              return;
+            }
+            chunks.push(chunk);
+            callback();
+          },
+        });
+        container.modem.demuxStream(stream, sink, sink);
+        stream.on("end", resolve);
+        stream.on("error", reject);
+      }),
+      new Promise<void>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          stream.destroy();
+          reject(new Error(`Exec timed out after ${timeoutMs / 1000}s — verify/setup script did not finish`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+  }
+
   const inspect = await exec.inspect();
   return { exitCode: inspect.ExitCode ?? -1, output: Buffer.concat(chunks).toString("utf8") };
 }
@@ -282,7 +314,10 @@ export async function verifyLab(
     const match = lineRe.exec(line);
     if (!match) continue;
     const [, id, verdict, message] = match;
-    if (!id || !message) continue;
+    // Only skip lines with a missing check ID — an empty message is valid
+    // (e.g. CHECK:task1:PASS: with nothing after the last colon) and should
+    // not be silently dropped.
+    if (!id) continue;
     byId.set(id, { id, label: taskLabelMap.get(id) ?? null, passed: verdict === "PASS", message });
   }
   if (byId.size === 0) {

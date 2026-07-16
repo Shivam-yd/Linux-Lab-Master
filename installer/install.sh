@@ -59,7 +59,7 @@ fi
 
 success "Preflight passed"
 
-# ── Step 1: Install Docker ────────────────────────────────────────────────────
+# ── Step 1: Install Docker + utilities ───────────────────────────────────────
 header "Step 1/6 — Docker"
 
 install_docker() {
@@ -96,6 +96,14 @@ if ! docker compose version &>/dev/null; then
 fi
 success "Docker Compose available ($(docker compose version))"
 
+# rsync is used to copy the project tree — ensure it is present.
+# It is usually pre-installed on Ubuntu but not guaranteed on minimal images.
+if ! command -v rsync &>/dev/null; then
+  info "Installing rsync..."
+  apt-get install -y -qq rsync
+fi
+success "rsync available"
+
 # ── Step 2: Copy project files ────────────────────────────────────────────────
 header "Step 2/6 — Copy files"
 
@@ -105,8 +113,7 @@ mkdir -p "${INSTALL_DIR}"
 rsync -a --delete \
   --exclude='.git' \
   --exclude='node_modules' \
-  --exclude='*/node_modules' \
-  --exclude='*/dist' \
+  --exclude='dist/' \
   --exclude='*.map' \
   --exclude='.env' \
   --exclude='.agents' \
@@ -146,6 +153,11 @@ else
   echo -e "  Create credentials at: https://console.cloud.google.com/apis/credentials"
   read -rp "  GOOGLE_CLIENT_ID    : " GOOGLE_CLIENT_ID
   read -rp "  GOOGLE_CLIENT_SECRET: " GOOGLE_CLIENT_SECRET
+
+  echo ""
+  echo -e "  ${CYAN}GitHub Token (optional — raises lab-sync rate limit from 60 → 5,000 req/hr)${RESET}"
+  echo -e "  Create a token at: https://github.com/settings/tokens (no scopes needed for public repos)"
+  read -rp "  GITHUB_TOKEN        : " GITHUB_TOKEN
   echo ""
 
   {
@@ -155,10 +167,11 @@ else
     echo "BETTER_AUTH_URL=${BETTER_AUTH_URL}"
     echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
     echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
+    echo "GITHUB_TOKEN=${GITHUB_TOKEN}"
   } > "${ENV_FILE}"
   chmod 600 "${ENV_FILE}"
 
-  success "Secrets written to ${ENV_FILE} (email/password + Google login enabled)"
+  success "Secrets written to ${ENV_FILE}"
 fi
 
 # ── Step 4: Build Docker images ───────────────────────────────────────────────
@@ -192,7 +205,7 @@ header "Step 5/6 — Pull lab images"
 #   alpine/git:latest         /bin/sh = ash    — [[ ]] NOT supported; use shell: "sh"
 #   hashicorp/terraform:1.9   /bin/sh = ash    — [[ ]] NOT supported; use shell: "sh"
 #   rastasheep/ubuntu-sshd    /bin/sh = dash   — [[ ]] NOT supported; use shell: "bash"
-#   localstack/localstack     /bin/sh = dash   — [[ ]] NOT supported; use shell: "bash"
+#   localstack/localstack     /bin/sh = bash   — [[ ]] supported; use shell: "bash"
 info "Pulling lab sandbox images so labs start instantly..."
 docker pull ubuntu:24.04
 docker pull alpine:latest
@@ -263,12 +276,19 @@ fi
 
 # Wait for the app to respond (up to 90 s)
 info "Waiting for the app to become ready..."
+READY=0
 for i in $(seq 1 30); do
   if curl -sf http://localhost:8085/ -o /dev/null 2>/dev/null; then
+    READY=1
     break
   fi
+  echo -e "  ${CYAN}[${i}/30]${RESET} still starting… (${i}s / 90s max)"
   sleep 3
 done
+
+if [[ "${READY}" -eq 0 ]]; then
+  warn "App did not respond within 90 s. Check logs: journalctl -u ${SERVICE_NAME} -n 60"
+fi
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
