@@ -3,6 +3,7 @@ import {
   Zap, Terminal, Layers, Server, Container, GitBranch,
   CheckCircle2, ArrowRight,
 } from "lucide-react"
+import { useListLabs } from "@workspace/api-client-react"
 
 const TRACKS = [
   { label: "Linux", icon: Terminal, color: "#22d3ee" },
@@ -19,6 +20,10 @@ const FEATURES = [
 ]
 
 export default function Home() {
+  const { data: labs } = useListLabs()
+  const labCount = labs?.length ?? null
+  const trackCount = labs ? new Set(labs.map(l => l.track)).size : null
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
@@ -56,7 +61,7 @@ export default function Home() {
       <section className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card/60 text-xs font-mono font-semibold text-muted-foreground mb-8">
           <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          107 labs across 5 tracks
+          {labCount !== null ? `${labCount} labs across ${trackCount} tracks` : "Labs across 5 tracks"}
         </div>
         <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1] max-w-3xl mx-auto">
           Learn DevOps by{" "}
