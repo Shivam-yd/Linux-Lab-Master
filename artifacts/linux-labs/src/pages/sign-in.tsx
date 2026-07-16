@@ -33,7 +33,10 @@ export default function SignInPage() {
   }
 
   async function handleGoogle() {
-    await signIn.social({ provider: "google", callbackURL: `${basePath}/dashboard` })
+    // Use an absolute URL so Better Auth redirects back to the frontend origin,
+    // not the API server origin (which would be a dead end on port 8080).
+    const callbackURL = `${window.location.origin}${basePath}/dashboard`
+    await signIn.social({ provider: "google", callbackURL })
   }
 
   return (
