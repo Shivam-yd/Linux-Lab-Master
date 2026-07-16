@@ -62,8 +62,11 @@ export const auth = betterAuth({
     },
   }),
   secret: process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production",
-  // Restrict CSRF origin checks to known deployment origins.
-  // trustedOrigins includes both the configured auth URL and the live Replit
-  // dev domain so a domain rotation never breaks OAuth.
   trustedOrigins,
+  advanced: {
+    // Don't require Secure cookies when serving over HTTP (e.g. self-hosted with DuckDNS on port
+    // 8085 without TLS). Without this, browsers silently drop the session and OAuth state cookies
+    // over plain HTTP, causing "state_mismatch" on Google login and lost sessions on email login.
+    useSecureCookies: baseURL.startsWith("https://"),
+  },
 });
