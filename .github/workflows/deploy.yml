@@ -10,16 +10,8 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Update local repository
-        run: |
-          cd /opt/Linux-Lab-Master
-          git fetch origin
-          git reset --hard origin/main
+      - uses: actions/checkout@v4
 
       - name: Run installer
         run: |
-          cd /opt/Linux-Lab-Master
           bash installer/install.sh
