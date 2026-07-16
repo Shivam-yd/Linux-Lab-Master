@@ -283,11 +283,12 @@ begin
   //
   // Shell-compatibility reference (affects setupScript / verifyScript authoring):
   //   ubuntu:24.04             /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
-  //   alpine:latest            /bin/sh = ash   — [[ ]] supported;     use shell: "sh"
-  //   hashicorp/terraform:1.9  /bin/sh = ash   — [[ ]] supported;     use shell: "sh"
+  //   alpine:latest            /bin/sh = ash   — [[ ]] NOT supported; use shell: "sh"
+  //   alpine/git:latest        /bin/sh = ash   — [[ ]] NOT supported; use shell: "sh"
+  //   hashicorp/terraform:1.9  /bin/sh = ash   — [[ ]] NOT supported; use shell: "sh"
   //   rastasheep/ubuntu-sshd   /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
   //   localstack/localstack    /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
-  WizardForm.StatusLabel.Caption := 'Downloading lab environments (ubuntu, alpine, alpine/git, terraform, localstack)...';
+  WizardForm.StatusLabel.Caption := 'Downloading lab environments (ubuntu, alpine, alpine/git, terraform, rastasheep, localstack)...';
   ExecOK('docker', 'pull ubuntu:24.04',                  AppDir);
   ExecOK('docker', 'pull alpine:latest',                 AppDir);
   ExecOK('docker', 'pull alpine/git:latest',             AppDir);
