@@ -16,6 +16,18 @@ const baseURL =
     ? `https://${process.env.REPLIT_DEV_DOMAIN}`
     : "http://localhost:8080");
 
+// Always trust the live Replit dev domain in addition to baseURL.
+// Replit rotates REPLIT_DEV_DOMAIN over time, so if BETTER_AUTH_URL is set
+// to an older domain the CSRF origin check would reject every browser request.
+// Including the current dev domain ensures OAuth keeps working after rotations.
+const trustedOrigins = [baseURL];
+if (
+  process.env.REPLIT_DEV_DOMAIN &&
+  `https://${process.env.REPLIT_DEV_DOMAIN}` !== baseURL
+) {
+  trustedOrigins.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+}
+
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const googleConfigured = !!(googleClientId && googleClientSecret);
@@ -45,7 +57,8 @@ export const auth = betterAuth({
     },
   }),
   secret: process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production",
-  // Restrict CSRF origin checks to the known deployment URL.
-  // baseURL is computed from BETTER_AUTH_URL → REPLIT_DEV_DOMAIN → localhost.
-  trustedOrigins: [baseURL],
+  // Restrict CSRF origin checks to known deployment origins.
+  // trustedOrigins includes both the configured auth URL and the live Replit
+  // dev domain so a domain rotation never breaks OAuth.
+  trustedOrigins,
 });
