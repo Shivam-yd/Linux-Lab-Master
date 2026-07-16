@@ -34,7 +34,8 @@ export default function SignUpPage() {
   }
 
   async function handleGoogle() {
-    await signIn.social({ provider: "google", callbackURL: `${basePath}/dashboard` })
+    const callbackURL = `${window.location.origin}${basePath}/dashboard`
+    await signIn.social({ provider: "google", callbackURL })
   }
 
   return (

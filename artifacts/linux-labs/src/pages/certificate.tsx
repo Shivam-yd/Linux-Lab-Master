@@ -1,0 +1,181 @@
+import { useMemo } from "react"
+import { useParams, Link } from "wouter"
+import { useListLabs, useListProgress } from "@workspace/api-client-react"
+import { useSession } from "@/lib/auth-client"
+import { ArrowLeft, Printer, Zap, Award, CheckCircle2, Terminal, Layers, Server, Container, GitBranch, Cpu } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
+
+const TRACK_META: Record<string, { label: string; icon: React.ElementType; accentHex: string; gradient: string }> = {
+  linux:     { label: "Linux",     icon: Terminal,  accentHex: "#22d3ee", gradient: "from-cyan-500/20 to-blue-500/10" },
+  terraform: { label: "Terraform", icon: Layers,    accentHex: "#c084fc", gradient: "from-purple-500/20 to-pink-500/10" },
+  jenkins:   { label: "Jenkins",   icon: Server,    accentHex: "#f97316", gradient: "from-orange-500/20 to-yellow-500/10" },
+  docker:    { label: "Docker",    icon: Container, accentHex: "#38bdf8", gradient: "from-sky-500/20 to-blue-500/10" },
+  git:       { label: "Git",       icon: GitBranch, accentHex: "#f87171", gradient: "from-red-500/20 to-orange-500/10" },
+}
+
+function formatLongDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
+}
+
+export default function CertificatePage() {
+  const { track } = useParams<{ track: string }>()
+  const { data: session } = useSession()
+  const { data: labs,     isLoading: labsLoading }     = useListLabs()
+  const { data: progress, isLoading: progressLoading } = useListProgress()
+
+  const loading = labsLoading || progressLoading
+
+  const tm = TRACK_META[track ?? ""] ?? { label: track ?? "Unknown", icon: Cpu, accentHex: "#94a3b8", gradient: "from-slate-500/20 to-gray-500/10" }
+  const Icon = tm.icon
+
+  const { passed, total, lastPassedAt, isComplete } = useMemo(() => {
+    if (!labs || !progress) return { passed: 0, total: 0, lastPassedAt: null, isComplete: false }
+    const byLabId = Object.fromEntries(progress.map(p => [p.labId, p]))
+    const trackLabs = labs.filter(l => l.track === track)
+    const passedLabs = trackLabs.filter(l => byLabId[l.id]?.status === "passed")
+    const dates = passedLabs.map(l => byLabId[l.id]?.lastAttemptAt).filter(Boolean) as string[]
+    const lastPassedAt = dates.length > 0 ? dates.sort().at(-1)! : null
+    return {
+      passed: passedLabs.length,
+      total: trackLabs.length,
+      lastPassedAt,
+      isComplete: passedLabs.length === trackLabs.length && trackLabs.length > 0,
+    }
+  }, [labs, progress, track])
+
+  const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "Student"
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!isComplete) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-6 px-6">
+        <Award className="w-16 h-16 text-muted-foreground/40" />
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Certificate not yet earned</h1>
+          <p className="text-muted-foreground mt-2 text-sm">
+            Complete all {total} {tm.label} labs to unlock your certificate.
+            You've passed {passed} so far.
+          </p>
+        </div>
+        <Link href={`${basePath}/dashboard?track=${track}`} className="text-sm text-primary hover:underline font-medium">
+          Continue labs →
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Nav — hidden on print */}
+      <div className="print:hidden flex items-center justify-between px-6 py-4 border-b border-border/50">
+        <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+          <ArrowLeft className="w-4 h-4" />
+          Progress
+        </Link>
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+        >
+          <Printer className="w-4 h-4" />
+          Print / Save PDF
+        </button>
+      </div>
+
+      {/* Certificate */}
+      <div className="flex items-center justify-center min-h-[calc(100vh-65px)] print:min-h-screen p-8 print:p-0">
+        <div
+          className={cn(
+            "w-full max-w-2xl rounded-2xl border-2 bg-card relative overflow-hidden print:rounded-none print:border-none print:max-w-none print:w-full",
+          )}
+          style={{ borderColor: tm.accentHex }}
+        >
+          {/* Background gradient */}
+          <div className={cn("absolute inset-0 bg-gradient-to-br opacity-40 pointer-events-none", tm.gradient)} />
+
+          {/* Corner accents */}
+          <div className="absolute top-0 left-0 w-24 h-24 rounded-br-full opacity-20" style={{ background: tm.accentHex }} />
+          <div className="absolute bottom-0 right-0 w-24 h-24 rounded-tl-full opacity-20" style={{ background: tm.accentHex }} />
+
+          <div className="relative z-10 px-12 py-14 flex flex-col items-center text-center gap-8">
+
+            {/* Brand */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-primary" />
+              </div>
+              <span className="text-lg font-bold tracking-tight">LinuxLabMaster</span>
+            </div>
+
+            {/* Certificate of completion */}
+            <div className="space-y-1">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Certificate of Completion</p>
+              <Award className="w-14 h-14 mx-auto" style={{ color: tm.accentHex }} />
+            </div>
+
+            {/* Recipient */}
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">This certifies that</p>
+              <p className="text-4xl font-black tracking-tight leading-none">{userName}</p>
+              <p className="text-sm text-muted-foreground">has successfully completed all labs in the</p>
+            </div>
+
+            {/* Track */}
+            <div className="flex items-center gap-3 px-8 py-4 rounded-xl border" style={{ borderColor: `${tm.accentHex}40`, background: `${tm.accentHex}10` }}>
+              <Icon className="w-7 h-7 shrink-0" style={{ color: tm.accentHex }} />
+              <div className="text-left">
+                <p className="text-2xl font-black" style={{ color: tm.accentHex }}>{tm.label}</p>
+                <p className="text-xs text-muted-foreground font-medium">Track — {total} labs</p>
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="flex items-center gap-8 text-center">
+              <div>
+                <p className="text-2xl font-black font-mono">{total}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Labs passed</p>
+              </div>
+              <div className="w-px h-10 bg-border/60" />
+              <div>
+                <p className="text-2xl font-black font-mono">100%</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Track complete</p>
+              </div>
+              <div className="w-px h-10 bg-border/60" />
+              <div>
+                <p className="text-2xl font-black font-mono">{lastPassedAt ? formatLongDate(lastPassedAt).split(" ")[2] : "—"}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Year</p>
+              </div>
+            </div>
+
+            {/* Date + verification */}
+            <div className="space-y-1 text-center">
+              <p className="text-sm font-medium">
+                {lastPassedAt ? `Completed on ${formatLongDate(lastPassedAt)}` : "Completed"}
+              </p>
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                Verified by LinuxLabMaster automated testing
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media print {
+          body { background: white; color: black; }
+          .print\\:hidden { display: none !important; }
+        }
+      `}</style>
+    </div>
+  )
+}

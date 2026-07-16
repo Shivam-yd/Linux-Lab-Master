@@ -5,7 +5,7 @@ import { useSession, signOut } from "@/lib/auth-client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, LogOut, User, Home } from "lucide-react"
+import { Info, LogOut, User, Home, BarChart2, Settings } from "lucide-react"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -478,22 +478,28 @@ export default function Catalog() {
                 })}
           </div>
 
-          {/* About — sits at the bottom of the nav column */}
-          <div className="pt-2 border-t border-border/40">
-            <Link
-              href="/about"
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group border border-transparent",
-                "hover:bg-muted/20"
-              )}
-            >
-              <div className="w-8 h-8 rounded-lg bg-muted/50 group-hover:bg-muted flex items-center justify-center shrink-0 transition-colors">
-                <Info className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground/90 transition-colors">
-                About
-              </span>
-            </Link>
+          {/* Bottom nav links */}
+          <div className="pt-2 border-t border-border/40 space-y-0.5">
+            {[
+              { href: "/progress", icon: BarChart2, label: "My Progress" },
+              { href: "/about",    icon: Info,      label: "About" },
+            ].map(({ href, icon: Icon, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group border border-transparent",
+                  "hover:bg-muted/20"
+                )}
+              >
+                <div className="w-8 h-8 rounded-lg bg-muted/50 group-hover:bg-muted flex items-center justify-center shrink-0 transition-colors">
+                  <Icon className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground/90 transition-colors">
+                  {label}
+                </span>
+              </Link>
+            ))}
           </div>
         </nav>
 

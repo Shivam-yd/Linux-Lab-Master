@@ -9,6 +9,9 @@ import Workspace from '@/pages/workspace';
 import About from '@/pages/about';
 import SignInPage from '@/pages/sign-in';
 import SignUpPage from '@/pages/sign-up';
+import ProgressPage from '@/pages/progress';
+import ProfilePage from '@/pages/profile';
+import CertificatePage from '@/pages/certificate';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -36,6 +39,9 @@ function App() {
             <Route path="/about" component={About} />
             <Route path="/sign-in" component={SignInPage} />
             <Route path="/sign-up" component={SignUpPage} />
+            <Route path="/progress" component={ProgressPage} />
+            <Route path="/profile" component={ProfilePage} />
+            <Route path="/certificate/:track" component={CertificatePage} />
             <Route component={NotFound} />
           </Switch>
           <Toaster />
