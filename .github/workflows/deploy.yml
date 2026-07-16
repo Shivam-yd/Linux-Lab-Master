@@ -1,0 +1,31 @@
+name: Deploy Linux Lab
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Update lab
+        run: |
+          cd /root/Linux-Lab-Master
+
+          echo "Stopping lab"
+
+          docker compose down || true
+
+          echo "Updating code"
+
+          git fetch origin
+          git reset --hard origin/main
+          git clean -fd
+
+          echo "Running installer"
+
+          bash installer/install.sh
+
+          echo "Deployment finished"
