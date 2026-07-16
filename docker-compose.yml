@@ -46,6 +46,9 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-}
       # Comma-separated extra origins to trust (e.g. the raw IP when BETTER_AUTH_URL is a domain).
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
+      # Set to "false" on plain-HTTP deployments so browsers don't silently drop Secure cookies.
+      # The installer sets this automatically based on whether BETTER_AUTH_URL starts with https://.
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}

@@ -64,9 +64,14 @@ export const auth = betterAuth({
   secret: process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production",
   trustedOrigins,
   advanced: {
-    // Don't require Secure cookies when serving over HTTP (e.g. self-hosted with DuckDNS on port
-    // 8085 without TLS). Without this, browsers silently drop the session and OAuth state cookies
-    // over plain HTTP, causing "state_mismatch" on Google login and lost sessions on email login.
-    useSecureCookies: baseURL.startsWith("https://"),
+    // SECURE_COOKIES env var overrides the auto-detection.
+    // Auto-detection uses BETTER_AUTH_URL: if it starts with https:// → true, http:// → false.
+    // Self-hosted deployments on plain HTTP (e.g. port 8085 without TLS) MUST have this false,
+    // otherwise browsers silently drop every cookie (session, OAuth state) → state_mismatch,
+    // silent login failure, and sign-out not working.
+    useSecureCookies:
+      process.env.SECURE_COOKIES !== undefined
+        ? process.env.SECURE_COOKIES === "true"
+        : baseURL.startsWith("https://"),
   },
 });
