@@ -7,18 +7,19 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
-      - name: Deploy to Server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-          script: |
-            cd /opt/Linux-Lab-Master
-            git fetch origin
-            git reset --hard origin/main
-            bash installer/install.sh
+      - name: Update local repository
+        run: |
+          cd /opt/Linux-Lab-Master
+          git fetch origin
+          git reset --hard origin/main
+
+      - name: Run installer
+        run: |
+          cd /opt/Linux-Lab-Master
+          bash installer/install.sh
