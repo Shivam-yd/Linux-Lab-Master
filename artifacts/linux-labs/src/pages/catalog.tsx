@@ -5,7 +5,7 @@ import { useSession, signOut } from "@/lib/auth-client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, LogOut, User, Home, BarChart2, Settings } from "lucide-react"
+import { Info, LogOut, User, Home, BarChart2, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -17,18 +17,18 @@ import { cn } from "@/lib/utils"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 // Rendered when a Better Auth session is active.
-function AuthUserMenu() {
+function AuthUserMenu({ collapsed }: { collapsed: boolean }) {
   const { data: session } = useSession()
   const label = session?.user?.email || session?.user?.name || "Account"
   const initial = (session?.user?.name || session?.user?.email || "?").charAt(0).toUpperCase()
 
   return (
-    <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-border/50">
-      <div className="flex items-center gap-2.5 min-w-0">
+    <div className={cn("flex items-center border-t border-border/50 gap-2 py-3", collapsed ? "flex-col px-2" : "justify-between px-4")}>
+      <div className={cn("flex items-center gap-2.5 min-w-0", collapsed && "justify-center")}>
         <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 text-xs font-bold text-primary">
           {initial}
         </div>
-        <span className="text-xs font-medium text-muted-foreground truncate">{label}</span>
+        {!collapsed && <span className="text-xs font-medium text-muted-foreground truncate">{label}</span>}
       </div>
       <button
         type="button"
@@ -42,18 +42,20 @@ function AuthUserMenu() {
   )
 }
 
-// Rendered in guest mode (no Clerk session).
-function GuestUserMenu() {
+// Rendered in guest mode (no auth session).
+function GuestUserMenu({ collapsed }: { collapsed: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-border/50">
-      <div className="flex items-center gap-2.5 min-w-0">
+    <div className={cn("flex items-center border-t border-border/50 gap-2 py-3", collapsed ? "flex-col px-2" : "justify-between px-4")}>
+      <div className={cn("flex items-center gap-2.5 min-w-0", collapsed && "justify-center")}>
         <div className="w-7 h-7 rounded-full bg-muted/50 border border-border/60 flex items-center justify-center shrink-0">
           <User className="w-3.5 h-3.5 text-muted-foreground" />
         </div>
-        <div className="min-w-0">
-          <span className="text-xs font-medium text-muted-foreground">Guest</span>
-          <p className="text-[10px] text-muted-foreground/50 leading-none mt-0.5">Progress saved by cookie</p>
-        </div>
+        {!collapsed && (
+          <div className="min-w-0">
+            <span className="text-xs font-medium text-muted-foreground">Guest</span>
+            <p className="text-[10px] text-muted-foreground/50 leading-none mt-0.5">Progress saved by cookie</p>
+          </div>
+        )}
       </div>
       <Link
         href="/"
@@ -66,10 +68,10 @@ function GuestUserMenu() {
   )
 }
 
-function UserMenu() {
+function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { data: session } = useSession()
-  if (session?.user) return <AuthUserMenu />
-  return <GuestUserMenu />
+  if (session?.user) return <AuthUserMenu collapsed={collapsed} />
+  return <GuestUserMenu collapsed={collapsed} />
 }
 
 // ── GitHub sync helpers ───────────────────────────────────────────────────────
@@ -331,6 +333,16 @@ export default function Catalog() {
 
   const [expanded, setExpanded] = useState(true)
 
+  // Sidebar collapsed state — persisted across page loads
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem("sidebar-collapsed") === "true" } catch { return false }
+  })
+  const toggleSidebar = () => setCollapsed(v => {
+    const next = !v
+    try { localStorage.setItem("sidebar-collapsed", String(next)) } catch {}
+    return next
+  })
+
   // View mode
   const [viewMode, setViewMode] = useState<"by-level" | "by-course">("by-level")
 
@@ -374,52 +386,77 @@ export default function Catalog() {
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
 
       {/* ── Sidebar ─────────────────────────────────────── */}
-      <aside className="w-64 shrink-0 flex flex-col bg-card border-r border-border relative z-10">
+      <aside className={cn(
+        "shrink-0 flex flex-col bg-card border-r border-border relative z-10 transition-[width] duration-200 overflow-hidden",
+        collapsed ? "w-16" : "w-64"
+      )}>
         {/* Brand */}
-        <div className="px-6 py-6 border-b border-border/50 relative overflow-hidden">
+        <div className={cn("border-b border-border/50 relative overflow-hidden", collapsed ? "px-2 py-4" : "px-6 py-6")}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10" />
-          <Link href="/" className="flex items-center gap-3 relative z-10 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(var(--primary),0.15)]">
-              <Zap className="w-5 h-5 text-primary fill-primary/20" />
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">LinuxLabMaster</p>
-              <p className="text-xs text-muted-foreground mt-1 font-medium tracking-wide">PRACTICE RANGE</p>
-            </div>
-          </Link>
-        </div>
-
-        {/* Overall completion summary */}
-        <div className="px-4 pt-4">
-          <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Overall
-                </span>
+          <div className={cn("relative z-10 flex items-center", collapsed ? "flex-col gap-2" : "justify-between")}>
+            <Link href="/" className={cn("flex items-center gap-3 hover:opacity-80 transition-opacity", collapsed && "justify-center")}>
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(var(--primary),0.15)]">
+                <Zap className="w-5 h-5 text-primary fill-primary/20" />
               </div>
-              {overallStats.total > 0 && overallStats.passed === overallStats.total && (
-                <Award className="w-4 h-4 text-amber-400" />
+              {!collapsed && (
+                <div>
+                  <p className="text-lg font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">LinuxLabMaster</p>
+                  <p className="text-xs text-muted-foreground mt-1 font-medium tracking-wide">PRACTICE RANGE</p>
+                </div>
               )}
-            </div>
-            <p className="mt-2 text-lg font-black font-mono leading-none">
-              {loading ? "…" : `${overallStats.passed}/${overallStats.total}`}
-              <span className="text-xs font-semibold text-muted-foreground ml-1.5">labs completed</span>
-            </p>
-            <Progress value={overallPct} className="h-1.5 mt-2.5 bg-background border border-border/50" />
+            </Link>
+            <button
+              onClick={toggleSidebar}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+            >
+              {collapsed
+                ? <PanelLeftOpen  className="w-4 h-4" />
+                : <PanelLeftClose className="w-4 h-4" />}
+            </button>
           </div>
         </div>
 
+        {/* Overall completion summary */}
+        <div className={cn("pt-4", collapsed ? "px-2" : "px-4")}>
+          {collapsed ? (
+            <div className="flex flex-col items-center gap-1 rounded-xl border border-border/70 bg-muted/20 py-3">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-black font-mono text-foreground leading-none">
+                {loading ? "…" : overallStats.passed}
+              </span>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Overall</span>
+                </div>
+                {overallStats.total > 0 && overallStats.passed === overallStats.total && (
+                  <Award className="w-4 h-4 text-amber-400" />
+                )}
+              </div>
+              <p className="mt-2 text-lg font-black font-mono leading-none">
+                {loading ? "…" : `${overallStats.passed}/${overallStats.total}`}
+                <span className="text-xs font-semibold text-muted-foreground ml-1.5">labs completed</span>
+              </p>
+              <Progress value={overallPct} className="h-1.5 mt-2.5 bg-background border border-border/50" />
+            </div>
+          )}
+        </div>
+
         {/* Track list + level dropdowns */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">
-          <p className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
-            Tracks
-          </p>
+        <nav className={cn("flex-1 overflow-y-auto py-4 flex flex-col gap-1", collapsed ? "px-2" : "px-3")}>
+          {!collapsed && (
+            <p className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
+              Tracks
+            </p>
+          )}
           <div className="flex-1 space-y-1">
             {loading
               ? Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-16 rounded-xl bg-muted/30 animate-pulse mx-1" />
+                  <div key={i} className={cn("rounded-xl bg-muted/30 animate-pulse", collapsed ? "h-10 mx-1" : "h-16 mx-1")} />
                 ))
               : tracks.map(track => {
                   const tm = TRACK_META[track]
@@ -433,8 +470,10 @@ export default function Catalog() {
                     <button
                       key={track}
                       onClick={() => handleTrackChange(track)}
+                      title={collapsed ? (tm?.label ?? track) : undefined}
                       className={cn(
-                        "w-full flex flex-col gap-2 px-3 py-3 rounded-xl text-left transition-all duration-200 group relative overflow-hidden",
+                        "w-full flex flex-col gap-2 rounded-xl text-left transition-all duration-200 group relative overflow-hidden",
+                        collapsed ? "px-0 py-2 items-center justify-center" : "px-3 py-3",
                         isActive
                           ? "bg-muted/40 border border-border/80 shadow-sm"
                           : "hover:bg-muted/20 border border-transparent"
@@ -443,32 +482,34 @@ export default function Catalog() {
                       {isActive && (
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-md" />
                       )}
-                      <div className="flex items-center gap-3 w-full relative z-10">
+                      <div className={cn("flex items-center w-full relative z-10", collapsed ? "justify-center" : "gap-3")}>
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
                           isActive ? "bg-background border border-border" : "bg-muted/50 group-hover:bg-muted"
                         )}>
                           <Icon className={cn("w-4 h-4", isActive ? tm?.accentClass : "text-muted-foreground")} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={cn("text-sm font-semibold leading-tight flex items-center gap-1.5",
-                            isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/90"
-                          )}>
-                            {tm?.label ?? track}
-                            {trackComplete && (
-                              <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                            )}
-                          </p>
-                          {sum && (
-                            <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
-                              {sum.passed}/{sum.total} Labs
-                            </p>
-                          )}
-                        </div>
-                        <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", isActive ? "text-foreground translate-x-1" : "text-muted-foreground/40")} />
+                        {!collapsed && (
+                          <>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn("text-sm font-semibold leading-tight flex items-center gap-1.5",
+                                isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/90"
+                              )}>
+                                {tm?.label ?? track}
+                                {trackComplete && <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                              </p>
+                              {sum && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                                  {sum.passed}/{sum.total} Labs
+                                </p>
+                              )}
+                            </div>
+                            <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", isActive ? "text-foreground translate-x-1" : "text-muted-foreground/40")} />
+                          </>
+                        )}
                       </div>
 
-                      {sum && isActive && (
+                      {!collapsed && sum && isActive && (
                         <div className="w-full pl-11 pr-2 relative z-10">
                           <Progress value={pct} className="h-1.5 bg-background border border-border/50" />
                         </div>
@@ -487,24 +528,27 @@ export default function Catalog() {
               <Link
                 key={href}
                 href={href}
+                title={collapsed ? label : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group border border-transparent",
-                  "hover:bg-muted/20"
+                  "w-full flex items-center rounded-xl transition-all duration-200 group border border-transparent hover:bg-muted/20",
+                  collapsed ? "justify-center py-2.5 px-0" : "gap-3 px-3 py-2.5"
                 )}
               >
                 <div className="w-8 h-8 rounded-lg bg-muted/50 group-hover:bg-muted flex items-center justify-center shrink-0 transition-colors">
                   <Icon className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground/90 transition-colors">
-                  {label}
-                </span>
+                {!collapsed && (
+                  <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground/90 transition-colors">
+                    {label}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
         </nav>
 
         {/* Footer */}
-        <UserMenu />
+        <UserMenu collapsed={collapsed} />
       </aside>
 
       {/* ── Main content ────────────────────────────────── */}
