@@ -55,6 +55,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
           maxAge: COOKIE_MAX_AGE_MS,
           httpOnly: true,
           sameSite: "lax",
+          // Mark secure when the request arrived over HTTPS (nginx sets X-Forwarded-Proto).
+          secure: req.secure || req.headers["x-forwarded-proto"] === "https",
         });
       }
     }

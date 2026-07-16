@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Zap, Loader2 } from "lucide-react"
 import { Link, useLocation, Redirect } from "wouter"
-import { signUp, useSession } from "@/lib/auth-client"
+import { signIn, signUp, useSession } from "@/lib/auth-client"
 import { useConfig } from "@/lib/use-config"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,12 +39,12 @@ export default function SignUpPage() {
     }
   }
 
-  function handleGoogle() {
-    // Force account-picker with prompt=select_account so a previously signed-out
-    // user is never silently re-signed in via Google's cached session.
+  async function handleGoogle() {
+    // Use signIn.social() (POST) — the social endpoint does not accept GET.
+    // prompt: "select_account" forces the Google account picker even when
+    // the user already has an active Google session in their browser.
     const callbackURL = `${window.location.origin}${basePath}/dashboard`
-    const params = new URLSearchParams({ provider: "google", callbackURL, prompt: "select_account" })
-    window.location.href = `/api/auth/sign-in/social?${params}`
+    await signIn.social({ provider: "google", callbackURL, prompt: "select_account" })
   }
 
   return (

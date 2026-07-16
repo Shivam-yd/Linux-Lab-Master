@@ -42,5 +42,7 @@ export const auth = betterAuth({
     },
   }),
   secret: process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production",
-  trustedOrigins: ["*"],
+  // Restrict CSRF origin checks to the known deployment URL.
+  // baseURL is computed from BETTER_AUTH_URL → REPLIT_DEV_DOMAIN → localhost.
+  trustedOrigins: [baseURL],
 });
