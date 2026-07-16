@@ -7,7 +7,7 @@ A self-hosted, hands-on DevOps training platform that provides browser-based ter
 - **Frontend**: React 19 + Vite, Tailwind CSS 4, Radix UI, TanStack Query, Xterm.js, Framer Motion
 - **Backend**: Node.js/Express (ESM), Dockerode, Pino, SSH2
 - **Database**: PostgreSQL via Drizzle ORM (Replit's built-in DB)
-- **Auth**: Clerk
+- **Auth**: Better Auth
 - **Monorepo**: pnpm workspaces
 
 ## Running the project
@@ -25,13 +25,12 @@ The frontend dev server proxies `/api` to the API server on port 8080.
 
 | Variable | Where set | Notes |
 |---|---|---|
-| `CLERK_PUBLISHABLE_KEY` | Replit Secret | Clerk test key from `installer/install.sh` |
-| `CLERK_SECRET_KEY` | Replit Secret | Clerk test key from `installer/install.sh` |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Shared env var | Same value as above, exposed to Vite |
 | `SESSION_SECRET` | Replit Secret | Signs session cookies |
+| `BETTER_AUTH_URL` | Shared env var | Public URL of the API server (auto-set) |
 | `DATABASE_URL` | Replit-managed | Auto-provisioned PostgreSQL |
 
 Optional: `GITHUB_TOKEN` raises GitHub API rate limits for lab YAML sync. `LOG_LEVEL` defaults to `info`.
+Optional OAuth: `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` for Google sign-in.
 
 ## Project structure
 

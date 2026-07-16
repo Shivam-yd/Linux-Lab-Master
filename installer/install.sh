@@ -164,7 +164,7 @@ fi
 # ── Step 4: Build Docker images ───────────────────────────────────────────────
 header "Step 4/6 — Build images"
 
-# Source the .env so CLERK keys are available as shell vars for the build arg.
+# Source the .env so env vars are available as shell vars for the build arg.
 # (They may not be set if the .env already existed before this run.)
 set -o allexport
 # shellcheck source=/dev/null
