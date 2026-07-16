@@ -154,6 +154,14 @@ else
   read -rp "  GOOGLE_CLIENT_ID    : " GOOGLE_CLIENT_ID
   read -rp "  GOOGLE_CLIENT_SECRET: " GOOGLE_CLIENT_SECRET
 
+  if [[ -n "${GOOGLE_CLIENT_ID}" ]]; then
+    echo ""
+    echo -e "  ${YELLOW}[!] Google Console — add this Authorised redirect URI to your OAuth client:${RESET}"
+    echo -e "      ${BOLD}${BETTER_AUTH_URL}/api/auth/callback/google${RESET}"
+    echo -e "  Without it Google will reject the sign-in with a redirect_uri_mismatch error."
+    echo ""
+  fi
+
   echo ""
   echo -e "  ${CYAN}GitHub Token (optional — raises lab-sync rate limit from 60 → 5,000 req/hr)${RESET}"
   echo -e "  Create a token at: https://github.com/settings/tokens (no scopes needed for public repos)"
