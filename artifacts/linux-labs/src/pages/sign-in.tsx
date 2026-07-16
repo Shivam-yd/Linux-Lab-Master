@@ -38,13 +38,11 @@ export default function SignInPage() {
     }
   }
 
-  function handleGoogle() {
-    // Use an absolute callbackURL so Better Auth redirects back to the right place.
-    // Force account-picker with prompt=select_account so a previously signed-out
-    // user is never silently re-signed in via Google's cached session.
+  async function handleGoogle() {
+    // signIn.social() sends a POST to /api/auth/sign-in/social and handles
+    // the redirect to Google — using window.location.href (GET) returns 404.
     const callbackURL = `${window.location.origin}${basePath}/dashboard`
-    const params = new URLSearchParams({ provider: "google", callbackURL, prompt: "select_account" })
-    window.location.href = `/api/auth/sign-in/social?${params}`
+    await signIn.social({ provider: "google", callbackURL })
   }
 
   return (

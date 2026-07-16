@@ -16,6 +16,8 @@ Clerk was fully replaced with Better Auth (email + password). All four Better Au
 
 **BETTER_AUTH_URL**: Must be set (to `http://localhost:8080` in dev) or Better Auth warns and redirects may break. Set as a shared env var.
 
+**Social sign-in must use POST via client**: `GET /api/auth/sign-in/social` returns 404. Always use `signIn.social({ provider, callbackURL })` from the Better Auth React client — it sends a POST and handles the redirect. Using `window.location.href` to navigate to the URL is a GET and will always 404.
+
 **WS auth**: Better Auth's `auth.api.getSession({ headers: fromNodeHeaders(req.headers) })` works for raw HTTP upgrade requests. The session cookie (`better-auth.session_token`) is included in the upgrade request headers automatically.
 
 **Guest mode preserved**: The existing `_sid` signed cookie guest fallback in `middleware/auth.ts` is unchanged. If no Better Auth session is found, the cookie path runs as before.
