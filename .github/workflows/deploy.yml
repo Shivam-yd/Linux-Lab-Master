@@ -10,8 +10,16 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Remove old repository
+        run: |
+          sudo rm -rf /opt/Linux-Lab-Master
+
+      - name: Clone latest repository
+        run: |
+          git clone https://github.com/Shivam-yd/Linux-Lab-Master.git /opt/Linux-Lab-Master
 
       - name: Run installer
         run: |
+          cd /opt/Linux-Lab-Master
+          chmod +x installer/install.sh
           bash installer/install.sh
