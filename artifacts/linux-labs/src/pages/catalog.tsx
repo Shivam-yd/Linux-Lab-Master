@@ -375,12 +375,12 @@ export default function Catalog() {
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
   const toggleCard = (key: string) => setExpandedCards(prev => ({ ...prev, [key]: !prev[key] }))
 
-  // Default expand first card
-  useMemo(() => {
+  // Default expand first card — must be useEffect, not useMemo (no side effects in memo)
+  useEffect(() => {
     if (filteredCards.length > 0 && Object.keys(expandedCards).length === 0) {
       setExpandedCards({ [`${filteredCards[0].track}-${filteredCards[0].level}`]: true })
     }
-  }, [filteredCards])
+  }, [filteredCards]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="relative flex h-screen bg-background text-foreground overflow-hidden">

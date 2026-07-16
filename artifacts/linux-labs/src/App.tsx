@@ -1,7 +1,23 @@
+import { Component, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Redirect, Router as WouterRouter } from 'wouter';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    const { error } = this.state;
+    if (error) return (
+      <div style={{ padding: 40, fontFamily: 'monospace', color: '#f87171', background: '#0d0d0d', minHeight: '100vh' }}>
+        <h2 style={{ marginBottom: 12 }}>Something went wrong</h2>
+        <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>{(error as Error).message}</pre>
+      </div>
+    );
+    return this.props.children;
+  }
+}
 
 import Home from '@/pages/home';
 import Catalog from '@/pages/catalog';
@@ -29,25 +45,27 @@ function NotFound() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/dashboard" component={Catalog} />
-            <Route path="/labs/:labId" component={Workspace} />
-            <Route path="/about" component={About} />
-            <Route path="/sign-in" component={SignInPage} />
-            <Route path="/sign-up" component={SignUpPage} />
-            <Route path="/progress" component={ProgressPage} />
-            <Route path="/profile" component={ProfilePage} />
-            <Route path="/certificate/:track" component={CertificatePage} />
-            <Route component={NotFound} />
-          </Switch>
-          <Toaster />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </WouterRouter>
+    <ErrorBoundary>
+      <WouterRouter base={basePath}>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Switch>
+              <Route path="/" component={Home} />
+              <Route path="/dashboard" component={Catalog} />
+              <Route path="/labs/:labId" component={Workspace} />
+              <Route path="/about" component={About} />
+              <Route path="/sign-in" component={SignInPage} />
+              <Route path="/sign-up" component={SignUpPage} />
+              <Route path="/progress" component={ProgressPage} />
+              <Route path="/profile" component={ProfilePage} />
+              <Route path="/certificate/:track" component={CertificatePage} />
+              <Route component={NotFound} />
+            </Switch>
+            <Toaster />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </WouterRouter>
+    </ErrorBoundary>
   );
 }
 
