@@ -44,6 +44,8 @@ services:
       # Better Auth — public origin used for OAuth redirects.
       # Set BETTER_AUTH_URL in .env to your server's URL (e.g. http://1.2.3.4:8085).
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-}
+      # Comma-separated extra origins to trust (e.g. the raw IP when BETTER_AUTH_URL is a domain).
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
