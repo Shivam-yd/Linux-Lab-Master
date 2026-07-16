@@ -2,11 +2,10 @@ import { useMemo } from "react"
 import { Link } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
-  Zap, Trophy, Award, CheckCircle2, Clock, AlertCircle,
+  Zap, Trophy, Award, CheckCircle2,
   ArrowLeft, Terminal, Layers, Server, Container, GitBranch, Cpu,
   ExternalLink, Star
 } from "lucide-react"
@@ -22,21 +21,10 @@ const TRACK_META: Record<string, { label: string; icon: React.ElementType; accen
   git:       { label: "Git",       icon: GitBranch,  accentHex: "#f87171", accentClass: "text-red-400" },
 }
 
-const DIFFICULTY_BADGE: Record<string, string> = {
-  beginner:     "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  intermediate: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-  advanced:     "bg-rose-500/10 text-rose-400 border-rose-500/20",
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—"
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-}
-
-function StatusIcon({ status }: { status: string }) {
-  if (status === "passed")      return <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-  if (status === "in_progress") return <AlertCircle  className="w-4 h-4 text-amber-400 shrink-0" />
-  return <div className="w-4 h-4 rounded-full border border-border/60 shrink-0" />
+const LEVEL_META: Record<number, { name: string; accentHex: string }> = {
+  1: { name: "Foundation",   accentHex: "#22d3ee" },
+  2: { name: "Intermediate", accentHex: "#818cf8" },
+  3: { name: "Advanced",     accentHex: "#c084fc" },
 }
 
 export default function ProgressPage() {
@@ -160,55 +148,44 @@ export default function ProgressPage() {
                 </div>
               </div>
 
-              {/* Lab rows */}
+              {/* Level rows */}
               <div className="rounded-xl border border-border/50 bg-card/80 overflow-hidden divide-y divide-border/30">
-                {trackLabs.map(lab => {
-                  const p = progressByLabId[lab.id]
-                  const status = p?.status ?? "not_started"
-                  const score  = p?.bestScore ?? 0
-                  const lastAt = p?.lastAttemptAt ?? null
+                {[...new Set(trackLabs.map(l => l.level))].sort().map(lvl => {
+                  const lm = LEVEL_META[lvl] ?? { name: `Level ${lvl}`, accentHex: "#94a3b8" }
+                  const lvlLabs = trackLabs.filter(l => l.level === lvl)
+                  const lvlPassed = lvlLabs.filter(l => progressByLabId[l.id]?.status === "passed").length
+                  const lvlTotal  = lvlLabs.length
+                  const lvlPct    = lvlTotal > 0 ? Math.round((lvlPassed / lvlTotal) * 100) : 0
+                  const lvlDone   = lvlPassed === lvlTotal && lvlTotal > 0
 
                   return (
-                    <div key={lab.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/20 transition-colors group">
-                      <StatusIcon status={status} />
-
-                      <div className="flex-1 min-w-0">
-                        <Link
-                          href={`${basePath}/labs/${lab.id}`}
-                          className="text-sm font-medium group-hover:text-primary transition-colors leading-tight"
-                        >
-                          {lab.title}
-                        </Link>
-                        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                          <span className="font-mono">L{lab.level}</span>
-                          <span className="w-1 h-1 rounded-full bg-border" />
-                          <span>{lab.estimatedMinutes}m</span>
-                          {lastAt && (
-                            <>
-                              <span className="w-1 h-1 rounded-full bg-border" />
-                              <Clock className="w-3 h-3" />
-                              <span>{formatDate(lastAt)}</span>
-                            </>
-                          )}
-                        </div>
+                    <div key={lvl} className="flex items-center gap-5 px-5 py-4">
+                      {/* Level badge */}
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                        style={{ background: `${lm.accentHex}10`, borderColor: `${lm.accentHex}30` }}
+                      >
+                        <span className="text-sm font-black font-mono" style={{ color: lm.accentHex }}>
+                          L{lvl}
+                        </span>
                       </div>
 
-                      <Badge className={cn("text-[11px] border", DIFFICULTY_BADGE[lab.difficulty] ?? "bg-muted/30 text-muted-foreground border-border")}>
-                        {lab.difficulty}
-                      </Badge>
-
-                      {status === "passed" && (
-                        <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-green-400">
-                          <Trophy className="w-3.5 h-3.5" />
-                          {score}%
+                      {/* Name + lab count */}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold leading-none">{lm.name}</span>
+                          {lvlDone && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />}
                         </div>
-                      )}
-                      {status === "in_progress" && (
-                        <span className="text-xs text-amber-400 font-medium">In progress</span>
-                      )}
-                      {status === "not_started" && (
-                        <span className="text-xs text-muted-foreground/50">Not started</span>
-                      )}
+                        <Progress
+                          value={lvlPct}
+                          className="h-1.5 bg-background border border-border/50"
+                        />
+                      </div>
+
+                      {/* Count */}
+                      <span className="text-sm font-mono text-muted-foreground shrink-0 w-12 text-right">
+                        {lvlPassed}/{lvlTotal}
+                      </span>
                     </div>
                   )
                 })}
