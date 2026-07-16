@@ -16,10 +16,13 @@ jobs:
 
       - name: Clone latest repository
         run: |
-          git clone https://github.com/Shivam-yd/Linux-Lab-Master.git /opt/Linux-Lab-Master
+          sudo git clone https://github.com/Shivam-yd/Linux-Lab-Master.git /opt/Linux-Lab-Master
+
+      - name: Fix permissions
+        run: |
+          sudo chown -R github-runner:github-runner /opt/Linux-Lab-Master
 
       - name: Run installer
         run: |
           cd /opt/Linux-Lab-Master
-          chmod +x installer/install.sh
-          bash installer/install.sh
+          sudo bash installer/install.sh
