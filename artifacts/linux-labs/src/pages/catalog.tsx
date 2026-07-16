@@ -5,7 +5,7 @@ import { useSession, signOut } from "@/lib/auth-client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, LogOut, User, Home, BarChart2, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { Info, LogOut, User, Home, BarChart2, ChevronLeft } from "lucide-react"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -383,7 +383,7 @@ export default function Catalog() {
   }, [filteredCards])
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="relative flex h-screen bg-background text-foreground overflow-hidden">
 
       {/* ── Sidebar ─────────────────────────────────────── */}
       <aside className={cn(
@@ -391,30 +391,19 @@ export default function Catalog() {
         collapsed ? "w-16" : "w-64"
       )}>
         {/* Brand */}
-        <div className={cn("border-b border-border/50 relative overflow-hidden", collapsed ? "px-2 py-4" : "px-6 py-6")}>
+        <div className={cn("border-b border-border/50 relative overflow-hidden", collapsed ? "px-2 py-[18px]" : "px-5 py-[18px]")}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10" />
-          <div className={cn("relative z-10 flex items-center", collapsed ? "flex-col gap-2" : "justify-between")}>
-            <Link href="/" className={cn("flex items-center gap-3 hover:opacity-80 transition-opacity", collapsed && "justify-center")}>
-              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(var(--primary),0.15)]">
-                <Zap className="w-5 h-5 text-primary fill-primary/20" />
+          <Link href="/" className={cn("relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity", collapsed && "justify-center")}>
+            <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(45,212,191,0.15)]">
+              <Zap className="w-4 h-4 text-primary fill-primary/20" />
+            </div>
+            {!collapsed && (
+              <div>
+                <p className="text-[15px] font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">LinuxLabMaster</p>
+                <p className="text-[10px] text-muted-foreground mt-1 font-semibold tracking-widest uppercase">Practice Range</p>
               </div>
-              {!collapsed && (
-                <div>
-                  <p className="text-lg font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">LinuxLabMaster</p>
-                  <p className="text-xs text-muted-foreground mt-1 font-medium tracking-wide">PRACTICE RANGE</p>
-                </div>
-              )}
-            </Link>
-            <button
-              onClick={toggleSidebar}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-            >
-              {collapsed
-                ? <PanelLeftOpen  className="w-4 h-4" />
-                : <PanelLeftClose className="w-4 h-4" />}
-            </button>
-          </div>
+            )}
+          </Link>
         </div>
 
         {/* Overall completion summary */}
@@ -550,6 +539,22 @@ export default function Catalog() {
         {/* Footer */}
         <UserMenu collapsed={collapsed} />
       </aside>
+
+      {/* ── Sidebar collapse toggle — floats on the sidebar/content boundary ── */}
+      <button
+        onClick={toggleSidebar}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        style={{
+          left: collapsed ? "64px" : "256px",
+          transition: "left 200ms ease",
+        }}
+        className="absolute top-[22px] -translate-x-1/2 z-20 w-[22px] h-[22px] rounded-full bg-card border border-border/80 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:shadow-[0_0_10px_rgba(45,212,191,0.2)] shadow-sm transition-colors duration-150"
+      >
+        <ChevronLeft
+          className="w-3 h-3 transition-transform duration-200"
+          style={{ transform: collapsed ? "rotate(180deg)" : "rotate(0deg)" }}
+        />
+      </button>
 
       {/* ── Main content ────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto bg-background/50 relative">
