@@ -16,16 +16,21 @@ const baseURL =
     ? `https://${process.env.REPLIT_DEV_DOMAIN}`
     : "http://localhost:8080");
 
-// Always trust the live Replit dev domain in addition to baseURL.
-// Replit rotates REPLIT_DEV_DOMAIN over time, so if BETTER_AUTH_URL is set
-// to an older domain the CSRF origin check would reject every browser request.
-// Including the current dev domain ensures OAuth keeps working after rotations.
+// Collect all trusted origins: baseURL + Replit dev domain + any extras from TRUSTED_ORIGINS.
+// TRUSTED_ORIGINS is a comma-separated list, useful for self-hosted deployments where
+// the raw IP (e.g. http://59.185.230.105:8085) differs from the public DuckDNS domain.
 const trustedOrigins = [baseURL];
 if (
   process.env.REPLIT_DEV_DOMAIN &&
   `https://${process.env.REPLIT_DEV_DOMAIN}` !== baseURL
 ) {
   trustedOrigins.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+}
+if (process.env.TRUSTED_ORIGINS) {
+  for (const o of process.env.TRUSTED_ORIGINS.split(",")) {
+    const trimmed = o.trim();
+    if (trimmed && !trustedOrigins.includes(trimmed)) trustedOrigins.push(trimmed);
+  }
 }
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
