@@ -38,6 +38,9 @@ export const auth = betterAuth({
       google: {
         clientId: googleClientId,
         clientSecret: googleClientSecret,
+        // Always show the Google account picker so users are never silently
+        // signed in via a cached session — especially on shared machines.
+        prompt: "select_account",
       },
     },
   }),

@@ -6,6 +6,7 @@ import {
   boolean,
   jsonb,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -19,22 +20,33 @@ export const studentsTable = pgTable("students", {
 });
 
 // The currently active (or most recently active) sandbox for a student+lab.
-export const labSessionsTable = pgTable("lab_sessions", {
-  id: serial("id").primaryKey(),
-  studentId: text("student_id").notNull(),
-  labId: text("lab_id").notNull(),
-  containerId: text("container_id"),
-  containerName: text("container_name"),
-  status: text("status").notNull().default("starting"), // starting | running | stopped | error
-  errorMessage: text("error_message"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const labSessionsTable = pgTable(
+  "lab_sessions",
+  {
+    id: serial("id").primaryKey(),
+    // FK ensures orphan rows can never accumulate when a student is cleaned up.
+    studentId: text("student_id")
+      .notNull()
+      .references(() => studentsTable.id, { onDelete: "cascade" }),
+    labId: text("lab_id").notNull(),
+    containerId: text("container_id"),
+    containerName: text("container_name"),
+    status: text("status").notNull().default("starting"), // starting | running | stopped | error
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    // Unique constraint enables ON CONFLICT DO UPDATE upserts and prevents
+    // duplicate rows from concurrent requests for the same student+lab.
+    uniqueIndex("uq_lab_sessions_student_lab").on(table.studentId, table.labId),
+  ],
+);
 
 export const insertLabSessionSchema = createInsertSchema(
   labSessionsTable,
@@ -43,19 +55,30 @@ export type InsertLabSession = z.infer<typeof insertLabSessionSchema>;
 export type LabSessionRow = typeof labSessionsTable.$inferSelect;
 
 // Best-known progress per student+lab, updated on every verify attempt.
-export const labProgressTable = pgTable("lab_progress", {
-  id: serial("id").primaryKey(),
-  studentId: text("student_id").notNull(),
-  labId: text("lab_id").notNull(),
-  status: text("status").notNull().default("not_started"), // not_started | in_progress | passed
-  bestScore: integer("best_score").notNull().default(0),
-  lastResults: jsonb("last_results"),
-  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const labProgressTable = pgTable(
+  "lab_progress",
+  {
+    id: serial("id").primaryKey(),
+    // FK ensures orphan rows can never accumulate when a student is cleaned up.
+    studentId: text("student_id")
+      .notNull()
+      .references(() => studentsTable.id, { onDelete: "cascade" }),
+    labId: text("lab_id").notNull(),
+    status: text("status").notNull().default("not_started"), // not_started | in_progress | passed
+    bestScore: integer("best_score").notNull().default(0),
+    lastResults: jsonb("last_results"),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    // Unique constraint enables ON CONFLICT DO UPDATE upserts and prevents
+    // duplicate rows from concurrent verify requests for the same student+lab.
+    uniqueIndex("uq_lab_progress_student_lab").on(table.studentId, table.labId),
+  ],
+);
 
 export const insertLabProgressSchema = createInsertSchema(
   labProgressTable,

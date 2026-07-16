@@ -1,4 +1,5 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
 import type { Duplex } from "node:stream";
 import { fromNodeHeaders } from "better-auth/node";
@@ -7,26 +8,91 @@ import { getLabByIdAsync } from "../lib/labs/registry";
 import { getRunningContainer } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
 
-/** Authenticates a WebSocket upgrade request via the Better Auth session cookie. */
-async function studentIdFromUpgradeRequest(req: IncomingMessage): Promise<string | null> {
+// ── Cookie helpers ─────────────────────────────────────────────────────────────
+
+/** Parse a raw Cookie header into a name → raw-value map. */
+function parseCookieHeader(header: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const pair of header.split(";")) {
+    const idx = pair.indexOf("=");
+    if (idx < 0) continue;
+    const key = pair.slice(0, idx).trim();
+    const val = pair.slice(idx + 1).trim();
+    try { out[key] = decodeURIComponent(val); } catch { out[key] = val; }
+  }
+  return out;
+}
+
+/**
+ * Verify an express cookie-parser signed cookie value (format: `s:value.hmac`).
+ * Returns the original value on success, null if the signature is invalid or
+ * the format is unrecognised.
+ */
+function unsignCookie(raw: string, secret: string): string | null {
+  if (!raw.startsWith("s:")) return null;
+  const withoutPrefix = raw.slice(2);
+  const dotIdx = withoutPrefix.lastIndexOf(".");
+  if (dotIdx < 0) return null;
+  const val = withoutPrefix.slice(0, dotIdx);
+  const mac = withoutPrefix.slice(dotIdx + 1);
+  const expected = createHmac("sha256", secret).update(val).digest("base64");
   try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
-    return session?.user?.id ?? null;
-  } catch (err) {
-    logger.warn({ err }, "Failed to authenticate terminal WebSocket upgrade");
+    // Use constant-time comparison to prevent timing attacks.
+    const macBuf = Buffer.from(mac);
+    const expBuf = Buffer.from(expected);
+    if (macBuf.length !== expBuf.length) return null;
+    return timingSafeEqual(macBuf, expBuf) ? val : null;
+  } catch {
     return null;
   }
 }
 
+// ── Auth ───────────────────────────────────────────────────────────────────────
+
+const GUEST_COOKIE = "_sid";
+
+/**
+ * Resolves a studentId from a WebSocket upgrade request using the same two-tier
+ * strategy as the HTTP `requireAuth` middleware:
+ *   1. Better Auth session cookie  →  authenticated user ID
+ *   2. Signed guest `_sid` cookie  →  anonymous student ID
+ *
+ * Returns null only when neither credential is present or valid.
+ */
+async function studentIdFromUpgradeRequest(req: IncomingMessage): Promise<string | null> {
+  // ── Tier 1: Better Auth authenticated session ──────────────────────────────
+  try {
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    if (session?.user?.id) return session.user.id;
+  } catch (err) {
+    logger.warn({ err }, "terminal WS: Better Auth session check failed");
+  }
+
+  // ── Tier 2: Signed guest cookie (mirrors HTTP requireAuth) ─────────────────
+  const cookieHeader = req.headers.cookie ?? "";
+  if (cookieHeader) {
+    const cookies = parseCookieHeader(cookieHeader);
+    const raw = cookies[GUEST_COOKIE];
+    if (raw) {
+      const secret = process.env["SESSION_SECRET"] ?? "changeme-set-SESSION_SECRET-in-production";
+      const guestId = unsignCookie(raw, secret);
+      if (guestId) return guestId;
+    }
+  }
+
+  return null;
+}
+
+// ── Binary framing protocol ────────────────────────────────────────────────────
+// (avoids JSON parse/stringify on the hot output path):
+//   0x01 <raw bytes>  — terminal output
+//   0x02 <utf-8 json> — control/status message (low frequency)
 type ClientMessage =
   | { type: "input"; data: string }
   | { type: "resize"; cols: number; rows: number };
 
-// Binary framing protocol (avoids JSON parse/stringify on the hot output path):
-//   0x01 <raw bytes>  — terminal output
-//   0x02 <utf-8 json> — control/status message (low frequency)
 const MSG_OUTPUT  = 0x01;
 const MSG_CONTROL = 0x02;
 
@@ -46,6 +112,8 @@ function sendControl(ws: WebSocket, payload: unknown): void {
   json.copy(frame, 1);
   ws.send(frame);
 }
+
+// ── WebSocket server ───────────────────────────────────────────────────────────
 
 export function attachTerminalWebSocketServer(server: HttpServer): void {
   const wss = new WebSocketServer({ noServer: true });

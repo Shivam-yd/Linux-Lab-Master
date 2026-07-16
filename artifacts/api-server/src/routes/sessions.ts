@@ -158,7 +158,11 @@ router.post("/labs/:labId/verify", async (req, res): Promise<void> => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error({ err, labId: lab.id, studentId: req.studentId }, "Verify failed");
-    res.status(400).json({ error: message });
+    // 409 for expected pre-condition failures (sandbox not running), 500 for
+    // everything else (infra/DB/runtime faults) so clients can distinguish
+    // user-fixable errors from server-side failures.
+    const isPreCondition = message.includes("not running") || message.includes("Start the sandbox");
+    res.status(isPreCondition ? 409 : 500).json({ error: message });
   }
 });
 

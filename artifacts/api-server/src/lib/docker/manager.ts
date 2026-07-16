@@ -71,24 +71,16 @@ async function findExistingContainer(name: string): Promise<Docker.Container | n
   return match ? docker.getContainer(match.Id) : null;
 }
 
+/**
+ * Atomic upsert using ON CONFLICT DO UPDATE — eliminates the read-then-write
+ * race that previously allowed two concurrent requests to create duplicate rows.
+ */
 async function upsertSessionRow(
   studentId: string,
   labId: string,
   patch: Partial<LabSessionRow>,
 ): Promise<LabSessionRow> {
-  const existing = await db.query.labSessionsTable.findFirst({
-    where: and(eq(labSessionsTable.studentId, studentId), eq(labSessionsTable.labId, labId)),
-  });
-  if (existing) {
-    const [updated] = await db
-      .update(labSessionsTable)
-      .set(patch)
-      .where(eq(labSessionsTable.id, existing.id))
-      .returning();
-    if (!updated) throw new Error("Failed to update lab session row");
-    return updated;
-  }
-  const [created] = await db
+  const [row] = await db
     .insert(labSessionsTable)
     .values({
       studentId,
@@ -96,9 +88,16 @@ async function upsertSessionRow(
       status: "starting",
       ...patch,
     })
+    .onConflictDoUpdate({
+      target: [labSessionsTable.studentId, labSessionsTable.labId],
+      set: {
+        ...patch,
+        updatedAt: new Date(),
+      },
+    })
     .returning();
-  if (!created) throw new Error("Failed to create lab session row");
-  return created;
+  if (!row) throw new Error("Failed to upsert lab session row");
+  return row;
 }
 
 export async function getSessionRow(studentId: string, labId: string): Promise<LabSessionRow | undefined> {
@@ -107,84 +106,135 @@ export async function getSessionRow(studentId: string, labId: string): Promise<L
   });
 }
 
+/**
+ * Per-(studentId, labId) mutex that prevents two concurrent HTTP requests from
+ * both racing through findExistingContainer → createContainer and triggering a
+ * Docker 409 name-conflict that was previously caught as status="error".
+ */
+const _startingKeys = new Set<string>();
+
 export async function startSession(studentId: string, labId: string): Promise<LabSessionRow> {
   const lab = await getLabByIdAsync(labId);
   if (!lab) throw new Error(`Unknown lab: ${labId}`);
 
-  const name = containerName(studentId, labId);
-  const existing = await findExistingContainer(name);
-  if (existing) {
-    const info = await existing.inspect();
-    if (info.State.Running) {
+  const key = `${studentId}:${labId}`;
+
+  // If a start is already in progress for this student+lab, wait for it to
+  // finish and return the resulting session row rather than racing it.
+  if (_startingKeys.has(key)) {
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 1_000));
+      const row = await getSessionRow(studentId, labId);
+      if (row && row.status !== "starting") return row;
+    }
+    // Fall through and try anyway if the wait expires.
+  }
+
+  _startingKeys.add(key);
+  try {
+    const name = containerName(studentId, labId);
+    const existing = await findExistingContainer(name);
+    if (existing) {
+      const info = await existing.inspect();
+      if (info.State.Running) {
+        return upsertSessionRow(studentId, labId, {
+          containerId: existing.id,
+          containerName: name,
+          status: "running",
+          errorMessage: null,
+        });
+      }
+      // Stale/stopped container from a previous crash — remove and recreate.
+      await existing.remove({ force: true }).catch(() => undefined);
+    }
+
+    await upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
+
+    try {
+      await ensureImagePresent(lab.image);
+      let container: Docker.Container;
+      try {
+        container = await docker.createContainer({
+          Image: lab.image,
+          name,
+          // Keep the container alive with `sleep infinity`.
+          // Two cases:
+          //   • Normal images (no custom entrypoint): leave Entrypoint unset so
+          //     Docker uses the image default, and set Cmd = ["sleep","infinity"].
+          //   • Images with a custom ENTRYPOINT (e.g. hashicorp/terraform uses
+          //     ["/bin/terraform"]): override Entrypoint with the keepalive command
+          //     directly and leave Cmd empty — otherwise Docker concatenates them
+          //     and runs `sleep infinity sleep infinity`, causing an immediate exit.
+          ...(lab.entrypoint
+            ? { Entrypoint: lab.entrypoint, Cmd: [] }
+            : { Cmd: ["sleep", "infinity"] }),
+          Tty: false,
+          Labels: { [CONTAINER_LABEL]: "true", labId, studentId },
+          HostConfig: {
+            AutoRemove: false,
+            Memory: 384 * 1024 * 1024,
+            NanoCpus: 1_000_000_000,
+            PidsLimit: 256,
+            // Run a real init (tini) as PID 1 so killed background processes are
+            // reaped instead of piling up as zombies. Without this, `pkill`/`kill`
+            // inside a lab leaves a defunct process that tools like `pgrep -f`
+            // can still match (via /proc/pid/comm), causing verify scripts to
+            // report a process as "still running" after it was actually killed.
+            Init: true,
+          },
+        });
+      } catch (createErr: unknown) {
+        // Docker returns 409 when a container with this name already exists —
+        // another concurrent request won the race. Treat the existing container
+        // as our container rather than surfacing a false error.
+        const isConflict =
+          (createErr as { statusCode?: number })?.statusCode === 409 ||
+          (createErr instanceof Error && createErr.message.includes("already in use"));
+        if (isConflict) {
+          const raceContainer = await findExistingContainer(name);
+          if (raceContainer) {
+            const info = await raceContainer.inspect();
+            if (info.State.Running) {
+              return upsertSessionRow(studentId, labId, {
+                containerId: raceContainer.id,
+                containerName: name,
+                status: "running",
+                errorMessage: null,
+              });
+            }
+          }
+        }
+        throw createErr;
+      }
+
+      try {
+        await container.start();
+        const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], { user: "root" });
+        if (setup.exitCode !== 0) {
+          logger.error({ labId, studentId, output: setup.output }, "Lab setup script failed");
+          throw new Error(`Setup script failed (exit ${setup.exitCode}): ${setup.output.slice(-500)}`);
+        }
+      } catch (setupErr) {
+        // Never leave a half-provisioned container running — remove it before surfacing the error.
+        await container.remove({ force: true }).catch(() => undefined);
+        throw setupErr;
+      }
       return upsertSessionRow(studentId, labId, {
-        containerId: existing.id,
+        containerId: container.id,
         containerName: name,
         status: "running",
         errorMessage: null,
       });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return upsertSessionRow(studentId, labId, {
+        status: "error",
+        containerId: null,
+        errorMessage: message,
+      });
     }
-    // Stale/stopped container from a previous crash -- remove and recreate.
-    await existing.remove({ force: true }).catch(() => undefined);
-  }
-
-  await upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
-
-  try {
-    await ensureImagePresent(lab.image);
-    const container = await docker.createContainer({
-      Image: lab.image,
-      name,
-      // Keep the container alive with `sleep infinity`.
-      // Two cases:
-      //   • Normal images (no custom entrypoint): leave Entrypoint unset so
-      //     Docker uses the image default, and set Cmd = ["sleep","infinity"].
-      //   • Images with a custom ENTRYPOINT (e.g. hashicorp/terraform uses
-      //     ["/bin/terraform"]): override Entrypoint with the keepalive command
-      //     directly and leave Cmd empty — otherwise Docker concatenates them
-      //     and runs `sleep infinity sleep infinity`, causing an immediate exit.
-      ...(lab.entrypoint
-        ? { Entrypoint: lab.entrypoint, Cmd: [] }
-        : { Cmd: ["sleep", "infinity"] }),
-      Tty: false,
-      Labels: { [CONTAINER_LABEL]: "true", labId, studentId },
-      HostConfig: {
-        AutoRemove: false,
-        Memory: 384 * 1024 * 1024,
-        NanoCpus: 1_000_000_000,
-        PidsLimit: 256,
-        // Run a real init (tini) as PID 1 so killed background processes are
-        // reaped instead of piling up as zombies. Without this, `pkill`/`kill`
-        // inside a lab leaves a defunct process that tools like `pgrep -f`
-        // can still match (via /proc/pid/comm), causing verify scripts to
-        // report a process as "still running" after it was actually killed.
-        Init: true,
-      },
-    });
-    try {
-      await container.start();
-      const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], { user: "root" });
-      if (setup.exitCode !== 0) {
-        logger.error({ labId, studentId, output: setup.output }, "Lab setup script failed");
-        throw new Error(`Setup script failed (exit ${setup.exitCode}): ${setup.output.slice(-500)}`);
-      }
-    } catch (setupErr) {
-      // Never leave a half-provisioned container running -- remove it before surfacing the error.
-      await container.remove({ force: true }).catch(() => undefined);
-      throw setupErr;
-    }
-    return upsertSessionRow(studentId, labId, {
-      containerId: container.id,
-      containerName: name,
-      status: "running",
-      errorMessage: null,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return upsertSessionRow(studentId, labId, {
-      status: "error",
-      containerId: null,
-      errorMessage: message,
-    });
+  } finally {
+    _startingKeys.delete(key);
   }
 }
 
@@ -266,29 +316,25 @@ export async function recordProgress(
   const passedCount = checks.filter((c) => c.passed).length;
   const score = Math.round((passedCount / total) * 100);
   const allPassed = checks.length > 0 && passedCount === checks.length;
-
-  const existing = await db.query.labProgressTable.findFirst({
-    where: and(eq(labProgressTable.studentId, studentId), eq(labProgressTable.labId, labId)),
-  });
   const status = allPassed ? "passed" : "in_progress";
-  const bestScore = Math.max(existing?.bestScore ?? 0, score);
   const now = new Date();
 
-  if (existing) {
-    await db
-      .update(labProgressTable)
-      .set({ status, bestScore, lastAttemptAt: now, lastResults: checks })
-      .where(eq(labProgressTable.id, existing.id));
-  } else {
-    await db.insert(labProgressTable).values({
-      studentId,
-      labId,
-      status,
-      bestScore,
-      lastAttemptAt: now,
-      lastResults: checks,
+  // Read the current best score so we never regress it on a worse attempt.
+  const [existing] = await db
+    .select({ bestScore: labProgressTable.bestScore })
+    .from(labProgressTable)
+    .where(and(eq(labProgressTable.studentId, studentId), eq(labProgressTable.labId, labId)))
+    .limit(1);
+  const bestScore = Math.max(existing?.bestScore ?? 0, score);
+
+  // Atomic upsert — no race-induced duplicate rows.
+  await db
+    .insert(labProgressTable)
+    .values({ studentId, labId, status, bestScore, lastAttemptAt: now, lastResults: checks })
+    .onConflictDoUpdate({
+      target: [labProgressTable.studentId, labProgressTable.labId],
+      set: { status, bestScore, lastAttemptAt: now, lastResults: checks, updatedAt: new Date() },
     });
-  }
 }
 
 export { docker };

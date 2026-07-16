@@ -44,7 +44,7 @@ export default function SignUpPage() {
     // prompt: "select_account" forces the Google account picker even when
     // the user already has an active Google session in their browser.
     const callbackURL = `${window.location.origin}${basePath}/dashboard`
-    await signIn.social({ provider: "google", callbackURL, prompt: "select_account" })
+    await signIn.social({ provider: "google", callbackURL })
   }
 
   return (

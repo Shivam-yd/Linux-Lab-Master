@@ -37,7 +37,7 @@ export default function Workspace() {
     query: { enabled: !!labId, queryKey: getGetLabQueryKey(labId) }
   })
   
-  const { data: session, isLoading: sessionLoading } = useGetLabSession(labId, {
+  const { data: session, isLoading: sessionLoading, error: sessionFetchError } = useGetLabSession(labId, {
     query: { 
       enabled: !!labId, 
       queryKey: getGetLabSessionQueryKey(labId),
@@ -81,6 +81,7 @@ export default function Workspace() {
 
   const verifyLab = useVerifyLab()
   const [verifyResult, setVerifyResult] = useState<any>(null)
+  const [verifyError, setVerifyError] = useState<string | null>(null)
 
   // Seed verifyResult from stored lastResults when progress loads or lab changes
   useEffect(() => {
@@ -214,12 +215,17 @@ export default function Workspace() {
   }
   
   const handleVerify = () => {
+    setVerifyError(null)
     verifyLab.mutate({ labId }, {
       onSuccess: (res) => {
         setVerifyResult(res)
         if (res.passed) {
           setCloseCountdown(15)
         }
+      },
+      onError: (err: any) => {
+        const msg = err?.response?.data?.error ?? err?.message ?? "Verification failed. Please try again."
+        setVerifyError(msg)
       }
     })
   }
@@ -367,7 +373,13 @@ export default function Workspace() {
             </div>
           ) : (
             <>
-              {sessionError && (
+              {sessionFetchError && (
+                <div className="flex items-center text-sm font-mono text-destructive bg-destructive/10 px-3 py-1 rounded-md border border-destructive/20 mr-2">
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  ERR_SESSION_FETCH
+                </div>
+              )}
+              {sessionError && !sessionFetchError && (
                 <div className="flex items-center text-sm font-mono text-destructive bg-destructive/10 px-3 py-1 rounded-md border border-destructive/20 mr-2">
                   <AlertCircle className="w-4 h-4 mr-2" />
                   {session.errorMessage || "ERR_SESSION_FAIL"}
@@ -648,6 +660,14 @@ export default function Workspace() {
               )}
             </Button>
             
+            {/* Verify API error (distinct from check failures, which are inside verifyResult) */}
+            {verifyError && (
+              <div className="mt-3 flex items-center gap-2 text-xs font-mono text-destructive bg-destructive/10 px-3 py-2.5 rounded-lg border border-destructive/20 animate-in fade-in duration-300">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{verifyError}</span>
+              </div>
+            )}
+
             {/* Verify Results */}
             {verifyResult && (
               <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
