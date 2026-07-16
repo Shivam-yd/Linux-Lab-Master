@@ -8,9 +8,17 @@
 # What it does:
 #   1. Installs Docker Engine + Compose plugin (if missing)
 #   2. Copies the project to /opt/linuxlabs
-#   3. Generates random secrets (Clerk keys optional)
+#   3. Generates random secrets and configures Better Auth / Google OAuth
 #   4. Builds Docker images and pre-pulls lab container images
 #   5. Installs and starts a systemd service (auto-starts on boot)
+#
+# Platform features installed:
+#   • Lab catalog   — browse and launch sandboxed Linux/Docker/Git/Terraform labs
+#   • Progress      — per-user progress tracker across all tracks (/progress)
+#   • Profile       — account settings and password management (/profile)
+#   • Certificates  — auto-generated on 100% track completion (/certificate/:track)
+#   • Guest mode    — try labs without an account (progress saved by cookie)
+#   • Google OAuth  — optional; configure GOOGLE_CLIENT_ID/SECRET in .env
 #
 # Supported: Ubuntu 20.04 LTS, 22.04 LTS, 24.04 LTS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -268,9 +276,16 @@ echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━�
 echo -e "${BOLD}${GREEN}  LinuxLabMaster is installed and running!          ${RESET}"
 echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 echo ""
-echo -e "  Open your browser:  ${BOLD}http://localhost:8085${RESET}"
+echo -e "  ${BOLD}Open your browser:${RESET}  ${BOLD}http://localhost:8085${RESET}"
 echo ""
-echo -e "  Service commands:"
+echo -e "  ${CYAN}Pages:${RESET}"
+echo -e "    http://localhost:8085/           — home / sign in"
+echo -e "    http://localhost:8085/dashboard  — lab catalog"
+echo -e "    http://localhost:8085/progress   — your progress across all tracks"
+echo -e "    http://localhost:8085/profile    — account settings & password"
+echo -e "    http://localhost:8085/certificate/:track  — completion certificate"
+echo ""
+echo -e "  ${CYAN}Service commands:${RESET}"
 echo -e "    ${CYAN}sudo systemctl status  ${SERVICE_NAME}${RESET}   — check status"
 echo -e "    ${CYAN}sudo systemctl stop    ${SERVICE_NAME}${RESET}   — stop"
 echo -e "    ${CYAN}sudo systemctl start   ${SERVICE_NAME}${RESET}   — start"
