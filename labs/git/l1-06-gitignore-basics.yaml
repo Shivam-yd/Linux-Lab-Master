@@ -95,21 +95,26 @@ verifyScript: |
   fi
 
   # CHECK: new_files_ignored
-  # Clean up any leftover test artifacts from previous verify runs so this check
-  # is idempotent, then create fresh ones to test the .gitignore patterns.
-  rm -f app.log build/output.bin 2>/dev/null
-  rmdir build 2>/dev/null
+  # Use git check-ignore to ask directly whether each pattern is in effect.
+  # This is more reliable than checking git status --porcelain for an empty
+  # output, which fails if anything else in the working tree is dirty (e.g.
+  # leftover files from a previous verify run or files the student created).
   touch app.log
-  mkdir -p build
-  touch build/output.bin
-  if [ -z "$(git status --porcelain)" ]; then
-    echo "CHECK:new_files_ignored:PASS:new .log files and build/ contents are ignored"
-  else
-    echo "CHECK:new_files_ignored:FAIL:git status still shows untracked files — check your .gitignore patterns"
-  fi
-  # Clean up test artifacts so they don't litter the student's workspace
+  mkdir -p build && touch build/output.bin
+  log_ignored=0
+  build_ignored=0
+  git check-ignore -q app.log 2>/dev/null && log_ignored=1
+  git check-ignore -q build/output.bin 2>/dev/null && build_ignored=1
+  # Clean up test artifacts before reporting so they don't litter the workspace
   rm -f app.log build/output.bin 2>/dev/null
   rmdir build 2>/dev/null
+  if [ "$log_ignored" -eq 1 ] && [ "$build_ignored" -eq 1 ]; then
+    echo "CHECK:new_files_ignored:PASS:new .log files and build/ contents are ignored"
+  elif [ "$log_ignored" -eq 0 ]; then
+    echo "CHECK:new_files_ignored:FAIL:*.log pattern not working — add *.log to .gitignore and commit it"
+  else
+    echo "CHECK:new_files_ignored:FAIL:build/ pattern not working — add build/ to .gitignore and commit it"
+  fi
 
 hints:
   - "A trailing slash in build/ matches the directory itself, ignoring everything inside it."
