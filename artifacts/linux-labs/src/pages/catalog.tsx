@@ -440,7 +440,7 @@ export default function Catalog() {
         </div>
 
         {/* Track list + level dropdowns */}
-        <nav className={cn("flex-1 overflow-y-auto py-4 flex flex-col gap-1", collapsed ? "px-2" : "px-3")}>
+        <nav className={cn("flex-1 min-h-0 overflow-y-auto py-4 flex flex-col gap-1", collapsed ? "px-2" : "px-3")}>
           {!collapsed && (
             <p className="px-3 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
               Tracks
