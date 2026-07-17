@@ -100,11 +100,15 @@ verifyScript: |
   fi
 
   # CHECK: only_one_tag
+  # Must be exactly 1 tag AND that tag must be v1.0 specifically.
+  # Previously only checked count == 1, which passed for any single tag.
   count=$(git tag -l | wc -l | tr -d ' ')
-  if [ "$count" -eq 1 ]; then
-    echo "CHECK:only_one_tag:PASS:Exactly 1 tag found (v1.0)"
+  if [ "$count" -eq 1 ] && git tag -l | grep -qx "v1\.0"; then
+    echo "CHECK:only_one_tag:PASS:Exactly one tag found and it is v1.0"
+  elif [ "$count" -eq 1 ]; then
+    echo "CHECK:only_one_tag:FAIL:Only one tag exists but it is not v1.0 — run: git tag -a v1.0 -m 'Release 1.0' then delete the other tag"
   else
-    echo "CHECK:only_one_tag:FAIL:Expected 1 tag, found $count — delete v0.1 with: git tag -d v0.1"
+    echo "CHECK:only_one_tag:FAIL:Expected 1 tag (v1.0), found $count — delete v0.1 with: git tag -d v0.1"
   fi
 
 hints:
