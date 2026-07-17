@@ -1,6 +1,11 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Git Lab: Status, Diff & Discarding Changes
 # ──────────────────────────────────────────────────────────────────────────────
+# NOTE: This lab is in SYNC_DENY_LIST (github-sync.ts) — the verify script was
+# fixed locally to prevent two false-positive checks (see comments in
+# verifyScript below). Do NOT remove it from the deny list without also fixing
+# the upstream repo.
+# ──────────────────────────────────────────────────────────────────────────────
 
 id: "git-status-diff"
 title: "Status, Diff & Discarding Changes"
@@ -27,7 +32,7 @@ instructions: |
   committed, but the change to `file_b.txt` was a mistake and needs to be
   thrown away. You need to sort it out before the rest of the team pulls.
 
-  **Your task:** commit the wanted change to `file_a.txt` and discard the
+  **Your task:** commit the wanted change to `file_a.txt\` and discard the
   unwanted edit to `file_b.txt`, leaving a clean working tree.
 
   **What You'll Deliver**
@@ -76,6 +81,12 @@ setupScript: |
 verifyScript: |
   cd /root/project || exit 1
 
+  # Count commits — all three checks require at least 2 (initial + file_a commit).
+  # This prevents checks 2 and 3 from passing before the student has done any work:
+  # the setup already leaves the tree clean and file_b at its original content,
+  # so a content-only check on either would be a false positive from the start.
+  commit_count=$(git log --oneline 2>/dev/null | wc -l)
+
   # CHECK: file_a_change_committed
   orig_lines=3
   head_lines=$(git show HEAD:file_a.txt 2>/dev/null | wc -l)
@@ -86,15 +97,22 @@ verifyScript: |
   fi
 
   # CHECK: file_b_change_discarded
-  if [ "$(cat file_b.txt 2>/dev/null)" = "keep me unchanged" ]; then
+  # Requires commit_count >= 2 so this cannot pass before file_a is committed.
+  b_content=$(cat file_b.txt 2>/dev/null)
+  if [ "$commit_count" -ge 2 ] && [ "$b_content" = "keep me unchanged" ]; then
     echo "CHECK:file_b_change_discarded:PASS:file_b.txt is back to its original content"
+  elif [ "$commit_count" -lt 2 ]; then
+    echo "CHECK:file_b_change_discarded:FAIL:Commit the file_a.txt change first, then edit and discard file_b.txt"
   else
-    echo "CHECK:file_b_change_discarded:FAIL:Edit file_b.txt, inspect it, then run git restore file_b.txt to discard the edit"
+    echo "CHECK:file_b_change_discarded:FAIL:Edit file_b.txt, inspect with git diff, then run git restore file_b.txt to discard the edit"
   fi
 
   # CHECK: working_tree_clean
-  if [ -z "$(git status --porcelain)" ]; then
+  # Requires commit_count >= 2 for the same reason.
+  if [ -z "$(git status --porcelain)" ] && [ "$commit_count" -ge 2 ]; then
     echo "CHECK:working_tree_clean:PASS:working tree is clean"
+  elif [ "$commit_count" -lt 2 ]; then
+    echo "CHECK:working_tree_clean:FAIL:Commit the file_a.txt change first, then discard the file_b.txt edit"
   else
     echo "CHECK:working_tree_clean:FAIL:git status --porcelain is not empty — commit or discard remaining changes"
   fi

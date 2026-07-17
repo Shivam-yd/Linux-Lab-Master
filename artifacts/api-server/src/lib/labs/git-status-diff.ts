@@ -1,0 +1,123 @@
+import type { LabDefinition } from "./types";
+
+export const gitStatusDiff: LabDefinition = {
+  id: "git-status-diff",
+  title: "Status, Diff & Discarding Changes",
+  track: "git",
+  level: 1,
+  category: "Git Fundamentals",
+  difficulty: "beginner",
+  summary:
+    "Inspect uncommitted changes with status and diff, then decide which ones to keep and which to throw away.",
+  estimatedMinutes: 15,
+  order: 300,
+  objectives: [
+    "Read git status to see what's modified, staged, or untracked",
+    "Inspect exact line changes with git diff",
+    "Commit a change you want to keep",
+    "Discard a change you don't want with git restore",
+  ],
+  instructions: `## Status, Diff & Discarding Changes
+
+**Scenario**
+A colleague pushed some half-finished edits before going on leave. The repo
+has two modified files: the change to \`file_a.txt\` is good and should be
+committed, but the change to \`file_b.txt\` was a mistake and needs to be
+thrown away. You need to sort it out before the rest of the team pulls.
+
+**Your task:** commit the wanted change to \`file_a.txt\` and discard the
+unwanted edit to \`file_b.txt\`, leaving a clean working tree.
+
+**What You'll Deliver**
+- \`file_a.txt\` edited and the change committed
+- \`file_b.txt\` edited then reverted to its original committed content
+- \`git status\` shows a clean working tree
+
+## Steps
+
+1. \`cd /root/project\`
+2. Append a line to file_a: \`echo "extra line" >> file_a.txt\`
+3. Inspect the change: \`git diff file_a.txt\`
+4. Stage and commit it: \`git add file_a.txt && git commit -m "update file_a"\`
+5. Make an unwanted edit to file_b: \`echo "oops" >> file_b.txt\`
+6. Inspect it: \`git status\` then \`git diff file_b.txt\`
+7. Discard the edit: \`git restore file_b.txt\`
+8. Confirm everything is clean: \`git status\` should show nothing to commit`,
+  tasks: [
+    {
+      id: "file_a_change_committed",
+      description: "file_a.txt was edited and the change was committed",
+    },
+    {
+      id: "file_b_change_discarded",
+      description:
+        "file_b.txt was edited then reverted back to its original committed content with git restore",
+    },
+    {
+      id: "working_tree_clean",
+      description: "git status shows a clean working tree at the end",
+    },
+  ],
+  image: "alpine/git:latest",
+  entrypoint: ["sleep", "infinity"],
+  shell: "sh",
+  terminals: [{ name: "Terminal", user: "root", cwd: "/root/project" }],
+  setupScript: `
+mkdir -p /root/project
+cd /root/project
+git init -q
+git config user.name "Lab Student"
+git config user.email "student@lab.local"
+printf "line1\\nline2\\nline3\\n" > file_a.txt
+printf "keep me unchanged\\n" > file_b.txt
+git add file_a.txt file_b.txt
+git commit -q -m "initial commit"
+`.trim(),
+  verifyScript: `
+cd /root/project || exit 1
+
+# Count commits — all three checks require at least 2 (initial + file_a commit).
+# This prevents checks 2 and 3 from passing before the student has done any work
+# (the setup leaves the tree clean and file_b at original content from the start).
+commit_count=$(git log --oneline 2>/dev/null | wc -l)
+
+# CHECK: file_a_change_committed
+orig_lines=3
+head_lines=$(git show HEAD:file_a.txt 2>/dev/null | wc -l)
+if [ "$head_lines" -gt "$orig_lines" ]; then
+  echo "CHECK:file_a_change_committed:PASS:file_a.txt has a committed change"
+else
+  echo "CHECK:file_a_change_committed:FAIL:Add a line to file_a.txt, then git add file_a.txt && git commit"
+fi
+
+# CHECK: file_b_change_discarded
+# Requires commit_count >= 2 so this cannot pass before file_a is committed.
+# (The file starts at "keep me unchanged" so a content-only check would be a
+# false positive the moment the lab loads.)
+b_content=$(cat file_b.txt 2>/dev/null)
+if [ "$commit_count" -ge 2 ] && [ "$b_content" = "keep me unchanged" ]; then
+  echo "CHECK:file_b_change_discarded:PASS:file_b.txt is back to its original content"
+elif [ "$commit_count" -lt 2 ]; then
+  echo "CHECK:file_b_change_discarded:FAIL:Commit the file_a.txt change first, then edit and discard file_b.txt"
+else
+  echo "CHECK:file_b_change_discarded:FAIL:Edit file_b.txt, inspect with git diff, then run git restore file_b.txt to discard the edit"
+fi
+
+# CHECK: working_tree_clean
+# Requires commit_count >= 2 for the same reason — a freshly set-up repo is
+# already clean, which would be a false positive without this guard.
+if [ -z "$(git status --porcelain)" ] && [ "$commit_count" -ge 2 ]; then
+  echo "CHECK:working_tree_clean:PASS:working tree is clean"
+elif [ "$commit_count" -lt 2 ]; then
+  echo "CHECK:working_tree_clean:FAIL:Commit the file_a.txt change first, then discard the file_b.txt edit"
+else
+  echo "CHECK:working_tree_clean:FAIL:git status --porcelain is not empty — commit or discard remaining changes"
+fi
+`.trim(),
+  hints: [
+    "git diff with no arguments shows unstaged changes across the whole repo.",
+    "Once a change is committed, git restore can't undo it — restore only affects the working tree.",
+    "git restore file_b.txt throws away uncommitted edits and brings the file back to HEAD's version.",
+    "git status --porcelain prints nothing at all when the working tree is fully clean.",
+  ],
+};
