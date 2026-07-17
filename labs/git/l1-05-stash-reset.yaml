@@ -120,15 +120,25 @@ verifyScript: |
   fi
 
   # CHECK: working_tree_clean
+  # Guard on count >= 3 (line3 committed) AND reset_found so this cannot pass
+  # before any work is done — the setup already leaves a clean tree with no
+  # stash entries, which would be a false positive without these guards.
   stash_count=$(git stash list | wc -l)
-  if [ -z "$(git status --porcelain)" ] && [ "$stash_count" -eq 0 ]; then
+  if [ -z "$(git status --porcelain)" ] && [ "$stash_count" -eq 0 ] && [ "$count" -ge 3 ] && [ "$reset_found" -eq 1 ]; then
     echo "CHECK:working_tree_clean:PASS:working tree clean, no leftover stash entries"
+  elif [ "$count" -lt 3 ]; then
+    echo "CHECK:working_tree_clean:FAIL:Complete the stash/pop/commit workflow for line3 first"
+  elif [ "$reset_found" -eq 0 ]; then
+    echo "CHECK:working_tree_clean:FAIL:Make the oops commit then undo it with: git reset --hard HEAD~1"
+  elif [ "$stash_count" -gt 0 ]; then
+    echo "CHECK:working_tree_clean:FAIL:You have leftover stash entries — pop or drop them with: git stash pop"
   else
-    echo "CHECK:working_tree_clean:FAIL:Working tree must be clean with no remaining git stash entries"
+    echo "CHECK:working_tree_clean:FAIL:Working tree is not clean — commit or discard remaining changes"
   fi
 
 hints:
   - "git stash saves uncommitted changes onto a stack and cleans your working tree."
   - "git stash pop re-applies the most recent stash AND removes it from the stash list (git stash apply keeps it, pop does not)."
+  - "If you committed line3 directly without stashing, undo it first: git reset HEAD~1 (soft reset — keeps your changes in the working tree), then run git stash, git stash pop, and commit again."
   - "HEAD~1 means 'one commit before HEAD' — git reset --hard HEAD~1 rewinds the branch pointer by one commit."
   - "git reset --hard permanently discards the commit's changes from your working tree too — there's no stash safety net for it."
