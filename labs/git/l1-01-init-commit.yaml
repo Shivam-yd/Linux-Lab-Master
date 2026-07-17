@@ -83,7 +83,9 @@ verifyScript: |
   fi
 
   # CHECK: notes_file_committed
-  if git show HEAD -- NOTES.md >/dev/null 2>&1 || git log --all --name-only --format= | grep -qx "NOTES.md"; then
+  # git show HEAD -- NOTES.md exits 0 even when the file never existed (empty diff),
+  # so use git cat-file -e which exits non-zero if the object is absent from HEAD.
+  if git cat-file -e HEAD:NOTES.md 2>/dev/null; then
     echo "CHECK:notes_file_committed:PASS:NOTES.md was committed"
   else
     echo "CHECK:notes_file_committed:FAIL:Create NOTES.md, then git add NOTES.md && git commit"
