@@ -77,63 +77,71 @@ setupScript: |
 verifyScript: |
   cd /root/project || exit 1
 
-  # CHECK: stashed_work_committed
-  # Require BOTH: (a) line3 is in the committed file, AND (b) git reflog shows
-  # stash was actually used. This prevents bypassing with a plain commit.
-  # git reflog show stash lists all stash push/pop entries; it persists in the
-  # reflog even after git stash pop removes the entry from refs/stash.
+  # ── Shared state (computed once so all three checks use identical values) ───
+  # tr -d strips leading spaces that busybox wc -l emits (e.g. "      3" → "3")
+  count=$(git log --oneline 2>/dev/null | wc -l | tr -d ' \t')
+  count=${count:-0}
+
+  # stash_was_used: .git/logs/refs/stash is created by the first `git stash`
+  # and survives `git stash pop`, so it proves stash was used even after the
+  # stash list is empty.
   stash_was_used=0
-  # .git/logs/refs/stash is written by git stash and survives git stash pop,
-  # unlike refs/stash itself which is deleted once all entries are popped.
-  # git reflog show stash fails with "unknown ref" after the last pop,
-  # making the grep return non-zero — so we check the log file instead.
-  if [ -f .git/logs/refs/stash ]; then
-    stash_was_used=1
-  fi
+  [ -f .git/logs/refs/stash ] && stash_was_used=1
+
+  # reset_found: any `git reset` command appends a "reset:" entry to the
+  # reflog.  We look for the prefix "reset:" rather than the exact target
+  # phrase so it matches HEAD~1, HEAD^, a SHA, or any other form the student
+  # might have used.
+  reset_found=0
+  git reflog 2>/dev/null | grep -q "reset:" && reset_found=1
+
+  stash_count=$(git stash list 2>/dev/null | wc -l | tr -d ' \t')
+  stash_count=${stash_count:-0}
+
+  # ── CHECK: stashed_work_committed ──────────────────────────────────────────
+  # Requires BOTH: line3 is in the HEAD-committed file AND stash was used.
+  # Checking the committed blob (not the working tree) ensures the student
+  # actually committed after the stash/pop cycle, not just popped without committing.
   line3_committed=0
-  if git show HEAD:file.txt 2>/dev/null | grep -qx "line3"; then
-    line3_committed=1
-  fi
+  git show HEAD:file.txt 2>/dev/null | grep -qx "line3" && line3_committed=1
+
   if [ "$stash_was_used" -eq 1 ] && [ "$line3_committed" -eq 1 ]; then
     echo "CHECK:stashed_work_committed:PASS:line3 committed and git stash was used"
   elif [ "$line3_committed" -eq 0 ]; then
-    echo "CHECK:stashed_work_committed:FAIL:line3 not yet in committed file — add line3, git stash, git stash pop, then git commit -am 'commit 3: add line3'"
+    echo "CHECK:stashed_work_committed:FAIL:line3 not in committed file — run: echo 'line3' >> file.txt  then  git stash  then  git stash pop  then  git commit -am 'commit 3: add line3'"
   else
-    echo "CHECK:stashed_work_committed:FAIL:line3 was committed but no stash activity found — use git stash then git stash pop before committing"
+    echo "CHECK:stashed_work_committed:FAIL:line3 was committed but no stash activity found — undo with: git reset HEAD~1  then use git stash / git stash pop before committing"
   fi
 
-  # CHECK: bad_commit_reset_away
-  # Require BOTH: (a) exactly 3 commits remain with no oops content, AND
-  # (b) git reflog shows a hard reset actually happened — guards against a
-  # student simply committing line3 and never making/resetting the oops commit.
-  count=$(git log --oneline | wc -l)
-  reset_found=0
-  if git reflog 2>/dev/null | grep -q "reset: moving to HEAD"; then
-    reset_found=1
-  fi
+  # ── CHECK: bad_commit_reset_away ───────────────────────────────────────────
+  # Requires BOTH: exactly 3 commits remain (oops commit removed) AND a reset
+  # was recorded in the reflog (proves the student ran git reset, not just
+  # never made the oops commit in the first place).
   if [ "$count" -eq 3 ] && [ "$reset_found" -eq 1 ] && ! grep -q "oops" file.txt 2>/dev/null; then
     echo "CHECK:bad_commit_reset_away:PASS:exactly 3 commits remain and the oops commit was reset away"
   elif [ "$reset_found" -eq 0 ]; then
-    echo "CHECK:bad_commit_reset_away:FAIL:No reset found in history — commit an 'oops' line as a 4th commit, then run: git reset --hard HEAD~1"
+    echo "CHECK:bad_commit_reset_away:FAIL:No reset in history — first make an oops commit: echo 'oops' >> file.txt && git commit -am 'oops commit'  then undo it: git reset --hard HEAD~1"
+  elif [ "$count" -ne 3 ]; then
+    echo "CHECK:bad_commit_reset_away:FAIL:Expected exactly 3 commits after the reset, found $count — run: git reset --hard HEAD~1"
   else
-    echo "CHECK:bad_commit_reset_away:FAIL:Expected 3 commits after reset, found $count — run: git reset --hard HEAD~1"
+    echo "CHECK:bad_commit_reset_away:FAIL:file.txt still contains 'oops' — run: git reset --hard HEAD~1"
   fi
 
-  # CHECK: working_tree_clean
-  # Guard on count >= 3 (line3 committed) AND reset_found so this cannot pass
-  # before any work is done — the setup already leaves a clean tree with no
-  # stash entries, which would be a false positive without these guards.
-  stash_count=$(git stash list | wc -l)
-  if [ -z "$(git status --porcelain)" ] && [ "$stash_count" -eq 0 ] && [ "$count" -ge 3 ] && [ "$reset_found" -eq 1 ]; then
+  # ── CHECK: working_tree_clean ───────────────────────────────────────────────
+  # Guards on count >= 3 AND reset_found so this cannot pass on a fresh
+  # container where the setup already leaves a clean tree with no stash entries
+  # — without these guards it would be a false positive from the very start.
+  porcelain=$(git status --porcelain 2>/dev/null)
+  if [ -z "$porcelain" ] && [ "$stash_count" -eq 0 ] && [ "$count" -ge 3 ] && [ "$reset_found" -eq 1 ]; then
     echo "CHECK:working_tree_clean:PASS:working tree clean, no leftover stash entries"
   elif [ "$count" -lt 3 ]; then
-    echo "CHECK:working_tree_clean:FAIL:Complete the stash/pop/commit workflow for line3 first"
+    echo "CHECK:working_tree_clean:FAIL:Complete the stash/pop/commit workflow for line3 first (need at least 3 commits)"
   elif [ "$reset_found" -eq 0 ]; then
-    echo "CHECK:working_tree_clean:FAIL:Make the oops commit then undo it with: git reset --hard HEAD~1"
+    echo "CHECK:working_tree_clean:FAIL:Make the oops commit then undo it: git reset --hard HEAD~1"
   elif [ "$stash_count" -gt 0 ]; then
-    echo "CHECK:working_tree_clean:FAIL:You have leftover stash entries — pop or drop them with: git stash pop"
+    echo "CHECK:working_tree_clean:FAIL:Leftover stash entries found — run: git stash pop  (or git stash drop to discard)"
   else
-    echo "CHECK:working_tree_clean:FAIL:Working tree is not clean — commit or discard remaining changes"
+    echo "CHECK:working_tree_clean:FAIL:Working tree is not clean — commit or discard remaining changes (run: git status)"
   fi
 
 hints:

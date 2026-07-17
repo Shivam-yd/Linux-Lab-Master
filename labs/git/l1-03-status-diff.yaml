@@ -76,40 +76,43 @@ setupScript: |
 verifyScript: |
   cd /root/project || exit 1
 
-  # Count commits — all three checks require at least 2 (initial + file_a commit).
-  # This prevents checks 2 and 3 from passing before the student has done any work:
-  # the setup already leaves the tree clean and file_b at its original content,
-  # so a content-only check on either would be a false positive from the start.
-  commit_count=$(git log --oneline 2>/dev/null | wc -l)
+  # ── Shared state (computed once so all checks use identical values) ─────────
+  # tr -d strips the leading spaces busybox wc -l emits (e.g. "      2" → "2")
+  commit_count=$(git log --oneline 2>/dev/null | wc -l | tr -d ' \t')
+  commit_count=${commit_count:-0}
 
-  # CHECK: file_a_change_committed
-  orig_lines=3
-  head_lines=$(git show HEAD:file_a.txt 2>/dev/null | wc -l)
-  if [ "$head_lines" -gt "$orig_lines" ]; then
+  # ── CHECK: file_a_change_committed ─────────────────────────────────────────
+  # Original file has 3 lines; any committed addition makes it > 3.
+  head_lines=$(git show HEAD:file_a.txt 2>/dev/null | wc -l | tr -d ' \t')
+  head_lines=${head_lines:-0}
+  if [ "$head_lines" -gt 3 ]; then
     echo "CHECK:file_a_change_committed:PASS:file_a.txt has a committed change"
   else
-    echo "CHECK:file_a_change_committed:FAIL:Add a line to file_a.txt, then git add file_a.txt && git commit"
+    echo "CHECK:file_a_change_committed:FAIL:Add a line to file_a.txt, then: git add file_a.txt && git commit -m 'update file_a'"
   fi
 
-  # CHECK: file_b_change_discarded
-  # Requires commit_count >= 2 so this cannot pass before file_a is committed.
+  # ── CHECK: file_b_change_discarded ─────────────────────────────────────────
+  # Guards on commit_count >= 2 so this cannot pass before file_a is committed
+  # (the setup already leaves file_b at its original content — without this
+  # guard the check would be a false positive from the very start).
   b_content=$(cat file_b.txt 2>/dev/null)
   if [ "$commit_count" -ge 2 ] && [ "$b_content" = "keep me unchanged" ]; then
     echo "CHECK:file_b_change_discarded:PASS:file_b.txt is back to its original content"
   elif [ "$commit_count" -lt 2 ]; then
     echo "CHECK:file_b_change_discarded:FAIL:Commit the file_a.txt change first, then edit and discard file_b.txt"
   else
-    echo "CHECK:file_b_change_discarded:FAIL:Edit file_b.txt, inspect with git diff, then run git restore file_b.txt to discard the edit"
+    echo "CHECK:file_b_change_discarded:FAIL:Run: echo 'oops' >> file_b.txt  then  git restore file_b.txt"
   fi
 
-  # CHECK: working_tree_clean
-  # Requires commit_count >= 2 for the same reason.
-  if [ -z "$(git status --porcelain)" ] && [ "$commit_count" -ge 2 ]; then
+  # ── CHECK: working_tree_clean ───────────────────────────────────────────────
+  # Guards on commit_count >= 2 for the same false-positive reason as above.
+  porcelain=$(git status --porcelain 2>/dev/null)
+  if [ -z "$porcelain" ] && [ "$commit_count" -ge 2 ]; then
     echo "CHECK:working_tree_clean:PASS:working tree is clean"
   elif [ "$commit_count" -lt 2 ]; then
     echo "CHECK:working_tree_clean:FAIL:Commit the file_a.txt change first, then discard the file_b.txt edit"
   else
-    echo "CHECK:working_tree_clean:FAIL:git status --porcelain is not empty — commit or discard remaining changes"
+    echo "CHECK:working_tree_clean:FAIL:Working tree is not clean — run: git restore file_b.txt  (or commit/discard other changes)"
   fi
 
 hints:

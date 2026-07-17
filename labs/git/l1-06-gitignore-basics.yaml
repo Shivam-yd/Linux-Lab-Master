@@ -80,40 +80,53 @@ setupScript: |
 verifyScript: |
   cd /root/project || exit 1
 
-  # CHECK: gitignore_created
+  # ── CHECK: gitignore_created ────────────────────────────────────────────────
   if [ -f .gitignore ] && grep -q '\*\.log' .gitignore && grep -q 'build/' .gitignore; then
     echo "CHECK:gitignore_created:PASS:.gitignore contains patterns for *.log and build/"
   else
-    echo "CHECK:gitignore_created:FAIL:Create .gitignore with lines for *.log and build/"
+    echo "CHECK:gitignore_created:FAIL:Create .gitignore with two lines — '*.log' and 'build/' — then commit it"
   fi
 
-  # CHECK: debug_log_untracked
+  # ── CHECK: debug_log_untracked ──────────────────────────────────────────────
+  # git ls-files --error-unmatch exits 1 when the file is NOT tracked; we want
+  # it to be untracked (exit 1) while still present on disk.
   if [ -f debug.log ] && ! git ls-files --error-unmatch debug.log >/dev/null 2>&1; then
     echo "CHECK:debug_log_untracked:PASS:debug.log is untracked but still present on disk"
+  elif [ ! -f debug.log ]; then
+    echo "CHECK:debug_log_untracked:FAIL:debug.log was deleted from disk — use 'git rm --cached debug.log' (not 'git rm') to keep the file on disk"
   else
-    echo "CHECK:debug_log_untracked:FAIL:Run git rm --cached debug.log, then commit the change"
+    echo "CHECK:debug_log_untracked:FAIL:debug.log is still tracked by git — run: git rm --cached debug.log  then  git add .gitignore && git commit -m 'add gitignore, untrack debug.log'"
   fi
 
-  # CHECK: new_files_ignored
-  # Use git check-ignore to ask directly whether each pattern is in effect.
-  # This is more reliable than checking git status --porcelain for an empty
-  # output, which fails if anything else in the working tree is dirty (e.g.
-  # leftover files from a previous verify run or files the student created).
+  # ── CHECK: new_files_ignored ────────────────────────────────────────────────
+  # Use git check-ignore rather than git status --porcelain so this check is
+  # unaffected by any other working-tree dirt (student files, leftover artifacts
+  # from a previous verify run, etc.).
+  #
+  # PRE-CLEANUP: remove any test artifacts left by a previous verify run before
+  # creating fresh ones — ensures idempotent behaviour across multiple attempts.
+  rm -f app.log build/output.bin 2>/dev/null
+  rmdir build 2>/dev/null
+  # Create the test artifacts.
   touch app.log
   mkdir -p build && touch build/output.bin
   log_ignored=0
   build_ignored=0
   git check-ignore -q app.log 2>/dev/null && log_ignored=1
   git check-ignore -q build/output.bin 2>/dev/null && build_ignored=1
-  # Clean up test artifacts before reporting so they don't litter the workspace
+  # POST-CLEANUP: remove test artifacts before reporting so they don't litter
+  # the workspace. rmdir only removes build/ when it becomes empty; failures
+  # are suppressed since student files inside it are fine to leave.
   rm -f app.log build/output.bin 2>/dev/null
   rmdir build 2>/dev/null
   if [ "$log_ignored" -eq 1 ] && [ "$build_ignored" -eq 1 ]; then
     echo "CHECK:new_files_ignored:PASS:new .log files and build/ contents are ignored"
+  elif [ "$log_ignored" -eq 0 ] && [ "$build_ignored" -eq 0 ]; then
+    echo "CHECK:new_files_ignored:FAIL:Neither pattern is working — ensure .gitignore has both '*.log' and 'build/' and is committed"
   elif [ "$log_ignored" -eq 0 ]; then
-    echo "CHECK:new_files_ignored:FAIL:*.log pattern not working — add *.log to .gitignore and commit it"
+    echo "CHECK:new_files_ignored:FAIL:*.log pattern not working — add '*.log' to .gitignore and commit it"
   else
-    echo "CHECK:new_files_ignored:FAIL:build/ pattern not working — add build/ to .gitignore and commit it"
+    echo "CHECK:new_files_ignored:FAIL:build/ pattern not working — add 'build/' to .gitignore and commit it"
   fi
 
 hints:
