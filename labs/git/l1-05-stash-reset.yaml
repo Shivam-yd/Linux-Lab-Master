@@ -83,7 +83,11 @@ verifyScript: |
   # git reflog show stash lists all stash push/pop entries; it persists in the
   # reflog even after git stash pop removes the entry from refs/stash.
   stash_was_used=0
-  if git reflog show stash 2>/dev/null | grep -q .; then
+  # .git/logs/refs/stash is written by git stash and survives git stash pop,
+  # unlike refs/stash itself which is deleted once all entries are popped.
+  # git reflog show stash fails with "unknown ref" after the last pop,
+  # making the grep return non-zero — so we check the log file instead.
+  if [ -f .git/logs/refs/stash ]; then
     stash_was_used=1
   fi
   line3_committed=0
