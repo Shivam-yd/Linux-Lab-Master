@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation } from "wouter"
 import { useSession, signOut, authClient } from "@/lib/auth-client"
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock } from "lucide-react"
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome } from "lucide-react"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -20,10 +21,27 @@ export default function ProfilePage() {
   // Password change
   const [currentPwd, setCurrentPwd] = useState("")
   const [newPwd, setNewPwd]         = useState("")
+  const [confirmPwd, setConfirmPwd] = useState("")
   const [pwdLoading, setPwdLoading] = useState(false)
   const [pwdMsg, setPwdMsg]         = useState<{ ok: boolean; text: string } | null>(null)
 
   const user = session?.user
+
+  // Detect whether this user has a credential (email/password) account or is
+  // OAuth-only. Better Auth exposes GET /api/auth/list-accounts for exactly this.
+  const { data: accounts } = useQuery<{ providerId: string }[]>({
+    queryKey: ["auth-accounts"],
+    queryFn: async () => {
+      const res = await fetch("/api/auth/list-accounts")
+      if (!res.ok) throw new Error("Could not fetch accounts")
+      return res.json()
+    },
+    enabled: !!user,
+    staleTime: Infinity,
+  })
+
+  const hasCredentialAccount = accounts?.some(a => a.providerId === "credential") ?? null
+  // null = still loading; true/false = determined
 
   useEffect(() => {
     if (!isPending && !user) setLocation(`${basePath}/sign-in`)
@@ -53,6 +71,10 @@ export default function ProfilePage() {
       setPwdMsg({ ok: false, text: "New password must be at least 8 characters." })
       return
     }
+    if (newPwd !== confirmPwd) {
+      setPwdMsg({ ok: false, text: "Passwords do not match." })
+      return
+    }
     setPwdLoading(true)
     try {
       const res = await authClient.changePassword({ currentPassword: currentPwd, newPassword: newPwd, revokeOtherSessions: true })
@@ -61,6 +83,7 @@ export default function ProfilePage() {
         setPwdMsg({ ok: true, text: "Password changed. You'll be signed out of other sessions." })
         setCurrentPwd("")
         setNewPwd("")
+        setConfirmPwd("")
       }
     } catch {
       setPwdMsg({ ok: false, text: "Something went wrong." })
@@ -155,47 +178,71 @@ export default function ProfilePage() {
             <Lock className="w-4 h-4 text-muted-foreground" />
             <h2 className="font-semibold">Change password</h2>
           </div>
-          <form onSubmit={handlePasswordSubmit} className="space-y-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="current-pwd">Current password</Label>
-              <Input
-                id="current-pwd"
-                type="password"
-                placeholder="••••••••"
-                value={currentPwd}
-                onChange={e => setCurrentPwd(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
+
+          {/* OAuth-only account — no password exists to change */}
+          {hasCredentialAccount === false && (
+            <div className="flex items-start gap-3 rounded-lg bg-muted/30 border border-border/60 px-4 py-3 text-sm text-muted-foreground">
+              <Chrome className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>Your account uses Google sign-in — no password is set. You can sign in with Google on any device without a password.</span>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-pwd">New password</Label>
-              <Input
-                id="new-pwd"
-                type="password"
-                placeholder="Min 8 characters"
-                value={newPwd}
-                onChange={e => setNewPwd(e.target.value)}
-                required
-                minLength={8}
-                autoComplete="new-password"
-              />
-            </div>
-            {pwdMsg && (
-              <p className={`text-sm rounded-lg px-3 py-2 border flex items-center gap-2 ${
-                pwdMsg.ok
-                  ? "text-green-400 bg-green-500/10 border-green-500/20"
-                  : "text-destructive bg-destructive/10 border-destructive/20"
-              }`}>
-                {pwdMsg.ok && <CheckCircle2 className="w-4 h-4 shrink-0" />}
-                {pwdMsg.text}
-              </p>
-            )}
-            <Button type="submit" disabled={pwdLoading}>
-              {pwdLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              Change password
-            </Button>
-          </form>
+          )}
+
+          {/* Credential account — show the form */}
+          {(hasCredentialAccount === true || hasCredentialAccount === null) && (
+            <form onSubmit={handlePasswordSubmit} className="space-y-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="current-pwd">Current password</Label>
+                <Input
+                  id="current-pwd"
+                  type="password"
+                  placeholder="••••••••"
+                  value={currentPwd}
+                  onChange={e => setCurrentPwd(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="new-pwd">New password</Label>
+                <Input
+                  id="new-pwd"
+                  type="password"
+                  placeholder="Min 8 characters"
+                  value={newPwd}
+                  onChange={e => setNewPwd(e.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="confirm-pwd">Confirm new password</Label>
+                <Input
+                  id="confirm-pwd"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPwd}
+                  onChange={e => setConfirmPwd(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+              {pwdMsg && (
+                <p className={`text-sm rounded-lg px-3 py-2 border flex items-center gap-2 ${
+                  pwdMsg.ok
+                    ? "text-green-400 bg-green-500/10 border-green-500/20"
+                    : "text-destructive bg-destructive/10 border-destructive/20"
+                }`}>
+                  {pwdMsg.ok && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                  {pwdMsg.text}
+                </p>
+              )}
+              <Button type="submit" disabled={pwdLoading || hasCredentialAccount === null}>
+                {pwdLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Change password
+              </Button>
+            </form>
+          )}
         </div>
 
         {/* Danger zone */}
