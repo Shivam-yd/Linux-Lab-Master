@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "bash", "web"]
+modules = ["nodejs-20", "bash", "web", "postgresql-16"]
 
 [[ports]]
 localPort = 8080
@@ -70,4 +70,4 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-BETTER_AUTH_URL = "https://linuxlabmaster.duckdns.org"
+BETTER_AUTH_URL = "https://330d3dfa-96cc-4fa9-91cf-168aab6c37e9-00-1pf1419ixabwx.sisko.replit.dev"

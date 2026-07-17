@@ -1,60 +1,62 @@
 # Linux Lab Master
 
-A self-hosted DevOps lab platform where students practice real commands in browser-based Docker sandboxes. Labs are automatically verified — students type real shell commands, not multiple choice.
+A self-hosted DevOps lab platform providing browser-based terminal sandboxes for practising real Linux, Terraform, Jenkins, Docker, and Git skills. Every lab drops students into a live Docker container with automatic verification.
 
-## Stack
-
-- **Frontend**: React + Vite + Tailwind CSS (`artifacts/linux-labs`)
-- **Backend**: Node.js + Express 5 (`artifacts/api-server`)
-- **Auth**: Better Auth with Google OAuth
-- **Database**: PostgreSQL via Drizzle ORM (`lib/db`)
-- **Lab sandboxes**: Docker containers spawned on demand via Dockerode
-
-## Running on Replit
-
-Two workflows run the app:
-
-| Workflow | Command | Port |
-|---|---|---|
-| `artifacts/api-server: API Server` | `PORT=8080 pnpm --filter @workspace/api-server run dev` | 8080 |
-| `artifacts/linux-labs: web` | `PORT=21398 BASE_PATH=/ pnpm --filter @workspace/linux-labs run dev` | 21398 |
-
-## Required secrets
-
-| Secret | Description |
-|---|---|
-| `SESSION_SECRET` | Session signing key |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-
-`BETTER_AUTH_URL` is set as a non-secret env var (the Replit dev domain URL).
-`DATABASE_URL` and `PG*` vars are runtime-managed by Replit.
-
-## Schema
-
-Push schema changes to the database:
+## Architecture
 
 ```
+Browser
+  └── Replit proxy
+        ├── /api/*  →  Node.js/Express API  (artifacts/api-server, port $PORT)
+        └── /*      →  React frontend        (artifacts/linux-labs, port $PORT)
+
+PostgreSQL (Replit built-in) — labs, progress, sessions, auth
+Docker daemon — spawns per-student sandbox containers on demand
+```
+
+## Running the project
+
+Two workflows run automatically:
+
+- **API Server** (`artifacts/api-server`) — `pnpm --filter @workspace/api-server run dev`
+- **Linux Labs** (`artifacts/linux-labs`) — `pnpm --filter @workspace/linux-labs run dev`
+
+## Key environment variables
+
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | Replit-managed PostgreSQL (auto-provided) |
+| `SESSION_SECRET` | Replit Secret — set |
+| `BETTER_AUTH_URL` | App's public base URL (set to Replit dev domain) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional — enables Google OAuth |
+
+## Database
+
+Schema managed by Drizzle Kit. To push schema changes:
+
+```bash
 pnpm --filter @workspace/db run push
 ```
 
-## Lab tracks
-
-Labs are plain YAML files under `labs/`. Tracks: Linux, Terraform, Jenkins, Docker, Git.
-
-## Project structure
+## Monorepo layout
 
 ```
 artifacts/
-  api-server/   ← Express API + WebSocket terminal proxy
-  linux-labs/   ← React frontend
+  api-server/     ← Express backend (TypeScript, esbuild)
+  linux-labs/     ← React frontend (Vite, Tailwind, shadcn/ui)
 lib/
-  db/           ← Drizzle schema + client
-  api-zod/      ← Shared Zod schemas
-  api-client-react/ ← React Query API client
-labs/           ← YAML lab definitions
+  db/             ← Drizzle ORM schema + client
+  api-spec/       ← Shared API type definitions
+  api-zod/        ← Zod validators
+  api-client-react/ ← React Query hooks
+labs/
+  linux/          ← YAML lab definitions
+  terraform/
+  jenkins/
+  docker/
+  git/
 ```
 
 ## User preferences
 
-- Keep code minimal — YAGNI, reuse first, deletion over addition (ponytail style)
+- Ponytail coding style: minimum code that works, YAGNI, reuse first, deletion over addition.
