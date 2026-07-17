@@ -2,7 +2,7 @@ import { Link } from "wouter"
 import {
   ArrowLeft, Zap, Github, Linkedin, MapPin, Terminal,
   Layers, Server, Container, GitBranch, CheckCircle2,
-  Code2, BookOpen, ExternalLink, Heart
+  BookOpen, ExternalLink, Heart
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -18,7 +18,6 @@ const FEATURES = [
   { icon: Terminal,      title: "Real Terminals",        desc: "Every lab opens a live shell inside an isolated Docker container — no multiple-choice, no VMs to configure." },
   { icon: CheckCircle2,  title: "Automatic Verification", desc: "Click Verify and the platform runs the check scripts inside your container. Each task is binary: PASS or FAIL, with an exact hint." },
   { icon: BookOpen,      title: "Progressive Curriculum", desc: "Labs are ordered from Foundation to Advanced. Each one builds on the last so concepts stack naturally." },
-  { icon: Code2,         title: "Open Source",            desc: "Every lab definition is a plain YAML file on GitHub. Read the source, suggest improvements, or fork the whole thing." },
 ]
 
 export default function About() {
@@ -157,7 +156,7 @@ export default function About() {
                 </div>
 
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-                  DevOps engineer and open-source developer focused on building practical tools for
+                  DevOps engineer focused on building practical tools for
                   infrastructure and cloud learning. I created LinuxLabMaster to provide engineers
                   with a hands-on, streamlined environment for developing real command-line
                   skills—eliminating the need to configure virtual machines or manage cloud
@@ -198,31 +197,6 @@ export default function About() {
                 </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* ── Open Source ── */}
-        <section className="rounded-2xl bg-card border border-primary/20 p-8 text-center space-y-4 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-cyan-500/5 pointer-events-none" />
-          <div className="relative z-10 space-y-4">
-            <div className="flex items-center justify-center gap-2 text-primary">
-              <Heart className="w-5 h-5 fill-primary/30" />
-              <span className="font-bold font-mono text-sm uppercase tracking-widest">Open Source</span>
-            </div>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto">
-              LinuxLabMaster is fully open source. Every lab, every script, every line of
-              platform code lives on GitHub. Star it, fork it, or contribute a new lab track.
-            </p>
-            <a
-              href="https://github.com/Shivam-yd/Linux-Lab-Master"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors shadow-[0_0_20px_rgba(var(--primary),0.25)]"
-            >
-              <Github className="w-4 h-4" />
-              View on GitHub
-              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-            </a>
           </div>
         </section>
 

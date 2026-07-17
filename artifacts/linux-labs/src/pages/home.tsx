@@ -143,7 +143,7 @@ export default function Home() {
       {/* ── Footer ── */}
       <footer className="border-t border-border/60 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground">
-          <span>LinuxLabMaster — open-source practice range</span>
+          <span>LinuxLabMaster — DevOps practice range</span>
         </div>
       </footer>
     </div>
