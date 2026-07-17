@@ -95,6 +95,10 @@ verifyScript: |
   fi
 
   # CHECK: new_files_ignored
+  # Clean up any leftover test artifacts from previous verify runs so this check
+  # is idempotent, then create fresh ones to test the .gitignore patterns.
+  rm -f app.log build/output.bin 2>/dev/null
+  rmdir build 2>/dev/null
   touch app.log
   mkdir -p build
   touch build/output.bin
@@ -103,6 +107,9 @@ verifyScript: |
   else
     echo "CHECK:new_files_ignored:FAIL:git status still shows untracked files — check your .gitignore patterns"
   fi
+  # Clean up test artifacts so they don't litter the student's workspace
+  rm -f app.log build/output.bin 2>/dev/null
+  rmdir build 2>/dev/null
 
 hints:
   - "A trailing slash in build/ matches the directory itself, ignoring everything inside it."

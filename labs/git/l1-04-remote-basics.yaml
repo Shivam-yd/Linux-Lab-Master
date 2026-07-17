@@ -75,7 +75,10 @@ verifyScript: |
   cd /root/project || exit 1
 
   # CHECK: remote_added
-  if git remote -v 2>/dev/null | grep -q "origin.*remote.git"; then
+  # grep -q "origin.*remote.git" would match any remote name containing "origin"
+  # and any path containing "remote.git". Use git remote get-url for exact match.
+  remote_url=$(git remote get-url origin 2>/dev/null)
+  if echo "$remote_url" | grep -qF "/root/remote.git"; then
     echo "CHECK:remote_added:PASS:origin remote points at /root/remote.git"
   else
     echo "CHECK:remote_added:FAIL:Run git remote add origin /root/remote.git"

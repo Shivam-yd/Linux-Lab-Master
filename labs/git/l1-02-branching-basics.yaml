@@ -76,21 +76,25 @@ verifyScript: |
   cd /root/project || exit 1
 
   # CHECK: feature_branch_created
-  if git branch --list feature | grep -q feature; then
+  # grep -q feature would also match "feature-dev", "my-feature", etc.
+  # git show-ref --verify only matches the exact ref.
+  if git show-ref --verify --quiet refs/heads/feature; then
     echo "CHECK:feature_branch_created:PASS:feature branch exists"
   else
     echo "CHECK:feature_branch_created:FAIL:Create it with git branch feature (or git switch -c feature)"
   fi
 
   # CHECK: feature_branch_has_commit
-  if git show feature:feature.txt >/dev/null 2>&1; then
+  # git show branch:file exits 0 even when the file never existed in that branch
+  # (it shows an empty diff). git cat-file -e exits non-zero if the object is absent.
+  if git cat-file -e feature:feature.txt 2>/dev/null; then
     echo "CHECK:feature_branch_has_commit:PASS:feature.txt is committed on the feature branch"
   else
     echo "CHECK:feature_branch_has_commit:FAIL:On the feature branch, create feature.txt, then git add + git commit"
   fi
 
   # CHECK: merged_into_main
-  if git show main:feature.txt >/dev/null 2>&1; then
+  if git cat-file -e main:feature.txt 2>/dev/null; then
     echo "CHECK:merged_into_main:PASS:main now contains feature.txt via merge"
   else
     echo "CHECK:merged_into_main:FAIL:Switch to main (git switch main) and run git merge feature"
