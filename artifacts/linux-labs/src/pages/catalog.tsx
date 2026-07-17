@@ -24,12 +24,16 @@ function AuthUserMenu({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div className={cn("flex items-center border-t border-border/50 gap-2 py-3", collapsed ? "flex-col px-2" : "justify-between px-4")}>
-      <div className={cn("flex items-center gap-2.5 min-w-0", collapsed && "justify-center")}>
-        <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 text-xs font-bold text-primary">
+      <Link
+        href={`${basePath}/profile`}
+        title={collapsed ? "Profile" : undefined}
+        className={cn("flex items-center gap-2.5 min-w-0 group", collapsed && "justify-center")}
+      >
+        <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 text-xs font-bold text-primary group-hover:bg-primary/25 transition-colors">
           {initial}
         </div>
-        {!collapsed && <span className="text-xs font-medium text-muted-foreground truncate">{label}</span>}
-      </div>
+        {!collapsed && <span className="text-xs font-medium text-muted-foreground truncate group-hover:text-foreground transition-colors">{label}</span>}
+      </Link>
       <button
         type="button"
         onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = basePath || "/" } } })}
