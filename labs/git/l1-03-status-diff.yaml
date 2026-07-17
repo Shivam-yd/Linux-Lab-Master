@@ -1,11 +1,6 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Git Lab: Status, Diff & Discarding Changes
 # ──────────────────────────────────────────────────────────────────────────────
-# NOTE: This lab is in SYNC_DENY_LIST (github-sync.ts) — the verify script was
-# fixed locally to prevent two false-positive checks (see comments in
-# verifyScript below). Do NOT remove it from the deny list without also fixing
-# the upstream repo.
-# ──────────────────────────────────────────────────────────────────────────────
 
 id: "git-status-diff"
 title: "Status, Diff & Discarding Changes"

@@ -36,7 +36,6 @@ const SYNC_DENY_LIST = new Set([
   "git-gitignore",        // duplicate of git-gitignore-basics
   "git-tags-basics",      // duplicate of git-tagging
   "jenkins-pipeline-script", // duplicate of jenkins-pipeline-job
-  "git-status-diff",      // verify script fixed locally (false-positive checks 2 & 3)
 ]);
 
 // Optional: set GITHUB_TOKEN env var to raise rate limit from 60 → 5 000 req/hr

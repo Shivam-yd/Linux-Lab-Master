@@ -10,7 +10,6 @@ import { linuxL1Files } from "./linux-l1-files";
 import { linuxL1Text } from "./linux-l1-text";
 import { linuxL1Processes } from "./linux-l1-processes";
 import { linuxL1Environment } from "./linux-l1-environment";
-import { gitStatusDiff } from "./git-status-diff";
 import { db } from "@workspace/db";
 import { remoteLabsTable } from "@workspace/db/schema";
 
@@ -30,7 +29,6 @@ export const BUILTIN_LABS: LabDefinition[] = [
   linuxL1Text,
   linuxL1Processes,
   linuxL1Environment,
-  gitStatusDiff,
 ].sort((a, b) => a.order - b.order);
 
 // Keep the synchronous export for any code that only needs built-ins
