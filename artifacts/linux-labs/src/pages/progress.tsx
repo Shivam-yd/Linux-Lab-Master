@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Zap, Trophy, Award, CheckCircle2,
   ArrowLeft, Terminal, Layers, Server, Container, GitBranch, Cpu,
-  ExternalLink, Star
+  ExternalLink, Star, ScrollText
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -98,6 +98,55 @@ export default function ProgressPage() {
             </div>
           </div>
         </div>
+
+        {/* My Certificates */}
+        {!loading && (() => {
+          const earned = tracks.filter(track => {
+            const trackLabs = (labs ?? []).filter(l => l.track === track)
+            return trackLabs.length > 0 && trackLabs.every(l => progressByLabId[l.id]?.status === "passed")
+          })
+          if (earned.length === 0) return null
+          return (
+            <section className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border/50" />
+                <div className="flex items-center gap-2 text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground px-2">
+                  <ScrollText className="w-3.5 h-3.5" />
+                  My Certificates
+                </div>
+                <div className="h-px flex-1 bg-border/50" />
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {earned.map(track => {
+                  const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8", accentClass: "text-slate-400" }
+                  const Icon = tm.icon
+                  return (
+                    <Link
+                      key={track}
+                      href={`${basePath}/certificate/${track}`}
+                      className="group flex items-center gap-4 p-4 rounded-xl border border-border/60 bg-card hover:border-amber-500/40 hover:bg-amber-500/5 transition-all"
+                    >
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border"
+                        style={{ background: `${tm.accentHex}15`, borderColor: `${tm.accentHex}30` }}
+                      >
+                        <Icon className={cn("w-5 h-5", tm.accentClass)} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm leading-tight">{tm.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Track completed</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-amber-400 shrink-0">
+                        <Star className="w-4 h-4 fill-amber-400/20" />
+                        <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })()}
 
         {/* Per-track sections */}
         {loading ? (
