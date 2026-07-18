@@ -6,8 +6,9 @@ import { useListLabs } from "@workspace/api-client-react"
 import {
   ArrowLeft, Users, BarChart3, ChevronDown, ChevronRight,
   Trophy, Medal, Crown, Terminal, Layers, Server, Container, GitBranch,
-  Clock, CheckCircle2, Circle, ShieldAlert,
+  Clock, CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2,
 } from "lucide-react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
@@ -18,6 +19,16 @@ const TRACK_META: Record<string, { label: string; accentClass: string; bgClass: 
   jenkins:   { label: "Jenkins",   accentClass: "text-orange-400", bgClass: "bg-orange-400/10" },
   docker:    { label: "Docker",    accentClass: "text-sky-400",    bgClass: "bg-sky-400/10"    },
   git:       { label: "Git",       accentClass: "text-red-400",    bgClass: "bg-red-400/10"    },
+}
+
+type SessionRow = {
+  student_id: string
+  lab_id: string
+  status: string
+  container_id: string | null
+  updated_at: string
+  name: string | null
+  email: string | null
 }
 
 type StudentRow = {
@@ -70,7 +81,7 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  const [tab, setTab] = useState<"leaderboard" | "cohort">("leaderboard")
+  const [tab, setTab] = useState<"leaderboard" | "cohort" | "sessions">("leaderboard")
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const leaderboard = useQuery<StudentRow[]>({
@@ -84,6 +95,24 @@ export default function AdminPage() {
     queryFn: () => fetchAdmin("/api/admin/cohort"),
     retry: false,
     enabled: tab === "cohort",
+  })
+
+  const queryClient = useQueryClient()
+
+  const sessions = useQuery<SessionRow[]>({
+    queryKey: ["admin", "sessions"],
+    queryFn: () => fetchAdmin("/api/admin/sessions"),
+    retry: false,
+    enabled: tab === "sessions",
+    refetchInterval: tab === "sessions" ? 10_000 : false,
+  })
+
+  const killSession = useMutation({
+    mutationFn: async ({ studentId, labId }: { studentId: string; labId: string }) => {
+      const res = await fetch(`/api/admin/sessions/${encodeURIComponent(studentId)}/${encodeURIComponent(labId)}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to kill session")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] }),
   })
 
   // Build lab lookup: id → { title, track }
@@ -194,6 +223,7 @@ export default function AdminPage() {
           {([
             { id: "leaderboard", label: "Leaderboard", icon: Trophy },
             { id: "cohort",      label: "Lab Stats",   icon: BarChart3 },
+            { id: "sessions",    label: "Sessions",    icon: Activity },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -399,6 +429,91 @@ export default function AdminPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+        {/* ── Sessions tab ──────────────────────────────────────────────────── */}
+        {tab === "sessions" && (
+          <div className="space-y-2">
+            {sessions.isLoading && (
+              <div className="text-center py-16 text-muted-foreground font-mono text-sm animate-pulse">
+                Loading sessions…
+              </div>
+            )}
+            {sessions.error && (
+              <div className="text-center py-16 text-red-400 font-mono text-sm">
+                Failed to load sessions.
+              </div>
+            )}
+            {!sessions.isLoading && sessions.data?.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground font-mono text-sm">
+                No active sessions.
+              </div>
+            )}
+            {sessions.data && sessions.data.length > 0 && (
+              <>
+                <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 px-5 py-2 text-xs font-mono text-muted-foreground uppercase tracking-wide">
+                  <span>Student</span>
+                  <span>Lab</span>
+                  <span className="w-20 text-center">Status</span>
+                  <span className="w-16" />
+                </div>
+                {sessions.data.map((s) => {
+                  const labTitle = labMeta[s.lab_id]?.title ?? s.lab_id
+                  const trackMeta = labMeta[s.lab_id] ? TRACK_META[labMeta[s.lab_id].track] : null
+                  const studentLabel = s.name ?? s.email?.split("@")[0] ?? `Guest ${s.student_id.slice(0, 8)}`
+                  const isKilling = killSession.isPending &&
+                    (killSession.variables as any)?.studentId === s.student_id &&
+                    (killSession.variables as any)?.labId === s.lab_id
+                  return (
+                    <div
+                      key={`${s.student_id}:${s.lab_id}`}
+                      className="rounded-xl border border-border/50 bg-card/50 px-5 py-3 grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-center"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{studentLabel}</p>
+                        {s.email && s.name && (
+                          <p className="text-[10px] text-muted-foreground truncate">{s.email}</p>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm truncate">{labTitle}</p>
+                        {trackMeta && (
+                          <span className={cn("text-[10px] font-mono", trackMeta.accentClass)}>
+                            {trackMeta.label}
+                          </span>
+                        )}
+                      </div>
+                      <div className="w-20 flex justify-center">
+                        <span className={cn(
+                          "text-[10px] font-mono px-2 py-0.5 rounded-full border",
+                          s.status === "running"  ? "text-green-400 border-green-500/30 bg-green-500/10" :
+                          s.status === "starting" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                                                    "text-red-400 border-red-500/30 bg-red-500/10",
+                        )}>
+                          {s.status}
+                        </span>
+                      </div>
+                      <div className="w-16 flex justify-end">
+                        <button
+                          disabled={isKilling}
+                          onClick={() => killSession.mutate({ studentId: s.student_id, labId: s.lab_id })}
+                          className={cn(
+                            "flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors",
+                            "border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed",
+                          )}
+                          title="Force-kill this session"
+                        >
+                          {isKilling
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <XCircle className="w-3.5 h-3.5" />}
+                          Kill
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            )}
           </div>
         )}
       </div>

@@ -138,7 +138,6 @@ export default function About() {
 
             <div className="p-8 flex flex-col sm:flex-row gap-8 items-start">
 
-              {/* Avatar placeholder */}
               <div className="shrink-0">
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/30 to-cyan-500/20 border border-primary/20 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary),0.15)]">
                   <span className="text-4xl font-black text-primary select-none">S</span>

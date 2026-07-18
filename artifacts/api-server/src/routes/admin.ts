@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
 import { db } from "@workspace/db";
 import { auth } from "../lib/auth";
+import { stopSession } from "../lib/docker/manager";
 
 // Comma-separated list of admin emails set via the ADMIN_EMAILS env var.
 // e.g. ADMIN_EMAILS=alice@example.com,bob@example.com
@@ -74,6 +75,42 @@ router.get("/admin/cohort", async (_req, res): Promise<void> => {
     ORDER BY attempted DESC, passed DESC
   `);
   res.json(result.rows);
+});
+
+/**
+ * GET /admin/sessions
+ * All non-stopped lab sessions with student info.
+ */
+router.get("/admin/sessions", async (_req, res): Promise<void> => {
+  const result = await db.execute(sql`
+    SELECT
+      ls.student_id,
+      ls.lab_id,
+      ls.status,
+      ls.container_id,
+      ls.updated_at,
+      u.name,
+      u.email
+    FROM lab_sessions ls
+    LEFT JOIN "user" u ON u.id = ls.student_id
+    WHERE ls.status NOT IN ('stopped')
+    ORDER BY ls.updated_at DESC
+  `);
+  res.json(result.rows);
+});
+
+/**
+ * DELETE /admin/sessions/:studentId/:labId
+ * Force-kill a specific lab session.
+ */
+router.delete("/admin/sessions/:studentId/:labId", async (req, res): Promise<void> => {
+  const { studentId, labId } = req.params;
+  if (!studentId || !labId) {
+    res.status(400).json({ error: "Missing studentId or labId" });
+    return;
+  }
+  await stopSession(studentId, labId);
+  res.status(204).send();
 });
 
 export default router;

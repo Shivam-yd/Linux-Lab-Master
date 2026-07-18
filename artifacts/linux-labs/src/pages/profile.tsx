@@ -179,6 +179,17 @@ export default function ProfilePage() {
             <h2 className="font-semibold">Change password</h2>
           </div>
 
+          {/* Still loading account type — avoid flicker by showing a skeleton */}
+          {hasCredentialAccount === null && (
+            <div className="space-y-3 animate-pulse">
+              <div className="h-4 w-32 rounded bg-muted/40" />
+              <div className="h-9 rounded-md bg-muted/30" />
+              <div className="h-4 w-32 rounded bg-muted/40" />
+              <div className="h-9 rounded-md bg-muted/30" />
+              <div className="h-9 w-36 rounded-md bg-muted/30" />
+            </div>
+          )}
+
           {/* OAuth-only account — no password exists to change */}
           {hasCredentialAccount === false && (
             <div className="flex items-start gap-3 rounded-lg bg-muted/30 border border-border/60 px-4 py-3 text-sm text-muted-foreground">
@@ -188,7 +199,7 @@ export default function ProfilePage() {
           )}
 
           {/* Credential account — show the form */}
-          {(hasCredentialAccount === true || hasCredentialAccount === null) && (
+          {hasCredentialAccount === true && (
             <form onSubmit={handlePasswordSubmit} className="space-y-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="current-pwd">Current password</Label>
