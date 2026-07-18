@@ -80,10 +80,10 @@ export default function ForgotPasswordPage() {
               <div>
                 <h1 className="text-xl font-bold mb-1">Request submitted</h1>
                 <p className="text-sm text-muted-foreground">
-                  Your reset request for{" "}
-                  <span className="text-foreground font-medium">{email}</span>{" "}
-                  has been sent to an admin for approval. Check back here once
-                  it's been approved.
+                  If an account exists for{" "}
+                  <span className="text-foreground font-medium">{email}</span>
+                  , your request has been queued for admin approval. Check back
+                  here once it's been approved.
                 </p>
               </div>
               {error && (
