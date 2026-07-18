@@ -102,7 +102,7 @@ router.delete("/users/:userId", async (req, res): Promise<void> => {
       WHERE student_id = ${userId} AND status NOT IN ('stopped', 'error')
     `);
     await Promise.allSettled(
-      activeSessions.rows.map((row) =>
+      activeSessions.rows.map((row: Record<string, unknown>) =>
         stopSession(userId, row.lab_id as string)
       )
     );
@@ -111,17 +111,17 @@ router.delete("/users/:userId", async (req, res): Promise<void> => {
     console.error("admin delete-user: failed to stop sessions", err);
   }
 
-  // 2. Delete all data in the correct order.
+  // 2. Delete all data atomically.
   //    FK cascade handles: lab_sessions, lab_progress (via students), and
   //    session, account, verification (via user).  password_reset_requests
   //    has no FK so it must be deleted explicitly.
-  await db.execute(sql`
-    BEGIN;
-    DELETE FROM password_reset_requests WHERE user_id = ${userId};
-    DELETE FROM students WHERE id = ${userId};
-    DELETE FROM "user" WHERE id = ${userId};
-    COMMIT;
-  `);
+  //    Use db.transaction() — pg rejects multi-statement parameterised queries,
+  //    so BEGIN/COMMIT in a single sql`` call would silently fail.
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`DELETE FROM password_reset_requests WHERE user_id = ${userId}`);
+    await tx.execute(sql`DELETE FROM students WHERE id = ${userId}`);
+    await tx.execute(sql`DELETE FROM "user" WHERE id = ${userId}`);
+  });
 
   res.status(204).send();
 });
