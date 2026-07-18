@@ -28,6 +28,7 @@ Two workflows run automatically:
 | `DATABASE_URL` | Replit-managed PostgreSQL (auto-provided) |
 | `SESSION_SECRET` | Replit Secret — set |
 | `BETTER_AUTH_URL` | App's public base URL (set to Replit dev domain) |
+| `ADMIN_EMAILS` | Comma-separated emails with admin panel access — set |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional — enables Google OAuth |
 
 ## Database
