@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -99,6 +100,7 @@ export default function AdminPage() {
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
+  const { toast } = useToast()
 
   const leaderboard = useQuery<StudentRow[]>({
     queryKey: ["admin", "leaderboard"],
@@ -166,9 +168,13 @@ export default function AdminPage() {
   const deleteAccount = useMutation({
     mutationFn: async (studentId: string) => {
       const res = await fetch(`/api/admin/users/${encodeURIComponent(studentId)}`, { method: "DELETE" })
-      if (!res.ok) throw new Error("Failed to delete account")
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? "Failed to delete account")
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
+    onError: (err: Error) => toast({ title: "Cannot delete account", description: err.message, variant: "destructive" }),
   })
 
   // Build lab lookup: id → { title, track }
