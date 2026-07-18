@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Link } from "wouter"
 import { useQuery } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
@@ -6,7 +6,7 @@ import { useListLabs } from "@workspace/api-client-react"
 import {
   ArrowLeft, Users, BarChart3, ChevronRight,
   Trophy, Medal, Crown, Terminal, Layers, Server, Container, GitBranch,
-  Clock, CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
+  CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Zap, Target,
 } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -166,7 +166,10 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/progress/${encodeURIComponent(studentId)}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to reset progress")
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
+    },
   })
 
   const deleteAccount = useMutation({
@@ -194,6 +197,15 @@ export default function AdminPage() {
   }, [labs])
 
   const totalLabs = labs?.length ?? 0
+
+  // Keep selectedStudent in sync with fresh leaderboard data.
+  // After a reset the panel auto-updates; after a delete it auto-closes.
+  useEffect(() => {
+    if (!selectedStudent || !leaderboard.data) return
+    const fresh = leaderboard.data.find((s: StudentRow) => s.id === selectedStudent.id)
+    if (fresh) setSelectedStudent(fresh)
+    else setSelectedStudent(null)
+  }, [leaderboard.data]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isPending) return null
 
@@ -323,8 +335,8 @@ export default function AdminPage() {
                 {leaderboard.isLoading && (
                   <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading students…</div>
                 )}
-                {leaderboard.error && !is403 && (
-                  <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load data.</div>
+                {leaderboard.error && (
+                  <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load data. Check that the API server is running.</div>
                 )}
                 {!leaderboard.isLoading && students.length === 0 && (
                   <div className="text-center py-20 space-y-2">
@@ -414,7 +426,7 @@ export default function AdminPage() {
             {tab === "cohort" && (
               <div className="space-y-2">
                 {cohort.isLoading && <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading lab stats…</div>}
-                {cohort.data?.length === 0 && (
+                {!cohort.isLoading && cohort.data?.length === 0 && (
                   <div className="text-center py-20 space-y-2">
                     <Target className="w-10 h-10 text-muted-foreground/30 mx-auto" />
                     <p className="text-muted-foreground text-sm">No attempts recorded yet.</p>
@@ -465,7 +477,7 @@ export default function AdminPage() {
               <div className="space-y-2">
                 {sessions.isLoading && <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading sessions…</div>}
                 {sessions.error && <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load sessions.</div>}
-                {!sessions.isLoading && sessions.data?.length === 0 && (
+                {!sessions.isLoading && !sessions.error && sessions.data?.length === 0 && (
                   <div className="text-center py-20 space-y-2">
                     <Activity className="w-10 h-10 text-muted-foreground/30 mx-auto" />
                     <p className="text-muted-foreground text-sm">No active sessions.</p>
@@ -525,7 +537,7 @@ export default function AdminPage() {
               <div className="space-y-2">
                 {pwResets.isLoading && <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading requests…</div>}
                 {pwResets.error && <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load password reset requests.</div>}
-                {!pwResets.isLoading && pwResets.data?.length === 0 && (
+                {!pwResets.isLoading && !pwResets.error && pwResets.data?.length === 0 && (
                   <div className="text-center py-20 space-y-2">
                     <KeyRound className="w-10 h-10 text-muted-foreground/30 mx-auto" />
                     <p className="text-muted-foreground text-sm">No password reset requests.</p>
