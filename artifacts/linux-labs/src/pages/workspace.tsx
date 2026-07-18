@@ -115,6 +115,8 @@ export default function Workspace() {
 
   // Leave-confirm modal state (replaces window.confirm for back/nav guards)
   const [leaveConfirm, setLeaveConfirm] = useState<{ onConfirm: () => void; onCancel?: () => void } | null>(null)
+  // Reset-confirm modal state
+  const [resetConfirm, setResetConfirm] = useState(false)
 
   // Hints state
   const [hintsRevealed, setHintsRevealed] = useState(0)
@@ -216,11 +218,7 @@ export default function Workspace() {
 
   const handleStart = () => startSession.mutate({ labId })
   const handleStop = () => stopSession.mutate({ labId })
-  const handleReset = () => {
-    if (confirm("Are you sure you want to reset the sandbox? All changes will be lost.")) {
-      resetSession.mutate({ labId })
-    }
-  }
+  const handleReset = () => setResetConfirm(true)
   
   const handleVerify = () => {
     setVerifyError(null)
@@ -867,6 +865,40 @@ export default function Workspace() {
                 <ExternalLink className="w-3 h-3 shrink-0" />
               </Link>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Reset confirmation modal ─────────────────────────────────────── */}
+      {resetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-full bg-red-500/15 p-2">
+                <RotateCcw className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-base">Reset sandbox?</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  All changes will be lost and the environment will be rebuilt from scratch.{" "}
+                  <span className="text-red-400 font-medium">This cannot be undone.</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setResetConfirm(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setResetConfirm(false); resetSession.mutate({ labId }) }}
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </div>
       )}
