@@ -6,13 +6,14 @@ import {
 } from "lucide-react"
 import { useListLabs } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
+import { cn } from "@/lib/utils"
 
 const TRACKS = [
-  { label: "Linux", icon: Terminal, color: "#22d3ee" },
-  { label: "Terraform", icon: Layers, color: "#c084fc" },
-  { label: "Jenkins", icon: Server, color: "#f97316" },
-  { label: "Docker", icon: Container, color: "#38bdf8" },
-  { label: "Git", icon: GitBranch, color: "#f87171" },
+  { label: "Linux",     icon: Terminal,  color: "#22d3ee", iconClass: "group-hover:animate-pulse" },
+  { label: "Terraform", icon: Layers,    color: "#c084fc", iconClass: "group-hover:animate-bounce" },
+  { label: "Jenkins",   icon: Server,    color: "#f97316", iconClass: "group-hover:animate-pulse group-hover:[animation-duration:0.7s]" },
+  { label: "Docker",    icon: Container, color: "#38bdf8", iconClass: "group-hover:animate-spin group-hover:[animation-duration:2s]" },
+  { label: "Git",       icon: GitBranch, color: "#f87171", iconClass: "group-hover:animate-spin group-hover:[animation-duration:3s]" },
 ]
 
 const FEATURES = [
@@ -110,16 +111,16 @@ export default function Home() {
       {/* ── Tracks ── */}
       <section className="max-w-6xl mx-auto px-6 pb-16">
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          {TRACKS.map(({ label, icon: Icon, color }) => (
+          {TRACKS.map(({ label, icon: Icon, color, iconClass }) => (
             <div
               key={label}
-              className="rounded-xl border border-border bg-card/60 p-5 flex flex-col items-center gap-3 text-center hover:border-primary/30 transition-colors"
+              className="rounded-xl border border-border bg-card/60 p-5 flex flex-col items-center gap-3 text-center hover:border-primary/30 transition-colors group"
             >
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center"
                 style={{ background: `${color}15`, border: `1px solid ${color}30` }}
               >
-                <Icon className="w-5 h-5" style={{ color }} />
+                <Icon className={cn("w-5 h-5", iconClass)} style={{ color }} />
               </div>
               <span className="text-sm font-semibold">{label}</span>
             </div>
