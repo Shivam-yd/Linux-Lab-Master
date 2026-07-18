@@ -82,11 +82,12 @@ verifyScript: |
   count=$(git log --oneline 2>/dev/null | wc -l | tr -d ' \t')
   count=${count:-0}
 
-  # stash_was_used: .git/logs/refs/stash is created by the first `git stash`
-  # and survives `git stash pop`, so it proves stash was used even after the
-  # stash list is empty.
+  # stash_was_used: `git stash` always writes a "reset: moving to HEAD" entry
+  # to the HEAD reflog (no ~1 suffix — distinct from reset --hard HEAD~1).
+  # This entry survives git stash pop, unlike .git/logs/refs/stash which git
+  # deletes when the last stash entry is dropped.
   stash_was_used=0
-  [ -f .git/logs/refs/stash ] && stash_was_used=1
+  git reflog 2>/dev/null | grep -q "reset: moving to HEAD$" && stash_was_used=1
 
   # reset_found: any `git reset` command appends a "reset:" entry to the
   # reflog.  We look for the prefix "reset:" rather than the exact target

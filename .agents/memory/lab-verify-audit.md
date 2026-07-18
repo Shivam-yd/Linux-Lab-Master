@@ -40,8 +40,11 @@ rmdir build 2>/dev/null
 
 ## Rule 5 — Bypass-able checks must verify the OPERATION happened, not just the end state
 
-**Stash:** `git reflog show stash | grep -q .` proves stash was used.
-**Reset:** `git reflog | grep -q "reset: moving to HEAD"` proves reset ran.
+**Stash:** `git reflog 2>/dev/null | grep -q "reset: moving to HEAD$"` proves stash was used.
+- Do NOT use `[ -f .git/logs/refs/stash ]` — git deletes this file when the last stash entry is dropped (git stash pop). The HEAD reflog entry survives because `git stash` internally calls `git reset HEAD` (no suffix), leaving a distinctive `"reset: moving to HEAD"` line that differs from `"reset: moving to HEAD~1"` from a real reset.
+- Do NOT use `git reflog show stash | grep -q .` — the reflog file is gone after pop, so this command fails.
+
+**Reset:** `git reflog | grep -q "reset:"` proves reset ran.
 **Why:** End-state checks (commit count, file content) can be reached without doing the actual operation.
 
 ## Rule 6 — Seed required state in setupScript for "delete" tasks
