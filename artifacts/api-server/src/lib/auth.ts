@@ -1,11 +1,13 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import {
   userTable,
   sessionTable,
   accountTable,
   verificationTable,
+  passwordResetRequestsTable,
 } from "@workspace/db/schema";
 
 // Public origin the browser hits — needed so Google can redirect back after OAuth.
@@ -52,9 +54,22 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
-      // No SMTP configured — log the link so an admin can relay it manually.
-      // Replace this with a real email provider (Resend, Nodemailer, etc.) when ready.
-      console.log(`[password-reset] email=${user.email}  link=${url}`);
+      // Extract token from the reset URL and store it on any pending request for this email.
+      // This fires when the admin approves a request (via auth.api.forgetPassword).
+      try {
+        const token = new URL(url).searchParams.get("token");
+        if (token) {
+          await db
+            .update(passwordResetRequestsTable)
+            .set({ resetToken: token, status: "approved", approvedAt: new Date() })
+            .where(and(
+              eq(passwordResetRequestsTable.email, user.email.toLowerCase()),
+              eq(passwordResetRequestsTable.status, "pending"),
+            ));
+        }
+      } catch (err) {
+        console.error("[password-reset] failed to store token", err);
+      }
     },
   },
   ...(googleConfigured && {

@@ -100,6 +100,18 @@ export const remoteLabsTable = pgTable("remote_labs", {
 });
 export type RemoteLabRow = typeof remoteLabsTable.$inferSelect;
 
+/** One row per admin-approved password-reset request. */
+export const passwordResetRequestsTable = pgTable("password_reset_requests", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  email: text("email").notNull(),
+  status: text("status").notNull().default("pending"), // pending | approved | used
+  resetToken: text("reset_token"),
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+});
+export type PasswordResetRequestRow = typeof passwordResetRequestsTable.$inferSelect;
+
 /** One row written after every sync attempt (background or manual). */
 export const labSyncLogTable = pgTable("lab_sync_log", {
   id: serial("id").primaryKey(),

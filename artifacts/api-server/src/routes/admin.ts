@@ -1,7 +1,8 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
 import { db } from "@workspace/db";
+import { passwordResetRequestsTable } from "@workspace/db/schema";
 import { auth } from "../lib/auth";
 import { stopSession } from "../lib/docker/manager";
 
