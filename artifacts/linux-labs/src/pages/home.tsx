@@ -147,7 +147,7 @@ export default function Home() {
       </section>
 
       {/* ── Footer gradient bleed ── */}
-      <div className="h-40 pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(45,212,191,0.18) 0%, rgba(45,212,191,0.06) 40%, transparent 70%)" }} />
+      <div className="h-40 pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(45,212,191,0.10) 0%, rgba(45,212,191,0.03) 40%, transparent 70%)" }} />
 
       {/* ── Footer ── */}
       <footer className="border-t border-border/60 py-8 bg-card/80 backdrop-blur-md">
