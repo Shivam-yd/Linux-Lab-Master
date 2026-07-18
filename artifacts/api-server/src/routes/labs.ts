@@ -73,7 +73,11 @@ router.get("/progress", async (req, res): Promise<void> => {
     .from(labProgressTable)
     .where(eq(labProgressTable.studentId, req.studentId));
 
-  const byLabId = new Map(rows.map((r) => [r.labId, r]));
+  type ProgressRow = {
+    labId: string; status: string; bestScore: number;
+    lastAttemptAt: Date | null; lastResults: unknown;
+  };
+  const byLabId = new Map((rows as ProgressRow[]).map((r) => [r.labId, r]));
   const progress = all.map((lab) => {
     const row = byLabId.get(lab.id);
     return {

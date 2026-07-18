@@ -151,6 +151,11 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
     return;
   }
 
+  // Capture narrowed string types here so closures (e.g. idle timer) retain
+  // the non-null guarantee — TS cannot narrow through closures on its own.
+  const resolvedStudentId: string = studentId;
+  const resolvedLabId: string = labId;
+
   const lab = await getLabByIdAsync(labId);
   const terminal = lab?.terminals.find((t) => t.name === terminalName);
   if (!lab || !terminal) {
@@ -199,7 +204,7 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
       idleTimer = setTimeout(() => {
         sendControl(ws, { type: "status", message: "Session closed after 30 minutes of inactivity." });
         ws.close();
-        stopSession(studentId, labId).catch(() => undefined);
+        stopSession(resolvedStudentId, resolvedLabId).catch(() => undefined);
       }, IDLE_TIMEOUT_MS);
     }
     resetIdleTimer();
