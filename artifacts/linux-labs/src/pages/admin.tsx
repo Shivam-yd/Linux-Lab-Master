@@ -267,7 +267,7 @@ export default function AdminPage() {
 
         {/* ── Main scrollable area ── */}
         <div className="flex-1 overflow-y-auto min-w-0">
-          <div className="px-6 py-8 space-y-6">
+          <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
             {/* Summary cards */}
             <div className="grid grid-cols-3 gap-4">
