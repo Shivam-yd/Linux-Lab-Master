@@ -53,11 +53,11 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
-      // Extract token from the reset URL and store it on any pending or approved request.
-      // This fires when the admin approves (or re-approves) a request via auth.api.forgetPassword.
+    sendResetPassword: async ({ user, token }: { user: { email: string }; url: string; token: string }) => {
+      // Better Auth passes the raw verification token as `token` (not embedded in the URL path).
+      // Store it on any pending or approved request so the student can use it via /set.
+      // This fires when the admin approves (or re-approves) a request via auth.api.requestPasswordReset.
       try {
-        const token = new URL(url).searchParams.get("token");
         if (token) {
           // Better Auth tokens expire in 1 hour by default.
           const expiresAt = new Date(Date.now() + 60 * 60 * 1000);

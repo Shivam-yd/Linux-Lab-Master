@@ -171,7 +171,7 @@ router.post("/password-reset-requests/:id/approve", async (req, res): Promise<vo
 
   // Trigger Better Auth to generate a reset token; the sendResetPassword hook
   // will store the token on the row and flip status → approved.
-  await auth.api.forgetPassword({
+  await auth.api.requestPasswordReset({
     body: { email: rows[0].email, redirectTo: `${baseURL}/reset-password` },
   });
 
