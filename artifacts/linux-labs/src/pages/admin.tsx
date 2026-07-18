@@ -641,7 +641,7 @@ export default function AdminPage() {
       {/* ── Student slide-over ───────────────────────────────────────────── */}
       {selectedStudent && (
         <div className="fixed inset-0 z-40 flex justify-end">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedStudent(null)} />
+          <div className="absolute inset-0 bg-black/20" onClick={() => setSelectedStudent(null)} />
 
           <div className="relative w-full max-w-sm bg-[#0d0d0d] border-l border-border h-full flex flex-col overflow-hidden shadow-2xl">
 
