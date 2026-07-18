@@ -163,6 +163,14 @@ else
   fi
 
   echo ""
+  echo -e "  ${CYAN}Admin emails${RESET} — comma-separated list of accounts that can access /admin"
+  echo -e "  (password-reset approvals, leaderboard, session management, etc.)"
+  read -rp "  ADMIN_EMAILS        : " ADMIN_EMAILS
+  if [[ -z "${ADMIN_EMAILS}" ]]; then
+    warn "No admin email set — the /admin panel will be inaccessible until you add ADMIN_EMAILS to ${ENV_FILE}"
+  fi
+
+  echo ""
   echo -e "  ${CYAN}GitHub Token (optional — raises lab-sync rate limit from 60 → 5,000 req/hr)${RESET}"
   echo -e "  Create a token at: https://github.com/settings/tokens (no scopes needed for public repos)"
   read -rp "  GITHUB_TOKEN        : " GITHUB_TOKEN
