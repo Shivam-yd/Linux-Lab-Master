@@ -95,6 +95,7 @@ export default function AdminPage() {
   const { data: labs } = useListLabs()
   const [tab, setTab] = useState<"leaderboard" | "cohort" | "sessions" | "password-resets">("leaderboard")
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [confirmReset, setConfirmReset] = useState<StudentRow | null>(null)
 
   const leaderboard = useQuery<StudentRow[]>({
     queryKey: ["admin", "leaderboard"],
@@ -385,10 +386,7 @@ export default function AdminPage() {
                         <span className="text-xs text-muted-foreground font-mono">Lab attempts</span>
                         <button
                           disabled={resetProgress.isPending && resetProgress.variables === student.id}
-                          onClick={() => {
-                            if (!window.confirm(`Reset all progress for ${displayName(student)}? This cannot be undone.`)) return
-                            resetProgress.mutate(student.id)
-                          }}
+                          onClick={() => setConfirmReset(student)}
                           className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                         >
                           {resetProgress.isPending && resetProgress.variables === student.id
@@ -669,6 +667,44 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* ── Reset progress confirmation modal ─────────────────────────────── */}
+      {confirmReset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-full bg-red-500/15 p-2">
+                <RotateCcw className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-base">Reset progress?</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  All lab progress for{" "}
+                  <span className="font-medium text-foreground">{displayName(confirmReset)}</span>{" "}
+                  will be permanently deleted. This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setConfirmReset(null)}
+                className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  resetProgress.mutate(confirmReset.id)
+                  setConfirmReset(null)
+                }}
+                className="px-4 py-2 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-colors"
+              >
+                Reset progress
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
