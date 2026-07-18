@@ -7,7 +7,7 @@ import {
   ArrowLeft, Users, BarChart3, ChevronDown, ChevronRight,
   Trophy, Medal, Crown, Terminal, Layers, Server, Container, GitBranch,
   Clock, CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
-  KeyRound, Trash2, UserX,
+  KeyRound, Trash2, UserX, X, ChevronLast,
 } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
@@ -95,7 +95,7 @@ export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
   const [tab, setTab] = useState<"leaderboard" | "cohort" | "sessions" | "password-resets">("leaderboard")
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null)
   const [confirmReset, setConfirmReset] = useState<StudentRow | null>(null)
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
@@ -193,14 +193,6 @@ export default function AdminPage() {
 
   const totalLabs = labs?.length ?? 0
 
-  function toggleExpand(id: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
   // ── Not logged in ────────────────────────────────────────────────────────────
   if (isPending) return null
 
@@ -234,6 +226,13 @@ export default function AdminPage() {
     if (!s.last_active) return false
     return Date.now() - new Date(s.last_active).getTime() < 86400000
   }).length
+
+  // Slide-over derived values (safe to compute even when null — guarded in JSX)
+  const sliderPassRate = selectedStudent && selectedStudent.attempted > 0
+    ? Math.round((selectedStudent.passed / selectedStudent.attempted) * 100) : 0
+  const sliderPassedLabs = selectedStudent?.labs.filter(l => l.status === "passed") ?? []
+  const sliderAvgScore = sliderPassedLabs.length > 0
+    ? Math.round(sliderPassedLabs.reduce((a, l) => a + l.bestScore, 0) / sliderPassedLabs.length) : 0
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -324,9 +323,8 @@ export default function AdminPage() {
             )}
             {students.map((student, i) => {
               const rank = i + 1
-              const isOpen = expanded.has(student.id)
 
-              // Per-track passed counts
+              // Per-track passed counts (for row badges)
               const trackPassed: Record<string, number> = {}
               for (const l of student.labs) {
                 if (l.status === "passed") {
@@ -341,115 +339,52 @@ export default function AdminPage() {
                 rank === 3 ? Trophy : null
 
               return (
-                <div
+                <button
                   key={student.id}
-                  className="rounded-xl border border-border/50 bg-card/50 overflow-hidden"
+                  onClick={() => setSelectedStudent(student)}
+                  className="w-full rounded-xl border border-border/50 bg-card/50 flex items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
                 >
-                  {/* Row */}
-                  <button
-                    onClick={() => toggleExpand(student.id)}
-                    className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
-                  >
-                    {/* Rank */}
-                    <div className={cn(
-                      "w-8 text-center font-mono font-bold text-sm shrink-0",
-                      rank === 1 ? "text-amber-400" :
-                      rank === 2 ? "text-slate-300" :
-                      rank === 3 ? "text-amber-600" : "text-muted-foreground",
-                    )}>
-                      {RankIcon ? <RankIcon className="w-5 h-5 mx-auto" /> : `#${rank}`}
-                    </div>
+                  {/* Rank */}
+                  <div className={cn(
+                    "w-8 text-center font-mono font-bold text-sm shrink-0",
+                    rank === 1 ? "text-amber-400" :
+                    rank === 2 ? "text-slate-300" :
+                    rank === 3 ? "text-amber-600" : "text-muted-foreground",
+                  )}>
+                    {RankIcon ? <RankIcon className="w-5 h-5 mx-auto" /> : `#${rank}`}
+                  </div>
 
-                    {/* Name */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{displayName(student)}</p>
-                      {displaySub(student) && (
-                        <p className="text-xs text-muted-foreground truncate">{displaySub(student)}</p>
-                      )}
-                    </div>
+                  {/* Name */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{displayName(student)}</p>
+                    {displaySub(student) && (
+                      <p className="text-xs text-muted-foreground truncate">{displaySub(student)}</p>
+                    )}
+                  </div>
 
-                    {/* Track mini-badges */}
-                    <div className="hidden md:flex items-center gap-1.5">
-                      {Object.keys(TRACK_META).filter(t => trackTotals[t]).map((track) => {
-                        const meta = TRACK_META[track]
-                        const done = trackPassed[track] ?? 0
-                        const total = trackTotals[track] ?? 0
-                        if (total === 0) return null
-                        return (
-                          <div key={track} className={cn("px-2 py-0.5 rounded text-[10px] font-mono", meta.bgClass, meta.accentClass)}>
-                            {done}/{total}
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    {/* Passed count */}
-                    <div className="text-right shrink-0 w-24">
-                      <p className="font-mono font-bold text-sm text-green-400">{student.passed}<span className="text-muted-foreground font-normal">/{totalLabs}</span></p>
-                      <p className="text-[10px] text-muted-foreground">{relativeTime(student.last_active)}</p>
-                    </div>
-
-                    {/* Expand toggle */}
-                    <div className="shrink-0 text-muted-foreground">
-                      {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    </div>
-                  </button>
-
-                  {/* Expanded per-lab detail */}
-                  {isOpen && (
-                    <div className="border-t border-border/50 px-5 py-4 space-y-3">
-                      {/* Reset progress / Delete account actions */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground font-mono">Lab attempts</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            disabled={resetProgress.isPending && resetProgress.variables === student.id}
-                            onClick={() => setConfirmReset(student)}
-                            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {resetProgress.isPending && resetProgress.variables === student.id
-                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              : <RotateCcw className="w-3.5 h-3.5" />}
-                            Reset progress
-                          </button>
-                          <button
-                            disabled={deleteAccount.isPending && deleteAccount.variables === student.id}
-                            onClick={() => { setConfirmDeleteAccount(student); setDeleteAccountEmail("") }}
-                            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-red-800/50 text-red-500 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {deleteAccount.isPending && deleteAccount.variables === student.id
-                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              : <UserX className="w-3.5 h-3.5" />}
-                            Delete account
-                          </button>
+                  {/* Track mini-badges */}
+                  <div className="hidden md:flex items-center gap-1.5">
+                    {Object.keys(TRACK_META).filter(t => trackTotals[t]).map((track) => {
+                      const meta = TRACK_META[track]
+                      const done = trackPassed[track] ?? 0
+                      const total = trackTotals[track] ?? 0
+                      if (total === 0) return null
+                      return (
+                        <div key={track} className={cn("px-2 py-0.5 rounded text-[10px] font-mono", meta.bgClass, meta.accentClass)}>
+                          {done}/{total}
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {student.labs.length === 0 ? (
-                          <p className="col-span-3 text-xs text-muted-foreground font-mono">No lab attempts yet.</p>
-                        ) : student.labs.map((l) => {
-                          const meta = labMeta[l.labId]
-                          const trackMeta = meta ? TRACK_META[meta.track] : null
-                          return (
-                            <div key={l.labId} className="flex items-center gap-2 text-xs">
-                              {l.status === "passed"
-                                ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                : <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
-                              <span className="truncate text-muted-foreground" title={meta?.title ?? l.labId}>
-                                {meta?.title ?? l.labId}
-                              </span>
-                              {trackMeta && (
-                                <span className={cn("shrink-0 text-[9px] font-mono", trackMeta.accentClass)}>
-                                  {trackMeta.label}
-                                </span>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Passed count */}
+                  <div className="text-right shrink-0 w-24">
+                    <p className="font-mono font-bold text-sm text-green-400">{student.passed}<span className="text-muted-foreground font-normal">/{totalLabs}</span></p>
+                    <p className="text-[10px] text-muted-foreground">{relativeTime(student.last_active)}</p>
+                  </div>
+
+                  <ChevronLast className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
               )
             })}
           </div>
@@ -783,6 +718,133 @@ export default function AdminPage() {
                 className="px-4 py-2 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-colors"
               >
                 Delete request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Student profile slide-over ───────────────────────────────────── */}
+      {selectedStudent && (
+        <div className="fixed inset-0 z-40 flex justify-end">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedStudent(null)} />
+
+          {/* Panel */}
+          <div className="relative w-full max-w-md bg-card border-l border-border h-full flex flex-col overflow-hidden">
+
+            {/* Header */}
+            <div className="shrink-0 border-b border-border px-6 py-5 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary text-sm uppercase">
+                  {displayName(selectedStudent).charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm truncate">{displayName(selectedStudent)}</p>
+                  {displaySub(selectedStudent) && <p className="text-xs text-muted-foreground truncate">{displaySub(selectedStudent)}</p>}
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Last active {relativeTime(selectedStudent.last_active)}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedStudent(null)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Stats strip */}
+            <div className="shrink-0 grid grid-cols-3 divide-x divide-border border-b border-border">
+              {[
+                { label: "Passed", value: `${selectedStudent.passed}/${totalLabs}` },
+                { label: "Pass rate", value: `${sliderPassRate}%` },
+                { label: "Avg score", value: sliderPassedLabs.length > 0 ? `${sliderAvgScore}%` : "—" },
+              ].map(({ label, value }) => (
+                <div key={label} className="px-4 py-3 text-center">
+                  <p className="text-lg font-bold font-mono text-foreground">{value}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto">
+
+              {/* Track breakdown */}
+              <div className="px-6 pt-5 pb-4 border-b border-border space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Progress by track</p>
+                {Object.entries(TRACK_META).map(([track, meta]) => {
+                  const total = trackTotals[track] ?? 0
+                  if (!total) return null
+                  const passed = selectedStudent.labs.filter(l => l.status === "passed" && labMeta[l.labId]?.track === track).length
+                  const inProgress = selectedStudent.labs.filter(l => l.status !== "passed" && labMeta[l.labId]?.track === track).length
+                  const pct = Math.round((passed / total) * 100)
+                  const barColor = meta.accentClass.replace("text-", "bg-")
+                  return (
+                    <div key={track}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={cn("text-xs font-medium", meta.accentClass)}>{meta.label}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{passed}/{total}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${pct}%` }} />
+                      </div>
+                      {inProgress > 0 && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{inProgress} in progress</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Lab list grouped by track */}
+              <div className="px-6 pt-5 pb-6 space-y-5">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Lab attempts</p>
+                {selectedStudent.labs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground font-mono">No lab attempts yet.</p>
+                ) : Object.entries(TRACK_META).map(([track, meta]) => {
+                  const trackLabs = selectedStudent.labs.filter(l => labMeta[l.labId]?.track === track)
+                  if (!trackLabs.length) return null
+                  return (
+                    <div key={track} className="space-y-1.5">
+                      <p className={cn("text-[10px] font-bold uppercase tracking-wider", meta.accentClass)}>{meta.label}</p>
+                      {trackLabs.map(l => (
+                        <div key={l.labId} className="flex items-center gap-2.5">
+                          {l.status === "passed"
+                            ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                            : <Circle className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />}
+                          <span className="flex-1 text-xs text-muted-foreground truncate" title={labMeta[l.labId]?.title ?? l.labId}>
+                            {labMeta[l.labId]?.title ?? l.labId}
+                          </span>
+                          {l.status === "passed" && (
+                            <span className="shrink-0 text-[10px] font-mono text-green-400">{l.bestScore}%</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Actions footer */}
+            <div className="shrink-0 border-t border-border px-6 py-4 flex items-center gap-2">
+              <button
+                disabled={resetProgress.isPending && resetProgress.variables === selectedStudent.id}
+                onClick={() => setConfirmReset(selectedStudent)}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {resetProgress.isPending && resetProgress.variables === selectedStudent.id
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <RotateCcw className="w-3.5 h-3.5" />}
+                Reset progress
+              </button>
+              <button
+                disabled={deleteAccount.isPending && deleteAccount.variables === selectedStudent.id}
+                onClick={() => { setConfirmDeleteAccount(selectedStudent); setDeleteAccountEmail("") }}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-red-800/50 text-red-500 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleteAccount.isPending && deleteAccount.variables === selectedStudent.id
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <UserX className="w-3.5 h-3.5" />}
+                Delete account
               </button>
             </div>
           </div>
