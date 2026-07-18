@@ -2,7 +2,7 @@ import { Link } from "wouter"
 import { Redirect } from "wouter"
 import {
   Zap, Terminal, Layers, Server, Container, GitBranch,
-  CheckCircle2, ArrowRight,
+  ArrowRight, ScanLine, TrendingUp,
 } from "lucide-react"
 import { useListLabs } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
@@ -16,9 +16,9 @@ const TRACKS = [
 ]
 
 const FEATURES = [
-  { title: "Real Terminals", desc: "Every lab opens a live shell inside an isolated Docker container — no multiple choice, no VMs to configure." },
-  { title: "Automatic Verification", desc: "Click Verify and the platform runs the check scripts inside your container. Each task is PASS or FAIL, with an exact hint." },
-  { title: "Your Own Progress", desc: "Sign in and every lab you pass, every streak, and every badge is saved to your account — pick up where you left off, anywhere." },
+  { icon: Terminal,   color: "#22d3ee", title: "Real Terminals",        desc: "Every lab opens a live shell inside an isolated Docker container — no multiple choice, no VMs to configure." },
+  { icon: ScanLine,   color: "#a78bfa", title: "Automatic Verification", desc: "Click Verify and the platform runs the check scripts inside your container. Each task is PASS or FAIL, with an exact hint." },
+  { icon: TrendingUp, color: "#34d399", title: "Your Own Progress",      desc: "Sign in and every lab you pass is saved to your account — pick up where you left off, anywhere." },
 ]
 
 export default function Home() {
@@ -130,9 +130,14 @@ export default function Home() {
       {/* ── Features ── */}
       <section className="max-w-6xl mx-auto px-6 pb-24">
         <div className="grid sm:grid-cols-3 gap-6">
-          {FEATURES.map(({ title, desc }) => (
+          {FEATURES.map(({ icon: Icon, color, title, desc }) => (
             <div key={title} className="rounded-2xl border border-border bg-card/60 p-6">
-              <CheckCircle2 className="w-5 h-5 text-primary mb-4" />
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                style={{ background: `${color}18`, border: `1px solid ${color}30` }}
+              >
+                <Icon className="w-5 h-5" style={{ color }} />
+              </div>
               <h3 className="font-bold mb-2">{title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
             </div>
@@ -144,6 +149,7 @@ export default function Home() {
       <footer className="border-t border-border/60 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground">
           <span>LinuxLabMaster — DevOps practice range</span>
+          <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
         </div>
       </footer>
     </div>
