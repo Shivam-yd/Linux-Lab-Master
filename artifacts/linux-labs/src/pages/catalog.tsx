@@ -589,9 +589,11 @@ export default function Catalog() {
               <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                 {meta.label} Range
                 {trackStats.total > 0 && trackStats.completed === trackStats.total && (
-                  <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 gap-1.5">
-                    <Award className="w-3.5 h-3.5" /> Track Complete
-                  </Badge>
+                  <Link href={`${basePath}/certificate/${resolvedTrack}`}>
+                    <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 gap-1.5 cursor-pointer hover:bg-amber-500/20 transition-colors">
+                      <Award className="w-3.5 h-3.5" /> Track Complete · View Certificate
+                    </Badge>
+                  </Link>
                 )}
               </h1>
               <p className="text-muted-foreground mt-2 max-w-xl text-sm leading-relaxed">
