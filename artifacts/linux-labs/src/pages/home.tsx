@@ -147,7 +147,7 @@ export default function Home() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-primary/20 py-8 bg-card" style={{ boxShadow: "0 -1px 0 0 rgba(45,212,191,0.08)" }}>
+      <footer className="border-t border-border/60 py-8 bg-card/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground">
           <span>LinuxLabMaster — DevOps practice range</span>
           <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
