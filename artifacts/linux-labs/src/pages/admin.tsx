@@ -7,7 +7,7 @@ import {
   ArrowLeft, Users, BarChart3, ChevronDown, ChevronRight,
   Trophy, Medal, Crown, Terminal, Layers, Server, Container, GitBranch,
   Clock, CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
-  KeyRound, Trash2,
+  KeyRound, Trash2, UserX,
 } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
@@ -97,6 +97,8 @@ export default function AdminPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [confirmReset, setConfirmReset] = useState<StudentRow | null>(null)
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
+  const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
 
   const leaderboard = useQuery<StudentRow[]>({
     queryKey: ["admin", "leaderboard"],
@@ -157,6 +159,14 @@ export default function AdminPage() {
     mutationFn: async (studentId: string) => {
       const res = await fetch(`/api/admin/progress/${encodeURIComponent(studentId)}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to reset progress")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
+  })
+
+  const deleteAccount = useMutation({
+    mutationFn: async (studentId: string) => {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(studentId)}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete account")
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
   })
@@ -382,19 +392,31 @@ export default function AdminPage() {
                   {/* Expanded per-lab detail */}
                   {isOpen && (
                     <div className="border-t border-border/50 px-5 py-4 space-y-3">
-                      {/* Reset progress action */}
+                      {/* Reset progress / Delete account actions */}
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground font-mono">Lab attempts</span>
-                        <button
-                          disabled={resetProgress.isPending && resetProgress.variables === student.id}
-                          onClick={() => setConfirmReset(student)}
-                          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {resetProgress.isPending && resetProgress.variables === student.id
-                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : <RotateCcw className="w-3.5 h-3.5" />}
-                          Reset progress
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            disabled={resetProgress.isPending && resetProgress.variables === student.id}
+                            onClick={() => setConfirmReset(student)}
+                            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {resetProgress.isPending && resetProgress.variables === student.id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <RotateCcw className="w-3.5 h-3.5" />}
+                            Reset progress
+                          </button>
+                          <button
+                            disabled={deleteAccount.isPending && deleteAccount.variables === student.id}
+                            onClick={() => { setConfirmDeleteAccount(student); setDeleteAccountEmail("") }}
+                            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-red-800/50 text-red-500 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {deleteAccount.isPending && deleteAccount.variables === student.id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <UserX className="w-3.5 h-3.5" />}
+                            Delete account
+                          </button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {student.labs.length === 0 ? (
@@ -665,6 +687,63 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* ── Delete account confirmation modal ────────────────────────────── */}
+      {confirmDeleteAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-full bg-red-500/15 p-2">
+                <UserX className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-base">Delete account permanently?</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  This will permanently delete{" "}
+                  <span className="font-medium text-foreground">{displayName(confirmDeleteAccount)}</span>'s
+                  account along with all lab progress, sessions, and password reset requests.{" "}
+                  <span className="text-red-400 font-medium">This cannot be undone.</span>
+                </p>
+              </div>
+            </div>
+            {confirmDeleteAccount.email && (
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground font-mono">
+                  Type <span className="text-foreground font-medium">{confirmDeleteAccount.email}</span> to confirm
+                </label>
+                <input
+                  type="text"
+                  value={deleteAccountEmail}
+                  onChange={(e) => setDeleteAccountEmail(e.target.value)}
+                  placeholder={confirmDeleteAccount.email}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-red-500/50"
+                />
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => { setConfirmDeleteAccount(null); setDeleteAccountEmail("") }}
+                className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={
+                  !!confirmDeleteAccount.email && deleteAccountEmail !== confirmDeleteAccount.email
+                }
+                onClick={() => {
+                  deleteAccount.mutate(confirmDeleteAccount.id)
+                  setConfirmDeleteAccount(null)
+                  setDeleteAccountEmail("")
+                }}
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Delete account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Delete password reset request confirmation modal ──────────────── */}
       {confirmDeleteReset && (

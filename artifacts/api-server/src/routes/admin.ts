@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { sql, eq, or } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
 import { db } from "@workspace/db";
 import { passwordResetRequestsTable } from "@workspace/db/schema";
@@ -76,6 +76,54 @@ router.get("/cohort", async (_req, res): Promise<void> => {
     ORDER BY attempted DESC, passed DESC
   `);
   res.json(result.rows);
+});
+
+/**
+ * DELETE /admin/users/:userId
+ * Permanently delete a student account and ALL associated data:
+ *   - Stops any live Docker lab sessions first
+ *   - password_reset_requests (no FK cascade, must be explicit)
+ *   - students row (cascades → lab_sessions, lab_progress)
+ *   - Better Auth user row (cascades → session, account, verification)
+ */
+router.delete("/users/:userId", async (req, res): Promise<void> => {
+  const { userId } = req.params;
+  if (!userId) {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
+
+  // 1. Stop any live Docker containers for this student before touching the DB.
+  //    We query first so we know exactly what to stop; errors here are logged but
+  //    don't abort the delete — a dangling container is less bad than a dangling account.
+  try {
+    const activeSessions = await db.execute(sql`
+      SELECT lab_id FROM lab_sessions
+      WHERE student_id = ${userId} AND status NOT IN ('stopped', 'error')
+    `);
+    await Promise.allSettled(
+      activeSessions.rows.map((row) =>
+        stopSession(userId, row.lab_id as string)
+      )
+    );
+  } catch (err) {
+    // Non-fatal: log and continue with deletion.
+    console.error("admin delete-user: failed to stop sessions", err);
+  }
+
+  // 2. Delete all data in the correct order.
+  //    FK cascade handles: lab_sessions, lab_progress (via students), and
+  //    session, account, verification (via user).  password_reset_requests
+  //    has no FK so it must be deleted explicitly.
+  await db.execute(sql`
+    BEGIN;
+    DELETE FROM password_reset_requests WHERE user_id = ${userId};
+    DELETE FROM students WHERE id = ${userId};
+    DELETE FROM "user" WHERE id = ${userId};
+    COMMIT;
+  `);
+
+  res.status(204).send();
 });
 
 /**
