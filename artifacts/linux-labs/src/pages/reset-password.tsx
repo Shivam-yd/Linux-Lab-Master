@@ -117,21 +117,6 @@ export default function ResetPasswordPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                {/* Only show email field for the approval flow when it wasn't pre-filled */}
-                {!tokenParam && !emailParam && (
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      required
-                      autoComplete="email"
-                    />
-                  </div>
-                )}
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="new-pwd">New password</Label>
                   <Input

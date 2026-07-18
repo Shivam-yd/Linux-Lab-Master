@@ -30,6 +30,7 @@ type PasswordResetRequest = {
   resetToken: string | null
   requestedAt: string
   approvedAt: string | null
+  expiresAt: string | null
 }
 
 type SessionRow = {
@@ -609,6 +610,7 @@ export default function AdminPage() {
                 {pwResets.data.map((r) => {
                   const isApproving = approvePwReset.isPending && approvePwReset.variables === r.id
                   const isDismissing = dismissPwReset.isPending && dismissPwReset.variables === r.id
+                  const tokenExpired = r.status === "approved" && !!r.expiresAt && new Date(r.expiresAt) < new Date()
                   return (
                     <div
                       key={r.id}
@@ -619,11 +621,12 @@ export default function AdminPage() {
                       <div className="w-24 flex justify-center">
                         <span className={cn(
                           "text-[10px] font-mono px-2 py-0.5 rounded-full border",
-                          r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
-                          r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
-                                                    "text-muted-foreground border-border bg-white/5",
+                          r.status === "pending"               ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                          r.status === "approved" && !tokenExpired ? "text-green-400 border-green-500/30 bg-green-500/10" :
+                          r.status === "approved" && tokenExpired  ? "text-orange-400 border-orange-500/30 bg-orange-500/10" :
+                                                                     "text-muted-foreground border-border bg-white/5",
                         )}>
-                          {r.status}
+                          {tokenExpired ? "expired" : r.status}
                         </span>
                       </div>
 
@@ -632,7 +635,7 @@ export default function AdminPage() {
                       </span>
 
                       <div className="w-28 flex items-center gap-2 justify-end">
-                        {r.status === "pending" && (
+                        {(r.status === "pending" || tokenExpired) && (
                           <button
                             disabled={isApproving}
                             onClick={() => approvePwReset.mutate(r.id)}
@@ -641,7 +644,7 @@ export default function AdminPage() {
                             {isApproving
                               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               : <CheckCircle2 className="w-3.5 h-3.5" />}
-                            Approve
+                            {tokenExpired ? "Re-approve" : "Approve"}
                           </button>
                         )}
                         <button
