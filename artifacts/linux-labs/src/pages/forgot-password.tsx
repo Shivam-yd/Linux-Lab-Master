@@ -30,7 +30,9 @@ export default function ForgotPasswordPage() {
         setError((data as any).error ?? "Something went wrong.")
         return
       }
-      setStage("pending")
+      const data = await res.json()
+      // Backend returns the current status — jump straight to "approved" if already done.
+      setStage(data.status === "approved" ? "approved" : "pending")
     } catch {
       setError("Something went wrong. Please try again.")
     } finally {

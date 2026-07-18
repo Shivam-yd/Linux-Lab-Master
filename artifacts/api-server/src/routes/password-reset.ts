@@ -24,24 +24,25 @@ router.post("/password-reset/request", async (req, res): Promise<void> => {
     res.json({ ok: true }); return;
   }
 
-  // Don't duplicate pending requests
+  // Check for any active (pending or approved) request first.
   const existing = await db
-    .select({ id: passwordResetRequestsTable.id })
+    .select({ id: passwordResetRequestsTable.id, status: passwordResetRequestsTable.status })
     .from(passwordResetRequestsTable)
     .where(and(
       eq(passwordResetRequestsTable.email, lower),
-      eq(passwordResetRequestsTable.status, "pending"),
+      // "used" requests are finished — ignore them so the student can request again.
+      sql`status IN ('pending', 'approved')`,
     ))
     .limit(1);
 
-  if (existing.length === 0) {
-    await db.insert(passwordResetRequestsTable).values({
-      userId: user.id,
-      email: lower,
-    });
+  if (existing.length > 0) {
+    // Return the current status so the frontend can drop the student into the right stage.
+    res.json({ ok: true, status: existing[0].status });
+    return;
   }
 
-  res.json({ ok: true });
+  await db.insert(passwordResetRequestsTable).values({ userId: user.id, email: lower });
+  res.json({ ok: true, status: "pending" });
 });
 
 /** GET /api/password-reset/check?email= — returns whether an approved reset is waiting. */
