@@ -12,7 +12,7 @@ router.use(healthRouter);
 router.use(configRouter);
 router.use(labsRouter);
 router.use(sessionsRouter);
-router.use(adminRouter);
+router.use("/admin", adminRouter);
 router.use(passwordResetRouter);
 
 export default router;

@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { sql, eq, asc } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
 import { db } from "@workspace/db";
 import { passwordResetRequestsTable } from "@workspace/db/schema";
@@ -30,7 +30,7 @@ router.use(requireAdmin);
  * All students ranked by passed lab count.
  * Includes name/email for Better Auth users, null for guests.
  */
-router.get("/admin/leaderboard", async (_req, res): Promise<void> => {
+router.get("/leaderboard", async (_req, res): Promise<void> => {
   const result = await db.execute(sql`
     SELECT
       s.id,
@@ -63,7 +63,7 @@ router.get("/admin/leaderboard", async (_req, res): Promise<void> => {
  * GET /admin/cohort
  * Per-lab attempt and pass counts across all students.
  */
-router.get("/admin/cohort", async (_req, res): Promise<void> => {
+router.get("/cohort", async (_req, res): Promise<void> => {
   const result = await db.execute(sql`
     SELECT
       lab_id,
@@ -82,7 +82,7 @@ router.get("/admin/cohort", async (_req, res): Promise<void> => {
  * DELETE /admin/progress/:studentId
  * Wipe all lab_progress rows for a student (resets their progress to not_started).
  */
-router.delete("/admin/progress/:studentId", async (req, res): Promise<void> => {
+router.delete("/progress/:studentId", async (req, res): Promise<void> => {
   const { studentId } = req.params;
   if (!studentId) {
     res.status(400).json({ error: "Missing studentId" });
@@ -96,7 +96,7 @@ router.delete("/admin/progress/:studentId", async (req, res): Promise<void> => {
  * GET /admin/sessions
  * All non-stopped lab sessions with student info.
  */
-router.get("/admin/sessions", async (_req, res): Promise<void> => {
+router.get("/sessions", async (_req, res): Promise<void> => {
   const result = await db.execute(sql`
     SELECT
       ls.student_id,
@@ -118,7 +118,7 @@ router.get("/admin/sessions", async (_req, res): Promise<void> => {
  * DELETE /admin/sessions/:studentId/:labId
  * Force-kill a specific lab session.
  */
-router.delete("/admin/sessions/:studentId/:labId", async (req, res): Promise<void> => {
+router.delete("/sessions/:studentId/:labId", async (req, res): Promise<void> => {
   const { studentId, labId } = req.params;
   if (!studentId || !labId) {
     res.status(400).json({ error: "Missing studentId or labId" });
@@ -132,7 +132,7 @@ router.delete("/admin/sessions/:studentId/:labId", async (req, res): Promise<voi
  * GET /admin/password-reset-requests
  * List all pending (and recently approved) password reset requests.
  */
-router.get("/admin/password-reset-requests", async (_req, res): Promise<void> => {
+router.get("/password-reset-requests", async (_req, res): Promise<void> => {
   const rows = await db
     .select()
     .from(passwordResetRequestsTable)
@@ -145,7 +145,7 @@ router.get("/admin/password-reset-requests", async (_req, res): Promise<void> =>
  * Approve a pending request: triggers Better Auth to generate a reset token,
  * which the sendResetPassword hook captures and stores on the row.
  */
-router.post("/admin/password-reset-requests/:id/approve", async (req, res): Promise<void> => {
+router.post("/password-reset-requests/:id/approve", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
@@ -179,7 +179,7 @@ router.post("/admin/password-reset-requests/:id/approve", async (req, res): Prom
  * DELETE /admin/password-reset-requests/:id
  * Dismiss / delete a password reset request (any status).
  */
-router.delete("/admin/password-reset-requests/:id", async (req, res): Promise<void> => {
+router.delete("/password-reset-requests/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db
