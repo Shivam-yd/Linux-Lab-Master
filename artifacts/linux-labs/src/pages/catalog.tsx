@@ -517,8 +517,8 @@ export default function Catalog() {
           <div className="pt-2 border-t border-border/40 space-y-0.5">
             {[
               { href: "/progress", icon: BarChart2, label: "My Progress" },
-              { href: "/about",    icon: Info,      label: "About" },
               ...(session?.user ? [{ href: "/admin", icon: Shield, label: "Admin Panel" }] : []),
+              { href: "/about",    icon: Info,      label: "About" },
             ].map(({ href, icon: Icon, label }) => (
               <Link
                 key={href}
