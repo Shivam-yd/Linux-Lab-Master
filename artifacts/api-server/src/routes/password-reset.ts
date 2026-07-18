@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull, gt } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { passwordResetRequestsTable } from "@workspace/db/schema";
@@ -24,14 +24,20 @@ router.post("/password-reset/request", async (req, res): Promise<void> => {
     res.json({ ok: true }); return;
   }
 
-  // Check for any active (pending or approved) request first.
+  // Check for any active (pending or non-expired approved) request first.
   const existing = await db
     .select({ id: passwordResetRequestsTable.id, status: passwordResetRequestsTable.status })
     .from(passwordResetRequestsTable)
     .where(and(
       eq(passwordResetRequestsTable.email, lower),
-      // "used" requests are finished — ignore them so the student can request again.
-      sql`status IN ('pending', 'approved')`,
+      or(
+        eq(passwordResetRequestsTable.status, "pending"),
+        // Approved rows are only "active" while the token is still valid.
+        and(
+          eq(passwordResetRequestsTable.status, "approved"),
+          or(isNull(passwordResetRequestsTable.expiresAt), gt(passwordResetRequestsTable.expiresAt, new Date())),
+        ),
+      ),
     ))
     .limit(1);
 
@@ -56,6 +62,8 @@ router.get("/password-reset/check", async (req, res): Promise<void> => {
     .where(and(
       eq(passwordResetRequestsTable.email, email),
       eq(passwordResetRequestsTable.status, "approved"),
+      // Only report approved if the token is still valid.
+      or(isNull(passwordResetRequestsTable.expiresAt), gt(passwordResetRequestsTable.expiresAt, new Date())),
     ))
     .limit(1);
 
@@ -82,6 +90,11 @@ router.post("/password-reset/set", async (req, res): Promise<void> => {
   }
 
   const request = rows[0];
+
+  // Reject before hitting Better Auth if our own expiry says the token is stale.
+  if (request.expiresAt && request.expiresAt < new Date()) {
+    res.status(400).json({ error: "Reset token has expired — ask an admin to re-approve your request" }); return;
+  }
 
   // Use Better Auth's resetPassword API with the stored token.
   // Better Auth throws on failure rather than returning an error object.
