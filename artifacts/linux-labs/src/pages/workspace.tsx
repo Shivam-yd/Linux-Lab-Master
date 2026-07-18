@@ -114,7 +114,7 @@ export default function Workspace() {
   }, [closeCountdown, setLocation])
 
   // Leave-confirm modal state (replaces window.confirm for back/nav guards)
-  const [leaveConfirm, setLeaveConfirm] = useState<{ onConfirm: () => void } | null>(null)
+  const [leaveConfirm, setLeaveConfirm] = useState<{ onConfirm: () => void; onCancel?: () => void } | null>(null)
 
   // Hints state
   const [hintsRevealed, setHintsRevealed] = useState(0)
@@ -184,13 +184,20 @@ export default function Workspace() {
       }
       if (!isRunningRef.current) return
 
-      // Push sentinel back so the URL is stable while the modal is open.
-      // On confirm we'll call window.history.back() to actually leave.
-      window.history.pushState({ labGuard: true }, "", window.location.href)
+      // The sentinel was just popped — we're now sitting on the real /lab/X
+      // entry, one step above /previous-page in the stack.
+      // Do NOT push the sentinel back yet: doing so would cost an extra hop,
+      // meaning window.history.back() on confirm would land back on /lab/X
+      // instead of /previous-page.
+      // Instead: on confirm call back() once (goes to /previous-page ✓).
+      //          on cancel push the sentinel back to restore the guard.
       setLeaveConfirm({
         onConfirm: () => {
           allowNextPopRef.current = true
           window.history.back()
+        },
+        onCancel: () => {
+          window.history.pushState({ labGuard: true }, "", window.location.href)
         },
       })
     }
@@ -881,7 +888,7 @@ export default function Workspace() {
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <button
-                onClick={() => setLeaveConfirm(null)}
+                onClick={() => { leaveConfirm.onCancel?.(); setLeaveConfirm(null) }}
                 className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted/50 transition-colors"
               >
                 Stay
