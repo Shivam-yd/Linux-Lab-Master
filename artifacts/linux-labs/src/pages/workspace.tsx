@@ -202,9 +202,10 @@ export default function Workspace() {
   const handleCatalogClick = useCallback((e: MouseEvent) => {
     if (!isRunning) return
     e.preventDefault()
-    const href = (e.currentTarget as HTMLAnchorElement).href
-    setLeaveConfirm({ onConfirm: () => { window.location.href = href } })
-  }, [isRunning])
+    const url = new URL((e.currentTarget as HTMLAnchorElement).href)
+    const path = url.pathname + url.search
+    setLeaveConfirm({ onConfirm: () => setLocation(path) })
+  }, [isRunning, setLocation])
 
   const handleStart = () => startSession.mutate({ labId })
   const handleStop = () => stopSession.mutate({ labId })
