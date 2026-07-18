@@ -49,8 +49,8 @@ router.get("/admin/leaderboard", async (_req, res): Promise<void> => {
         '[]'::json
       ) AS labs
     FROM students s
+    INNER JOIN "user" u ON u.id = s.id
     LEFT JOIN lab_progress lp ON lp.student_id = s.id
-    LEFT JOIN "user" u ON u.id = s.id
     GROUP BY s.id, u.name, u.email, s.created_at
     ORDER BY passed DESC, attempted DESC, s.created_at DESC
   `);
@@ -69,6 +69,7 @@ router.get("/admin/cohort", async (_req, res): Promise<void> => {
       COUNT(*) FILTER (WHERE status = 'passed')::int  AS passed
     FROM lab_progress
     WHERE status != 'not_started'
+      AND student_id IN (SELECT id FROM "user")
     GROUP BY lab_id
     ORDER BY attempted DESC, passed DESC
   `);
