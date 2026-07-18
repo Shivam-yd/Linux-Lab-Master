@@ -93,6 +93,17 @@ router.delete("/users/:userId", async (req, res): Promise<void> => {
     return;
   }
 
+  // Guard: never allow deleting an admin account.
+  // Admin status is email-based (ADMIN_EMAILS env var); if the target user's
+  // email is in that list, refuse — deleting their DB row would invalidate
+  // their session and lock them out even though the env var still grants access.
+  const targetUser = await db.execute(sql`SELECT email FROM "user" WHERE id = ${userId} LIMIT 1`);
+  const targetEmail = (targetUser.rows[0] as Record<string, unknown> | undefined)?.email as string | undefined;
+  if (targetEmail && ADMIN_EMAILS.includes(targetEmail)) {
+    res.status(403).json({ error: "Cannot delete an admin account" });
+    return;
+  }
+
   // 1. Stop any live Docker containers for this student before touching the DB.
   //    We query first so we know exactly what to stop; errors here are logged but
   //    don't abort the delete — a dangling container is less bad than a dangling account.
