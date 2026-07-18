@@ -24,25 +24,25 @@ instructions: |
   **Scenario**
   A colleague pushed some half-finished edits before going on leave. The repo
   has two modified files: the change to `file_a.txt` is good and should be
-  committed, but the change to `file_b.txt` was a mistake and needs to be
-  thrown away. You need to sort it out before the rest of the team pulls.
+  committed, but `file_b.txt` has an unwanted line the colleague accidentally
+  appended — it needs to be thrown away before the rest of the team pulls.
 
-  **Your task:** commit the wanted change to `file_a.txt\` and discard the
-  unwanted edit to `file_b.txt`, leaving a clean working tree.
+  **Your task:** commit the wanted change to `file_a.txt` and discard the
+  unwanted edit already in `file_b.txt`, leaving a clean working tree.
 
   **What You'll Deliver**
   - `file_a.txt` edited and the change committed
-  - `file_b.txt` edited then reverted to its original committed content
+  - `file_b.txt` reverted to its original committed content with git restore
   - `git status` shows a clean working tree
 
   ## Steps
 
   1. `cd /root/project`
-  2. Append a line to file_a: `echo "extra line" >> file_a.txt`
-  3. Inspect the change: `git diff file_a.txt`
-  4. Stage and commit it: `git add file_a.txt && git commit -m "update file_a"`
-  5. Make an unwanted edit to file_b: `echo "oops" >> file_b.txt`
-  6. Inspect it: `git status` then `git diff file_b.txt`
+  2. Check what's already changed: `git status`
+  3. Append a line to file_a: `echo "extra line" >> file_a.txt`
+  4. Inspect the change: `git diff file_a.txt`
+  5. Stage and commit it: `git add file_a.txt && git commit -m "update file_a"`
+  6. Inspect the unwanted edit in file_b: `git diff file_b.txt`
   7. Discard the edit: `git restore file_b.txt`
   8. Confirm everything is clean: `git status` should show nothing to commit
 
@@ -72,6 +72,8 @@ setupScript: |
   printf "keep me unchanged\n" > file_b.txt
   git add file_a.txt file_b.txt
   git commit -q -m "initial commit"
+  # Simulate the colleague's unwanted edit — student must discard it with git restore
+  echo "oops" >> file_b.txt
 
 verifyScript: |
   cd /root/project || exit 1
@@ -99,9 +101,9 @@ verifyScript: |
   if [ "$commit_count" -ge 2 ] && [ "$b_content" = "keep me unchanged" ]; then
     echo "CHECK:file_b_change_discarded:PASS:file_b.txt is back to its original content"
   elif [ "$commit_count" -lt 2 ]; then
-    echo "CHECK:file_b_change_discarded:FAIL:Commit the file_a.txt change first, then edit and discard file_b.txt"
+    echo "CHECK:file_b_change_discarded:FAIL:Commit the file_a.txt change first, then discard the file_b.txt edit"
   else
-    echo "CHECK:file_b_change_discarded:FAIL:Run: echo 'oops' >> file_b.txt  then  git restore file_b.txt"
+    echo "CHECK:file_b_change_discarded:FAIL:file_b.txt still has the unwanted line — run: git restore file_b.txt"
   fi
 
   # ── CHECK: working_tree_clean ───────────────────────────────────────────────
