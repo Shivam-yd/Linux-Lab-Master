@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import labsRouter from "./labs";
 import sessionsRouter from "./sessions";
 import configRouter from "./config";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -10,5 +11,6 @@ router.use(healthRouter);
 router.use(configRouter);
 router.use(labsRouter);
 router.use(sessionsRouter);
+router.use(adminRouter);
 
 export default router;
