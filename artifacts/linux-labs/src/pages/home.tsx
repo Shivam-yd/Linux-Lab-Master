@@ -131,9 +131,9 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-6 pb-24">
         <div className="grid sm:grid-cols-3 gap-6">
           {FEATURES.map(({ icon: Icon, color, title, desc }) => (
-            <div key={title} className="rounded-2xl border border-border bg-card/60 p-6">
+            <div key={title} className="rounded-2xl border border-border bg-card/60 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:border-primary/30 group">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
                 style={{ background: `${color}18`, border: `1px solid ${color}30` }}
               >
                 <Icon className="w-5 h-5" style={{ color }} />
