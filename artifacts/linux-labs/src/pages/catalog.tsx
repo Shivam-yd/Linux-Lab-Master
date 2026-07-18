@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Info, LogOut, User, Home, BarChart2, ChevronLeft, Shield } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -196,6 +197,20 @@ export default function Catalog() {
 
   useEffect(() => {
     fetchSyncStatus().then(setSyncStatus).catch(() => {})
+  }, [])
+
+  // Guest progress claim toast — cookie set by requireAuth middleware when migration happened
+  const { toast } = useToast()
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|;\s*)_guest_claimed=(\d+)/)
+    if (match) {
+      const count = parseInt(match[1], 10)
+      toast({
+        title: "Progress saved to your account",
+        description: `${count} lab${count !== 1 ? "s" : ""} from your guest session have been linked to your account.`,
+      })
+      document.cookie = "_guest_claimed=; Max-Age=0; path=/"
+    }
   }, [])
 
   const handleFetchLabs = useCallback(async () => {

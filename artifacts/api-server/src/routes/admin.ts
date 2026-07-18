@@ -78,6 +78,20 @@ router.get("/admin/cohort", async (_req, res): Promise<void> => {
 });
 
 /**
+ * DELETE /admin/progress/:studentId
+ * Wipe all lab_progress rows for a student (resets their progress to not_started).
+ */
+router.delete("/admin/progress/:studentId", async (req, res): Promise<void> => {
+  const { studentId } = req.params;
+  if (!studentId) {
+    res.status(400).json({ error: "Missing studentId" });
+    return;
+  }
+  await db.execute(sql`DELETE FROM lab_progress WHERE student_id = ${studentId}`);
+  res.status(204).send();
+});
+
+/**
  * GET /admin/sessions
  * All non-stopped lab sessions with student info.
  */

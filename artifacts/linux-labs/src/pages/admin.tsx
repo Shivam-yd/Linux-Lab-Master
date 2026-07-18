@@ -6,7 +6,7 @@ import { useListLabs } from "@workspace/api-client-react"
 import {
   ArrowLeft, Users, BarChart3, ChevronDown, ChevronRight,
   Trophy, Medal, Crown, Terminal, Layers, Server, Container, GitBranch,
-  Clock, CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2,
+  Clock, CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
 } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
@@ -113,6 +113,14 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Failed to kill session")
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] }),
+  })
+
+  const resetProgress = useMutation({
+    mutationFn: async (studentId: string) => {
+      const res = await fetch(`/api/admin/progress/${encodeURIComponent(studentId)}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to reset progress")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
   })
 
   // Build lab lookup: id → { title, track }
@@ -334,28 +342,47 @@ export default function AdminPage() {
 
                   {/* Expanded per-lab detail */}
                   {isOpen && (
-                    <div className="border-t border-border/50 px-5 py-4 grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {student.labs.length === 0 ? (
-                        <p className="col-span-3 text-xs text-muted-foreground font-mono">No lab attempts yet.</p>
-                      ) : student.labs.map((l) => {
-                        const meta = labMeta[l.labId]
-                        const trackMeta = meta ? TRACK_META[meta.track] : null
-                        return (
-                          <div key={l.labId} className="flex items-center gap-2 text-xs">
-                            {l.status === "passed"
-                              ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                              : <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
-                            <span className="truncate text-muted-foreground" title={meta?.title ?? l.labId}>
-                              {meta?.title ?? l.labId}
-                            </span>
-                            {trackMeta && (
-                              <span className={cn("shrink-0 text-[9px] font-mono", trackMeta.accentClass)}>
-                                {trackMeta.label}
+                    <div className="border-t border-border/50 px-5 py-4 space-y-3">
+                      {/* Reset progress action */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground font-mono">Lab attempts</span>
+                        <button
+                          disabled={resetProgress.isPending && resetProgress.variables === student.id}
+                          onClick={() => {
+                            if (!window.confirm(`Reset all progress for ${displayName(student)}? This cannot be undone.`)) return
+                            resetProgress.mutate(student.id)
+                          }}
+                          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {resetProgress.isPending && resetProgress.variables === student.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <RotateCcw className="w-3.5 h-3.5" />}
+                          Reset progress
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {student.labs.length === 0 ? (
+                          <p className="col-span-3 text-xs text-muted-foreground font-mono">No lab attempts yet.</p>
+                        ) : student.labs.map((l) => {
+                          const meta = labMeta[l.labId]
+                          const trackMeta = meta ? TRACK_META[meta.track] : null
+                          return (
+                            <div key={l.labId} className="flex items-center gap-2 text-xs">
+                              {l.status === "passed"
+                                ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                : <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                              <span className="truncate text-muted-foreground" title={meta?.title ?? l.labId}>
+                                {meta?.title ?? l.labId}
                               </span>
-                            )}
-                          </div>
-                        )
-                      })}
+                              {trackMeta && (
+                                <span className={cn("shrink-0 text-[9px] font-mono", trackMeta.accentClass)}>
+                                  {trackMeta.label}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>

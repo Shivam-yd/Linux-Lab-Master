@@ -29,6 +29,8 @@ import ProgressPage from '@/pages/progress';
 import ProfilePage from '@/pages/profile';
 import CertificatePage from '@/pages/certificate';
 import AdminPage from '@/pages/admin';
+import ForgotPasswordPage from '@/pages/forgot-password';
+import ResetPasswordPage from '@/pages/reset-password';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -61,6 +63,8 @@ function App() {
               <Route path="/profile" component={ProfilePage} />
               <Route path="/certificate/:track" component={CertificatePage} />
               <Route path="/admin" component={AdminPage} />
+              <Route path="/forgot-password" component={ForgotPasswordPage} />
+              <Route path="/reset-password" component={ResetPasswordPage} />
               <Route component={NotFound} />
             </Switch>
             <Toaster />

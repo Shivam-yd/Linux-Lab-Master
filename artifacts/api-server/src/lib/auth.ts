@@ -49,7 +49,14 @@ export const auth = betterAuth({
       verification: verificationTable,
     },
   }),
-  emailAndPassword: { enabled: true },
+  emailAndPassword: {
+    enabled: true,
+    sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
+      // No SMTP configured — log the link so an admin can relay it manually.
+      // Replace this with a real email provider (Resend, Nodemailer, etc.) when ready.
+      console.log(`[password-reset] email=${user.email}  link=${url}`);
+    },
+  },
   ...(googleConfigured && {
     socialProviders: {
       google: {
