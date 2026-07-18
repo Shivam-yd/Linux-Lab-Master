@@ -22,9 +22,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Terminal, Play, Square, RotateCcw, ArrowLeft, 
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity,
-  Lightbulb, ChevronDown, ChevronRight, Eye, Server, Loader2, Target, Trophy
+  Lightbulb, ChevronDown, ChevronRight, Eye, Server, Loader2, Target, Trophy,
+  Award, ExternalLink
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 export default function Workspace() {
   const params = useParams()
@@ -841,12 +844,24 @@ export default function Workspace() {
             </p>
 
             {/* Progress bar (drains left-to-right over 15 s) */}
-            <div className="relative h-[3px] rounded-full bg-green-500/20 overflow-hidden">
+            <div className="relative h-[3px] rounded-full bg-green-500/20 overflow-hidden mb-4">
               <div
                 className="h-full rounded-full bg-green-500"
                 style={{ width: `${((15 - closeCountdown) / 15) * 100}%`, transition: "width 1s linear" }}
               />
             </div>
+
+            {/* Certificate nudge */}
+            {lab?.track && (
+              <Link
+                href={`${basePath}/certificate/${lab.track}`}
+                className="relative flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                <Award className="w-3.5 h-3.5 shrink-0" />
+                View track certificate
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </Link>
+            )}
           </div>
         </div>
       )}

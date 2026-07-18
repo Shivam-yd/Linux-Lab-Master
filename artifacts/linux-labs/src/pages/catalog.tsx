@@ -761,7 +761,7 @@ export default function Catalog() {
                                     )}>
                                       {isPassed ? <><CheckCircle2 className="w-3 h-3" />Review</>
                                         : isInProgress ? <><PlayCircle className="w-3 h-3" />Continue</>
-                                        : <><Terminal className="w-3 h-3" />Deploy</>}
+                                        : <><Terminal className="w-3 h-3" />Start</>}
                                     </button>
                                   </Link>
                                 </div>
