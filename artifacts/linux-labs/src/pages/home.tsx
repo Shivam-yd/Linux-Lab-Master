@@ -150,8 +150,8 @@ export default function Home() {
       <div className="h-40 pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(45,212,191,0.10) 0%, rgba(45,212,191,0.03) 40%, transparent 70%)" }} />
 
       {/* ── Footer ── */}
-      <footer className="border-t border-border/60 py-8 bg-card/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground">
+      <footer className="border-t border-border/60 py-4 bg-card/80 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>LinuxLabMaster — DevOps practice range</span>
           <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
         </div>
