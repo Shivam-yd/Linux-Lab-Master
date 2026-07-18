@@ -71,3 +71,4 @@ channel = "stable-25_05"
 
 [userenv.shared]
 BETTER_AUTH_URL = "https://330d3dfa-96cc-4fa9-91cf-168aab6c37e9-00-1pf1419ixabwx.sisko.replit.dev"
+ADMIN_EMAILS = "robert4host@gmail.com"
