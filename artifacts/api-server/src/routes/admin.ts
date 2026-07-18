@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, or } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
 import { db } from "@workspace/db";
 import { passwordResetRequestsTable } from "@workspace/db/schema";
@@ -156,8 +156,11 @@ router.post("/password-reset-requests/:id/approve", async (req, res): Promise<vo
     .limit(1);
 
   if (rows.length === 0) { res.status(404).json({ error: "Not found" }); return; }
-  if (rows[0].status !== "pending") {
-    res.status(400).json({ error: "Request is not pending" }); return;
+
+  // Allow re-approval of already-approved rows (e.g. token expired before student used it).
+  // Reject only "used" rows — those are finished.
+  if (rows[0].status === "used") {
+    res.status(400).json({ error: "Request has already been used" }); return;
   }
 
   const baseURL =
@@ -171,6 +174,18 @@ router.post("/password-reset-requests/:id/approve", async (req, res): Promise<vo
   await auth.api.forgetPassword({
     body: { email: rows[0].email, redirectTo: `${baseURL}/reset-password` },
   });
+
+  // Verify the hook actually ran — it stores the token and flips status to "approved".
+  // If the row is still "pending" the hook silently failed.
+  const [updated] = await db
+    .select({ status: passwordResetRequestsTable.status })
+    .from(passwordResetRequestsTable)
+    .where(eq(passwordResetRequestsTable.id, id))
+    .limit(1);
+
+  if (!updated || updated.status !== "approved") {
+    res.status(500).json({ error: "Approval failed — token could not be generated" }); return;
+  }
 
   res.json({ ok: true });
 });

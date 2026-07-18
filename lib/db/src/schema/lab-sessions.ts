@@ -109,6 +109,8 @@ export const passwordResetRequestsTable = pgTable("password_reset_requests", {
   resetToken: text("reset_token"),
   requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
+  // When the reset token expires (set at approval time, mirrors Better Auth's token TTL).
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 export type PasswordResetRequestRow = typeof passwordResetRequestsTable.$inferSelect;
 

@@ -83,12 +83,13 @@ router.post("/password-reset/set", async (req, res): Promise<void> => {
 
   const request = rows[0];
 
-  // Use Better Auth's resetPassword API with the stored token
-  const result = await auth.api.resetPassword({
-    body: { newPassword, token: request.resetToken! },
-  });
-
-  if (!result || (result as any).error) {
+  // Use Better Auth's resetPassword API with the stored token.
+  // Better Auth throws on failure rather than returning an error object.
+  try {
+    await auth.api.resetPassword({
+      body: { newPassword, token: request.resetToken! },
+    });
+  } catch {
     res.status(400).json({ error: "Failed to set password — token may have expired" }); return;
   }
 

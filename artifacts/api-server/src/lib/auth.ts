@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import {
   userTable,
   sessionTable,
@@ -54,17 +54,20 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
-      // Extract token from the reset URL and store it on any pending request for this email.
-      // This fires when the admin approves a request (via auth.api.forgetPassword).
+      // Extract token from the reset URL and store it on any pending or approved request.
+      // This fires when the admin approves (or re-approves) a request via auth.api.forgetPassword.
       try {
         const token = new URL(url).searchParams.get("token");
         if (token) {
+          // Better Auth tokens expire in 1 hour by default.
+          const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
           await db
             .update(passwordResetRequestsTable)
-            .set({ resetToken: token, status: "approved", approvedAt: new Date() })
+            .set({ resetToken: token, status: "approved", approvedAt: new Date(), expiresAt })
             .where(and(
               eq(passwordResetRequestsTable.email, user.email.toLowerCase()),
-              eq(passwordResetRequestsTable.status, "pending"),
+              // Accept both pending (first approval) and approved (re-approval after expiry).
+              sql`status IN ('pending', 'approved')`,
             ));
         }
       } catch (err) {
