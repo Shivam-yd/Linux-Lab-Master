@@ -147,7 +147,7 @@ export default function Home() {
       </section>
 
       {/* ── Footer gradient bleed ── */}
-      <div className="h-24 bg-gradient-to-tr from-primary/10 via-transparent to-transparent pointer-events-none" />
+      <div className="h-40 bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent pointer-events-none" />
 
       {/* ── Footer ── */}
       <footer className="border-t border-border/60 py-8 bg-card/80 backdrop-blur-md">
