@@ -2,8 +2,7 @@ import { Link } from "wouter"
 import {
   ArrowLeft, Zap, Github, Linkedin, MapPin, Terminal,
   Layers, Server, Container, GitBranch, CheckCircle2,
-  BookOpen, ExternalLink, Heart, UserCheck, Award,
-  ShieldCheck, BarChart3, Clock,
+  BookOpen, ExternalLink, Heart, Award, BarChart3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -19,11 +18,8 @@ const FEATURES = [
   { icon: Terminal,      title: "Real Terminals",          desc: "Every lab opens a live shell inside an isolated Docker container — no multiple-choice, no VMs to configure." },
   { icon: CheckCircle2,  title: "Automatic Verification",  desc: "Click Verify and the platform runs check scripts inside your container. Each task is binary: PASS or FAIL, with an exact hint." },
   { icon: BookOpen,      title: "Progressive Curriculum",  desc: "Labs are ordered Foundation → Intermediate → Advanced. Each one builds on the last so concepts stack naturally." },
-  { icon: UserCheck,     title: "Guest Mode",              desc: "Jump straight into any lab without creating an account. Progress is saved by cookie so you can pick up where you left off." },
   { icon: BarChart3,     title: "Progress Tracking",       desc: "Every lab attempt is recorded. Your dashboard shows passed labs, scores, and last-active time across all tracks." },
   { icon: Award,         title: "Completion Certificates", desc: "Finish every lab in a track and a certificate is generated automatically — shareable proof of your achievement." },
-  { icon: ShieldCheck,   title: "Admin Panel",             desc: "Instructors get a full admin view: leaderboard, per-student lab breakdown, live session management, and password-reset approvals." },
-  { icon: Clock,         title: "Idle Container Cleanup",  desc: "Sandbox containers are stopped automatically after 30 minutes of inactivity, keeping the server lean without any manual intervention." },
 ]
 
 export default function About() {
