@@ -5,7 +5,7 @@ import type { Duplex } from "node:stream";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "../lib/auth";
 import { getLabByIdAsync } from "../lib/labs/registry";
-import { getRunningContainer } from "../lib/docker/manager";
+import { getRunningContainer, stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
 
 // ── Cookie helpers ─────────────────────────────────────────────────────────────
@@ -116,6 +116,8 @@ function sendControl(ws: WebSocket, payload: unknown): void {
   ws.send(frame);
 }
 
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes of no terminal input
+
 // ── WebSocket server ───────────────────────────────────────────────────────────
 
 export function attachTerminalWebSocketServer(server: HttpServer): void {
@@ -190,10 +192,23 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
       ws.close();
     });
 
+    // Idle timeout — stop the container after 30 min of no terminal input.
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    function resetIdleTimer() {
+      if (idleTimer !== undefined) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        sendControl(ws, { type: "status", message: "Session closed after 30 minutes of inactivity." });
+        ws.close();
+        stopSession(studentId, labId).catch(() => undefined);
+      }, IDLE_TIMEOUT_MS);
+    }
+    resetIdleTimer();
+
     ws.on("message", (raw) => {
       try {
         const msg = JSON.parse(raw.toString()) as ClientMessage;
         if (msg.type === "input") {
+          resetIdleTimer();
           stream.write(msg.data);
         } else if (msg.type === "resize") {
           exec.resize({ w: msg.cols, h: msg.rows }).catch(() => undefined);
@@ -204,9 +219,11 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
     });
 
     ws.on("close", () => {
+      if (idleTimer !== undefined) clearTimeout(idleTimer);
       stream.destroy();
     });
     ws.on("error", () => {
+      if (idleTimer !== undefined) clearTimeout(idleTimer);
       stream.destroy();
     });
   } catch (err) {

@@ -7,12 +7,24 @@ import { auth } from "../lib/auth";
 
 const router = Router();
 
+// Per-email cooldown — prevents hammering the endpoint with the same address.
+// In-memory; resets on server restart (acceptable for this use case).
+const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+const lastRequestAt = new Map<string, number>();
+
 /** POST /api/password-reset/request — user submits a reset request by email. */
 router.post("/password-reset/request", async (req, res): Promise<void> => {
   const { email } = req.body as { email?: string };
   if (!email) { res.status(400).json({ error: "Email required" }); return; }
 
   const lower = email.toLowerCase().trim();
+
+  // Silent cooldown — same response as non-existing email to avoid leaking info.
+  const lastAt = lastRequestAt.get(lower);
+  if (lastAt && Date.now() - lastAt < COOLDOWN_MS) {
+    res.json({ ok: true }); return;
+  }
+  lastRequestAt.set(lower, Date.now());
 
   // Look up user in Better Auth's user table
   const result = await db.execute(
