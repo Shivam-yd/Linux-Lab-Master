@@ -146,6 +146,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Footer gradient bleed ── */}
+      <div className="h-16 bg-gradient-to-b from-transparent to-primary/10 pointer-events-none" />
+
       {/* ── Footer ── */}
       <footer className="border-t border-border/60 py-8 bg-card/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground">
