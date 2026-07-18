@@ -113,6 +113,9 @@ export default function Workspace() {
     return () => clearTimeout(timer)
   }, [closeCountdown, setLocation])
 
+  // Leave-confirm modal state (replaces window.confirm for back/nav guards)
+  const [leaveConfirm, setLeaveConfirm] = useState<{ onConfirm: () => void } | null>(null)
+
   // Hints state
   const [hintsRevealed, setHintsRevealed] = useState(0)
   const [hintsOpen, setHintsOpen] = useState(false)
@@ -181,33 +184,27 @@ export default function Workspace() {
       }
       if (!isRunningRef.current) return
 
-      const confirmed = window.confirm(
-        "Your lab sandbox is still running. Leaving will keep it running in the background, but any unsaved terminal output will be lost. Leave anyway?"
-      )
-      if (confirmed) {
-        allowNextPopRef.current = true
-        window.history.back()
-      } else {
-        window.history.pushState({ labGuard: true }, "", window.location.href)
-      }
+      // Push sentinel back so the URL is stable while the modal is open.
+      // On confirm we'll call window.history.back() to actually leave.
+      window.history.pushState({ labGuard: true }, "", window.location.href)
+      setLeaveConfirm({
+        onConfirm: () => {
+          allowNextPopRef.current = true
+          window.history.back()
+        },
+      })
     }
 
     window.addEventListener("popstate", handlePopState)
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  const confirmNavigateAway = useCallback((): boolean => {
-    if (!isRunning) return true
-    return window.confirm(
-      "Your lab sandbox is still running. Leaving will keep it running in the background, but any unsaved terminal output will be lost. Leave anyway?"
-    )
-  }, [isRunning])
-
   const handleCatalogClick = useCallback((e: MouseEvent) => {
-    if (!confirmNavigateAway()) {
-      e.preventDefault()
-    }
-  }, [confirmNavigateAway])
+    if (!isRunning) return
+    e.preventDefault()
+    const href = (e.currentTarget as HTMLAnchorElement).href
+    setLeaveConfirm({ onConfirm: () => { window.location.href = href } })
+  }, [isRunning])
 
   const handleStart = () => startSession.mutate({ labId })
   const handleStop = () => stopSession.mutate({ labId })
@@ -862,6 +859,39 @@ export default function Workspace() {
                 <ExternalLink className="w-3 h-3 shrink-0" />
               </Link>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Leave confirmation modal (replaces browser window.confirm) ───── */}
+      {leaveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-full bg-amber-500/15 p-2">
+                <Activity className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-base">Sandbox is still running</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Leaving will keep it running in the background. Any unsaved terminal output will be lost.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setLeaveConfirm(null)}
+                className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted/50 transition-colors"
+              >
+                Stay
+              </button>
+              <button
+                onClick={() => { setLeaveConfirm(null); leaveConfirm.onConfirm() }}
+                className="px-4 py-2 text-sm rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors"
+              >
+                Leave anyway
+              </button>
+            </div>
           </div>
         </div>
       )}
