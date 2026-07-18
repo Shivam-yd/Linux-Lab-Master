@@ -9,11 +9,11 @@ import { useSession } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 
 const TRACKS = [
-  { label: "Linux",     icon: Terminal,  color: "#22d3ee", iconClass: "group-hover:animate-pulse" },
+  { label: "Linux",     icon: Terminal,  color: "#22d3ee", iconClass: "group-hover:[animation:flicker_0.6s_ease-in-out_infinite]" },
   { label: "Terraform", icon: Layers,    color: "#c084fc", iconClass: "group-hover:animate-bounce" },
   { label: "Jenkins",   icon: Server,    color: "#f97316", iconClass: "group-hover:animate-pulse group-hover:[animation-duration:0.7s]" },
-  { label: "Docker",    icon: Container, color: "#38bdf8", iconClass: "group-hover:animate-spin group-hover:[animation-duration:2s]" },
-  { label: "Git",       icon: GitBranch, color: "#f87171", iconClass: "group-hover:animate-spin group-hover:[animation-duration:3s]" },
+  { label: "Docker",    icon: Container, color: "#38bdf8", iconClass: "group-hover:[animation:breathe_1s_ease-in-out_infinite]" },
+  { label: "Git",       icon: GitBranch, color: "#f87171", iconClass: "group-hover:[animation:swing_0.8s_ease-in-out_infinite]" },
 ]
 
 const FEATURES = [
