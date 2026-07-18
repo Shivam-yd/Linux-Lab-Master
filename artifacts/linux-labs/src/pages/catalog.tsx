@@ -5,7 +5,7 @@ import { useSession, signOut } from "@/lib/auth-client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, LogOut, User, Home, BarChart2, ChevronLeft } from "lucide-react"
+import { Info, LogOut, User, Home, BarChart2, ChevronLeft, Shield } from "lucide-react"
 import {
   Terminal, Layers, Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -186,6 +186,7 @@ const DIFFICULTY_BADGE: Record<string, string> = {
 export default function Catalog() {
   const { data: labs, isLoading: labsLoading, refetch: refetchLabs } = useListLabs()
   const { data: progress, isLoading: progressLoading, refetch: refetchProgress } = useListProgress()
+  const { data: session } = useSession()
   const loading = labsLoading || progressLoading
 
   // ── GitHub sync state ──────────────────────────────────────────────────────
@@ -517,6 +518,7 @@ export default function Catalog() {
             {[
               { href: "/progress", icon: BarChart2, label: "My Progress" },
               { href: "/about",    icon: Info,      label: "About" },
+              ...(session?.user ? [{ href: "/admin", icon: Shield, label: "Admin Panel" }] : []),
             ].map(({ href, icon: Icon, label }) => (
               <Link
                 key={href}
