@@ -1,11 +1,21 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Link, useLocation } from "wouter"
 import { useSession, signOut, authClient } from "@/lib/auth-client"
 import { useQuery } from "@tanstack/react-query"
+import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award, Terminal, Layers, Server, Container, GitBranch, Cpu } from "lucide-react"
+
+const TRACK_META: Record<string, { label: string; icon: React.ElementType; accentHex: string }> = {
+  linux:     { label: "Linux",     icon: Terminal,   accentHex: "#22d3ee" },
+  terraform: { label: "Terraform", icon: Layers,     accentHex: "#c084fc" },
+  jenkins:   { label: "Jenkins",   icon: Server,     accentHex: "#f97316" },
+  docker:    { label: "Docker",    icon: Container,  accentHex: "#38bdf8" },
+  git:       { label: "Git",       icon: GitBranch,  accentHex: "#f87171" },
+}
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -26,6 +36,26 @@ export default function ProfilePage() {
   const [pwdMsg, setPwdMsg]         = useState<{ ok: boolean; text: string } | null>(null)
 
   const user = session?.user
+
+  // Progress data
+  const { data: labs } = useListLabs()
+  const { data: progress } = useListProgress()
+
+  const trackStats = useMemo(() => {
+    if (!labs || !progress) return []
+    const byLabId = Object.fromEntries(
+      (progress as Array<{ labId: string; status: string }>).map(p => [p.labId, p])
+    )
+    const trackOrder = ["linux", "terraform", "jenkins", "docker", "git"]
+    const seen = new Set((labs as Array<{ track: string; id: string }>).map(l => l.track))
+    const tracks = [...trackOrder.filter(t => seen.has(t)), ...[...seen].filter(t => !trackOrder.includes(t))]
+    return tracks.map(track => {
+      const trackLabs = (labs as Array<{ track: string; id: string }>).filter(l => l.track === track)
+      const passed = trackLabs.filter(l => byLabId[l.id]?.status === "passed").length
+      const total = trackLabs.length
+      return { track, passed, total, complete: passed === total && total > 0 }
+    })
+  }, [labs, progress])
 
   // Detect whether this user has a credential (email/password) account or is
   // OAuth-only. Better Auth exposes GET /api/auth/list-accounts for exactly this.
@@ -255,6 +285,52 @@ export default function ProfilePage() {
             </form>
           )}
         </div>
+
+        {/* Track progress & certificates */}
+        {trackStats.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Track Progress</h2>
+              <Link href={`${basePath}/progress`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                View full progress →
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {trackStats.map(({ track, passed, total, complete }) => {
+                const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8" }
+                const Icon = tm.icon
+                const pct = total > 0 ? Math.round((passed / total) * 100) : 0
+                return (
+                  <div key={track} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: tm.accentHex }} />
+                        <span className="font-medium">{tm.label}</span>
+                        {complete && <CheckCircle2 className="w-3 h-3 text-green-500" />}
+                      </div>
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <span className="font-mono">{passed}/{total}</span>
+                        {complete && (
+                          <Link
+                            href={`${basePath}/certificate/${track}`}
+                            className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors font-semibold"
+                          >
+                            <Award className="w-3 h-3" />
+                            Certificate
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                    <Progress
+                      value={pct}
+                      className="h-1.5 bg-background border border-border/50"
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Danger zone */}
         <div className="rounded-2xl border border-border/50 bg-card/50 p-6 flex items-center justify-between">

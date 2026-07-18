@@ -1,38 +1,58 @@
 # Linux Lab Master
 
-A self-hosted DevOps training platform with browser-based terminal sandboxes. 78+ labs across Linux, Terraform, Jenkins, Docker, and Git — each backed by a real Docker container with automatic task verification.
+A self-hosted DevOps lab platform with browser-based terminal sandboxes for practising real DevOps skills.
 
 ## Stack
 
-- **Frontend:** React 19 + Vite + Tailwind CSS v4 (`artifacts/linux-labs`)
-- **Backend:** Node.js 20 + Express 5 + TypeScript (`artifacts/api-server`)
-- **Database:** PostgreSQL via Drizzle ORM (`lib/db`)
-- **Auth:** Better Auth (email/password + optional Google OAuth)
-- **Sandboxes:** Docker containers (via Dockerode + SSH)
-- **Monorepo:** pnpm workspaces
+- **Frontend**: React + Vite + Tailwind (artifacts/linux-labs) — served on `/`
+- **API**: Node.js + Express + Better Auth (artifacts/api-server) — served on `/api`
+- **Database**: PostgreSQL (Replit managed) via Drizzle ORM
+- **Monorepo**: pnpm workspaces
 
-## How to run
+## Running locally (Replit)
 
-Two workflows run automatically:
+Both workflows are pre-configured and start automatically:
 
-| Workflow | Command | Port |
-|----------|---------|------|
-| API Server | `pnpm --filter @workspace/api-server run dev` | 8080 |
-| Web frontend | `pnpm --filter @workspace/linux-labs run dev` | 21398 |
+| Workflow | Command |
+|----------|---------|
+| `artifacts/api-server: API Server` | `PORT=8080 pnpm --filter @workspace/api-server run dev` |
+| `artifacts/linux-labs: web` | `PORT=21398 BASE_PATH=/ pnpm --filter @workspace/linux-labs run dev` |
 
-After schema changes: `pnpm --filter @workspace/db run push`
+## Environment Variables
 
-## Environment variables
+| Key | Required | Notes |
+|-----|----------|-------|
+| `SESSION_SECRET` | ✅ | Set as Replit Secret |
+| `BETTER_AUTH_URL` | ✅ | Set to the Replit dev domain |
+| `ADMIN_EMAILS` | ✅ | Comma-separated admin email addresses |
+| `GOOGLE_CLIENT_ID` | Optional | For Google OAuth login |
+| `GOOGLE_CLIENT_SECRET` | Optional | For Google OAuth login |
+| `DATABASE_URL` | Auto | Managed by Replit |
 
-| Variable | Where set | Notes |
-|----------|-----------|-------|
-| `DATABASE_URL` | Runtime-managed | Auto-provided by Replit PostgreSQL |
-| `SESSION_SECRET` | Replit Secret | Required for auth sessions |
-| `BETTER_AUTH_URL` | Shared env | Public base URL of the app |
-| `ADMIN_EMAILS` | Shared env | Comma-separated admin email addresses |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Replit Secrets | Optional — enables Google OAuth |
-| `GITHUB_TOKEN` | Replit Secret | Optional — increases GitHub API rate limit for lab sync |
+## Database
 
-## User preferences
+Schema is managed with Drizzle ORM. To push schema changes:
 
-- Keep changes minimal (ponytail style: minimum code that works, YAGNI, reuse first).
+```bash
+cd lib/db && pnpm run push
+```
+
+## Key Packages
+
+- `lib/db` — Drizzle schema + client
+- `lib/api-zod` — Zod schemas for API request/response validation
+- `lib/api-client-react` — React Query hooks wrapping the API
+- `artifacts/api-server` — Express API (auth, labs, progress, github-sync)
+- `artifacts/linux-labs` — React frontend
+
+## Lab Content
+
+Labs are YAML files synced from GitHub automatically on startup and every hour. The sync pulls from the connected GitHub repo and stores labs in `remote_labs` table.
+
+## Note on Docker Sandboxes
+
+The Docker-based terminal sandboxes require a Docker daemon and do not work on Replit. The frontend and API run fully; sandbox provisioning will fail gracefully.
+
+## User Preferences
+
+- Keep code minimal — minimum code that works, YAGNI, reuse first, deletion over addition (ponytail style).
