@@ -94,8 +94,25 @@ verifyScript: |
   fi
 
   # CHECK: merged_into_main
-  if git cat-file -e main:feature.txt 2>/dev/null; then
+  # Checking main:feature.txt alone is not enough — the student could commit
+  # feature.txt directly on main without merging and pass vacuously.
+  # We detect a real merge in two ways:
+  #   1. Non-fast-forward: a merge commit exists in main's history.
+  #   2. Fast-forward: main and feature point to the same SHA (git moved
+  #      main's pointer to feature's tip — no separate merge commit created).
+  # The bypass (direct commit on main) leaves main ahead of feature with
+  # different SHAs and no merge commit, so it fails both tests.
+  main_sha=$(git rev-parse main 2>/dev/null)
+  feature_sha=$(git rev-parse feature 2>/dev/null)
+  merge_count=$(git log --merges --oneline main 2>/dev/null | wc -l | tr -d ' \t')
+  merge_count=${merge_count:-0}
+  merged=0
+  [ -n "$feature_sha" ] && [ "$main_sha" = "$feature_sha" ] && merged=1
+  [ "$merge_count" -gt 0 ] && merged=1
+  if git cat-file -e main:feature.txt 2>/dev/null && [ "$merged" -eq 1 ]; then
     echo "CHECK:merged_into_main:PASS:main now contains feature.txt via merge"
+  elif git cat-file -e main:feature.txt 2>/dev/null; then
+    echo "CHECK:merged_into_main:FAIL:feature.txt is in main but was committed directly — undo with: git reset HEAD~1  then run: git merge feature"
   else
     echo "CHECK:merged_into_main:FAIL:Switch to main (git switch main) and run git merge feature"
   fi

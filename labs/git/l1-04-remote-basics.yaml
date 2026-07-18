@@ -85,7 +85,9 @@ verifyScript: |
   fi
 
   # CHECK: pushed_to_remote
-  if git --git-dir=/root/remote.git log main >/dev/null 2>&1 && [ -n "$(git --git-dir=/root/remote.git log main 2>/dev/null)" ]; then
+  # git log exits non-zero when the branch doesn't exist in the bare repo
+  # (i.e. nothing has been pushed yet), so a single exit-code check is enough.
+  if git --git-dir=/root/remote.git log main >/dev/null 2>&1; then
     echo "CHECK:pushed_to_remote:PASS:remote.git has the pushed main branch"
   else
     echo "CHECK:pushed_to_remote:FAIL:Run git push -u origin main"

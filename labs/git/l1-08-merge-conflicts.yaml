@@ -81,7 +81,7 @@ setupScript: |
 verifyScript: |
   cd /root/project || exit 1
 
-  parent_count=$(git rev-list --parents -n1 HEAD 2>/dev/null | wc -w)
+  parent_count=$(git rev-list --parents -n1 HEAD 2>/dev/null | wc -w | tr -d ' \t')
   merge_in_progress=0
   [ -f .git/MERGE_HEAD ] && merge_in_progress=1
 

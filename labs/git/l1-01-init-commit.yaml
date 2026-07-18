@@ -92,7 +92,8 @@ verifyScript: |
   fi
 
   # CHECK: three_commits_total
-  count=$(git log --oneline | wc -l)
+  count=$(git log --oneline 2>/dev/null | wc -l | tr -d ' \t')
+  count=${count:-0}
   if [ "$count" -ge 3 ]; then
     echo "CHECK:three_commits_total:PASS:$count commits found"
   else
