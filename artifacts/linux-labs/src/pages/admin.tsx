@@ -7,6 +7,7 @@ import {
   ArrowLeft, Users, BarChart3, ChevronDown, ChevronRight,
   Trophy, Medal, Crown, Terminal, Layers, Server, Container, GitBranch,
   Clock, CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
+  KeyRound, Trash2,
 } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
@@ -19,6 +20,16 @@ const TRACK_META: Record<string, { label: string; accentClass: string; bgClass: 
   jenkins:   { label: "Jenkins",   accentClass: "text-orange-400", bgClass: "bg-orange-400/10" },
   docker:    { label: "Docker",    accentClass: "text-sky-400",    bgClass: "bg-sky-400/10"    },
   git:       { label: "Git",       accentClass: "text-red-400",    bgClass: "bg-red-400/10"    },
+}
+
+type PasswordResetRequest = {
+  id: number
+  userId: string
+  email: string
+  status: "pending" | "approved" | "used"
+  resetToken: string | null
+  requestedAt: string
+  approvedAt: string | null
 }
 
 type SessionRow = {
@@ -81,7 +92,7 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  const [tab, setTab] = useState<"leaderboard" | "cohort" | "sessions">("leaderboard")
+  const [tab, setTab] = useState<"leaderboard" | "cohort" | "sessions" | "password-resets">("leaderboard")
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const leaderboard = useQuery<StudentRow[]>({
@@ -105,6 +116,30 @@ export default function AdminPage() {
     retry: false,
     enabled: tab === "sessions",
     refetchInterval: tab === "sessions" ? 10_000 : false,
+  })
+
+  const pwResets = useQuery<PasswordResetRequest[]>({
+    queryKey: ["admin", "password-resets"],
+    queryFn: () => fetchAdmin("/api/admin/password-reset-requests"),
+    retry: false,
+    enabled: tab === "password-resets",
+    refetchInterval: tab === "password-resets" ? 15_000 : false,
+  })
+
+  const approvePwReset = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/password-reset-requests/${id}/approve`, { method: "POST" })
+      if (!res.ok) throw new Error("Failed to approve request")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "password-resets"] }),
+  })
+
+  const dismissPwReset = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/password-reset-requests/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to dismiss request")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "password-resets"] }),
   })
 
   const killSession = useMutation({
@@ -229,9 +264,10 @@ export default function AdminPage() {
         {/* ── Tabs ──────────────────────────────────────────────────────────── */}
         <div className="flex gap-1 border-b border-border/50">
           {([
-            { id: "leaderboard", label: "Leaderboard", icon: Trophy },
-            { id: "cohort",      label: "Lab Stats",   icon: BarChart3 },
-            { id: "sessions",    label: "Sessions",    icon: Activity },
+            { id: "leaderboard",    label: "Leaderboard",    icon: Trophy },
+            { id: "cohort",         label: "Lab Stats",      icon: BarChart3 },
+            { id: "sessions",       label: "Sessions",       icon: Activity },
+            { id: "password-resets", label: "Password Resets", icon: KeyRound },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -534,6 +570,92 @@ export default function AdminPage() {
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             : <XCircle className="w-3.5 h-3.5" />}
                           Kill
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Password Resets tab ───────────────────────────────────────────── */}
+        {tab === "password-resets" && (
+          <div className="space-y-2">
+            {pwResets.isLoading && (
+              <div className="text-center py-16 text-muted-foreground font-mono text-sm animate-pulse">
+                Loading requests…
+              </div>
+            )}
+            {pwResets.error && (
+              <div className="text-center py-16 text-red-400 font-mono text-sm">
+                Failed to load password reset requests.
+              </div>
+            )}
+            {!pwResets.isLoading && pwResets.data?.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground font-mono text-sm">
+                No password reset requests.
+              </div>
+            )}
+            {pwResets.data && pwResets.data.length > 0 && (
+              <>
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-2 text-xs font-mono text-muted-foreground uppercase tracking-wide">
+                  <span>Email</span>
+                  <span className="w-24 text-center">Status</span>
+                  <span className="w-20 text-center">Requested</span>
+                  <span className="w-28" />
+                </div>
+                {pwResets.data.map((r) => {
+                  const isApproving = approvePwReset.isPending && approvePwReset.variables === r.id
+                  const isDismissing = dismissPwReset.isPending && dismissPwReset.variables === r.id
+                  return (
+                    <div
+                      key={r.id}
+                      className="rounded-xl border border-border/50 bg-card/50 px-5 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center"
+                    >
+                      <p className="text-sm font-medium truncate">{r.email}</p>
+
+                      <div className="w-24 flex justify-center">
+                        <span className={cn(
+                          "text-[10px] font-mono px-2 py-0.5 rounded-full border",
+                          r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                          r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
+                                                    "text-muted-foreground border-border bg-white/5",
+                        )}>
+                          {r.status}
+                        </span>
+                      </div>
+
+                      <span className="w-20 text-xs text-muted-foreground text-center font-mono">
+                        {relativeTime(r.requestedAt)}
+                      </span>
+
+                      <div className="w-28 flex items-center gap-2 justify-end">
+                        {r.status === "pending" && (
+                          <button
+                            disabled={isApproving}
+                            onClick={() => approvePwReset.mutate(r.id)}
+                            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isApproving
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <CheckCircle2 className="w-3.5 h-3.5" />}
+                            Approve
+                          </button>
+                        )}
+                        <button
+                          disabled={isDismissing}
+                          onClick={() => {
+                            if (!window.confirm(`Delete reset request for ${r.email}?`)) return
+                            dismissPwReset.mutate(r.id)
+                          }}
+                          className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          title="Delete request"
+                        >
+                          {isDismissing
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
                         </button>
                       </div>
                     </div>

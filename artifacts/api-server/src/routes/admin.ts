@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, asc } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
 import { db } from "@workspace/db";
 import { passwordResetRequestsTable } from "@workspace/db/schema";
@@ -125,6 +125,66 @@ router.delete("/admin/sessions/:studentId/:labId", async (req, res): Promise<voi
     return;
   }
   await stopSession(studentId, labId);
+  res.status(204).send();
+});
+
+/**
+ * GET /admin/password-reset-requests
+ * List all pending (and recently approved) password reset requests.
+ */
+router.get("/admin/password-reset-requests", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(passwordResetRequestsTable)
+    .orderBy(passwordResetRequestsTable.requestedAt);
+  res.json(rows);
+});
+
+/**
+ * POST /admin/password-reset-requests/:id/approve
+ * Approve a pending request: triggers Better Auth to generate a reset token,
+ * which the sendResetPassword hook captures and stores on the row.
+ */
+router.post("/admin/password-reset-requests/:id/approve", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const rows = await db
+    .select()
+    .from(passwordResetRequestsTable)
+    .where(eq(passwordResetRequestsTable.id, id))
+    .limit(1);
+
+  if (rows.length === 0) { res.status(404).json({ error: "Not found" }); return; }
+  if (rows[0].status !== "pending") {
+    res.status(400).json({ error: "Request is not pending" }); return;
+  }
+
+  const baseURL =
+    process.env.BETTER_AUTH_URL ??
+    (process.env.REPLIT_DEV_DOMAIN
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : "http://localhost:8080");
+
+  // Trigger Better Auth to generate a reset token; the sendResetPassword hook
+  // will store the token on the row and flip status → approved.
+  await auth.api.forgetPassword({
+    body: { email: rows[0].email, redirectTo: `${baseURL}/reset-password` },
+  });
+
+  res.json({ ok: true });
+});
+
+/**
+ * DELETE /admin/password-reset-requests/:id
+ * Dismiss / delete a password reset request (any status).
+ */
+router.delete("/admin/password-reset-requests/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db
+    .delete(passwordResetRequestsTable)
+    .where(eq(passwordResetRequestsTable.id, id));
   res.status(204).send();
 });
 

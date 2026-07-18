@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Zap, Loader2, CheckCircle2 } from "lucide-react"
 import { Link, useLocation } from "wouter"
-import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,28 +9,20 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 export default function ResetPasswordPage() {
   const [, setLocation] = useLocation()
-  const token = new URLSearchParams(window.location.search).get("token") ?? ""
 
+  // Support both flows:
+  //  - Admin-approval flow: ?email= param (no token needed, stored in DB)
+  //  - Legacy direct flow: ?token= param from email link
+  const params = new URLSearchParams(window.location.search)
+  const emailParam = params.get("email") ?? ""
+  const tokenParam = params.get("token") ?? ""
+
+  const [email, setEmail] = useState(emailParam)
   const [newPwd, setNewPwd] = useState("")
   const [confirmPwd, setConfirmPwd] = useState("")
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <div className="text-center space-y-3 max-w-sm px-6">
-          <p className="text-muted-foreground text-sm">
-            This reset link is invalid or has expired.
-          </p>
-          <Link href={`${basePath}/forgot-password`} className="text-primary text-sm hover:underline">
-            Request a new link
-          </Link>
-        </div>
-      </div>
-    )
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -46,17 +37,47 @@ export default function ResetPasswordPage() {
     }
     setLoading(true)
     try {
-      const res = await authClient.resetPassword({ newPassword: newPwd, token })
-      if (res.error) setError(res.error.message ?? "Could not reset password.")
-      else {
-        setDone(true)
-        setTimeout(() => setLocation(`${basePath}/sign-in`), 2500)
+      if (tokenParam) {
+        // Legacy direct-link flow (Better Auth standard)
+        const { authClient } = await import("@/lib/auth-client")
+        const res = await authClient.resetPassword({ newPassword: newPwd, token: tokenParam })
+        if (res.error) { setError(res.error.message ?? "Could not reset password."); return }
+      } else {
+        // Admin-approval flow: backend looks up the stored token by email
+        const res = await fetch(`${basePath}/api/password-reset/set`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.toLowerCase().trim(), newPassword: newPwd }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          setError((data as any).error ?? "Could not reset password.")
+          return
+        }
       }
+      setDone(true)
+      setTimeout(() => setLocation(`${basePath}/sign-in`), 2500)
     } catch {
       setError("Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
+  }
+
+  // No token and no email — link is invalid
+  if (!tokenParam && !emailParam) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <div className="text-center space-y-3 max-w-sm px-6">
+          <p className="text-muted-foreground text-sm">
+            This reset link is invalid or has expired.
+          </p>
+          <Link href={`${basePath}/forgot-password`} className="text-primary text-sm hover:underline">
+            Request a new reset
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -85,12 +106,32 @@ export default function ResetPasswordPage() {
             <>
               <div className="mb-6">
                 <h1 className="text-xl font-bold mb-1">Set a new password</h1>
-                <p className="text-sm text-muted-foreground">
-                  Choose a strong password for your account.
-                </p>
+                {emailParam && (
+                  <p className="text-sm text-muted-foreground">
+                    Setting password for <span className="text-foreground font-medium">{emailParam}</span>
+                  </p>
+                )}
+                {!emailParam && (
+                  <p className="text-sm text-muted-foreground">Choose a strong password for your account.</p>
+                )}
               </div>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {/* Only show email field for the approval flow when it wasn't pre-filled */}
+                {!tokenParam && !emailParam && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                    />
+                  </div>
+                )}
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="new-pwd">New password</Label>
                   <Input
