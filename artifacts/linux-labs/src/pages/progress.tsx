@@ -6,20 +6,13 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Zap, Trophy, Award, CheckCircle2,
-  ArrowLeft, Terminal, Layers, Server, Container, GitBranch, Cpu,
+  ArrowLeft,
   ExternalLink, Star, ScrollText, ChevronDown
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
-
-const TRACK_META: Record<string, { label: string; icon: React.ElementType; accentHex: string; accentClass: string }> = {
-  linux:     { label: "Linux",     icon: Terminal,   accentHex: "#22d3ee", accentClass: "text-cyan-400" },
-  terraform: { label: "Terraform", icon: Layers,     accentHex: "#c084fc", accentClass: "text-purple-400" },
-  jenkins:   { label: "Jenkins",   icon: Server,     accentHex: "#f97316", accentClass: "text-orange-400" },
-  docker:    { label: "Docker",    icon: Container,  accentHex: "#38bdf8", accentClass: "text-sky-400" },
-  git:       { label: "Git",       icon: GitBranch,  accentHex: "#f87171", accentClass: "text-red-400" },
-}
 
 const LEVEL_META: Record<number, { name: string; accentHex: string }> = {
   1: { name: "Foundation",   accentHex: "#22d3ee" },
@@ -124,7 +117,7 @@ export default function ProgressPage() {
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {earned.map(track => {
-                  const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8", accentClass: "text-slate-400" }
+                  const tm = TRACK_META[track] ?? { ...DEFAULT_TRACK_META, label: track }
                   const Icon = tm.icon
                   return (
                     <Link
@@ -154,7 +147,7 @@ export default function ProgressPage() {
             </div>
           ))
         ) : tracks.map(track => {
-          const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8", accentClass: "text-slate-400" }
+          const tm = TRACK_META[track] ?? { ...DEFAULT_TRACK_META, label: track }
           const Icon = tm.icon
           const trackLabs = (labs ?? [])
             .filter(l => l.track === track)

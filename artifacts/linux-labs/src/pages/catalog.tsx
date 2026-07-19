@@ -8,12 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Info, LogOut, User, Home, BarChart2, ChevronLeft, Shield } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
-  Terminal, Layers, Lock, CheckCircle2, PlayCircle,
+  Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
   Award, Hourglass, Unlock, Zap, Server, RefreshCw, CloudDownload, Github,
-  Container, GitBranch
+  Terminal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TRACK_META, DEFAULT_TRACK_META, type TrackMeta } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -118,58 +119,6 @@ function formatRelativeTime(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
-// ─────────────────────────────────────────
-// Track metadata
-// ─────────────────────────────────────────
-const TRACK_META: Record<string, {
-  label: string
-  description: string
-  icon: React.ElementType
-  accentClass: string
-  accentHex: string
-  gradient: string
-}> = {
-  linux: {
-    label: "Linux",
-    description: "Master the command line, permissions, users, scripting, and automation.",
-    icon: Terminal,
-    accentClass: "text-cyan-400",
-    accentHex: "#22d3ee",
-    gradient: "from-cyan-500/20 to-blue-500/10",
-  },
-  terraform: {
-    label: "Terraform",
-    description: "Learn Infrastructure as Code — write, plan, and apply real configs.",
-    icon: Layers,
-    accentClass: "text-purple-400",
-    accentHex: "#c084fc",
-    gradient: "from-purple-500/20 to-pink-500/10",
-  },
-  jenkins: {
-    label: "Jenkins",
-    description: "Master CI/CD pipelines — install, configure, and manage Jenkins automation.",
-    icon: Server,
-    accentClass: "text-orange-400",
-    accentHex: "#f97316",
-    gradient: "from-orange-500/20 to-yellow-500/10",
-  },
-  docker: {
-    label: "Docker",
-    description: "Learn containers from the ground up — images, running containers, Dockerfiles, and volumes.",
-    icon: Container,
-    accentClass: "text-sky-400",
-    accentHex: "#38bdf8",
-    gradient: "from-sky-500/20 to-blue-500/10",
-  },
-  git: {
-    label: "Git",
-    description: "Master version control — commits, branches, merges, remotes, and undoing mistakes.",
-    icon: GitBranch,
-    accentClass: "text-red-400",
-    accentHex: "#f87171",
-    gradient: "from-red-500/20 to-orange-500/10",
-  },
-}
 
 // Level display names and accent colors
 const LEVEL_META: Record<number, { name: string; accentHex: string }> = {
@@ -239,15 +188,14 @@ export default function Catalog() {
     }
   }, [refetchLabs, refetchProgress])
 
-  // Derive sorted unique tracks that have labs
+  // Derive sorted unique tracks that have labs, plus coming-soon tracks
   const tracks = useMemo(() => {
-    if (!labs) return []
-    const seen = new Set<string>()
-    const order = ["linux", "terraform", "jenkins"]
-    labs.forEach(l => seen.add(l.track))
-    const known = order.filter(t => seen.has(t))
-    const rest = [...seen].filter(t => !order.includes(t))
-    return [...known, ...rest]
+    const order = ["linux", "terraform", "jenkins", "docker", "git", "kubernetes", "ansible"]
+    const seen = new Set<string>(labs?.map(l => l.track) ?? [])
+    order.forEach(t => {
+      if (TRACK_META[t]?.comingSoon) seen.add(t)
+    })
+    return order.filter(t => seen.has(t))
   }, [labs])
 
   const search = useSearch()
@@ -310,13 +258,9 @@ export default function Catalog() {
     })
   }, [labs, resolvedTrack, progressByLabId])
 
-  const meta = TRACK_META[resolvedTrack] ?? {
+  const meta: TrackMeta = TRACK_META[resolvedTrack] ?? {
+    ...DEFAULT_TRACK_META,
     label: resolvedTrack,
-    description: "",
-    icon: Cpu,
-    accentClass: "text-slate-400",
-    accentHex: "#94a3b8",
-    gradient: "from-slate-500/20 to-gray-500/10",
   }
 
   // Track-wide stats
@@ -667,15 +611,31 @@ export default function Catalog() {
             </div>
           </div>
 
+          {/* Coming soon placeholder for empty tracks */}
+          {totalLabs === 0 && (
+            <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-10 text-center space-y-4">
+              <div
+                className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center border"
+                style={{ background: `${meta.accentHex}15`, borderColor: `${meta.accentHex}30` }}
+              >
+                <meta.icon className="w-8 h-8" style={{ color: meta.accentHex }} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">{meta.label} — Coming Soon</h2>
+                <p className="text-muted-foreground mt-2 max-w-md mx-auto">{meta.description}</p>
+              </div>
+            </div>
+          )}
+
           {/* ── By Level view ── */}
-          {viewMode === "by-level" && (
+          {viewMode === "by-level" && totalLabs > 0 && (
             <div className="space-y-6">
               {loading
                 ? Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="h-24 rounded-xl bg-card/50 border border-border/50 animate-pulse" />
                   ))
                 : filteredCards.map(({ track, level, lvlLabs, passed, total }) => {
-                    const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8" }
+                    const tm = TRACK_META[track] ?? { ...DEFAULT_TRACK_META, label: track }
                     const lm = LEVEL_META[level] ?? LEVEL_META[1]
                     const cardKey = `${track}-${level}`
                     const isOpen = !!expandedCards[cardKey]

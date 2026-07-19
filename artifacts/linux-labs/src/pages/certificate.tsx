@@ -2,18 +2,11 @@ import { useMemo, useState, useEffect } from "react"
 import { useParams, Link } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
-import { ArrowLeft, Printer, Zap, Award, CheckCircle2, Terminal, Layers, Server, Container, GitBranch, Cpu } from "lucide-react"
+import { ArrowLeft, Printer, Zap, Award, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
-
-const TRACK_META: Record<string, { label: string; icon: React.ElementType; accentHex: string; gradient: string }> = {
-  linux:     { label: "Linux",     icon: Terminal,  accentHex: "#22d3ee", gradient: "from-cyan-500/20 to-blue-500/10" },
-  terraform: { label: "Terraform", icon: Layers,    accentHex: "#c084fc", gradient: "from-purple-500/20 to-pink-500/10" },
-  jenkins:   { label: "Jenkins",   icon: Server,    accentHex: "#f97316", gradient: "from-orange-500/20 to-yellow-500/10" },
-  docker:    { label: "Docker",    icon: Container, accentHex: "#38bdf8", gradient: "from-sky-500/20 to-blue-500/10" },
-  git:       { label: "Git",       icon: GitBranch, accentHex: "#f87171", gradient: "from-red-500/20 to-orange-500/10" },
-}
 
 function formatLongDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
@@ -39,7 +32,7 @@ export default function CertificatePage() {
 
   const loading = labsLoading || progressLoading
 
-  const tm = TRACK_META[track ?? ""] ?? { label: track ?? "Unknown", icon: Cpu, accentHex: "#94a3b8", gradient: "from-slate-500/20 to-gray-500/10" }
+  const tm = TRACK_META[track ?? ""] ?? { ...DEFAULT_TRACK_META, label: track ?? "Unknown" }
   const Icon = tm.icon
 
   const { passed, total, lastPassedAt, isComplete } = useMemo(() => {

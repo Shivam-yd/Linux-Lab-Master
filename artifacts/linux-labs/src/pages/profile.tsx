@@ -7,15 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award, Terminal, Layers, Server, Container, GitBranch, Cpu } from "lucide-react"
-
-const TRACK_META: Record<string, { label: string; icon: React.ElementType; accentHex: string }> = {
-  linux:     { label: "Linux",     icon: Terminal,   accentHex: "#22d3ee" },
-  terraform: { label: "Terraform", icon: Layers,     accentHex: "#c084fc" },
-  jenkins:   { label: "Jenkins",   icon: Server,     accentHex: "#f97316" },
-  docker:    { label: "Docker",    icon: Container,  accentHex: "#38bdf8" },
-  git:       { label: "Git",       icon: GitBranch,  accentHex: "#f87171" },
-}
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award } from "lucide-react"
+import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -297,7 +290,7 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-3">
               {trackStats.map(({ track, passed, total, complete }) => {
-                const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8" }
+                const tm = TRACK_META[track] ?? { ...DEFAULT_TRACK_META, label: track }
                 const Icon = tm.icon
                 const pct = total > 0 ? Math.round((passed / total) * 100) : 0
                 return (

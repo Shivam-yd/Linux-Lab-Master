@@ -5,23 +5,16 @@ import { useSession } from "@/lib/auth-client"
 import { useListLabs } from "@workspace/api-client-react"
 import {
   ArrowLeft, Users, BarChart3, ChevronRight,
-  Trophy, Medal, Crown, Terminal, Layers, Server, Container, GitBranch,
+  Trophy, Medal, Crown,
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Zap, Target,
 } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
-
-const TRACK_META: Record<string, { label: string; accentClass: string; accentHex: string; bgClass: string; icon: React.ElementType }> = {
-  linux:     { label: "Linux",     accentClass: "text-cyan-400",   accentHex: "#22d3ee", bgClass: "bg-cyan-400/10",   icon: Terminal  },
-  terraform: { label: "Terraform", accentClass: "text-purple-400", accentHex: "#c084fc", bgClass: "bg-purple-400/10", icon: Layers    },
-  jenkins:   { label: "Jenkins",   accentClass: "text-orange-400", accentHex: "#f97316", bgClass: "bg-orange-400/10", icon: Server    },
-  docker:    { label: "Docker",    accentClass: "text-sky-400",    accentHex: "#38bdf8", bgClass: "bg-sky-400/10",    icon: Container },
-  git:       { label: "Git",       accentClass: "text-red-400",    accentHex: "#f87171", bgClass: "bg-red-400/10",    icon: GitBranch },
-}
 
 type PasswordResetRequest = {
   id: number
