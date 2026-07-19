@@ -476,7 +476,6 @@ export default function Catalog() {
           <div className="pt-2 border-t border-border/40 space-y-0.5">
             {[
               { href: "/progress", icon: BarChart2, label: "My Progress" },
-              ...(session?.user ? [{ href: "/admin", icon: Shield, label: "Admin Panel" }] : []),
               { href: "/about",    icon: Info,      label: "About" },
             ].map(({ href, icon: Icon, label }) => (
               <Link
@@ -545,14 +544,15 @@ export default function Catalog() {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
-              {/* Fetch Labs button */}
-              <div className="flex flex-col items-end gap-1.5">
+            <div className="flex flex-col items-end gap-1.5">
+              <div className="flex items-center gap-2">
+                {/* Fetch Labs icon button */}
                 <button
                   onClick={handleFetchLabs}
                   disabled={syncing}
+                  title={syncing ? "Fetching…" : "Fetch Labs"}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200",
+                    "w-9 h-9 flex items-center justify-center rounded-lg border transition-all duration-200",
                     syncing
                       ? "bg-muted/40 border-border text-muted-foreground cursor-not-allowed"
                       : "bg-card border-border hover:border-primary/50 hover:bg-muted/30 text-foreground"
@@ -562,51 +562,61 @@ export default function Catalog() {
                     ? <RefreshCw className="w-4 h-4 animate-spin" />
                     : <CloudDownload className="w-4 h-4" />
                   }
-                  {syncing ? "Fetching…" : "Fetch Labs"}
                 </button>
 
-                {/* Status line */}
-                <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/70 pr-0.5">
-                  {syncMessage ? (
-                    <span className={syncMessage.startsWith("✓") ? "text-green-400" : syncMessage.startsWith("✗") ? "text-rose-400" : ""}>
-                      {syncMessage}
-                    </span>
-                  ) : syncStatus?.lastSync ? (
-                    <>
-                      <Github className="w-3 h-3" />
-                      <span>
-                        {syncStatus.totalRemote > 0 ? `${syncStatus.totalRemote} remote` : "no remote labs"} ·
-                        synced {formatRelativeTime(syncStatus.lastSync.syncedAt)}
-                      </span>
-                      {syncStatus.lastSync.status === "error" && (
-                        <span className="text-rose-400 ml-0.5">· error</span>
+                {/* Tab switcher */}
+                <div className="flex items-center p-1 bg-card/80 backdrop-blur-sm border border-border/80 rounded-lg shadow-sm">
+                  {(["by-level", "by-course"] as const).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setViewMode(mode)}
+                      className={cn(
+                        "px-4 py-1.5 rounded-md text-sm font-semibold transition-all duration-200",
+                        viewMode === mode
+                          ? "bg-muted text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground/80 hover:bg-muted/50"
                       )}
-                    </>
-                  ) : (
-                    <span className="flex items-center gap-1.5">
-                      <Github className="w-3 h-3" />
-                      pulls from GitHub every 10m
-                    </span>
-                  )}
+                    >
+                      {mode === "by-level" ? "By Level" : "By Course"}
+                    </button>
+                  ))}
                 </div>
+
+                {/* Admin Panel button (only for logged-in users) */}
+                {session?.user && (
+                  <Link
+                    href="/admin"
+                    title="Admin Panel"
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-all duration-200"
+                  >
+                    <Shield className="w-4 h-4" />
+                  </Link>
+                )}
               </div>
 
-              {/* Tab switcher */}
-              <div className="flex items-center p-1 bg-card/80 backdrop-blur-sm border border-border/80 rounded-lg shadow-sm">
-                {(["by-level", "by-course"] as const).map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    className={cn(
-                      "px-5 py-2 rounded-md text-sm font-semibold transition-all duration-200",
-                      viewMode === mode
-                        ? "bg-muted text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground/80 hover:bg-muted/50"
+              {/* Status line */}
+              <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/70">
+                {syncMessage ? (
+                  <span className={syncMessage.startsWith("✓") ? "text-green-400" : syncMessage.startsWith("✗") ? "text-rose-400" : ""}>
+                    {syncMessage}
+                  </span>
+                ) : syncStatus?.lastSync ? (
+                  <>
+                    <Github className="w-3 h-3" />
+                    <span>
+                      {syncStatus.totalRemote > 0 ? `${syncStatus.totalRemote} remote` : "no remote labs"} ·
+                      synced {formatRelativeTime(syncStatus.lastSync.syncedAt)}
+                    </span>
+                    {syncStatus.lastSync.status === "error" && (
+                      <span className="text-rose-400 ml-0.5">· error</span>
                     )}
-                  >
-                    {mode === "by-level" ? "By Level" : "By Course"}
-                  </button>
-                ))}
+                  </>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <Github className="w-3 h-3" />
+                    pulls from GitHub every 10m
+                  </span>
+                )}
               </div>
             </div>
           </div>
