@@ -151,8 +151,12 @@ else
   echo ""
   echo -e "  ${CYAN}Google OAuth (optional — leave blank to skip; 'Continue with Google' will be hidden)${RESET}"
   echo -e "  Create credentials at: https://console.cloud.google.com/apis/credentials"
-  read -rp "  GOOGLE_CLIENT_ID    : " GOOGLE_CLIENT_ID
-  read -rp "  GOOGLE_CLIENT_SECRET: " GOOGLE_CLIENT_SECRET
+  DEFAULT_GOOGLE_CLIENT_ID="680196573745-eekfbd0kmpkilokn83asia4nsmq6q4m7.apps.googleusercontent.com"
+  DEFAULT_GOOGLE_CLIENT_SECRET="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"
+  read -rp "  GOOGLE_CLIENT_ID     [${DEFAULT_GOOGLE_CLIENT_ID}]: " INPUT_GID
+  GOOGLE_CLIENT_ID="${INPUT_GID:-${DEFAULT_GOOGLE_CLIENT_ID}}"
+  read -rp "  GOOGLE_CLIENT_SECRET [${DEFAULT_GOOGLE_CLIENT_SECRET}]: " INPUT_GSECRET
+  GOOGLE_CLIENT_SECRET="${INPUT_GSECRET:-${DEFAULT_GOOGLE_CLIENT_SECRET}}"
 
   if [[ -n "${GOOGLE_CLIENT_ID}" ]]; then
     echo ""

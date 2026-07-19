@@ -22,36 +22,58 @@ instructions: |
   ## Sharing Data Between Containers with Volumes
 
   **Scenario**
-  Your reporting pipeline runs in two stages: a generator container that
-  queries the database and writes a CSV report, and an archiver container that
-  picks up that CSV and compresses it. Both containers are ephemeral — they
-  start, do their work, and exit. The shared storage between them must survive
-  both container lifecycles. A named Docker volume is the standard solution:
-  it exists independently of any container and can be mounted by as many
-  containers as needed.
+  A reporting pipeline runs in two stages: a **writer** container that produces
+  a report file, and a **reader** container that picks it up. Both containers
+  are ephemeral — they start, do their work, and exit. A named Docker volume
+  is the bridge: it exists independently of any container and can be mounted
+  by as many containers as needed.
 
-  **Your task:** create a named volume `report-data`, run a `writer` container
-  that writes a file to it, then run a `reader` container that reads that file
-  and saves the content to `/root/work/read-confirm.txt` on the host.
+  ---
 
-  This sandbox runs a teaching-mode `docker` CLI — same commands and output
-  format as the real thing.
+  **Quick Reference — copy and run these commands in order:**
 
-  **What You'll Deliver**
-  - Named volume `report-data` created
-  - `writer` container ran and wrote `/data/report.txt` to the volume
-  - `reader` container ran and produced `/root/work/read-confirm.txt` by reading the same volume
+  ```
+  docker volume create report-data
+  docker volume ls
+  docker run --name writer -v report-data:/data busybox sh -c "echo 'monthly-report-2024' > /data/report.txt && echo 'status: complete' >> /data/report.txt"
+  docker ps -a
+  docker run --name reader -v report-data:/data busybox sh -c "cat /data/report.txt > /root/work/read-confirm.txt"
+  cat /root/work/read-confirm.txt
+  ```
 
-  ## Steps
+  ---
 
-  1. Create the volume: `docker volume create report-data`
-  2. Verify it exists: `docker volume ls`
-  3. Run the writer:
+  **Details**
+
+  | What | Value |
+  |------|-------|
+  | Volume name | `report-data` |
+  | Image to use | `busybox` |
+  | Mount path inside container | `/data` |
+  | File the writer creates | `/data/report.txt` |
+  | Content written | `monthly-report-2024` (line 1) and `status: complete` (line 2) |
+  | File the reader produces | `/root/work/read-confirm.txt` (on the host, not in the volume) |
+
+  **Step-by-step:**
+
+  1. **Create the volume** — `docker volume create report-data`
+     Creates a named volume called `report-data` that persists independently of any container.
+
+  2. **Verify it exists** — `docker volume ls`
+     You should see `report-data` listed.
+
+  3. **Run the writer container** using image `busybox`, mount `report-data` at `/data`, write two lines to `/data/report.txt`:
      `docker run --name writer -v report-data:/data busybox sh -c "echo 'monthly-report-2024' > /data/report.txt && echo 'status: complete' >> /data/report.txt"`
-  4. Confirm the writer exited cleanly: `docker ps -a`
-  5. Run the reader from the same volume:
+
+  4. **Confirm the writer exited** — `docker ps -a`
+     The writer should show status `exited`. That is expected — it did its job and stopped.
+
+  5. **Run the reader container** — same image `busybox`, same volume `report-data` at `/data`.
+     It reads `/data/report.txt` and saves the contents to `/root/work/read-confirm.txt`:
      `docker run --name reader -v report-data:/data busybox sh -c "cat /data/report.txt > /root/work/read-confirm.txt"`
-  6. Verify the proof file was created: `cat /root/work/read-confirm.txt`
+
+  6. **Verify the output file** — `cat /root/work/read-confirm.txt`
+     You should see both lines from the writer, proving the reader successfully read from the shared volume.
 
 tasks:
   - id: "volume_created"
