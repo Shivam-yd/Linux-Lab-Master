@@ -524,7 +524,7 @@ export default function Catalog() {
                       key={mode}
                       onClick={() => setViewMode(mode)}
                       className={cn(
-                        "px-4 py-1.5 rounded-md text-sm font-semibold transition-all duration-200",
+                        "px-4 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 whitespace-nowrap",
                         viewMode === mode
                           ? "bg-muted text-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground/80 hover:bg-muted/50"
