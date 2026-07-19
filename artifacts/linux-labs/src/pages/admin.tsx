@@ -597,7 +597,7 @@ export default function AdminPage() {
         {/* ── Student detail panel — inline sidebar ── */}
         {selectedStudent && (
           <div
-            className="w-80 shrink-0 border-l border-border bg-[#0d0d0d] flex flex-col overflow-hidden"
+            className="w-[440px] shrink-0 border-l border-border bg-[#0d0d0d] flex flex-col overflow-hidden"
             style={{ animation: "slideInPanel 0.18s ease-out" }}
           >
             <style>{`@keyframes slideInPanel{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}`}</style>
