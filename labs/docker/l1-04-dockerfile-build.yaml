@@ -27,8 +27,10 @@ instructions: |
   image, build it into a tagged image, and confirm a container runs from it.
   This is the entry point for any Docker-based CI/CD pipeline.
 
-  **Your task:** write a `Dockerfile` for a simple app, build it into a
-  tagged image called `myapp:v1`, and run a container from it.
+  **Your task:** write a `Dockerfile` at `/root/work/app/Dockerfile` using
+  `FROM alpine:latest`, `RUN`, `COPY`, and `CMD`, build it into a tagged image
+  called `myapp:v1` with `docker build -t myapp:v1`, and run a container from
+  that image.
 
   This sandbox runs a teaching-mode `docker` CLI — same commands and output
   as the real thing. `vi` is available if you want it, or use shell

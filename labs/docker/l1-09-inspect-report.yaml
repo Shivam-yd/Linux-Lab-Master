@@ -30,9 +30,10 @@ instructions: |
   two documentation files: detailed metadata for the `web` container and a
   full inventory of all containers.
 
-  **Your task:** start `web` and `db` containers in the background, save
-  `docker inspect web` output to `/root/work/web-info.txt`, and save
-  `docker ps -a` output to `/root/work/inventory.txt`.
+  **Your task:** run two `busybox` containers in detached mode — one named
+  `web` and one named `db` — then save `docker inspect web` output to
+  `/root/work/web-info.txt` and save `docker ps -a` output to
+  `/root/work/inventory.txt`.
 
   This sandbox runs a teaching-mode `docker` CLI — same commands and output
   format as the real thing.

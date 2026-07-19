@@ -26,9 +26,10 @@ instructions: |
   command inside it — again without interrupting the main process. This is
   the bread-and-butter of live container debugging.
 
-  **Your task:** start a container named `logger`, read its output with
-  `docker logs`, then use `docker exec` to create a proof file inside it
-  while it keeps running.
+  **Your task:** run a `busybox` container named `logger` in detached mode,
+  read its output with `docker logs logger`, then use `docker exec` to create
+  `/root/work/exec-proof.txt` containing the text `reached-via-exec` inside
+  the still-running container.
 
   This sandbox runs a teaching-mode `docker` CLI — same commands and output
   format as the real thing.
