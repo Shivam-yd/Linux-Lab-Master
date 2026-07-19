@@ -29,9 +29,10 @@ instructions: |
   ops can roll back by running the previous tag. You're implementing that policy
   starting now.
 
-  **Your task:** build the existing app as `webapp:v1`, update the Dockerfile
-  to add a version label and a new echo command, then build it again as
-  `webapp:v2`. Both tags must appear in `docker images`.
+  **Your task:** build the existing `Dockerfile` at `/root/work/app/Dockerfile`
+  as `webapp:v1`, update that same Dockerfile to add a `LABEL version="2.0"`
+  and a new `CMD`, then build it again as `webapp:v2` — both tags must appear
+  in `docker images`.
 
   No text editor is installed — update the Dockerfile using `cat > … <<'EOF' … EOF`.
 
