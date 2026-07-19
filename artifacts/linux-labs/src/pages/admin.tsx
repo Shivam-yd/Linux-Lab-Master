@@ -120,6 +120,7 @@ export default function AdminPage() {
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
   const [confirmApprovePwReset, setConfirmApprovePwReset] = useState<PasswordResetRequest | null>(null)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
+  const [confirmDenyRequest, setConfirmDenyRequest] = useState<{ id: number; name: string; email: string } | null>(null)
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
   const [leaderboardSearch, setLeaderboardSearch] = useState("")
@@ -239,7 +240,10 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/registration/requests/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to deny request")
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "audit"] })
+    },
   })
 
   const approvePwReset = useMutation({
@@ -992,9 +996,9 @@ export default function AdminPage() {
                                 Approve
                               </button>
                               <button
-                                onClick={() => denyRequest.mutate(r.id)}
+                                onClick={() => setConfirmDenyRequest({ id: r.id, name: r.name, email: r.email })}
                                 disabled={denyRequest.isPending && denyRequest.variables === r.id}
-                                title="Dismiss"
+                                title="Deny"
                                 className="p-1.5 rounded-lg border border-border/40 text-muted-foreground hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/8 disabled:opacity-40 transition-colors"
                               >
                                 {denyRequest.isPending && denyRequest.variables === r.id
@@ -1302,6 +1306,32 @@ export default function AdminPage() {
               >
                 {confirmApprovePwReset.status === "approved" ? "Re-approve" : "Approve"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDenyRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/20 flex items-center justify-center">
+                <X className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h2 className="font-bold text-base">Deny registration request?</h2>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  The request from <span className="font-semibold text-foreground">{confirmDenyRequest.name}</span>
+                  {" "}(<span className="font-mono text-xs">{confirmDenyRequest.email}</span>) will be permanently removed.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2.5">
+              <button onClick={() => setConfirmDenyRequest(null)} className="px-4 py-2.5 text-sm rounded-xl border border-border hover:bg-muted/50 transition-colors font-medium">Cancel</button>
+              <button
+                onClick={() => { denyRequest.mutate(confirmDenyRequest.id); setConfirmDenyRequest(null) }}
+                className="px-4 py-2.5 text-sm rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors"
+              >Deny request</button>
             </div>
           </div>
         </div>
