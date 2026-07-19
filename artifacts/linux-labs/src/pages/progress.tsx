@@ -167,11 +167,11 @@ export default function ProgressPage() {
           const open = expanded.has(track)
 
           return (
-            <section key={track} className="space-y-3">
+            <section key={track} className="rounded-xl border border-border/50 bg-card/60 overflow-hidden">
               {/* Track header — clickable to collapse/expand */}
               <button
                 onClick={() => toggle(track)}
-                className="w-full flex items-center justify-between group"
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg border flex items-center justify-center"
