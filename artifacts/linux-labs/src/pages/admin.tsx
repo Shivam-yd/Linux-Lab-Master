@@ -101,7 +101,11 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  const [tab, setTab] = useState<"leaderboard" | "cohort" | "sessions" | "password-resets" | "registration">("leaderboard")
+  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration"
+  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration"]
+  const hashTab = window.location.hash.replace("#", "") as Tab
+  const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
+  const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null)
   const [confirmReset, setConfirmReset] = useState<StudentRow | null>(null)
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
@@ -404,7 +408,7 @@ export default function AdminPage() {
               ] as const).map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setTab(id)}
+                  onClick={() => setTabAndHash(id)}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150",
                     tab === id
