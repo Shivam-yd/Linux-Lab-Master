@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@workspace/db";
+import { logger } from "./logger";
 import { eq, and, sql } from "drizzle-orm";
 import {
   userTable,
@@ -114,7 +115,7 @@ export const auth = betterAuth({
             ));
         }
       } catch (err) {
-        console.error("[password-reset] failed to store token", err);
+        logger.error({ err }, "password-reset: failed to store token");
       }
     },
   },

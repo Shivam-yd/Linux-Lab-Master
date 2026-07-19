@@ -63,7 +63,7 @@ export default function Workspace() {
   const stopSession = useStopLabSession({
     mutation: {
       onSuccess: () => {
-        queryClient.setQueryData(getGetLabSessionQueryKey(labId), (old: any) => 
+        queryClient.setQueryData(getGetLabSessionQueryKey(labId), (old: Record<string, unknown> | null | undefined) => 
           old ? { ...old, status: 'stopped' } : null
         )
         queryClient.invalidateQueries({ queryKey: getGetLabSessionQueryKey(labId) })
@@ -82,13 +82,15 @@ export default function Workspace() {
 
   const { data: progressList } = useListProgress()
 
+  type VerifyResult = { passed: boolean; score: number; checks: { id: string; label?: string | null; passed: boolean; message: string }[] }
+
   const verifyLab = useVerifyLab()
-  const [verifyResult, setVerifyResult] = useState<any>(null)
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
 
   // Seed verifyResult from stored lastResults when progress loads or lab changes
   useEffect(() => {
-    const entry = progressList?.find((p: any) => p.labId === labId)
+    const entry = progressList?.find((p) => p.labId === labId)
     if (entry?.lastResults?.length) {
       setVerifyResult({
         passed: entry.status === "passed",

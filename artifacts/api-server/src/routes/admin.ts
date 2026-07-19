@@ -10,6 +10,7 @@ import {
 } from "@workspace/db/schema";
 import { auth } from "../lib/auth";
 import { stopSession } from "../lib/docker/manager";
+import { logger } from "../lib/logger";
 
 // Comma-separated list of admin emails set via the ADMIN_EMAILS env var.
 // e.g. ADMIN_EMAILS=alice@example.com,bob@example.com
@@ -133,7 +134,7 @@ router.delete("/users/:userId", async (req, res): Promise<void> => {
     );
   } catch (err) {
     // Non-fatal: log and continue with deletion.
-    console.error("admin delete-user: failed to stop sessions", err);
+    logger.error({ err }, "admin delete-user: failed to stop sessions");
   }
 
   // 2. Delete all data atomically.

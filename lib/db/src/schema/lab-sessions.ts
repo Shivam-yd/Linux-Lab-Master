@@ -7,6 +7,7 @@ import {
   jsonb,
   timestamp,
   uniqueIndex,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -45,6 +46,9 @@ export const labSessionsTable = pgTable(
     // Unique constraint enables ON CONFLICT DO UPDATE upserts and prevents
     // duplicate rows from concurrent requests for the same student+lab.
     uniqueIndex("uq_lab_sessions_student_lab").on(table.studentId, table.labId),
+    // Used by the cleanup job (stopExpiredSessions) to find running sessions
+    // older than 1 hour without a full table scan.
+    index("idx_lab_sessions_status_updated").on(table.status, table.updatedAt),
   ],
 );
 
