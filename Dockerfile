@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @workspace/api-server run build
 
 # Build frontend (Vite → artifacts/linux-labs/dist/public/)
-RUN PORT=3000 BASE_PATH=/ pnpm --filter @workspace/linux-labs run build
+RUN PORT=3000 BASE_PATH=/ pnpm --filter @workspace/devlabmaster run build
 
 
 # ─────────────────────────────────────────────────────────────────────────────
