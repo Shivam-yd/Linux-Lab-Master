@@ -80,7 +80,7 @@ export default function ProgressPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10 space-y-10 relative z-10">
+      <main className="max-w-5xl mx-auto px-6 py-10 space-y-4 relative z-10">
 
         {/* Hero stats */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
