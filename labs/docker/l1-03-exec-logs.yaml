@@ -26,28 +26,33 @@ instructions: |
   command inside it — again without interrupting the main process. This is
   the bread-and-butter of live container debugging.
 
-  **Your task:** run a `busybox` container named `logger` in detached mode,
-  read its output with `docker logs logger`, then use `docker exec` to create
-  `/root/work/exec-proof.txt` containing the text `reached-via-exec` inside
-  the still-running container.
+  **Your task:** start a `busybox` container named `logger` in detached mode
+  using the command below, read its output with `docker logs logger`, then
+  use `docker exec` to write the text `reached-via-exec` into the file
+  `/root/work/exec-proof.txt` — while `logger` is still running.
+
+  Start the container:
+  `docker run -d --name logger busybox sh -c 'while true; do echo tick; sleep 1; done'`
+
+  Create the proof file via exec (do **not** stop logger first):
+  `docker exec logger sh -c 'echo reached-via-exec > /root/work/exec-proof.txt'`
 
   This sandbox runs a teaching-mode `docker` CLI — same commands and output
-  format as the real thing.
+  as the real thing. `vi` is available if needed.
 
   **What You'll Deliver**
-  - `logger` running and producing ticking output visible in `docker logs logger`
-  - `/root/work/exec-proof.txt` created via `docker exec` while `logger` stayed running
+  - `logger` container running with `tick` lines visible in `docker logs logger`
+  - `/root/work/exec-proof.txt` containing `reached-via-exec`, created while `logger` stayed running
 
   ## Steps
 
   1. Start logger in the background:
-     `docker run -d --name logger busybox sh -c "i=0; while true; do echo tick \$i; i=\$((i+1)); sleep 1; done"`
-  2. Wait a couple of seconds, then read its output: `docker logs logger`
-  3. Confirm you see `tick 0`, `tick 1`, etc.
-  4. While logger is still running, create a proof file with exec:
-     `docker exec logger sh -c "echo reached-via-exec > /root/work/exec-proof.txt"`
-  5. Confirm logger is still running: `docker ps`
-  6. Verify the file was created: `cat /root/work/exec-proof.txt`
+     `docker run -d --name logger busybox sh -c 'while true; do echo tick; sleep 1; done'`
+  2. Read its output: `docker logs logger` — you should see one or more `tick` lines
+  3. While logger is still running, create the proof file:
+     `docker exec logger sh -c 'echo reached-via-exec > /root/work/exec-proof.txt'`
+  4. Confirm logger is still running: `docker ps`
+  5. Confirm the file exists: `cat /root/work/exec-proof.txt`
 
 tasks:
   - id: "logger_running_with_output"

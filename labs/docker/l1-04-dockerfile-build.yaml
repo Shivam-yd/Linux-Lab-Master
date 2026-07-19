@@ -27,24 +27,34 @@ instructions: |
   image, build it into a tagged image, and confirm a container runs from it.
   This is the entry point for any Docker-based CI/CD pipeline.
 
-  **Your task:** write a `Dockerfile` at `/root/work/app/Dockerfile` using
-  `FROM alpine:latest`, `RUN`, `COPY`, and `CMD`, build it into a tagged image
-  called `myapp:v1` with `docker build -t myapp:v1`, and run a container from
-  that image.
+  **Your task:** create `/root/work/app/Dockerfile` with exactly these four
+  instructions, then build and run it.
 
-  This sandbox runs a teaching-mode `docker` CLI — same commands and output
-  as the real thing. `vi` is available if you want it, or use shell
-  redirection: `cat > Dockerfile <<'EOF' ... EOF`
+  ```
+  FROM alpine:latest
+  RUN echo "building app"
+  COPY . /app
+  CMD ["echo", "hello from myapp"]
+  ```
+
+  Write it with `vi Dockerfile` or shell redirection (from `/root/work/app`):
+  `printf 'FROM alpine:latest\nRUN echo "building app"\nCOPY . /app\nCMD ["echo", "hello from myapp"]\n' > Dockerfile`
+
+  Then build the image tagged `myapp:v1`:
+  `docker build -t myapp:v1 /root/work/app`
+
+  Then run a container from it:
+  `docker run --name myapp-test myapp:v1`
 
   **What You'll Deliver**
-  - `Dockerfile` at `/root/work/app/Dockerfile` with `FROM`, `RUN`, `COPY`, and `CMD`
+  - `/root/work/app/Dockerfile` containing `FROM`, `RUN`, `COPY`, and `CMD`
   - `myapp:v1` built and visible in `docker images`
   - A container run from `myapp:v1`
 
   ## Steps
 
-  1. The app directory already exists at `/root/work/app` — `cd /root/work/app`
-  2. Write the Dockerfile using redirection:
+  1. Go to the app directory: `cd /root/work/app`
+  2. Write the Dockerfile:
      ```
      cat > Dockerfile <<'EOF'
      FROM alpine:latest
@@ -53,9 +63,10 @@ instructions: |
      CMD ["echo", "hello from myapp"]
      EOF
      ```
-  3. Build the image: `docker build -t myapp:v1 /root/work/app`
-  4. Confirm it's listed: `docker images`
-  5. Run a container from it: `docker run --name myapp-test myapp:v1`
+  3. Check it looks right: `cat Dockerfile`
+  4. Build the image: `docker build -t myapp:v1 /root/work/app`
+  5. Confirm it's listed: `docker images`
+  6. Run a container from it: `docker run --name myapp-test myapp:v1`
 
 tasks:
   - id: "dockerfile_written"
