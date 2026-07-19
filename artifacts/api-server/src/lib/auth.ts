@@ -22,11 +22,11 @@ const baseURL =
 // TRUSTED_ORIGINS is a comma-separated list, useful for self-hosted deployments where
 // the raw IP (e.g. http://59.185.230.105:8085) differs from the public DuckDNS domain.
 const trustedOrigins = [baseURL];
-if (
-  process.env.REPLIT_DEV_DOMAIN &&
-  `https://${process.env.REPLIT_DEV_DOMAIN}` !== baseURL
-) {
-  trustedOrigins.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+if (process.env.REPLIT_DEV_DOMAIN) {
+  const replitDev = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  const replCo = `https://${process.env.REPLIT_DEV_DOMAIN.replace("replit.dev", "repl.co")}`;
+  if (!trustedOrigins.includes(replitDev)) trustedOrigins.push(replitDev);
+  if (!trustedOrigins.includes(replCo)) trustedOrigins.push(replCo);
 }
 if (process.env.TRUSTED_ORIGINS) {
   for (const o of process.env.TRUSTED_ORIGINS.split(",")) {

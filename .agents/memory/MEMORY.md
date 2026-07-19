@@ -2,6 +2,7 @@
 - [Docker sandbox constraints in this environment](docker-sandbox-constraints.md) — containers have no internet/DNS (no apt/apk installs), users need chpasswd for sshd, sudo is unavailable, dockerode needs ssh2/@grpc bundled not externalized.
 - [GitHub sync CDN race condition](github-sync-cdn-race.md) — sync may store new SHA + old content if CDN lags; fix by clearing sha='' in remote_labs then re-syncing.
 - [Better Auth migration](better-auth-migration.md) — Clerk replaced with Better Auth; key gotchas: Express 5 wildcard, OpenTelemetry peer dep, BETTER_AUTH_URL env var required.
+- [Better Auth trusted origins on Replit](better-auth-url-replit.md) — BETTER_AUTH_URL goes stale when repl domain rotates; also trust the .repl.co webview variant of REPLIT_DEV_DOMAIN.
 - [WebSocket terminal guest auth](ws-terminal-guest-auth.md) — WS upgrade handler must verify both Better Auth session AND signed _sid guest cookie (same two tiers as HTTP requireAuth).
 - [Drizzle upsert pattern for lab sessions/progress](drizzle-upsert-pattern.md) — use onConflictDoUpdate, not read-then-write; unique constraints uq_lab_sessions_student_lab and uq_lab_progress_student_lab exist on (student_id, lab_id).
 - [Lab verify script audit patterns](lab-verify-audit.md) — known false-positive bugs in verify scripts and how to fix them.
