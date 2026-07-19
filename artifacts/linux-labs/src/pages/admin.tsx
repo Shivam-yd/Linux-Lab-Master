@@ -334,24 +334,30 @@ export default function AdminPage() {
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
 
       {/* Header */}
-      <header className="shrink-0 border-b border-border/50 bg-background/80 backdrop-blur-sm">
+      <header className="shrink-0 border-b border-border/50 bg-background/95 backdrop-blur-sm">
         <div className="px-6 h-14 flex items-center justify-between">
+          {/* Back link */}
           <Link
             href={`${basePath}/dashboard`}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             Dashboard
           </Link>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+
+          {/* Brand + badge */}
+          <div className="flex items-center gap-3">
+            <img src={`${basePath}/logo.svg`} className="w-7 h-7 rounded-lg" alt="DevLabMaster" />
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
+              <span className="hidden sm:block w-px h-3.5 bg-border/60" />
+              <span className="hidden sm:block text-xs text-muted-foreground font-medium">Instructor Panel</span>
             </div>
-            <span className="font-bold text-sm tracking-tight">Instructor Panel</span>
-            <span className="font-mono text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-md border border-amber-500/30 text-amber-400 bg-amber-500/10">
+            <span className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/8">
               Admin
             </span>
           </div>
+
           <AccountDropdown />
         </div>
       </header>
