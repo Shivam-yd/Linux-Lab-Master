@@ -19,7 +19,7 @@ import { TRACK_META, DEFAULT_TRACK_META, type TrackMeta } from "@/lib/track-meta
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
-// Sidebar footer — identity display only; actions live in the header AccountDropdown.
+// Sidebar footer — About link + user identity, unified zone.
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { data: session } = useSession()
   const user = session?.user
@@ -28,11 +28,31 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
   const initial = name.charAt(0).toUpperCase()
 
   return (
-    <div className={cn(
-      "border-t border-border/50 py-3",
-      collapsed ? "px-2 flex justify-center" : "px-4"
-    )}>
-      <div className={cn("flex items-center gap-2.5 min-w-0", collapsed && "justify-center")}>
+    <div className={cn("border-t border-border/50", collapsed ? "px-2 py-2" : "px-3 py-2")}>
+      {/* About link — same visual language as track rows */}
+      <Link
+        href="/about"
+        title={collapsed ? "About" : undefined}
+        className={cn(
+          "flex items-center rounded-lg transition-all duration-150 group border border-transparent hover:bg-muted/20 hover:border-border/40",
+          collapsed ? "justify-center p-2" : "gap-3 px-3 py-2"
+        )}
+      >
+        <div className="w-8 h-8 rounded-lg bg-muted/40 group-hover:bg-muted flex items-center justify-center shrink-0 transition-colors">
+          <Info className="w-4 h-4 text-muted-foreground group-hover:text-foreground/80 transition-colors" />
+        </div>
+        {!collapsed && (
+          <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground/90 transition-colors">
+            About
+          </span>
+        )}
+      </Link>
+
+      {/* Divider */}
+      <div className={cn("my-2 border-t border-border/40", collapsed ? "mx-1" : "mx-2")} />
+
+      {/* User identity */}
+      <div className={cn("flex items-center gap-2.5 min-w-0 px-2 py-1", collapsed && "justify-center px-0")}>
         <div className={cn(
           "shrink-0 w-7 h-7 rounded-full border flex items-center justify-center text-xs font-bold",
           user
@@ -46,12 +66,9 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
             <p className="text-xs font-semibold text-muted-foreground truncate leading-tight">
               {user ? name : "Guest"}
             </p>
-            {user && email && (
-              <p className="text-[10px] text-muted-foreground/50 truncate leading-none mt-0.5">{email}</p>
-            )}
-            {!user && (
-              <p className="text-[10px] text-muted-foreground/50 leading-none mt-0.5">Progress saved by cookie</p>
-            )}
+            <p className="text-[10px] text-muted-foreground/45 truncate leading-none mt-0.5">
+              {user ? email : "Progress saved by cookie"}
+            </p>
           </div>
         )}
       </div>
@@ -453,28 +470,7 @@ export default function Catalog() {
 
         </nav>
 
-        {/* About — always visible, never scrolls */}
-        <div className={cn("border-t border-border/40 pt-1 pb-1", collapsed ? "px-2" : "px-3")}>
-          <Link
-            href="/about"
-            title={collapsed ? "About" : undefined}
-            className={cn(
-              "w-full flex items-center rounded-xl transition-all duration-200 group border border-transparent hover:bg-muted/20",
-              collapsed ? "justify-center py-2.5 px-0" : "gap-3 px-3 py-2.5"
-            )}
-          >
-            <div className="w-8 h-8 rounded-lg bg-muted/50 group-hover:bg-muted flex items-center justify-center shrink-0 transition-colors">
-              <Info className="w-4 h-4 text-muted-foreground" />
-            </div>
-            {!collapsed && (
-              <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground/90 transition-colors">
-                About
-              </span>
-            )}
-          </Link>
-        </div>
-
-        {/* Footer */}
+        {/* Footer — About + identity, unified zone */}
         <UserMenu collapsed={collapsed} />
       </aside>
 
