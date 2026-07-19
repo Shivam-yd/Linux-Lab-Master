@@ -5,7 +5,7 @@ import { useSession } from "@/lib/auth-client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, User, ChevronLeft, Layers, Container, GitBranch, BookOpen, BarChart3, Heart, MapPin, Linkedin, ExternalLink } from "lucide-react"
+import { Info, User, ChevronLeft } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AccountDropdown } from "@/components/account-dropdown"
 import {
@@ -14,203 +14,63 @@ import {
   Award, Hourglass, Unlock, Zap, Server, RefreshCw, CloudDownload, Github,
   Terminal,
 } from "lucide-react"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { TRACK_META, DEFAULT_TRACK_META, type TrackMeta } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
-const ABOUT_TRACKS = [
-  { label: "Linux",     icon: Terminal,  color: "#22d3ee" },
-  { label: "Terraform", icon: Layers,    color: "#c084fc" },
-  { label: "Jenkins",   icon: Server,    color: "#f97316" },
-  { label: "Docker",    icon: Container, color: "#38bdf8" },
-  { label: "Git",       icon: GitBranch, color: "#f87171" },
-]
-
-const ABOUT_FEATURES = [
-  { icon: Terminal,     title: "Real Terminals",         desc: "Live shell inside an isolated Docker container." },
-  { icon: CheckCircle2, title: "Auto Verification",      desc: "PASS/FAIL check scripts run inside your container." },
-  { icon: BookOpen,     title: "Progressive Curriculum", desc: "Foundation → Intermediate → Advanced, stacking concepts." },
-  { icon: BarChart3,    title: "Progress Tracking",      desc: "Passed labs, scores, and last-active time across tracks." },
-  { icon: Award,        title: "Certificates",           desc: "Complete a track and get a shareable certificate." },
-]
-
-// Sidebar footer — About sheet trigger + user identity, unified zone.
+// Sidebar footer — About link + user identity, unified zone.
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { data: session } = useSession()
-  const [aboutOpen, setAboutOpen] = useState(false)
   const user = session?.user
   const name  = user?.name  || user?.email || "Guest"
   const email = user?.email || ""
   const initial = name.charAt(0).toUpperCase()
 
   return (
-    <>
-      <div className={cn("border-t border-border/50", collapsed ? "px-2 py-2" : "px-3 py-2")}>
-        {/* About button — opens sheet panel */}
-        <button
-          onClick={() => setAboutOpen(true)}
-          title={collapsed ? "About" : undefined}
-          className={cn(
-            "w-full flex items-center rounded-lg transition-all duration-150 group border border-transparent hover:bg-muted/20 hover:border-border/40",
-            collapsed ? "justify-center p-2" : "gap-3 px-3 py-2"
-          )}
-        >
-          <div className="w-8 h-8 rounded-lg bg-muted/40 group-hover:bg-muted flex items-center justify-center shrink-0 transition-colors">
-            <Info className="w-4 h-4 text-muted-foreground group-hover:text-foreground/80 transition-colors" />
-          </div>
-          {!collapsed && (
-            <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground/90 transition-colors">
-              About
-            </span>
-          )}
-        </button>
+    <div className={cn("border-t border-border/50", collapsed ? "px-2 py-2" : "px-3 py-2")}>
+      {/* About link — footer nav style, distinct from track rows */}
+      <Link
+        href="/about"
+        title={collapsed ? "About" : undefined}
+        className={cn(
+          "w-full flex items-center rounded-lg transition-colors duration-150 group hover:bg-muted/20",
+          collapsed ? "justify-center p-2" : "gap-2 px-3 py-1.5"
+        )}
+      >
+        <Info className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground transition-colors" />
+        {!collapsed && (
+          <span className="text-xs font-semibold text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
+            About
+          </span>
+        )}
+      </Link>
 
-        {/* Divider */}
-        <div className={cn("my-2 border-t border-border/40", collapsed ? "mx-1" : "mx-2")} />
+      {/* Divider */}
+      <div className={cn("my-2 border-t border-border/40", collapsed ? "mx-1" : "mx-2")} />
 
-        {/* User identity */}
-        <div className={cn("flex items-center gap-2.5 min-w-0 px-2 py-1", collapsed && "justify-center px-0")}>
-          <div className={cn(
-            "shrink-0 w-7 h-7 rounded-full border flex items-center justify-center text-xs font-bold",
-            user
-              ? "bg-primary/15 border-primary/30 text-primary"
-              : "bg-muted/50 border-border/60 text-muted-foreground"
-          )}>
-            {user ? initial : <User className="w-3.5 h-3.5" />}
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-muted-foreground truncate leading-tight">
-                {user ? name : "Guest"}
-              </p>
-              <p className="text-[10px] text-muted-foreground/45 truncate leading-none mt-0.5">
-                {user ? email : "Progress saved by cookie"}
-              </p>
-            </div>
-          )}
+      {/* User identity */}
+      <div className={cn("flex items-center gap-2.5 min-w-0 px-2 py-1", collapsed && "justify-center px-0")}>
+        <div className={cn(
+          "shrink-0 w-7 h-7 rounded-full border flex items-center justify-center text-xs font-bold",
+          user
+            ? "bg-primary/15 border-primary/30 text-primary"
+            : "bg-muted/50 border-border/60 text-muted-foreground"
+        )}>
+          {user ? initial : <User className="w-3.5 h-3.5" />}
         </div>
+        {!collapsed && (
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-muted-foreground truncate leading-tight">
+              {user ? name : "Guest"}
+            </p>
+            <p className="text-[10px] text-muted-foreground/45 truncate leading-none mt-0.5">
+              {user ? email : "Progress saved by cookie"}
+            </p>
+          </div>
+        )}
       </div>
-
-      {/* About sheet */}
-      <Sheet open={aboutOpen} onOpenChange={setAboutOpen}>
-        <SheetContent side="right" className="w-[420px] sm:max-w-[420px] p-0 flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-primary via-cyan-400 to-blue-500 shrink-0" />
-          <SheetHeader className="px-6 pt-5 pb-4 border-b border-border/50 shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-primary fill-primary/20" />
-              </div>
-              <div>
-                <SheetTitle className="text-base leading-tight">LinuxLabMaster</SheetTitle>
-                <SheetDescription className="text-xs leading-tight mt-0.5">Learn DevOps by doing it</SheetDescription>
-              </div>
-            </div>
-          </SheetHeader>
-
-          {/* Scrollable body */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
-
-            {/* Tagline */}
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              A self-hosted platform that drops you into real terminal environments to practise
-              Linux, Terraform, Jenkins, Docker, and Git — no cloud account, no local setup,
-              no multiple-choice questions.
-            </p>
-
-            {/* Features */}
-            <section className="space-y-3">
-              <p className="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground">How It Works</p>
-              <div className="space-y-2">
-                {ABOUT_FEATURES.map(({ icon: Icon, title, desc }) => (
-                  <div key={title} className="flex items-start gap-3 p-3 rounded-xl bg-muted/20 border border-border/50">
-                    <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <Icon className="w-3.5 h-3.5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">{title}</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Tracks */}
-            <section className="space-y-3">
-              <p className="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground">Lab Tracks</p>
-              <div className="space-y-1.5">
-                {ABOUT_TRACKS.map(({ label, icon: Icon, color }) => (
-                  <div key={label} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card border border-border/50">
-                    <div
-                      className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-                      style={{ background: `${color}18`, border: `1px solid ${color}30` }}
-                    >
-                      <Icon className="w-3.5 h-3.5" style={{ color }} />
-                    </div>
-                    <span className="text-sm font-medium text-foreground">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Author */}
-            <section className="space-y-3">
-              <p className="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground">Author</p>
-              <div className="p-4 rounded-xl bg-card border border-border/60 flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-cyan-500/20 border border-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-xl font-black text-primary">S</span>
-                </div>
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div>
-                    <p className="font-bold text-foreground">Shivam Yadav</p>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                      <MapPin className="w-3 h-3 shrink-0" />
-                      <span>India</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <a
-                      href="https://github.com/Shivam-yd/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-foreground/5 border border-border hover:border-foreground/30 transition-colors"
-                    >
-                      <Github className="w-3 h-3" />GitHub
-                    </a>
-                    <a
-                      href="https://www.linkedin.com/in/shivamyd"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-[#0077B5]/10 border border-[#0077B5]/30 text-[#38bdf8] hover:border-[#0077B5]/50 transition-colors"
-                    >
-                      <Linkedin className="w-3 h-3" />LinkedIn
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-border/50 shrink-0 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground/50 font-mono flex items-center gap-1">
-              Built with <Heart className="w-3 h-3 text-primary/60 fill-primary/20" /> by Shivam Yadav
-            </p>
-            <Link
-              href="/about"
-              onClick={() => setAboutOpen(false)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Full page <ExternalLink className="w-3 h-3" />
-            </Link>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
+    </div>
   )
 }
 
