@@ -1,7 +1,7 @@
 import Docker from "dockerode";
 import { Writable } from "node:stream";
 import { db } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt } from "drizzle-orm";
 import {
   labSessionsTable,
   labProgressTable,
@@ -13,6 +13,28 @@ import { logger } from "../logger";
 const docker = new Docker({ socketPath: "/var/run/docker.sock" });
 
 const CONTAINER_LABEL = "linuxlabs.managed";
+
+// Containers are killed after this wall-clock time regardless of activity.
+const CONTAINER_MAX_MS = 60 * 60 * 1_000; // 1 hour
+
+// Per-(studentId:labId) kill timers — cleared on stop/reset.
+const _containerTimeouts = new Map<string, NodeJS.Timeout>();
+
+function armTimeout(studentId: string, labId: string): void {
+  const key = `${studentId}:${labId}`;
+  const old = _containerTimeouts.get(key);
+  if (old) clearTimeout(old);
+  _containerTimeouts.set(key, setTimeout(() => {
+    logger.info({ studentId, labId }, "container: 1-hour limit reached — stopping");
+    void stopSession(studentId, labId).catch(() => {});
+  }, CONTAINER_MAX_MS));
+}
+
+function clearTimeout_(studentId: string, labId: string): void {
+  const key = `${studentId}:${labId}`;
+  const t = _containerTimeouts.get(key);
+  if (t) { clearTimeout(t); _containerTimeouts.delete(key); }
+}
 
 // Safety limits for exec (both setup scripts and verify scripts share these).
 // Verify scripts should finish in seconds; 30 s is generous while still
@@ -169,12 +191,14 @@ export async function startSession(studentId: string, labId: string): Promise<La
     if (existing) {
       const info = await existing.inspect();
       if (info.State.Running) {
-        return upsertSessionRow(studentId, labId, {
+        const row = await upsertSessionRow(studentId, labId, {
           containerId: existing.id,
           containerName: name,
           status: "running",
           errorMessage: null,
         });
+        armTimeout(studentId, labId);
+        return row;
       }
       // Stale/stopped container from a previous crash — remove and recreate.
       await existing.remove({ force: true }).catch(() => undefined);
@@ -227,12 +251,14 @@ export async function startSession(studentId: string, labId: string): Promise<La
           if (raceContainer) {
             const info = await raceContainer.inspect();
             if (info.State.Running) {
-              return upsertSessionRow(studentId, labId, {
+              const row = await upsertSessionRow(studentId, labId, {
                 containerId: raceContainer.id,
                 containerName: name,
                 status: "running",
                 errorMessage: null,
               });
+              armTimeout(studentId, labId);
+              return row;
             }
           }
         }
@@ -251,12 +277,14 @@ export async function startSession(studentId: string, labId: string): Promise<La
         await container.remove({ force: true }).catch(() => undefined);
         throw setupErr;
       }
-      return upsertSessionRow(studentId, labId, {
+      const row = await upsertSessionRow(studentId, labId, {
         containerId: container.id,
         containerName: name,
         status: "running",
         errorMessage: null,
       });
+      armTimeout(studentId, labId);
+      return row;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return upsertSessionRow(studentId, labId, {
@@ -271,12 +299,27 @@ export async function startSession(studentId: string, labId: string): Promise<La
 }
 
 export async function stopSession(studentId: string, labId: string): Promise<void> {
+  clearTimeout_(studentId, labId);
   const name = containerName(studentId, labId);
   const existing = await findExistingContainer(name);
   if (existing) {
     await existing.remove({ force: true }).catch(() => undefined);
   }
   await upsertSessionRow(studentId, labId, { status: "stopped", containerId: null });
+}
+
+/** Called by the cleanup job on startup to stop any sessions that survived a server restart
+ *  and have been running longer than the 1-hour limit. */
+export async function stopExpiredSessions(): Promise<void> {
+  const cutoff = new Date(Date.now() - CONTAINER_MAX_MS);
+  const expired = await db
+    .select({ studentId: labSessionsTable.studentId, labId: labSessionsTable.labId })
+    .from(labSessionsTable)
+    .where(and(eq(labSessionsTable.status, "running"), lt(labSessionsTable.updatedAt, cutoff)));
+  for (const { studentId, labId } of expired) {
+    logger.info({ studentId, labId }, "cleanup: stopping expired session");
+    await stopSession(studentId, labId).catch(() => {});
+  }
 }
 
 export async function resetSession(studentId: string, labId: string): Promise<LabSessionRow> {

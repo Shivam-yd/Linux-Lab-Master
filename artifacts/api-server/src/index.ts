@@ -30,3 +30,8 @@ void warmLabImages(docker);
 // Also runs once 5 s after startup so remote labs appear quickly.
 import { startBackgroundSync } from "./lib/github-sync";
 startBackgroundSync();
+
+// Periodic cleanup: stale guest data, expired auth rows, old sync logs,
+// and containers that survived a restart past their 1-hour limit.
+import { startCleanupJob } from "./lib/cleanup";
+startCleanupJob();
