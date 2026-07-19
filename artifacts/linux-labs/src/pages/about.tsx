@@ -162,11 +162,10 @@ export default function About() {
 
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
                   DevOps engineer focused on building practical tools for
-                  infrastructure and cloud learning. I created DevLabMaster to provide engineers
-                  with a hands-on, streamlined environment for developing real command-line
-                  skills—eliminating the need to configure virtual machines or manage cloud
-                  infrastructure, and allowing learners to focus on solving real-world tasks
-                  directly from the shell.
+                  infrastructure and cloud learning. I created DevLabMaster to give engineers
+                  a hands-on environment for mastering the full DevOps toolchain—Linux, Terraform,
+                  Docker, Kubernetes, and more—without configuring VMs or cloud accounts.
+                  Just open a lab and start solving real-world tasks.
                 </p>
 
                 {/* Links */}
