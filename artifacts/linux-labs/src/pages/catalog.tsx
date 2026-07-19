@@ -19,7 +19,7 @@ import { TRACK_META, DEFAULT_TRACK_META, type TrackMeta } from "@/lib/track-meta
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
-// Sidebar footer — About link + user identity, unified zone.
+// Sidebar footer — user identity row with About icon on the right.
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { data: session } = useSession()
   const user = session?.user
@@ -28,29 +28,9 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
   const initial = name.charAt(0).toUpperCase()
 
   return (
-    <div className={cn("border-t border-border/50", collapsed ? "px-2 py-2" : "px-3 py-2")}>
-      {/* About link — footer nav style, distinct from track rows */}
-      <Link
-        href="/about"
-        title={collapsed ? "About" : undefined}
-        className={cn(
-          "w-full flex items-center rounded-lg transition-colors duration-150 group hover:bg-muted/20",
-          collapsed ? "justify-center p-2" : "gap-2 px-3 py-1.5"
-        )}
-      >
-        <Info className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground transition-colors" />
-        {!collapsed && (
-          <span className="text-xs font-semibold text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
-            About
-          </span>
-        )}
-      </Link>
-
-      {/* Divider */}
-      <div className={cn("my-2 border-t border-border/40", collapsed ? "mx-1" : "mx-2")} />
-
-      {/* User identity */}
-      <div className={cn("flex items-center gap-2.5 min-w-0 px-2 py-1", collapsed && "justify-center px-0")}>
+    <div className={cn("border-t border-border/50", collapsed ? "px-2 py-3" : "px-3 py-2.5")}>
+      <div className={cn("flex items-center gap-2.5 min-w-0", collapsed && "justify-center")}>
+        {/* Avatar */}
         <div className={cn(
           "shrink-0 w-7 h-7 rounded-full border flex items-center justify-center text-xs font-bold",
           user
@@ -59,8 +39,9 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
         )}>
           {user ? initial : <User className="w-3.5 h-3.5" />}
         </div>
+        {/* Name / email */}
         {!collapsed && (
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-muted-foreground truncate leading-tight">
               {user ? name : "Guest"}
             </p>
@@ -68,6 +49,12 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
               {user ? email : "Progress saved by cookie"}
             </p>
           </div>
+        )}
+        {/* About — info icon on the right, only when expanded */}
+        {!collapsed && (
+          <Link href="/about" title="About" className="shrink-0 p-1 rounded-md text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/20 transition-colors">
+            <Info className="w-3.5 h-3.5" />
+          </Link>
         )}
       </div>
     </div>
