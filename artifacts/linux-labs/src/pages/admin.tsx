@@ -676,7 +676,7 @@ export default function AdminPage() {
 
             {/* ── Registration ── */}
             {tab === "registration" && (
-              <div className="space-y-6 max-w-2xl">
+              <div className="space-y-6 max-w-4xl">
 
                 {/* ── Mode selector ── */}
                 <div>
@@ -739,6 +739,9 @@ export default function AdminPage() {
                     )
                   }
                 </div>
+
+                {/* ── Approved emails + Account requests side by side ── */}
+                <div className="grid grid-cols-2 gap-4 items-start">
 
                 {/* ── Approved emails (invites) ── */}
                 <div className="rounded-xl border border-border/50 bg-card/40 overflow-hidden">
@@ -906,6 +909,8 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+
+                </div>{/* end side-by-side grid */}
 
               </div>
             )}
