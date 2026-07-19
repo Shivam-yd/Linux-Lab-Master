@@ -784,7 +784,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* ── Approved emails + Account requests side by side ── */}
-                <div className="grid grid-cols-2 gap-0 items-start divide-x divide-border/50">
+                <div className="grid grid-cols-2 gap-0 items-start divide-x divide-border/50 border-t border-border/50 pt-6">
 
                 {/* ── Approved emails (invites) ── */}
                 <div className="space-y-3 pr-6">
