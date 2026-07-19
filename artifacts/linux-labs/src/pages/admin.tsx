@@ -118,6 +118,7 @@ export default function AdminPage() {
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null)
   const [confirmReset, setConfirmReset] = useState<StudentRow | null>(null)
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
+  const [confirmApprovePwReset, setConfirmApprovePwReset] = useState<PasswordResetRequest | null>(null)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
@@ -749,7 +750,7 @@ export default function AdminPage() {
                             {(r.status === "pending" || tokenExpired) && (
                               <button
                                 disabled={isApproving}
-                                onClick={() => approvePwReset.mutate(r.id)}
+                                onClick={() => setConfirmApprovePwReset(r)}
                                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
                               >
                                 {isApproving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -1222,6 +1223,34 @@ export default function AdminPage() {
             <div className="flex justify-end gap-2.5">
               <button onClick={() => setConfirmDeleteReset(null)} className="px-4 py-2.5 text-sm rounded-xl border border-border hover:bg-muted/50 transition-colors font-medium">Cancel</button>
               <button onClick={() => { dismissPwReset.mutate(confirmDeleteReset.id); setConfirmDeleteReset(null) }} className="px-4 py-2.5 text-sm rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors">Delete request</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmApprovePwReset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-green-500/15 border border-green-500/20 flex items-center justify-center">
+                <KeyRound className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <h2 className="font-bold text-base">Approve password reset?</h2>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  A reset token will be generated for <span className="font-semibold text-foreground">{confirmApprovePwReset.email}</span> immediately.
+                  {confirmApprovePwReset.status === "approved" && " The previous token will be invalidated."}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2.5">
+              <button onClick={() => setConfirmApprovePwReset(null)} className="px-4 py-2.5 text-sm rounded-xl border border-border hover:bg-muted/50 transition-colors font-medium">Cancel</button>
+              <button
+                onClick={() => { approvePwReset.mutate(confirmApprovePwReset.id); setConfirmApprovePwReset(null) }}
+                className="px-4 py-2.5 text-sm rounded-xl bg-green-700 hover:bg-green-800 text-white font-semibold transition-colors"
+              >
+                {confirmApprovePwReset.status === "approved" ? "Re-approve" : "Approve"}
+              </button>
             </div>
           </div>
         </div>
