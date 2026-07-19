@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
+import { AccountDropdown } from "@/components/account-dropdown"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -74,9 +75,7 @@ export default function ProgressPage() {
               <span className="font-bold text-sm tracking-tight">LinuxLabMaster</span>
             </div>
           </div>
-          <Link href={`${basePath}/profile`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            Profile
-          </Link>
+          <AccountDropdown />
         </div>
       </header>
 

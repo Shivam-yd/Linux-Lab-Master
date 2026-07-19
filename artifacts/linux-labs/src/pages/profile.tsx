@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award } from "lucide-react"
+import { AccountDropdown } from "@/components/account-dropdown"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
@@ -135,6 +136,7 @@ export default function ProfilePage() {
               <span className="font-bold text-sm tracking-tight">LinuxLabMaster</span>
             </div>
           </div>
+          <AccountDropdown />
         </div>
       </header>
 

@@ -9,6 +9,7 @@ import {
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Zap, Target,
 } from "lucide-react"
+import { AccountDropdown } from "@/components/account-dropdown"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -271,7 +272,7 @@ export default function AdminPage() {
               Admin
             </span>
           </div>
-          <div className="w-28" />
+          <AccountDropdown />
         </div>
       </header>
 

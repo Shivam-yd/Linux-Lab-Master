@@ -5,6 +5,7 @@ import {
   BookOpen, ExternalLink, Heart, Award, BarChart3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AccountDropdown } from "@/components/account-dropdown"
 
 const TRACKS = [
   { label: "Linux",     icon: Terminal,  color: "#22d3ee", desc: "Filesystem, processes, networking, permissions, scripting" },
@@ -27,20 +28,23 @@ export default function About() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Top Bar ── */}
-      <header className="sticky top-0 z-20 h-14 border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center px-6 gap-4">
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          BACK
-        </Link>
-        <div className="w-px h-5 bg-border/80" />
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary fill-primary/20" />
-          <span className="font-bold text-[15px] tracking-tight">LinuxLabMaster</span>
-          <span className="text-muted-foreground/50 font-mono text-xs">/ about</span>
+      <header className="sticky top-0 z-20 h-14 border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center justify-between px-6 gap-4">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            BACK
+          </Link>
+          <div className="w-px h-5 bg-border/80" />
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary fill-primary/20" />
+            <span className="font-bold text-[15px] tracking-tight">LinuxLabMaster</span>
+            <span className="text-muted-foreground/50 font-mono text-xs">/ about</span>
+          </div>
         </div>
+        <AccountDropdown />
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-14 space-y-20">

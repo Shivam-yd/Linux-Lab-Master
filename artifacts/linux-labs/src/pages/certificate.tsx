@@ -3,6 +3,7 @@ import { useParams, Link } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
 import { ArrowLeft, Printer, Zap, Award, CheckCircle2 } from "lucide-react"
+import { AccountDropdown } from "@/components/account-dropdown"
 import { cn } from "@/lib/utils"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
@@ -93,13 +94,16 @@ export default function CertificatePage() {
           <ArrowLeft className="w-4 h-4" />
           Progress
         </Link>
-        <button
-          onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
-        >
-          <Printer className="w-4 h-4" />
-          Print / Save PDF
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            <Printer className="w-4 h-4" />
+            Print / Save PDF
+          </button>
+          <AccountDropdown />
+        </div>
       </div>
 
       {/* Certificate */}
