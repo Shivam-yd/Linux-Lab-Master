@@ -744,60 +744,51 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 gap-4 items-start">
 
                 {/* ── Approved emails (invites) ── */}
-                <div className="rounded-xl border border-border/50 bg-card/40 overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
-                    <div className="flex items-center gap-2">
-                      <MailPlus className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-sm font-semibold">Approved emails</p>
-                      {!regInvites.isLoading && (regInvites.data?.length ?? 0) > 0 && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
-                          {regInvites.data!.length}
-                        </span>
-                      )}
-                    </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <MailPlus className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-sm font-semibold">Approved emails</p>
+                    {!regInvites.isLoading && (regInvites.data?.length ?? 0) > 0 && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
+                        {regInvites.data!.length}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Add form */}
-                  <div className="px-5 py-3 border-b border-border/30 bg-muted/5">
-                    <form
-                      onSubmit={e => { e.preventDefault(); if (newInviteEmail) addInvite.mutate(newInviteEmail) }}
-                      className="flex gap-2"
+                  <form
+                    onSubmit={e => { e.preventDefault(); if (newInviteEmail) addInvite.mutate(newInviteEmail) }}
+                    className="flex gap-2"
+                  >
+                    <input
+                      type="email"
+                      placeholder="student@example.com"
+                      value={newInviteEmail}
+                      onChange={e => setNewInviteEmail(e.target.value)}
+                      className="flex-1 bg-background/60 border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={addInvite.isPending || !newInviteEmail}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                      <input
-                        type="email"
-                        placeholder="student@example.com"
-                        value={newInviteEmail}
-                        onChange={e => setNewInviteEmail(e.target.value)}
-                        className="flex-1 bg-background/60 border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
-                      />
-                      <button
-                        type="submit"
-                        disabled={addInvite.isPending || !newInviteEmail}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {addInvite.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MailPlus className="w-3.5 h-3.5" />}
-                        Add
-                      </button>
-                    </form>
-                  </div>
+                      {addInvite.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MailPlus className="w-3.5 h-3.5" />}
+                      Add
+                    </button>
+                  </form>
 
-                  {/* List */}
                   {regInvites.isLoading && (
-                    <div className="px-5 py-8 text-center text-sm text-muted-foreground animate-pulse">Loading…</div>
+                    <p className="text-sm text-muted-foreground animate-pulse py-4">Loading…</p>
                   )}
                   {!regInvites.isLoading && regInvites.data?.length === 0 && (
-                    <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-                      No approved emails yet — add one above.
-                    </div>
+                    <p className="text-sm text-muted-foreground py-4">No approved emails yet — add one above.</p>
                   )}
                   {regInvites.data && regInvites.data.length > 0 && (
-                    <div className="divide-y divide-border/25">
+                    <div className="space-y-1">
                       {regInvites.data.map((inv: { id: number; email: string; usedAt: string | null }) => (
                         <div key={inv.id} className={cn(
-                          "flex items-center gap-3 px-5 py-3 group",
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg group hover:bg-muted/20 transition-colors",
                           inv.usedAt && "opacity-50"
                         )}>
-                          {/* Avatar */}
                           <div className={cn(
                             "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
                             inv.usedAt ? "bg-muted/30 text-muted-foreground" : "bg-primary/15 text-primary"
@@ -826,8 +817,8 @@ export default function AdminPage() {
                 </div>
 
                 {/* ── Account requests ── */}
-                <div className="rounded-xl border border-border/50 bg-card/40 overflow-hidden">
-                  <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border/40">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
                     <UserPlus className="w-4 h-4 text-muted-foreground" />
                     <p className="text-sm font-semibold">Account requests</p>
                     {(regRequests.data?.filter((r: { status: string }) => r.status === "pending").length ?? 0) > 0 && (
@@ -838,22 +829,21 @@ export default function AdminPage() {
                   </div>
 
                   {regRequests.isLoading && (
-                    <div className="px-5 py-8 text-center text-sm text-muted-foreground animate-pulse">Loading…</div>
+                    <p className="text-sm text-muted-foreground animate-pulse py-4">Loading…</p>
                   )}
                   {!regRequests.isLoading && regRequests.data?.length === 0 && (
-                    <div className="flex flex-col items-center gap-2 py-10">
+                    <div className="flex flex-col items-center gap-2 py-8">
                       <UserPlus className="w-7 h-7 text-muted-foreground/25" />
                       <p className="text-sm text-muted-foreground">No account requests yet.</p>
                     </div>
                   )}
                   {regRequests.data && regRequests.data.length > 0 && (
-                    <div className="divide-y divide-border/25">
+                    <div className="space-y-1">
                       {regRequests.data.map((r: { id: number; name: string; email: string; status: string; createdAt: string }) => (
                         <div key={r.id} className={cn(
-                          "flex items-center gap-4 px-5 py-3.5",
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors",
                           r.status !== "pending" && "opacity-50"
                         )}>
-                          {/* Avatar */}
                           <div className={cn(
                             "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
                             r.status === "pending"  ? "bg-amber-500/15 text-amber-400" :
@@ -862,25 +852,17 @@ export default function AdminPage() {
                           )}>
                             {r.name.charAt(0).toUpperCase()}
                           </div>
-
-                          {/* Info */}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{r.name}</p>
                             <p className="text-xs text-muted-foreground truncate">{r.email}</p>
                           </div>
-
-                          {/* Status + time */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={cn(
-                              "text-[10px] px-2 py-0.5 rounded-full border font-semibold",
-                              r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
-                              r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
-                                                        "text-muted-foreground border-border bg-white/5",
-                            )}>{r.status}</span>
-                            <span className="text-xs text-muted-foreground font-mono w-14 text-right">{relativeTime(r.createdAt)}</span>
-                          </div>
-
-                          {/* Actions — only for pending */}
+                          <span className={cn(
+                            "text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0",
+                            r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                            r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
+                                                      "text-muted-foreground border-border bg-white/5",
+                          )}>{r.status}</span>
+                          <span className="text-xs text-muted-foreground font-mono w-14 text-right shrink-0">{relativeTime(r.createdAt)}</span>
                           {r.status === "pending" && (
                             <div className="flex items-center gap-1.5 shrink-0">
                               <button
