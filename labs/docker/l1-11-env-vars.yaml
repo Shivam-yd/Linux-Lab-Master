@@ -1,0 +1,207 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Lab: Setting Environment Variables for a Container
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "docker-env-vars"
+title: "Setting Environment Variables for a Container"
+track: "docker"
+level: 1
+category: "Docker Fundamentals"
+difficulty: "beginner"
+summary: "Pass environment variables into a container at startup using the -e flag and verify them with docker inspect."
+estimatedMinutes: 15
+order: 250
+
+objectives:
+  - "Pass environment variables to a container using the -e flag"
+  - "Start a named container in detached mode"
+  - "Verify container configuration using docker inspect"
+
+instructions: |
+  ## Setting Environment Variables for a Container
+
+  **Scenario**
+  Your team is testing a web application that behaves differently based on
+  configuration values passed through environment variables. Before handing
+  the container over to the QA team, you need to launch it with the required
+  environment variable so the application starts with the correct configuration.
+  As part of the deployment checklist, the container must be running with the
+  expected environment variable set.
+
+  **Your task:** run a `nginx` container named `web` in detached mode with the
+  environment variable `APP_ENV=production` set using the `-e` flag, then
+  verify the variable is present by running `docker inspect web`.
+
+  This sandbox runs a teaching-mode `docker` CLI — same commands and output
+  format as the real thing.
+
+  **What You'll Deliver**
+  - `nginx` container named `web` running in the background
+  - Container configured with environment variable `APP_ENV=production` (set via `-e APP_ENV=production`)
+
+  ## Steps
+
+  1. Start the container in detached mode with the env var:
+     `docker run -d --name web -e APP_ENV=production nginx`
+  2. Confirm it is running: `docker ps`
+  3. Inspect the container to verify the environment variable was set:
+     `docker inspect web`
+  4. Look for `"APP_ENV=production"` in the `Env` section of the output.
+
+tasks:
+  - id: "web_running"
+    description: "nginx container named web is running in the background (docker run -d --name web ... nginx)"
+  - id: "env_configured"
+    description: "Container web was started with environment variable APP_ENV=production set via -e flag"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/work"
+
+setupScript: |
+  mkdir -p /usr/local/bin /var/lib/fakedocker/images /var/lib/fakedocker/containers /var/lib/fakedocker/volumes /root/work
+  cat > /usr/local/bin/docker <<'DOCKEREOF'
+  #!/bin/sh
+  ROOT=/var/lib/fakedocker
+  IMAGES="$ROOT/images"
+  CONTAINERS="$ROOT/containers"
+  VOLUMES="$ROOT/volumes"
+  mkdir -p "$IMAGES" "$CONTAINERS" "$VOLUMES"
+  image_size() { case "$1" in busybox) echo 4 ;; alpine) echo 7 ;; nginx) echo 142 ;; *) echo 10 ;; esac; }
+  fake_id() { n="$1-$$-0"; echo "$n" | cksum | cut -d' ' -f1 | cut -c1-12; }
+  norm_image() { case "$1" in *:*) echo "$1" ;; *) echo "$1:latest" ;; esac; }
+  ensure_image() {
+    img=$(norm_image "$1"); dir="$IMAGES/$img"
+    if [ ! -d "$dir" ]; then repo=${img%%:*}; mkdir -p "$dir"; fake_id "$img" > "$dir/id"; image_size "$repo" > "$dir/size"; echo "base" > "$dir/kind"; fi
+    echo "$dir"
+  }
+  cmd_pull() {
+    img=$(norm_image "$1"); echo "$img: Pulling from library/${img%%:*}"
+    ensure_image "$img" >/dev/null; echo "Status: Downloaded newer image for $img"
+  }
+  cmd_images() {
+    printf "%-20s %-10s %-15s %s\n" "REPOSITORY" "TAG" "IMAGE ID" "SIZE"
+    for d in "$IMAGES"/*/; do [ -d "$d" ] || continue; name=$(basename "$d"); repo=${name%%:*}; tag=${name#*:}; id=$(cat "$d/id" 2>/dev/null || echo "unknown"); size=$(cat "$d/size" 2>/dev/null || echo "0"); printf "%-20s %-10s %-15s %sMB\n" "$repo" "$tag" "$id" "$size"; done
+  }
+  cmd_inspect() {
+    target="$1"
+    c="$CONTAINERS/$target"
+    if [ -d "$c" ]; then
+      env_list=""
+      if [ -f "$c/env" ]; then
+        env_list=$(awk '{printf "    \"%s\",\n", $0}' "$c/env" | sed '$ s/,$//')
+      fi
+      echo "["
+      echo "  {"
+      echo "    \"Name\": \"/$target\","
+      echo "    \"Image\": \"$(cat "$c/image" 2>/dev/null)\","
+      echo "    \"State\": { \"Status\": \"$(cat "$c/status" 2>/dev/null)\" },"
+      echo "    \"Env\": ["
+      echo "$env_list"
+      echo "    ]"
+      echo "  }"
+      echo "]"
+      return 0
+    fi
+    img="$IMAGES/$(norm_image "$target")"
+    if [ -d "$img" ]; then
+      echo "[{ \"RepoTags\": [\"$(norm_image "$target")\"], \"Id\": \"sha256:$(cat "$img/id")\" }]"
+      return 0
+    fi
+    echo "Error: No such object: $target" >&2; exit 1
+  }
+  cmd_run() {
+    DETACH=0; NAME=""; ENV_VARS=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -d|--detach) DETACH=1; shift ;;
+        --name) NAME="$2"; shift 2 ;;
+        -e) ENV_VARS="$ENV_VARS $2"; shift 2 ;;
+        -v) shift 2 ;;
+        *) break ;;
+      esac
+    done
+    IMAGE="$1"; [ -z "$IMAGE" ] && { echo "docker: run requires an image name" >&2; exit 1; }
+    shift; img=$(norm_image "$IMAGE"); ensure_image "$img" >/dev/null
+    [ -z "$NAME" ] && NAME="container_$(fake_id "$img")"
+    cdir="$CONTAINERS/$NAME"
+    if [ -d "$cdir" ] && [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ]; then
+      echo "Error response from daemon: Conflict. The container name \"/$NAME\" is already in use" >&2; exit 1
+    fi
+    rm -rf "$cdir"; mkdir -p "$cdir"
+    echo "$img" > "$cdir/image"
+    fake_id "$NAME" > "$cdir/id"
+    : > "$cdir/log"
+    # Save each env var on its own line
+    for ev in $ENV_VARS; do echo "$ev" >> "$cdir/env"; done
+    if [ "$DETACH" = "1" ]; then
+      echo "running" > "$cdir/status"
+      sh -c 'while true; do sleep 3600; done' >"$cdir/log" 2>&1 &
+      echo $! > "$cdir/pid"
+      cat "$cdir/id"
+    else
+      echo "running" > "$cdir/status"
+      [ $# -gt 0 ] && "$@" 2>&1 | tee "$cdir/log"
+      echo "exited" > "$cdir/status"
+    fi
+  }
+  cmd_ps() {
+    show_all=0; [ "$1" = "-a" ] && show_all=1
+    printf "%-14s %-20s %-10s %s\n" "CONTAINER ID" "IMAGE" "STATUS" "NAMES"
+    for c in "$CONTAINERS"/*/; do
+      [ -d "$c" ] || continue; name=$(basename "$c"); status=$(cat "$c/status" 2>/dev/null || echo "unknown")
+      [ "$status" != "running" ] && [ "$show_all" != "1" ] && continue
+      id=$(cat "$c/id" 2>/dev/null || echo "??"); img=$(cat "$c/image" 2>/dev/null || echo "??")
+      printf "%-14s %-20s %-10s %s\n" "$id" "$img" "$status" "$name"
+    done
+  }
+  cmd_stop() {
+    name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ -f "$cdir/pid" ] && { pid=$(cat "$cdir/pid"); kill "$pid" 2>/dev/null; pkill -P "$pid" 2>/dev/null; }
+    echo "exited" > "$cdir/status"; echo "$name"
+  }
+  cmd_rm() {
+    name="$1"; cdir="$CONTAINERS/$name"; [ ! -d "$cdir" ] && { echo "Error: No such container: $name" >&2; exit 1; }
+    [ "$(cat "$cdir/status" 2>/dev/null)" = "running" ] && { echo "Error response from daemon: You cannot remove a running container $name. Stop it first." >&2; exit 1; }
+    rm -rf "$cdir"; echo "$name"
+  }
+  case "$1" in
+    pull) shift; cmd_pull "$@" ;;
+    images) shift; cmd_images "$@" ;;
+    run) shift; cmd_run "$@" ;;
+    ps) shift; cmd_ps "$@" ;;
+    stop) shift; cmd_stop "$@" ;;
+    rm) shift; cmd_rm "$@" ;;
+    inspect) shift; cmd_inspect "$@" ;;
+    version) echo "Docker version 24.0.0 (lab-sandbox)" ;;
+    *) echo "docker: unknown command '$1'" >&2; exit 1 ;;
+  esac
+  DOCKEREOF
+  chmod +x /usr/local/bin/docker
+
+verifyScript: |
+  C=/var/lib/fakedocker/containers
+
+  # CHECK: web_running
+  if [ -d "$C/web" ] && [ "$(cat "$C/web/status" 2>/dev/null)" = "running" ] && grep -q "nginx" "$C/web/image" 2>/dev/null; then
+    echo "CHECK:web_running:PASS:nginx container named web is running"
+  else
+    echo "CHECK:web_running:FAIL:Run: docker run -d --name web -e APP_ENV=production nginx"
+  fi
+
+  # CHECK: env_configured
+  if [ -f "$C/web/env" ] && grep -q "APP_ENV=production" "$C/web/env" 2>/dev/null; then
+    echo "CHECK:env_configured:PASS:APP_ENV=production is set on the web container"
+  else
+    echo "CHECK:env_configured:FAIL:Container is missing APP_ENV=production — re-run with: docker run -d --name web -e APP_ENV=production nginx"
+  fi
+
+hints:
+  - "The -e flag passes an environment variable into the container: -e KEY=VALUE"
+  - "The -d flag runs the container in detached (background) mode."
+  - "Use --name web to assign the container a specific name."
+  - "Full command: docker run -d --name web -e APP_ENV=production nginx"
+  - "Use docker inspect web to see the Env section and confirm APP_ENV=production is listed."
