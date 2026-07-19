@@ -40,6 +40,14 @@ router.get("/leaderboard", async (_req, res): Promise<void> => {
       COUNT(lp.id) FILTER (WHERE lp.status = 'passed')::int       AS passed,
       COUNT(lp.id) FILTER (WHERE lp.status != 'not_started')::int  AS attempted,
       MAX(lp.last_attempt_at)                                       AS last_active,
+      COALESCE((
+        SELECT SUM(EXTRACT(EPOCH FROM (
+          CASE WHEN ls.status = 'stopped' THEN ls.updated_at ELSE NOW() END
+          - ls.created_at
+        )))::int
+        FROM lab_sessions ls
+        WHERE ls.student_id = s.id
+      ), 0)                                                         AS total_time_seconds,
       COALESCE(
         json_agg(
           json_build_object(

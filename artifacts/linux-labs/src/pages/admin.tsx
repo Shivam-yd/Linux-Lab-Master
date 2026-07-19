@@ -51,6 +51,7 @@ type StudentRow = {
   passed: number
   attempted: number
   last_active: string | null
+  total_time_seconds: number
   labs: { labId: string; status: string; bestScore: number }[]
 }
 
@@ -74,6 +75,13 @@ function displaySub(s: StudentRow) {
 
 function getInitial(s: StudentRow) {
   return (s.name || s.email || "G").charAt(0).toUpperCase()
+}
+
+function fmtDuration(seconds: number) {
+  if (seconds < 60) return `${seconds}s`
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
 function relativeTime(iso: string | null) {
@@ -627,13 +635,14 @@ export default function AdminPage() {
             </div>
 
             {/* Stats strip */}
-            <div className="shrink-0 grid grid-cols-3 gap-px bg-border/60 border-b border-border/60">
+            <div className="shrink-0 grid grid-cols-4 gap-px bg-border/60 border-b border-border/60">
               {[
                 { label: "Passed",    value: `${selectedStudent.passed}`, sub: `of ${totalLabs}` },
                 { label: "Pass Rate", value: `${sliderPassRate}%`,        sub: "of attempts"     },
                 { label: "Avg Score", value: sliderPassedLabs.length > 0 ? `${sliderAvgScore}%` : "—", sub: "on passed labs" },
+                { label: "Time",      value: fmtDuration(selectedStudent.total_time_seconds ?? 0), sub: "platform total" },
               ].map(({ label, value, sub }) => (
-                <div key={label} className="bg-[#0d0d0d] px-3 py-3.5 text-center">
+                <div key={label} className="bg-[#0d0d0d] px-2 py-3.5 text-center">
                   <p className="text-lg font-black font-mono text-foreground leading-none">{value}</p>
                   <p className="text-[9px] text-muted-foreground/50 mt-0.5 uppercase tracking-wider">{sub}</p>
                   <p className="text-[9px] text-muted-foreground uppercase tracking-wide mt-1 font-semibold">{label}</p>
