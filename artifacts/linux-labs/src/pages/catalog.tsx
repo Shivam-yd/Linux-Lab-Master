@@ -598,33 +598,28 @@ export default function Catalog() {
                 })}
           </div>
 
-          {/* Bottom nav links */}
-          <div className="pt-2 border-t border-border/40 space-y-0.5">
-            {[
-              { href: "/progress", icon: BarChart2, label: "My Progress" },
-              { href: "/about",    icon: Info,      label: "About" },
-            ].map(({ href, icon: Icon, label }) => (
-              <Link
-                key={href}
-                href={href}
-                title={collapsed ? label : undefined}
-                className={cn(
-                  "w-full flex items-center rounded-xl transition-all duration-200 group border border-transparent hover:bg-muted/20",
-                  collapsed ? "justify-center py-2.5 px-0" : "gap-3 px-3 py-2.5"
-                )}
-              >
-                <div className="w-8 h-8 rounded-lg bg-muted/50 group-hover:bg-muted flex items-center justify-center shrink-0 transition-colors">
-                  <Icon className="w-4 h-4 text-muted-foreground" />
-                </div>
-                {!collapsed && (
-                  <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground/90 transition-colors">
-                    {label}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
         </nav>
+
+        {/* About — always visible, never scrolls */}
+        <div className={cn("border-t border-border/40 pt-1 pb-1", collapsed ? "px-2" : "px-3")}>
+          <Link
+            href="/about"
+            title={collapsed ? "About" : undefined}
+            className={cn(
+              "w-full flex items-center rounded-xl transition-all duration-200 group border border-transparent hover:bg-muted/20",
+              collapsed ? "justify-center py-2.5 px-0" : "gap-3 px-3 py-2.5"
+            )}
+          >
+            <div className="w-8 h-8 rounded-lg bg-muted/50 group-hover:bg-muted flex items-center justify-center shrink-0 transition-colors">
+              <Info className="w-4 h-4 text-muted-foreground" />
+            </div>
+            {!collapsed && (
+              <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground/90 transition-colors">
+                About
+              </span>
+            )}
+          </Link>
+        </div>
 
         {/* Footer */}
         <UserMenu collapsed={collapsed} />
