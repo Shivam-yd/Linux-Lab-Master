@@ -25,6 +25,7 @@ import type {
   LabDetail,
   ProgressEntry,
   Session,
+  StudentRank,
   VerifyResult
 } from './api.schemas';
 
@@ -352,6 +353,83 @@ export function useListProgress<TData = Awaited<ReturnType<typeof listProgress>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListProgressQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetMyRankUrl = () => {
+
+
+
+
+  return `/api/rank`
+}
+
+/**
+ * @summary Get the current student's rank among all students
+ */
+export const getMyRank = async ( options?: RequestInit): Promise<StudentRank> => {
+
+  return customFetch<StudentRank>(getGetMyRankUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyRankQueryKey = () => {
+    return [
+    `/api/rank`
+    ] as const;
+    }
+
+
+export const getGetMyRankQueryOptions = <TData = Awaited<ReturnType<typeof getMyRank>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyRank>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyRankQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyRank>>> = ({ signal }) => getMyRank({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyRank>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyRankQueryResult = NonNullable<Awaited<ReturnType<typeof getMyRank>>>
+export type GetMyRankQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the current student's rank among all students
+ */
+
+export function useGetMyRank<TData = Awaited<ReturnType<typeof getMyRank>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyRank>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyRankQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

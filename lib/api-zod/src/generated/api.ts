@@ -81,6 +81,15 @@ export const ListProgressResponse = zod.array(ListProgressResponseItem)
 
 
 /**
+ * @summary Get the current student's rank among all students
+ */
+export const GetMyRankResponse = zod.object({
+  "rank": zod.number().nullable(),
+  "total": zod.number()
+})
+
+
+/**
  * @summary Get the current sandbox session for a lab, if any
  */
 export const GetLabSessionParams = zod.object({

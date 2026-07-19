@@ -16,4 +16,5 @@ export * from './progressEntry';
 export * from './progressEntryStatus';
 export * from './session';
 export * from './sessionStatus';
+export * from './studentRank';
 export * from './verifyResult';

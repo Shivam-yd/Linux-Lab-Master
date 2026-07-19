@@ -83,6 +83,12 @@ export interface VerifyResult {
   verifiedAt: string;
 }
 
+export interface StudentRank {
+  /** @nullable */
+  rank: number | null;
+  total: number;
+}
+
 export type ProgressEntryStatus = typeof ProgressEntryStatus[keyof typeof ProgressEntryStatus];
 
 

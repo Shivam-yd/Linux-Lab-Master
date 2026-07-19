@@ -82,6 +82,19 @@ paths:
                 items:
                   $ref: "#/components/schemas/ProgressEntry"
 
+  /rank:
+    get:
+      operationId: getMyRank
+      tags: [progress]
+      summary: Get the current student's rank among all students
+      responses:
+        "200":
+          description: Rank info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentRank"
+
   /labs/{labId}/session:
     get:
       operationId: getLabSession
@@ -297,6 +310,15 @@ components:
         verifiedAt:
           type: string
           format: date-time
+
+    StudentRank:
+      type: object
+      required: [rank, total]
+      properties:
+        rank:
+          type: ["integer", "null"]
+        total:
+          type: integer
 
     ProgressEntry:
       type: object

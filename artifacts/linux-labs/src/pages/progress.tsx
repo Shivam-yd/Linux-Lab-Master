@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react"
 import { Link } from "wouter"
-import { useListLabs, useListProgress } from "@workspace/api-client-react"
+import { useListLabs, useListProgress, useGetMyRank } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Zap, Trophy, Award, CheckCircle2,
   ArrowLeft,
-  ExternalLink, Star, ScrollText, ChevronDown
+  ExternalLink, Star, ScrollText, ChevronDown, Medal
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
@@ -25,6 +25,7 @@ export default function ProgressPage() {
   const { data: session } = useSession()
   const { data: labs, isLoading: labsLoading } = useListLabs()
   const { data: progress, isLoading: progressLoading } = useListProgress()
+  const { data: rankData, isLoading: rankLoading } = useGetMyRank()
   const loading = labsLoading || progressLoading
 
   const progressByLabId = useMemo(() => {
@@ -87,14 +88,27 @@ export default function ProgressPage() {
             <h1 className="text-3xl font-bold tracking-tight">Your Progress</h1>
             <p className="text-muted-foreground mt-1 text-sm">{userName} · all labs across all tracks</p>
           </div>
-          <div className="rounded-xl border border-border/70 bg-card px-5 py-4 flex items-center gap-5 shrink-0">
-            <Trophy className="w-7 h-7 text-amber-400" />
-            <div>
-              <p className="text-2xl font-black font-mono leading-none">
-                {loading ? "…" : `${overallStats.passed}/${overallStats.total}`}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">Labs completed</p>
-              <Progress value={overallPct} className="h-1.5 mt-2 w-32 bg-background border border-border/50" />
+          <div className="flex items-stretch gap-3 shrink-0">
+            <div className="rounded-xl border border-border/70 bg-card px-5 py-4 flex items-center gap-5">
+              <Trophy className="w-7 h-7 text-amber-400" />
+              <div>
+                <p className="text-2xl font-black font-mono leading-none">
+                  {loading ? "…" : `${overallStats.passed}/${overallStats.total}`}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Labs completed</p>
+                <Progress value={overallPct} className="h-1.5 mt-2 w-32 bg-background border border-border/50" />
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card px-5 py-4 flex items-center gap-4">
+              <Medal className="w-7 h-7 text-violet-400" />
+              <div>
+                <p className="text-2xl font-black font-mono leading-none">
+                  {rankLoading ? "…" : rankData?.rank != null ? `#${rankData.rank}` : "—"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {rankLoading ? "\u00a0" : rankData?.total ? `of ${rankData.total} students` : "Your rank"}
+                </p>
+              </div>
             </div>
           </div>
         </div>

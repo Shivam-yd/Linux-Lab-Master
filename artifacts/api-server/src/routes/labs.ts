@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { labProgressTable } from "@workspace/db/schema";
 import {
@@ -89,6 +89,22 @@ router.get("/progress", async (req, res): Promise<void> => {
     };
   });
   res.json(ListProgressResponse.parse(progress));
+});
+
+router.get("/rank", async (req, res): Promise<void> => {
+  const result = await db.execute(sql`
+    WITH ranked AS (
+      SELECT student_id,
+             RANK() OVER (ORDER BY COUNT(*) FILTER (WHERE status = 'passed') DESC) AS rank
+      FROM lab_progress
+      GROUP BY student_id
+    )
+    SELECT
+      COALESCE((SELECT rank FROM ranked WHERE student_id = ${req.studentId}), NULL) AS rank,
+      (SELECT COUNT(DISTINCT id) FROM students)::int AS total
+  `);
+  const row = result.rows[0] as { rank: string | null; total: number };
+  res.json({ rank: row.rank ? Number(row.rank) : null, total: row.total });
 });
 
 // ── GitHub sync ───────────────────────────────────────────────────────────────
