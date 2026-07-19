@@ -55,9 +55,7 @@ export default function ProgressPage() {
 
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "Student"
 
-  // All tracks collapsed by default; expanded set tracks which are open
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const isOpen = (track: string) => expanded.has(track)
   const toggle = (track: string) =>
     setExpanded(prev => {
       const next = new Set(prev)
@@ -166,7 +164,7 @@ export default function ProgressPage() {
           const pct      = total > 0 ? Math.round((passed / total) * 100) : 0
           const complete = passed === total && total > 0
 
-          const open = isOpen(track)
+          const open = expanded.has(track)
 
           return (
             <section key={track} className="space-y-3">
