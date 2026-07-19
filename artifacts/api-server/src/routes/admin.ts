@@ -47,6 +47,7 @@ router.get("/leaderboard", async (_req, res): Promise<void> => {
         )))::int
         FROM lab_sessions ls
         WHERE ls.student_id = s.id
+          AND ls.created_at >= CURRENT_DATE
       ), 0)                                                         AS total_time_seconds,
       COALESCE(
         json_agg(
