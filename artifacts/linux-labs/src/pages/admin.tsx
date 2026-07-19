@@ -8,7 +8,7 @@ import {
   Trophy, Medal, Crown,
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Zap, Target,
-  Lock, Unlock, UserPlus, MailPlus, UserCheck, Search,
+  Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -180,6 +180,14 @@ export default function AdminPage() {
     retry: false,
     enabled: tab === "registration",
     refetchInterval: tab === "registration" ? 20_000 : false,
+  })
+
+  type AuditEvent = { event: string; email: string; name: string | null; at: string }
+  const regAudit = useQuery<AuditEvent[]>({
+    queryKey: ["admin", "registration", "audit"],
+    queryFn: () => fetchAdmin("/api/admin/registration/audit"),
+    retry: false,
+    enabled: tab === "registration",
   })
 
   const setRegMode = useMutation({
@@ -1001,6 +1009,45 @@ export default function AdminPage() {
                 </div>
 
                 </div>{/* end side-by-side grid */}
+
+                {/* ── Audit log ── */}
+                <div className="border-t border-border/50 pt-6 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-sm font-semibold">Activity log</p>
+                    {!regAudit.isLoading && (regAudit.data?.length ?? 0) > 0 && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
+                        {regAudit.data!.length}
+                      </span>
+                    )}
+                  </div>
+                  {regAudit.isLoading && <p className="text-sm text-muted-foreground animate-pulse py-4">Loading…</p>}
+                  {!regAudit.isLoading && !regAudit.data?.length && (
+                    <p className="text-sm text-muted-foreground py-4">No registration activity yet.</p>
+                  )}
+                  {regAudit.data && regAudit.data.length > 0 && (
+                    <div className="space-y-px">
+                      {regAudit.data.map((ev, i) => {
+                        const cfg =
+                          ev.event === "invited"    ? { label: "Invited",    dot: "bg-primary/60"    } :
+                          ev.event === "registered" ? { label: "Registered", dot: "bg-green-400"     } :
+                          ev.event === "approved"   ? { label: "Approved",   dot: "bg-green-600"     } :
+                          ev.event === "denied"     ? { label: "Denied",     dot: "bg-red-500"       } :
+                                                      { label: "Requested",  dot: "bg-amber-400"     }
+                        return (
+                          <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/20 transition-colors">
+                            <span className={cn("w-2 h-2 rounded-full shrink-0", cfg.dot)} />
+                            <span className="text-[11px] font-semibold text-muted-foreground w-20 shrink-0">{cfg.label}</span>
+                            <span className="flex-1 text-sm truncate">
+                              {ev.name ? <><span className="font-medium">{ev.name}</span> <span className="text-muted-foreground">({ev.email})</span></> : ev.email}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono shrink-0">{relativeTime(ev.at)}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
 
               </div>
             )}

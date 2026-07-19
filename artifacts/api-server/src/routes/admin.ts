@@ -356,4 +356,21 @@ router.delete("/registration/requests/:id", async (req, res): Promise<void> => {
   res.status(204).send();
 });
 
+/**
+ * GET /admin/registration/audit
+ * Chronological list of registration events (invites, registrations, requests).
+ */
+router.get("/registration/audit", async (_req, res): Promise<void> => {
+  const result = await db.execute(sql`
+    SELECT 'invited'    AS event, email, NULL::text AS name, created_at AS at FROM registration_invites
+    UNION ALL
+    SELECT 'registered',          email, NULL,               used_at         FROM registration_invites WHERE used_at IS NOT NULL
+    UNION ALL
+    SELECT status,                email, name,               created_at      FROM registration_requests
+    ORDER BY at DESC
+    LIMIT 200
+  `);
+  res.json(result.rows);
+});
+
 export default router;
