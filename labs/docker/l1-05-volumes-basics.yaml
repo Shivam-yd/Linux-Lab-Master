@@ -21,65 +21,43 @@ instructions: |
   ## Persisting Data with Volumes
 
   **Scenario**
+  Your app generates data that must survive container restarts and replacements.
   Containers are disposable — their own filesystem disappears when you remove
-  them. A **named volume** is separate, durable storage that outlives any
-  single container, so the next container can pick up exactly where the last
-  one left off.
+  them. A named volume is separate, durable storage managed by Docker that
+  outlives any single container, so the next container picks up exactly where
+  the last one left off.
 
-  ---
+  **Your task:** create a named volume called `appdata`, run a `busybox`
+  container named `writer` that writes the text `written-by-writer` to the file
+  `/data/note.txt` inside the volume, remove that container, then run a second
+  `busybox` container named `reader` that appends the text `read-by-reader` to
+  the same `/data/note.txt`, and remove it too — proving the file survived both
+  container lifetimes.
 
-  **Quick Reference — copy and run these commands in order:**
+  **What You'll Deliver**
+  - Named volume `appdata` created
+  - `writer` container (image: `busybox`) wrote `written-by-writer` to `/data/note.txt` on the volume, then removed
+  - `reader` container (image: `busybox`) appended `read-by-reader` to the same `/data/note.txt`, then removed
 
-  ```
-  docker volume create appdata
-  docker volume ls
-  docker run --name writer -v appdata:/data busybox sh -c "echo written-by-writer > /data/note.txt"
-  docker rm writer
-  docker run --name reader -v appdata:/data busybox sh -c "echo read-by-reader >> /data/note.txt"
-  docker rm reader
-  ```
+  ## Steps
 
-  ---
-
-  **Details**
-
-  | What | Value |
-  |------|-------|
-  | Volume name | `appdata` |
-  | Image to use | `busybox` |
-  | Mount path inside container | `/data` |
-  | File to write | `/data/note.txt` |
-  | Text written by writer | `written-by-writer` |
-  | Text appended by reader | `read-by-reader` |
-
-  **Step-by-step:**
-
-  1. **Create the volume** — `docker volume create appdata`
-     This creates a named volume called `appdata`. It lives on the host, not inside any container.
-
-  2. **Confirm it exists** — `docker volume ls`
-     You should see `appdata` listed under VOLUME NAME.
-
-  3. **Run the writer container** using image `busybox`, mount `appdata` at `/data`, write the text `written-by-writer` to `/data/note.txt`:
+  1. Create the volume: `docker volume create appdata`
+  2. Confirm it exists: `docker volume ls`
+  3. Run the writer — image `busybox`, volume `appdata` mounted at `/data`, write to `/data/note.txt`:
      `docker run --name writer -v appdata:/data busybox sh -c "echo written-by-writer > /data/note.txt"`
-
-  4. **Remove the writer** — `docker rm writer`
-     The container is gone, but the data in the volume is still there.
-
-  5. **Run the reader container** — same image `busybox`, same volume `appdata` at `/data`, this time *append* `read-by-reader` to the same file:
+  4. Remove the writer: `docker rm writer`
+     The container is gone but the data in the volume is still there.
+  5. Run the reader — same image `busybox`, same volume `appdata` at `/data`, append to the same file:
      `docker run --name reader -v appdata:/data busybox sh -c "echo read-by-reader >> /data/note.txt"`
-
-  6. **Remove the reader** — `docker rm reader`
-
-  Both lines are now in `appdata`'s `note.txt`, proving the volume outlived both containers.
+  6. Remove the reader: `docker rm reader`
 
 tasks:
   - id: "volume_created"
-    description: "A volume named appdata exists (docker volume create appdata)"
+    description: "Named volume appdata created (docker volume create appdata)"
   - id: "written_by_writer"
-    description: "A writer container wrote 'written-by-writer' into /data/note.txt on the appdata volume, then was removed"
+    description: "busybox container named writer wrote written-by-writer to /data/note.txt on the appdata volume, then was removed"
   - id: "read_by_reader"
-    description: "A separate reader container, using the same appdata volume, appended 'read-by-reader' to note.txt, then was removed"
+    description: "busybox container named reader appended read-by-reader to /data/note.txt on the same appdata volume, then was removed"
 
 image: "alpine:latest"
 shell: "sh"
@@ -458,18 +436,19 @@ verifyScript: |
   if [ -f "$NOTE" ] && grep -q "written-by-writer" "$NOTE" && [ ! -d "$CONTAINERS/writer" ]; then
     echo "CHECK:written_by_writer:PASS:writer wrote to the volume and was removed"
   else
-    echo "CHECK:written_by_writer:FAIL:Run the writer container (mounting -v appdata:/data), then docker rm writer"
+    echo "CHECK:written_by_writer:FAIL:Run the writer container (docker run --name writer -v appdata:/data busybox sh -c \"echo written-by-writer > /data/note.txt\"), then docker rm writer"
   fi
 
   # CHECK: read_by_reader
   if [ -f "$NOTE" ] && grep -q "written-by-writer" "$NOTE" && grep -q "read-by-reader" "$NOTE" && [ ! -d "$CONTAINERS/reader" ]; then
     echo "CHECK:read_by_reader:PASS:reader saw the writer's data and appended its own, proving the volume persisted"
   else
-    echo "CHECK:read_by_reader:FAIL:Run the reader container (same -v appdata:/data), append 'read-by-reader', then docker rm reader"
+    echo "CHECK:read_by_reader:FAIL:Run the reader container (docker run --name reader -v appdata:/data busybox sh -c \"echo read-by-reader >> /data/note.txt\"), then docker rm reader"
   fi
 
 hints:
   - "docker volume create <name> makes storage that outlives any single container."
   - "-v appdata:/data mounts the volume at /data inside the container's filesystem."
+  - "Use image busybox for both containers — it is small and has sh built in."
   - "Remove writer before starting reader so you can see the data really came from the volume, not the old container."
   - "docker run --name reader -v appdata:/data busybox sh -c \"echo read-by-reader >> /data/note.txt\""

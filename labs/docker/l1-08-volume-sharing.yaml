@@ -22,58 +22,36 @@ instructions: |
   ## Sharing Data Between Containers with Volumes
 
   **Scenario**
-  A reporting pipeline runs in two stages: a **writer** container that produces
-  a report file, and a **reader** container that picks it up. Both containers
-  are ephemeral — they start, do their work, and exit. A named Docker volume
-  is the bridge: it exists independently of any container and can be mounted
+  Your reporting pipeline runs in two stages: a generator container that writes
+  a CSV report, and an archiver container that picks it up. Both containers are
+  ephemeral — they start, do their work, and exit. The shared storage between
+  them must survive both container lifecycles. A named Docker volume is the
+  standard solution: it exists independently of any container and can be mounted
   by as many containers as needed.
 
-  ---
+  **Your task:** create a named volume called `report-data`, run a `busybox`
+  container named `writer` that writes two lines (`monthly-report-2024` and
+  `status: complete`) to `/data/report.txt` inside the volume, then run a second
+  `busybox` container named `reader` that reads `/data/report.txt` from the same
+  volume and saves its contents to `/root/work/read-confirm.txt`.
 
-  **Quick Reference — copy and run these commands in order:**
+  **What You'll Deliver**
+  - Named volume `report-data` created
+  - `writer` container (image: `busybox`) created `/data/report.txt` on the volume containing `monthly-report-2024` and `status: complete`
+  - `reader` container (image: `busybox`) read the same volume and produced `/root/work/read-confirm.txt`
 
-  ```
-  docker volume create report-data
-  docker volume ls
-  docker run --name writer -v report-data:/data busybox sh -c "echo 'monthly-report-2024' > /data/report.txt && echo 'status: complete' >> /data/report.txt"
-  docker ps -a
-  docker run --name reader -v report-data:/data busybox sh -c "cat /data/report.txt > /root/work/read-confirm.txt"
-  cat /root/work/read-confirm.txt
-  ```
+  ## Steps
 
-  ---
-
-  **Details**
-
-  | What | Value |
-  |------|-------|
-  | Volume name | `report-data` |
-  | Image to use | `busybox` |
-  | Mount path inside container | `/data` |
-  | File the writer creates | `/data/report.txt` |
-  | Content written | `monthly-report-2024` (line 1) and `status: complete` (line 2) |
-  | File the reader produces | `/root/work/read-confirm.txt` (on the host, not in the volume) |
-
-  **Step-by-step:**
-
-  1. **Create the volume** — `docker volume create report-data`
-     Creates a named volume called `report-data` that persists independently of any container.
-
-  2. **Verify it exists** — `docker volume ls`
-     You should see `report-data` listed.
-
-  3. **Run the writer container** using image `busybox`, mount `report-data` at `/data`, write two lines to `/data/report.txt`:
+  1. Create the volume: `docker volume create report-data`
+  2. Verify it exists: `docker volume ls`
+  3. Run the writer — image `busybox`, volume `report-data` mounted at `/data`, write two lines to `/data/report.txt`:
      `docker run --name writer -v report-data:/data busybox sh -c "echo 'monthly-report-2024' > /data/report.txt && echo 'status: complete' >> /data/report.txt"`
-
-  4. **Confirm the writer exited** — `docker ps -a`
-     The writer should show status `exited`. That is expected — it did its job and stopped.
-
-  5. **Run the reader container** — same image `busybox`, same volume `report-data` at `/data`.
-     It reads `/data/report.txt` and saves the contents to `/root/work/read-confirm.txt`:
+  4. Confirm the writer exited cleanly: `docker ps -a`
+     Status `exited` is expected — it did its job and stopped.
+  5. Run the reader — same image `busybox`, same volume `report-data` at `/data`, read the file and save to `/root/work/read-confirm.txt`:
      `docker run --name reader -v report-data:/data busybox sh -c "cat /data/report.txt > /root/work/read-confirm.txt"`
-
-  6. **Verify the output file** — `cat /root/work/read-confirm.txt`
-     You should see both lines from the writer, proving the reader successfully read from the shared volume.
+  6. Verify the output: `cat /root/work/read-confirm.txt`
+     You should see both lines, proving the reader read from the shared volume.
 
 tasks:
   - id: "volume_created"
