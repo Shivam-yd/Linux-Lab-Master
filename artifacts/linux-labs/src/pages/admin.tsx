@@ -784,10 +784,10 @@ export default function AdminPage() {
                 </div>
 
                 {/* ── Approved emails + Account requests side by side ── */}
-                <div className="grid grid-cols-2 gap-4 items-start">
+                <div className="grid grid-cols-2 gap-0 items-start divide-x divide-border/50">
 
                 {/* ── Approved emails (invites) ── */}
-                <div className="space-y-3">
+                <div className="space-y-3 pr-6">
                   <div className="flex items-center gap-2">
                     <MailPlus className="w-4 h-4 text-muted-foreground" />
                     <p className="text-sm font-semibold">Approved emails</p>
@@ -860,7 +860,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* ── Account requests ── */}
-                <div className="space-y-3">
+                <div className="space-y-3 pl-6">
                   <div className="flex items-center gap-2">
                     <UserPlus className="w-4 h-4 text-muted-foreground" />
                     <p className="text-sm font-semibold">Account requests</p>
