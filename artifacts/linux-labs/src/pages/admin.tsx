@@ -864,6 +864,11 @@ export default function AdminPage() {
                   <div className="flex items-center gap-2">
                     <UserPlus className="w-4 h-4 text-muted-foreground" />
                     <p className="text-sm font-semibold">Account requests</p>
+                    {!regRequests.isLoading && (regRequests.data?.length ?? 0) > 0 && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
+                        {regRequests.data!.length}
+                      </span>
+                    )}
                     {(regRequests.data?.filter((r: { status: string }) => r.status === "pending").length ?? 0) > 0 && (
                       <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-semibold">
                         {regRequests.data!.filter((r: { status: string }) => r.status === "pending").length} pending
