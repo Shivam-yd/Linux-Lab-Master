@@ -39,7 +39,7 @@ export default function About() {
           </Link>
           <div className="w-px h-5 bg-border/80" />
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary fill-primary/20" />
+            <img src="/logo.svg" className="w-4 h-4 rounded-sm" />
             <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
             <span className="text-muted-foreground/50 font-mono text-xs">/ about</span>
           </div>

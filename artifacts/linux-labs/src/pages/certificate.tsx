@@ -125,9 +125,7 @@ export default function CertificatePage() {
 
             {/* Brand */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center print:bg-transparent">
-                <Zap className="w-5 h-5 text-primary" />
-              </div>
+              <img src="/logo.svg" className="w-10 h-10 rounded-xl" />
               <span className="text-lg font-bold tracking-tight">DevLabMaster</span>
             </div>
 

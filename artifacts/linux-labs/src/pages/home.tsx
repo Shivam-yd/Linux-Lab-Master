@@ -42,9 +42,7 @@ export default function Home() {
       <header className="sticky top-0 z-20 border-b border-border/60 bg-card/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_15px_rgba(45,212,191,0.15)]">
-              <Zap className="w-4.5 h-4.5 text-primary fill-primary/20" />
-            </div>
+            <img src="/logo.svg" className="w-9 h-9 rounded-xl" />
             <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
           </div>
           <div className="flex items-center gap-3">

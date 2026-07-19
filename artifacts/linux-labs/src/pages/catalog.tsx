@@ -339,9 +339,7 @@ export default function Catalog() {
         <div className={cn("border-b border-border/50 relative overflow-hidden", collapsed ? "px-2 py-[18px]" : "px-5 py-[18px]")}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10" />
           <Link href="/" className={cn("relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity", collapsed && "justify-center")}>
-            <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(45,212,191,0.15)]">
-              <Zap className="w-4 h-4 text-primary fill-primary/20" />
-            </div>
+            <img src="/logo.svg" className="w-9 h-9 rounded-xl shrink-0" />
             {!collapsed && (
               <div>
                 <p className="text-[15px] font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">DevLabMaster</p>

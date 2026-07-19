@@ -132,7 +132,7 @@ export default function ProfilePage() {
             </Link>
             <div className="w-px h-4 bg-border/60" />
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
+              <img src="/logo.svg" className="w-4 h-4 rounded-sm" />
               <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
             </div>
           </div>
