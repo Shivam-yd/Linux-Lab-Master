@@ -67,7 +67,7 @@ router.post("/registration-request", async (req, res): Promise<void> => {
   const existing = await db
     .select()
     .from(registrationRequestsTable)
-    .where(eq(registrationRequestsTable.email, email.toLowerCase()))
+    .where(eq(registrationRequestsTable.email, email.toLowerCase().trim()))
     .limit(1);
   if (existing.length > 0) {
     res.status(409).json({ error: "A request for this email already exists" });

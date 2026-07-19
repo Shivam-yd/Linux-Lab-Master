@@ -79,9 +79,9 @@ export default function SignUpPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: checkEmail }),
       })
+      if (!res.ok) throw new Error("Server error")
       const body: { status: CheckStatus } = await res.json()
       if (body.status === "approved") {
-        setEmail(checkEmail) // pre-fill for signup form
         setCheckPhase("approved")
       } else if (body.status === "pending") {
         setCheckPhase("pending")
