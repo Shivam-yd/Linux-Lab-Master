@@ -8,7 +8,7 @@ import {
   Trophy, Medal, Crown,
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Zap, Target,
-  Lock, Unlock, UserPlus, MailPlus, UserCheck,
+  Lock, Unlock, UserPlus, MailPlus, UserCheck, Search,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -121,6 +121,7 @@ export default function AdminPage() {
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
+  const [leaderboardSearch, setLeaderboardSearch] = useState("")
   const { toast } = useToast()
 
   const leaderboard = useQuery<StudentRow[]>({
@@ -436,7 +437,7 @@ export default function AdminPage() {
 
             {/* ── Leaderboard ── */}
             {tab === "leaderboard" && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {leaderboard.isLoading && (
                   <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading students…</div>
                 )}
@@ -449,81 +450,119 @@ export default function AdminPage() {
                     <p className="text-muted-foreground text-sm">No students yet.</p>
                   </div>
                 )}
-                {students.length > 0 && (
-                  <div className="grid grid-cols-[2rem_1fr_auto_auto_1.5rem] gap-4 px-5 pb-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    <span>#</span><span>Student</span>
-                    <span className="hidden md:block">Track Progress</span>
-                    <span className="text-right">Labs</span><span />
-                  </div>
-                )}
-                {students.map((student, i) => {
-                  const rank = i + 1
-                  const trackPassed: Record<string, number> = {}
-                  for (const l of student.labs) {
-                    if (l.status === "passed") {
-                      const track = labMeta[l.labId]?.track
-                      if (track) trackPassed[track] = (trackPassed[track] ?? 0) + 1
-                    }
-                  }
-                  const pct = totalLabs > 0 ? Math.round((student.passed / totalLabs) * 100) : 0
-                  const RankIcon = rank === 1 ? Crown : rank === 2 ? Medal : rank === 3 ? Trophy : null
-                  const rankColor = rank === 1 ? "text-amber-400" : rank === 2 ? "text-slate-300" : rank === 3 ? "text-amber-700" : "text-muted-foreground"
-                  const isSelected = selectedStudent?.id === student.id
-
+                {students.length > 0 && (() => {
+                  const q = leaderboardSearch.trim().toLowerCase()
+                  const filtered = q
+                    ? students.filter(s =>
+                        (s.name ?? "").toLowerCase().includes(q) ||
+                        (s.email ?? "").toLowerCase().includes(q)
+                      )
+                    : students
                   return (
-                    <button
-                      key={student.id}
-                      onClick={() => setSelectedStudent(isSelected ? null : student)}
-                      className={cn(
-                        "w-full rounded-xl border bg-card/60 hover:bg-card transition-all duration-150 group",
-                        isSelected ? "border-primary/40 bg-card shadow-sm" : "border-border/50 hover:border-border",
-                      )}
-                    >
-                      <div className="grid grid-cols-[2rem_1fr_auto_auto_1.5rem] gap-4 items-center px-5 py-4">
-                        <div className={cn("text-center font-mono font-bold text-sm shrink-0", rankColor)}>
-                          {RankIcon ? <RankIcon className="w-4 h-4 mx-auto" /> : `${rank}`}
-                        </div>
-                        <div className="min-w-0 text-left">
-                          <p className="font-semibold text-sm leading-tight truncate">{displayName(student)}</p>
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {displaySub(student) ?? `Active ${relativeTime(student.last_active)}`}
-                          </p>
-                        </div>
-                        <div className="hidden md:flex items-center gap-1.5">
-                          {Object.keys(TRACK_META).filter(t => trackTotals[t]).map((track) => {
-                            const meta = TRACK_META[track]
-                            const done = trackPassed[track] ?? 0
-                            const total = trackTotals[track] ?? 0
-                            if (!total) return null
-                            return (
-                              <div key={track} className={cn(
-                                "px-2 py-0.5 rounded-md text-[10px] font-mono border transition-colors",
-                                done === total
-                                  ? `${meta.bgClass} ${meta.accentClass} border-current/30`
-                                  : "bg-muted/30 text-muted-foreground border-border/50",
-                              )}>
-                                {done}/{total}
-                              </div>
-                            )
-                          })}
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-mono font-bold text-sm">
-                            <span className="text-green-400">{student.passed}</span>
-                            <span className="text-muted-foreground font-normal">/{totalLabs}</span>
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{relativeTime(student.last_active)}</p>
-                        </div>
-                        <ChevronRight className={cn("w-4 h-4 transition-all", isSelected ? "rotate-90 text-primary" : "text-muted-foreground/40 group-hover:text-muted-foreground")} />
+                    <>
+                      {/* Search bar */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+                        <input
+                          type="text"
+                          placeholder="Search by name or email…"
+                          value={leaderboardSearch}
+                          onChange={e => setLeaderboardSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 bg-card border border-border/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40"
+                        />
+                        {leaderboardSearch && (
+                          <button
+                            onClick={() => setLeaderboardSearch("")}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
-                      {pct > 0 && (
-                        <div className="mx-5 mb-3 h-1 rounded-full bg-white/5 overflow-hidden">
-                          <div className="h-full rounded-full bg-primary/50 transition-all" style={{ width: `${pct}%` }} />
+
+                      {/* Column headers */}
+                      <div className="grid grid-cols-[2rem_1fr_auto_auto_1.5rem] gap-4 px-5 pb-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        <span>#</span><span>Student</span>
+                        <span className="hidden md:block">Track Progress</span>
+                        <span className="text-right">Labs</span><span />
+                      </div>
+
+                      {filtered.length === 0 && (
+                        <div className="text-center py-10 text-muted-foreground text-sm">
+                          No students match "{leaderboardSearch}".
                         </div>
                       )}
-                    </button>
+
+                      {filtered.map((student) => {
+                        const rank = students.indexOf(student) + 1
+                        const trackPassed: Record<string, number> = {}
+                        for (const l of student.labs) {
+                          if (l.status === "passed") {
+                            const track = labMeta[l.labId]?.track
+                            if (track) trackPassed[track] = (trackPassed[track] ?? 0) + 1
+                          }
+                        }
+                        const pct = totalLabs > 0 ? Math.round((student.passed / totalLabs) * 100) : 0
+                        const RankIcon = rank === 1 ? Crown : rank === 2 ? Medal : rank === 3 ? Trophy : null
+                        const rankColor = rank === 1 ? "text-amber-400" : rank === 2 ? "text-slate-300" : rank === 3 ? "text-amber-700" : "text-muted-foreground"
+                        const isSelected = selectedStudent?.id === student.id
+                        return (
+                          <button
+                            key={student.id}
+                            onClick={() => setSelectedStudent(isSelected ? null : student)}
+                            className={cn(
+                              "w-full rounded-xl border bg-card/60 hover:bg-card transition-all duration-150 group",
+                              isSelected ? "border-primary/40 bg-card shadow-sm" : "border-border/50 hover:border-border",
+                            )}
+                          >
+                            <div className="grid grid-cols-[2rem_1fr_auto_auto_1.5rem] gap-4 items-center px-5 py-4">
+                              <div className={cn("text-center font-mono font-bold text-sm shrink-0", rankColor)}>
+                                {RankIcon ? <RankIcon className="w-4 h-4 mx-auto" /> : `${rank}`}
+                              </div>
+                              <div className="min-w-0 text-left">
+                                <p className="font-semibold text-sm leading-tight truncate">{displayName(student)}</p>
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                  {displaySub(student) ?? `Active ${relativeTime(student.last_active)}`}
+                                </p>
+                              </div>
+                              <div className="hidden md:flex items-center gap-1.5">
+                                {Object.keys(TRACK_META).filter(t => trackTotals[t]).map((track) => {
+                                  const meta = TRACK_META[track]
+                                  const done = trackPassed[track] ?? 0
+                                  const total = trackTotals[track] ?? 0
+                                  if (!total) return null
+                                  return (
+                                    <div key={track} className={cn(
+                                      "px-2 py-0.5 rounded-md text-[10px] font-mono border transition-colors",
+                                      done === total
+                                        ? `${meta.bgClass} ${meta.accentClass} border-current/30`
+                                        : "bg-muted/30 text-muted-foreground border-border/50",
+                                    )}>
+                                      {done}/{total}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="font-mono font-bold text-sm">
+                                  <span className="text-green-400">{student.passed}</span>
+                                  <span className="text-muted-foreground font-normal">/{totalLabs}</span>
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">{relativeTime(student.last_active)}</p>
+                              </div>
+                              <ChevronRight className={cn("w-4 h-4 transition-all", isSelected ? "rotate-90 text-primary" : "text-muted-foreground/40 group-hover:text-muted-foreground")} />
+                            </div>
+                            {pct > 0 && (
+                              <div className="mx-5 mb-3 h-1 rounded-full bg-white/5 overflow-hidden">
+                                <div className="h-full rounded-full bg-primary/50 transition-all" style={{ width: `${pct}%` }} />
+                              </div>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </>
                   )
-                })}
+                })()}
               </div>
             )}
 
