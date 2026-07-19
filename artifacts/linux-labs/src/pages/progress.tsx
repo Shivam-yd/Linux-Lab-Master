@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Zap, Trophy, Award, CheckCircle2,
   ArrowLeft, Terminal, Layers, Server, Container, GitBranch, Cpu,
-  ExternalLink, Star, ScrollText
+  ExternalLink, Star, ScrollText, ChevronDown
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -54,6 +54,16 @@ export default function ProgressPage() {
   const overallPct = overallStats.total > 0 ? Math.round((overallStats.passed / overallStats.total) * 100) : 0
 
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "Student"
+
+  // All tracks collapsed by default; expanded set tracks which are open
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const isOpen = (track: string) => expanded.has(track)
+  const toggle = (track: string) =>
+    setExpanded(prev => {
+      const next = new Set(prev)
+      next.has(track) ? next.delete(track) : next.add(track)
+      return next
+    })
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -169,10 +179,15 @@ export default function ProgressPage() {
           const pct      = total > 0 ? Math.round((passed / total) * 100) : 0
           const complete = passed === total && total > 0
 
+          const open = isOpen(track)
+
           return (
             <section key={track} className="space-y-3">
-              {/* Track header */}
-              <div className="flex items-center justify-between">
+              {/* Track header — clickable to collapse/expand */}
+              <button
+                onClick={() => toggle(track)}
+                className="w-full flex items-center justify-between group"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg border flex items-center justify-center"
                     style={{ background: `${tm.accentHex}10`, borderColor: `${tm.accentHex}30` }}>
@@ -187,6 +202,7 @@ export default function ProgressPage() {
                   {complete && (
                     <Link
                       href={`${basePath}/certificate/${track}`}
+                      onClick={e => e.stopPropagation()}
                       className="flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
                     >
                       <Star className="w-3.5 h-3.5" />
@@ -194,11 +210,12 @@ export default function ProgressPage() {
                       <ExternalLink className="w-3 h-3" />
                     </Link>
                   )}
+                  <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
                 </div>
-              </div>
+              </button>
 
               {/* Level rows */}
-              <div className="rounded-xl border border-border/50 bg-card/80 overflow-hidden divide-y divide-border/30">
+              {open && <div className="rounded-xl border border-border/50 bg-card/80 overflow-hidden divide-y divide-border/30">
                 {[...new Set(trackLabs.map(l => l.level))].sort().map(lvl => {
                   const lm = LEVEL_META[lvl] ?? { name: `Level ${lvl}`, accentHex: "#94a3b8" }
                   const lvlLabs = trackLabs.filter(l => l.level === lvl)
@@ -238,7 +255,7 @@ export default function ProgressPage() {
                     </div>
                   )
                 })}
-              </div>
+              </div>}
             </section>
           )
         })}
