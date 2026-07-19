@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "bash", "web"]
+modules = ["nodejs-20", "bash", "web", "postgresql-16"]
 
 [[ports]]
 localPort = 8080
@@ -66,6 +66,7 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+packages = ["vim-full"]
 
 [userenv]
 
