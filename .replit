@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "bash", "web"]
+modules = ["nodejs-20", "bash", "web", "postgresql-16"]
 
 [[ports]]
 localPort = 8080
@@ -50,7 +50,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=21398 BASE_PATH=/ pnpm --filter @workspace/linux-labs run dev"
+args = "PORT=21398 BASE_PATH=/ pnpm --filter @workspace/devlabmaster run dev"
 waitForPort = 21398
 
 [workflows.workflow.metadata]

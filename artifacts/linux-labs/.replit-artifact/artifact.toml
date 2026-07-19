@@ -11,10 +11,10 @@ paths = [ "/" ]
 localPort = 21398
 
 [services.development]
-run = "pnpm --filter @workspace/linux-labs run dev"
+run = "pnpm --filter @workspace/devlabmaster run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/linux-labs", "run", "build" ]
+build = [ "pnpm", "--filter", "@workspace/devlabmaster", "run", "build" ]
 serve = "static"
 publicDir = "artifacts/linux-labs/dist/public"
 
