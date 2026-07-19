@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
             <Zap className="w-5 h-5 text-primary fill-primary/20" />
           </div>
           <span className="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-            LinuxLabMaster
+            DevLabMaster
           </span>
         </Link>
 

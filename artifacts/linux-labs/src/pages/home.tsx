@@ -45,7 +45,7 @@ export default function Home() {
             <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_15px_rgba(45,212,191,0.15)]">
               <Zap className="w-4.5 h-4.5 text-primary fill-primary/20" />
             </div>
-            <span className="font-bold text-[15px] tracking-tight">LinuxLabMaster</span>
+            <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/about" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
@@ -152,7 +152,7 @@ export default function Home() {
       {/* ── Footer ── */}
       <footer className="border-t border-border/60 py-4 bg-card/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
-          <span>LinuxLabMaster — DevOps practice range</span>
+          <span>DevLabMaster — DevOps practice range</span>
           <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
         </div>
       </footer>

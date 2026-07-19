@@ -133,7 +133,7 @@ export default function ProfilePage() {
             <div className="w-px h-4 bg-border/60" />
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" />
-              <span className="font-bold text-sm tracking-tight">LinuxLabMaster</span>
+              <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
             </div>
           </div>
           <AccountDropdown />

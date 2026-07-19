@@ -40,7 +40,7 @@ export default function About() {
           <div className="w-px h-5 bg-border/80" />
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary fill-primary/20" />
-            <span className="font-bold text-[15px] tracking-tight">LinuxLabMaster</span>
+            <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
             <span className="text-muted-foreground/50 font-mono text-xs">/ about</span>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function About() {
           <div className="relative z-10 space-y-5 py-10">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-mono font-semibold tracking-widest uppercase">
               <Zap className="w-3.5 h-3.5 fill-primary/30" />
-              LinuxLabMaster
+              DevLabMaster
             </div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
               Learn DevOps by{" "}
@@ -162,7 +162,7 @@ export default function About() {
 
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
                   DevOps engineer focused on building practical tools for
-                  infrastructure and cloud learning. I created LinuxLabMaster to provide engineers
+                  infrastructure and cloud learning. I created DevLabMaster to provide engineers
                   with a hands-on, streamlined environment for developing real command-line
                   skills—eliminating the need to configure virtual machines or manage cloud
                   infrastructure, and allowing learners to focus on solving real-world tasks
@@ -209,7 +209,7 @@ export default function About() {
         <footer className="text-center text-xs font-mono text-muted-foreground/50 pb-4">
           Built with{" "}
           <Heart className="w-3 h-3 inline text-primary/60 fill-primary/20 mx-0.5" />
-          {" "}by Shivam Yadav · LinuxLabMaster
+          {" "}by Shivam Yadav · DevLabMaster
         </footer>
 
       </main>

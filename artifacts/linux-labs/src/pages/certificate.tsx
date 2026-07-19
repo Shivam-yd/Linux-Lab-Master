@@ -128,7 +128,7 @@ export default function CertificatePage() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center print:bg-transparent">
                 <Zap className="w-5 h-5 text-primary" />
               </div>
-              <span className="text-lg font-bold tracking-tight">LinuxLabMaster</span>
+              <span className="text-lg font-bold tracking-tight">DevLabMaster</span>
             </div>
 
             {/* Certificate of completion */}
@@ -177,7 +177,7 @@ export default function CertificatePage() {
             <div className="space-y-1.5 text-center">
               <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground print:text-gray-500">
                 <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                Verified by LinuxLabMaster automated testing
+                Verified by DevLabMaster automated testing
               </div>
               {certId && (
                 <p className="text-[10px] font-mono text-muted-foreground/60 print:text-gray-400 tracking-widest">
