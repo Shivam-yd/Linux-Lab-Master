@@ -3,7 +3,11 @@ import { sql } from "drizzle-orm";
 import { logger } from "./logger";
 import { stopExpiredSessions } from "./docker/manager";
 
+let _running = false;
+
 async function runCleanup(): Promise<void> {
+  if (_running) return;
+  _running = true;
   try {
     // Kill containers that have been running > 1 hour (recovers from server restarts).
     await stopExpiredSessions();
@@ -41,6 +45,8 @@ async function runCleanup(): Promise<void> {
     logger.info("cleanup: pass complete");
   } catch (err) {
     logger.error({ err }, "cleanup: pass failed");
+  } finally {
+    _running = false;
   }
 }
 

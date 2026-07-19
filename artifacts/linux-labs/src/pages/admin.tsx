@@ -7,7 +7,7 @@ import {
   ArrowLeft, Users, BarChart3, ChevronRight,
   Trophy, Medal, Crown,
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
-  KeyRound, Trash2, UserX, X, TrendingUp, Zap, Target,
+  KeyRound, Trash2, UserX, X, TrendingUp, Target,
   Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
