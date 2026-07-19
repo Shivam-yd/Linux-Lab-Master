@@ -40,7 +40,6 @@ export default function SignUpPage() {
   if (!isPending && session?.user) return <Redirect to="/dashboard" />
 
   const mode = regStatus?.mode ?? "open"
-  const isClosed = mode !== "open"
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -97,27 +96,8 @@ export default function SignUpPage() {
 
         <div className="w-full bg-card border border-border rounded-2xl p-8 shadow-[0_0_40px_rgba(45,212,191,0.08)]">
 
-          {/* Invite-only: no sign-up form, no request form */}
-          {isClosed && mode === "invite_only" && (
-            <div className="text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-muted/30 border border-border flex items-center justify-center mx-auto">
-                <Lock className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold">Registration is invite-only</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Contact your instructor to receive an invite link.
-                </p>
-              </div>
-              <p className="text-sm text-center text-muted-foreground">
-                Already have an account?{" "}
-                <Link href={`${basePath}/sign-in`} className="text-primary font-semibold hover:underline">Sign in</Link>
-              </p>
-            </div>
-          )}
-
           {/* Invite or request: show request form */}
-          {isClosed && mode === "invite_or_request" && (
+          {mode === "invite_or_request" && (
             <>
               <div className="flex items-center gap-2 mb-4">
                 <Lock className="w-4 h-4 text-amber-400 shrink-0" />
@@ -157,10 +137,17 @@ export default function SignUpPage() {
           )}
 
           {/* Open: normal sign-up form */}
-          {!isClosed && (
+          {mode !== "invite_or_request" && (
             <>
               <h1 className="text-xl font-bold text-foreground mb-1">Create your account</h1>
               <p className="text-sm text-muted-foreground mb-6">Track your progress across every lab and track</p>
+
+              {mode === "invite_only" && (
+                <div className="flex items-center gap-2 mb-4">
+                  <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                  <p className="text-xs text-amber-400 font-medium">Registration is invite-only — your email must be pre-approved by an instructor</p>
+                </div>
+              )}
 
               {config?.googleEnabled && (
                 <>
