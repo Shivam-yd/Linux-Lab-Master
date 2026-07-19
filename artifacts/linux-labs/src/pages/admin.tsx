@@ -106,6 +106,15 @@ export default function AdminPage() {
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
+  // Sync tab when browser back/forward changes the hash
+  useEffect(() => {
+    const onPop = () => {
+      const h = window.location.hash.replace("#", "") as Tab
+      if (TABS.includes(h)) setTab(h)
+    }
+    window.addEventListener("popstate", onPop)
+    return () => window.removeEventListener("popstate", onPop)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null)
   const [confirmReset, setConfirmReset] = useState<StudentRow | null>(null)
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
@@ -229,6 +238,7 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Failed to approve request")
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "password-resets"] }),
+    onError: (err: Error) => toast({ title: "Failed to approve reset", description: err.message, variant: "destructive" }),
   })
 
   const dismissPwReset = useMutation({
@@ -237,6 +247,7 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Failed to dismiss request")
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "password-resets"] }),
+    onError: (err: Error) => toast({ title: "Failed to dismiss reset", description: err.message, variant: "destructive" }),
   })
 
   const killSession = useMutation({
@@ -255,6 +266,7 @@ export default function AdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "cohort"] })
     },
   })
 
@@ -765,8 +777,8 @@ export default function AdminPage() {
                           return (
                             <button
                               key={value}
-                              onClick={() => setRegMode.mutate(value)}
-                              disabled={setRegMode.isPending}
+                              onClick={() => { if (!isActive) setRegMode.mutate(value) }}
+                              disabled={isActive || setRegMode.isPending}
                               className={cn(
                                 "flex flex-col items-start gap-2 p-4 rounded-xl border text-left transition-all duration-150 disabled:opacity-60",
                                 isActive
