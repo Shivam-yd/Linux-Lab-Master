@@ -50,10 +50,10 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
             </p>
           </div>
         )}
-        {/* About — info icon on the right, only when expanded */}
+        {/* About — always visible info icon on the right */}
         {!collapsed && (
-          <Link href="/about" title="About" className="shrink-0 p-1 rounded-md text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/20 transition-colors">
-            <Info className="w-3.5 h-3.5" />
+          <Link href="/about" title="About" className="shrink-0 p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
+            <Info className="w-4 h-4" />
           </Link>
         )}
       </div>
