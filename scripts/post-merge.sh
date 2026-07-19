@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 pnpm install --frozen-lockfile
+pnpm run typecheck:libs   # build lib declaration files (needed for tsc --noEmit)
 pnpm --filter db push
 
 # Pre-pull Docker images the lab sandboxes depend on. The api-server also
