@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import {
   registrationSettingsTable,
   registrationRequestsTable,
+  registrationInvitesTable,
 } from "@workspace/db/schema";
 
 const router = Router();
@@ -12,6 +13,38 @@ const router = Router();
 router.get("/registration-status", async (_req, res): Promise<void> => {
   const rows = await db.select().from(registrationSettingsTable).limit(1);
   res.json({ mode: rows[0]?.mode ?? "open" });
+});
+
+/** POST /registration-check — public, no auth
+ *  Body: { email }
+ *  Returns: { status: "approved" | "pending" | "none" }
+ */
+router.post("/registration-check", async (req, res): Promise<void> => {
+  const { email } = req.body ?? {};
+  if (!email) { res.status(400).json({ error: "email required" }); return; }
+  const normalized = String(email).toLowerCase().trim();
+
+  // Unused invite → can sign up now
+  const invite = await db
+    .select()
+    .from(registrationInvitesTable)
+    .where(eq(registrationInvitesTable.email, normalized))
+    .limit(1);
+  if (invite.length > 0 && invite[0].usedAt === null) {
+    res.json({ status: "approved" }); return;
+  }
+
+  // Existing request → show its status (pending / approved)
+  const request = await db
+    .select()
+    .from(registrationRequestsTable)
+    .where(eq(registrationRequestsTable.email, normalized))
+    .limit(1);
+  if (request.length > 0) {
+    res.json({ status: request[0].status }); return;
+  }
+
+  res.json({ status: "none" });
 });
 
 /** POST /registration-request — public, no auth */
