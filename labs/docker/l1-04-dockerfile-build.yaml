@@ -27,28 +27,16 @@ instructions: |
   image, build it into a tagged image, and confirm a container runs from it.
   This is the entry point for any Docker-based CI/CD pipeline.
 
-  **Your task:** create `/root/work/app/Dockerfile` with exactly these four
-  instructions, then build and run it.
+  **Your task:** create `/root/work/app/Dockerfile` (the directory already
+  exists) using `FROM alpine:latest` as the base image, and include `RUN`,
+  `COPY`, and `CMD` instructions. Build the image with the tag `myapp:v1`,
+  then run a container from it.
 
-  ```
-  FROM alpine:latest
-  RUN echo "building app"
-  COPY . /app
-  CMD ["echo", "hello from myapp"]
-  ```
-
-  Write it with `vi Dockerfile` or shell redirection (from `/root/work/app`):
-  `printf 'FROM alpine:latest\nRUN echo "building app"\nCOPY . /app\nCMD ["echo", "hello from myapp"]\n' > Dockerfile`
-
-  Then build the image tagged `myapp:v1`:
-  `docker build -t myapp:v1 /root/work/app`
-
-  Then run a container from it:
-  `docker run --name myapp-test myapp:v1`
+  `vi` is available, or use shell redirection to write the file.
 
   **What You'll Deliver**
-  - `/root/work/app/Dockerfile` containing `FROM`, `RUN`, `COPY`, and `CMD`
-  - `myapp:v1` built and visible in `docker images`
+  - `/root/work/app/Dockerfile` with `FROM alpine:latest`, `RUN`, `COPY`, and `CMD` instructions
+  - Image `myapp:v1` built and visible in `docker images`
   - A container run from `myapp:v1`
 
   ## Steps
