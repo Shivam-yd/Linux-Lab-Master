@@ -52,7 +52,7 @@ export function AccountDropdown() {
           "w-9 h-9 rounded-lg border flex items-center justify-center transition-all duration-200 text-sm font-bold",
           open
             ? "border-primary/60 bg-primary/10 text-primary"
-            : "border-border bg-card hover:border-primary/40 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
+            : "border-border/60 bg-muted text-foreground hover:border-primary/50 hover:bg-muted/70"
         )}
       >
         {user ? (
