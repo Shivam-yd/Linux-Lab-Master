@@ -266,6 +266,7 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Failed to reset progress")
     },
     onSuccess: () => {
+      setSelectedStudent(null)
       queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "cohort"] })
@@ -280,7 +281,10 @@ export default function AdminPage() {
         throw new Error(body.error ?? "Failed to delete account")
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
+    onSuccess: () => {
+      setSelectedStudent(null)
+      queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] })
+    },
     onError: (err: Error) => toast({ title: "Cannot delete account", description: err.message, variant: "destructive" }),
   })
 
