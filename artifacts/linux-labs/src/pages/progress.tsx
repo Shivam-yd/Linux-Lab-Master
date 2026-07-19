@@ -117,16 +117,14 @@ export default function ProgressPage() {
           })
           if (earned.length === 0) return null
           return (
-            <section className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-border/50" />
-                <div className="flex items-center gap-2 text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground px-2">
-                  <ScrollText className="w-3.5 h-3.5" />
-                  My Certificates
-                </div>
-                <div className="h-px flex-1 bg-border/50" />
+            <section className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground">
+                <ScrollText className="w-3.5 h-3.5" />
+                My Certificates
+                <span className="text-border">·</span>
+                <span className="text-amber-400">{earned.length}</span>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {earned.map(track => {
                   const tm = TRACK_META[track] ?? { label: track, icon: Cpu, accentHex: "#94a3b8", accentClass: "text-slate-400" }
                   const Icon = tm.icon
@@ -134,22 +132,11 @@ export default function ProgressPage() {
                     <Link
                       key={track}
                       href={`${basePath}/certificate/${track}`}
-                      className="group flex items-center gap-4 p-4 rounded-xl border border-border/60 bg-card hover:border-amber-500/40 hover:bg-amber-500/5 transition-all"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 transition-colors shrink-0"
                     >
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border"
-                        style={{ background: `${tm.accentHex}15`, borderColor: `${tm.accentHex}30` }}
-                      >
-                        <Icon className={cn("w-5 h-5", tm.accentClass)} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm leading-tight">{tm.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Track completed</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-amber-400 shrink-0">
-                        <Star className="w-4 h-4 fill-amber-400/20" />
-                        <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
+                      <Icon className={cn("w-3.5 h-3.5", tm.accentClass)} />
+                      <span className="text-sm font-semibold">{tm.label}</span>
+                      <Star className="w-3 h-3 text-amber-400 fill-amber-400/30" />
                     </Link>
                   )
                 })}
