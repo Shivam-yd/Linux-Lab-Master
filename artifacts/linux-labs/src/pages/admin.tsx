@@ -8,6 +8,7 @@ import {
   Trophy, Medal, Crown,
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Zap, Target,
+  Lock, Unlock, UserPlus, MailPlus, UserCheck,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -100,12 +101,13 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  const [tab, setTab] = useState<"leaderboard" | "cohort" | "sessions" | "password-resets">("leaderboard")
+  const [tab, setTab] = useState<"leaderboard" | "cohort" | "sessions" | "password-resets" | "registration">("leaderboard")
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null)
   const [confirmReset, setConfirmReset] = useState<StudentRow | null>(null)
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
+  const [newInviteEmail, setNewInviteEmail] = useState("")
   const { toast } = useToast()
 
   const leaderboard = useQuery<StudentRow[]>({
@@ -137,6 +139,84 @@ export default function AdminPage() {
     retry: false,
     enabled: tab === "password-resets",
     refetchInterval: tab === "password-resets" ? 15_000 : false,
+  })
+
+  type RegSettings = { id: number; mode: string }
+  type RegInvite = { id: number; email: string; createdAt: string; usedAt: string | null }
+  type RegRequest = { id: number; name: string; email: string; status: string; createdAt: string }
+
+  const regSettings = useQuery<RegSettings>({
+    queryKey: ["admin", "registration"],
+    queryFn: () => fetchAdmin("/api/admin/registration"),
+    retry: false,
+    enabled: tab === "registration",
+  })
+
+  const regInvites = useQuery<RegInvite[]>({
+    queryKey: ["admin", "registration", "invites"],
+    queryFn: () => fetchAdmin("/api/admin/registration/invites"),
+    retry: false,
+    enabled: tab === "registration",
+  })
+
+  const regRequests = useQuery<RegRequest[]>({
+    queryKey: ["admin", "registration", "requests"],
+    queryFn: () => fetchAdmin("/api/admin/registration/requests"),
+    retry: false,
+    enabled: tab === "registration",
+    refetchInterval: tab === "registration" ? 20_000 : false,
+  })
+
+  const setRegMode = useMutation({
+    mutationFn: async (mode: string) => {
+      const res = await fetch("/api/admin/registration", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      })
+      if (!res.ok) throw new Error("Failed to update mode")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "registration"] }),
+  })
+
+  const addInvite = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await fetch("/api/admin/registration/invites", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      if (!res.ok) throw new Error("Failed to add invite")
+    },
+    onSuccess: () => {
+      setNewInviteEmail("")
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
+    },
+  })
+
+  const removeInvite = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/registration/invites/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to remove invite")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] }),
+  })
+
+  const approveRequest = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/registration/requests/${id}/approve`, { method: "POST" })
+      if (!res.ok) throw new Error("Failed to approve request")
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
+    },
+  })
+
+  const denyRequest = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/registration/requests/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to deny request")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] }),
   })
 
   const approvePwReset = useMutation({
@@ -314,6 +394,7 @@ export default function AdminPage() {
                 { id: "cohort",          label: "Lab Stats",       icon: BarChart3 },
                 { id: "sessions",        label: "Sessions",        icon: Activity  },
                 { id: "password-resets", label: "Password Resets", icon: KeyRound  },
+              { id: "registration",    label: "Registration",   icon: Lock      },
               ] as const).map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -590,6 +671,185 @@ export default function AdminPage() {
                     })}
                   </>
                 )}
+              </div>
+            )}
+
+            {/* ── Registration ── */}
+            {tab === "registration" && (
+              <div className="space-y-6">
+
+                {/* Mode toggle */}
+                <div className="rounded-xl border border-border/50 bg-card/60 p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">Registration</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Controls whether new accounts can be created</p>
+                    </div>
+                    {regSettings.isLoading
+                      ? <div className="w-24 h-8 rounded-lg bg-muted/30 animate-pulse" />
+                      : (
+                        <button
+                          onClick={() => setRegMode.mutate(regSettings.data?.mode === "open" ? "invite_only" : "open")}
+                          disabled={setRegMode.isPending}
+                          className={cn(
+                            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors",
+                            regSettings.data?.mode === "open"
+                              ? "text-green-400 border-green-500/30 bg-green-500/10 hover:bg-green-500/20"
+                              : "text-red-400 border-red-500/30 bg-red-500/10 hover:bg-red-500/20",
+                          )}
+                        >
+                          {regSettings.data?.mode === "open"
+                            ? <><Unlock className="w-3.5 h-3.5" />Open</>
+                            : <><Lock className="w-3.5 h-3.5" />Locked</>}
+                        </button>
+                      )}
+                  </div>
+
+                  {/* Sub-mode — only shown when locked */}
+                  {regSettings.data?.mode !== "open" && (
+                    <div className="pt-3 border-t border-border/40 space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">When locked, allow:</p>
+                      <div className="flex gap-2">
+                        {([
+                          { value: "invite_only",       label: "Invite only" },
+                          { value: "invite_or_request", label: "Invite + requests" },
+                        ] as const).map(({ value, label }) => (
+                          <button
+                            key={value}
+                            onClick={() => setRegMode.mutate(value)}
+                            disabled={setRegMode.isPending}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors",
+                              regSettings.data?.mode === value
+                                ? "text-violet-300 border-violet-500/40 bg-violet-500/15"
+                                : "text-muted-foreground border-border/50 hover:border-border",
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Invites */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Invites <span className="text-border">·</span> <span className="text-foreground">{regInvites.data?.length ?? 0}</span>
+                    </p>
+                  </div>
+                  {/* Add invite */}
+                  <form
+                    onSubmit={e => { e.preventDefault(); if (newInviteEmail) addInvite.mutate(newInviteEmail) }}
+                    className="flex gap-2"
+                  >
+                    <input
+                      type="email"
+                      placeholder="student@example.com"
+                      value={newInviteEmail}
+                      onChange={e => setNewInviteEmail(e.target.value)}
+                      className="flex-1 bg-card border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    <button
+                      type="submit"
+                      disabled={addInvite.isPending || !newInviteEmail}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {addInvite.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MailPlus className="w-3.5 h-3.5" />}
+                      Add
+                    </button>
+                  </form>
+                  {regInvites.isLoading && <div className="text-center py-8 text-muted-foreground text-sm animate-pulse">Loading…</div>}
+                  {!regInvites.isLoading && regInvites.data?.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">No invites yet.</div>
+                  )}
+                  {regInvites.data && regInvites.data.length > 0 && (
+                    <div className="rounded-xl border border-border/50 bg-card/60 overflow-hidden divide-y divide-border/30">
+                      {regInvites.data.map((inv: { id: number; email: string; usedAt: string | null }) => (
+                        <div key={inv.id} className="flex items-center justify-between px-4 py-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm truncate">{inv.email}</span>
+                            {inv.usedAt && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded border border-green-500/20 text-green-400 bg-green-500/10 shrink-0">used</span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => removeInvite.mutate(inv.id)}
+                            disabled={removeInvite.isPending && removeInvite.variables === inv.id}
+                            className="shrink-0 ml-3 text-muted-foreground hover:text-red-400 transition-colors disabled:opacity-40"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Requests */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Account Requests
+                    </p>
+                    {(regRequests.data?.filter((r: { status: string }) => r.status === "pending").length ?? 0) > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-semibold">
+                        {regRequests.data!.filter((r: { status: string }) => r.status === "pending").length} pending
+                      </span>
+                    )}
+                  </div>
+                  {regRequests.isLoading && <div className="text-center py-8 text-muted-foreground text-sm animate-pulse">Loading…</div>}
+                  {!regRequests.isLoading && regRequests.data?.length === 0 && (
+                    <div className="text-center py-8 space-y-2">
+                      <UserPlus className="w-8 h-8 text-muted-foreground/30 mx-auto" />
+                      <p className="text-muted-foreground text-sm">No account requests.</p>
+                    </div>
+                  )}
+                  {regRequests.data && regRequests.data.length > 0 && (
+                    <div className="rounded-xl border border-border/50 bg-card/60 overflow-hidden divide-y divide-border/30">
+                      {regRequests.data.map((r: { id: number; name: string; email: string; status: string; createdAt: string }) => (
+                        <div key={r.id} className="flex items-center gap-4 px-4 py-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{r.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                          </div>
+                          <span className={cn(
+                            "text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0",
+                            r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                            r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
+                                                       "text-muted-foreground border-border bg-white/5",
+                          )}>{r.status}</span>
+                          <span className="text-xs text-muted-foreground shrink-0 font-mono">{relativeTime(r.createdAt)}</span>
+                          {r.status === "pending" && (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => approveRequest.mutate(r.id)}
+                                disabled={approveRequest.isPending && approveRequest.variables === r.id}
+                                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 disabled:opacity-40 transition-colors font-medium"
+                              >
+                                {approveRequest.isPending && approveRequest.variables === r.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : <UserCheck className="w-3 h-3" />}
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => denyRequest.mutate(r.id)}
+                                disabled={denyRequest.isPending && denyRequest.variables === r.id}
+                                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition-colors"
+                              >
+                                {denyRequest.isPending && denyRequest.variables === r.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
               </div>
             )}
 

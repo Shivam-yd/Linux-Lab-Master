@@ -8,7 +8,30 @@ import {
   accountTable,
   verificationTable,
   passwordResetRequestsTable,
+  registrationSettingsTable,
+  registrationInvitesTable,
 } from "@workspace/db/schema";
+
+async function getRegistrationMode(): Promise<string> {
+  const rows = await db.select().from(registrationSettingsTable).limit(1);
+  return rows[0]?.mode ?? "open";
+}
+
+async function checkInvite(email: string): Promise<boolean> {
+  const rows = await db
+    .select()
+    .from(registrationInvitesTable)
+    .where(eq(registrationInvitesTable.email, email.toLowerCase()))
+    .limit(1);
+  return rows.length > 0 && rows[0].usedAt === null;
+}
+
+async function consumeInvite(email: string): Promise<void> {
+  await db
+    .update(registrationInvitesTable)
+    .set({ usedAt: new Date() })
+    .where(eq(registrationInvitesTable.email, email.toLowerCase()));
+}
 
 // Public origin the browser hits — needed so Google can redirect back after OAuth.
 // Priority: BETTER_AUTH_URL env var → REPLIT_DEV_DOMAIN → localhost fallback.
@@ -51,6 +74,26 @@ export const auth = betterAuth({
       verification: verificationTable,
     },
   }),
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user: { email?: string }) => {
+          const mode = await getRegistrationMode();
+          if (mode === "open") return;
+          const email = (user.email ?? "").toLowerCase();
+          const invited = await checkInvite(email);
+          if (!invited) {
+            throw new Error(
+              mode === "invite_only"
+                ? "Registration is currently invite-only. Contact your instructor."
+                : "Registration is currently restricted. Request an account or use an invite.",
+            );
+          }
+          await consumeInvite(email);
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, token }: { user: { email: string }; url: string; token: string }) => {

@@ -114,6 +114,36 @@ export const passwordResetRequestsTable = pgTable("password_reset_requests", {
 });
 export type PasswordResetRequestRow = typeof passwordResetRequestsTable.$inferSelect;
 
+// ─── Registration control ─────────────────────────────────────────────────────
+
+/** Single-row settings table (id always = 1). */
+export const registrationSettingsTable = pgTable("registration_settings", {
+  id: integer("id").primaryKey().default(1),
+  mode: text("mode").notNull().default("open"), // open | invite_only | invite_or_request
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+export type RegistrationMode = "open" | "invite_only" | "invite_or_request";
+export type RegistrationSettingsRow = typeof registrationSettingsTable.$inferSelect;
+
+/** Pre-approved email addresses allowed to create accounts. */
+export const registrationInvitesTable = pgTable("registration_invites", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+});
+export type RegistrationInviteRow = typeof registrationInvitesTable.$inferSelect;
+
+/** Account creation requests submitted by prospective students. */
+export const registrationRequestsTable = pgTable("registration_requests", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  status: text("status").notNull().default("pending"), // pending | approved | denied
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export type RegistrationRequestRow = typeof registrationRequestsTable.$inferSelect;
+
 /** One row written after every sync attempt (background or manual). */
 export const labSyncLogTable = pgTable("lab_sync_log", {
   id: serial("id").primaryKey(),

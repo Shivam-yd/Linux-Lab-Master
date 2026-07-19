@@ -2,7 +2,12 @@ import { Router, type Request, type Response, type NextFunction } from "express"
 import { sql, eq } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
 import { db } from "@workspace/db";
-import { passwordResetRequestsTable } from "@workspace/db/schema";
+import {
+  passwordResetRequestsTable,
+  registrationSettingsTable,
+  registrationInvitesTable,
+  registrationRequestsTable,
+} from "@workspace/db/schema";
 import { auth } from "../lib/auth";
 import { stopSession } from "../lib/docker/manager";
 
@@ -268,6 +273,86 @@ router.delete("/password-reset-requests/:id", async (req, res): Promise<void> =>
   await db
     .delete(passwordResetRequestsTable)
     .where(eq(passwordResetRequestsTable.id, id));
+  res.status(204).send();
+});
+
+// ── Registration control ──────────────────────────────────────────────────────
+
+router.get("/registration", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(registrationSettingsTable).limit(1);
+  res.json(rows[0] ?? { id: 1, mode: "open" });
+});
+
+router.put("/registration", async (req, res): Promise<void> => {
+  const { mode } = req.body ?? {};
+  if (!["open", "invite_only", "invite_or_request"].includes(mode)) {
+    res.status(400).json({ error: "Invalid mode" });
+    return;
+  }
+  await db
+    .insert(registrationSettingsTable)
+    .values({ id: 1, mode })
+    .onConflictDoUpdate({ target: registrationSettingsTable.id, set: { mode } });
+  res.json({ ok: true, mode });
+});
+
+router.get("/registration/invites", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(registrationInvitesTable)
+    .orderBy(registrationInvitesTable.createdAt);
+  res.json(rows);
+});
+
+router.post("/registration/invites", async (req, res): Promise<void> => {
+  const { email } = req.body ?? {};
+  if (!email) { res.status(400).json({ error: "email required" }); return; }
+  await db
+    .insert(registrationInvitesTable)
+    .values({ email: String(email).toLowerCase().trim() })
+    .onConflictDoNothing();
+  res.status(201).json({ ok: true });
+});
+
+router.delete("/registration/invites/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(registrationInvitesTable).where(eq(registrationInvitesTable.id, id));
+  res.status(204).send();
+});
+
+router.get("/registration/requests", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(registrationRequestsTable)
+    .orderBy(registrationRequestsTable.createdAt);
+  res.json(rows);
+});
+
+router.post("/registration/requests/:id/approve", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db
+    .select()
+    .from(registrationRequestsTable)
+    .where(eq(registrationRequestsTable.id, id))
+    .limit(1);
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  await db
+    .insert(registrationInvitesTable)
+    .values({ email: row.email })
+    .onConflictDoNothing();
+  await db
+    .update(registrationRequestsTable)
+    .set({ status: "approved" })
+    .where(eq(registrationRequestsTable.id, id));
+  res.json({ ok: true });
+});
+
+router.delete("/registration/requests/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(registrationRequestsTable).where(eq(registrationRequestsTable.id, id));
   res.status(204).send();
 });
 
