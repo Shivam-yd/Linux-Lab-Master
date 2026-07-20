@@ -26,33 +26,37 @@ const COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7; // 1 week
 /** Returns the number of lab_progress rows successfully migrated. */
 async function claimGuestProgress(guestId: string, userId: string): Promise<number> {
   try {
-    // Ensure the authenticated user has a students row first.
-    await db.insert(studentsTable).values({ id: userId }).onConflictDoNothing();
+    // Wrap all three mutations in a transaction so a partial failure never
+    // leaves progress migrated but sessions still on the guest ID.
+    return await db.transaction(async (tx) => {
+      // Ensure the authenticated user has a students row first.
+      await tx.insert(studentsTable).values({ id: userId }).onConflictDoNothing();
 
-    // Move progress rows that don't conflict with existing authenticated progress.
-    const progressResult = await db.execute(sql`
-      UPDATE lab_progress
-      SET student_id = ${userId}
-      WHERE student_id = ${guestId}
-        AND lab_id NOT IN (
-          SELECT lab_id FROM lab_progress WHERE student_id = ${userId}
-        )
-    `);
+      // Move progress rows that don't conflict with existing authenticated progress.
+      const progressResult = await tx.execute(sql`
+        UPDATE lab_progress
+        SET student_id = ${userId}
+        WHERE student_id = ${guestId}
+          AND lab_id NOT IN (
+            SELECT lab_id FROM lab_progress WHERE student_id = ${userId}
+          )
+      `);
 
-    // Move session rows that don't conflict.
-    await db.execute(sql`
-      UPDATE lab_sessions
-      SET student_id = ${userId}
-      WHERE student_id = ${guestId}
-        AND lab_id NOT IN (
-          SELECT lab_id FROM lab_sessions WHERE student_id = ${userId}
-        )
-    `);
+      // Move session rows that don't conflict.
+      await tx.execute(sql`
+        UPDATE lab_sessions
+        SET student_id = ${userId}
+        WHERE student_id = ${guestId}
+          AND lab_id NOT IN (
+            SELECT lab_id FROM lab_sessions WHERE student_id = ${userId}
+          )
+      `);
 
-    // Delete the guest student row (cascades any remaining orphaned rows).
-    await db.execute(sql`DELETE FROM students WHERE id = ${guestId}`);
+      // Delete the guest student row (cascades any remaining orphaned rows).
+      await tx.execute(sql`DELETE FROM students WHERE id = ${guestId}`);
 
-    return (progressResult.rowCount ?? 0) as number;
+      return (progressResult.rowCount ?? 0) as number;
+    });
   } catch {
     // Never block the request if migration fails — guest just starts fresh.
     return 0;

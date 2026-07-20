@@ -88,13 +88,17 @@ export default function Workspace() {
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
 
-  // Seed verifyResult from stored lastResults when progress loads or lab changes
+  // Seed verifyResult from stored lastResults when progress loads or lab changes.
+  // Compute score from lastResults directly so it matches the checks shown —
+  // bestScore may be from a different (better) attempt than lastResults.
   useEffect(() => {
     const entry = progressList?.find((p) => p.labId === labId)
     if (entry?.lastResults?.length) {
+      const checks = entry.lastResults as { passed: boolean }[]
+      const score = Math.round((checks.filter(c => c.passed).length / checks.length) * 100)
       setVerifyResult({
         passed: entry.status === "passed",
-        score: entry.bestScore,
+        score,
         checks: entry.lastResults,
       })
     } else {
@@ -130,6 +134,7 @@ export default function Workspace() {
 
   // Reset when lab changes
   useEffect(() => {
+    autoStartedRef.current = false   // allow auto-boot for the new lab
     setHintsRevealed(0)
     setHintsOpen(false)
     setStepsRevealed(0)
