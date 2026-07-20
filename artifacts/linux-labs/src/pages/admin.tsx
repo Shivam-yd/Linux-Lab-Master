@@ -403,29 +403,35 @@ export default function AdminPage() {
 
       {/* Header */}
       <header className="shrink-0 border-b border-border/50 bg-background/95 backdrop-blur-sm">
-        <div className="px-6 h-14 flex items-center justify-between">
-          {/* Back link */}
-          <Link
-            href={`${basePath}/dashboard`}
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Dashboard
-          </Link>
+        <div className="px-6 py-4 flex items-center justify-between gap-4">
 
-          {/* Brand + badge */}
-          <div className="flex items-center gap-3">
-            <img src={`${basePath}/logo.svg`} className="w-7 h-7 rounded-lg" alt="DevLabMaster" />
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
-              <span className="hidden sm:block w-px h-3.5 bg-border/60" />
-              <span className="hidden sm:block text-xs text-muted-foreground font-medium">Instructor Panel</span>
+          {/* Left: back link + divider + brand */}
+          <div className="flex items-center gap-4">
+            <Link
+              href={`${basePath}/dashboard`}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Dashboard
+            </Link>
+
+            <div className="w-px h-6 bg-border/50" />
+
+            <div className="flex items-center gap-3">
+              <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" alt="DevLabMaster" />
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <span className="font-bold text-base tracking-tight leading-none">DevLabMaster</span>
+                  <span className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-md border border-primary/40 text-primary bg-primary/10 leading-none">
+                    Admin
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 leading-none">Instructor Panel</p>
+              </div>
             </div>
-            <span className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/8">
-              Admin
-            </span>
           </div>
 
+          {/* Right: account */}
           <AccountDropdown />
         </div>
       </header>
