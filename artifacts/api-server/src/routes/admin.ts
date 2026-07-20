@@ -244,6 +244,24 @@ router.get("/sessions", async (_req, res): Promise<void> => {
 });
 
 /**
+ * DELETE /admin/sessions/idle
+ * Kill all sessions with no activity for >30 minutes.
+ */
+router.delete("/sessions/idle", async (_req, res): Promise<void> => {
+  const result = await db.execute(sql`
+    SELECT student_id, lab_id FROM lab_sessions
+    WHERE status NOT IN ('stopped', 'error')
+      AND updated_at < NOW() - interval '30 minutes'
+  `);
+  await Promise.allSettled(
+    result.rows.map((r: Record<string, unknown>) =>
+      stopSession(r.student_id as string, r.lab_id as string)
+    )
+  );
+  res.json({ killed: result.rows.length });
+});
+
+/**
  * DELETE /admin/sessions/:studentId/:labId
  * Force-kill a specific lab session.
  */

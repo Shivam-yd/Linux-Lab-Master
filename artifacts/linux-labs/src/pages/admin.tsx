@@ -273,6 +273,18 @@ export default function AdminPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] }),
   })
 
+  const killIdle = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/sessions/idle", { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to kill idle sessions")
+      return res.json() as Promise<{ killed: number }>
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
+      toast({ title: `Killed ${data.killed} idle session${data.killed !== 1 ? "s" : ""}` })
+    },
+  })
+
   const resetProgress = useMutation({
     mutationFn: async (studentId: string) => {
       const res = await fetch(`/api/admin/progress/${encodeURIComponent(studentId)}`, { method: "DELETE" })
@@ -712,8 +724,18 @@ export default function AdminPage() {
                 )}
                 {sessions.data && sessions.data.length > 0 && (
                   <>
-                    <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 px-5 pb-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      <span>Student</span><span>Lab</span><span className="w-20 text-center">Status</span><span className="w-16" />
+                    <div className="flex items-center justify-between px-1 pb-1">
+                      <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex-1">
+                        <span>Student</span><span>Lab</span><span className="w-20 text-center">Status</span><span className="w-16" />
+                      </div>
+                      <button
+                        disabled={killIdle.isPending}
+                        onClick={() => killIdle.mutate()}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium shrink-0"
+                      >
+                        {killIdle.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                        Kill idle (&gt;30 min)
+                      </button>
                     </div>
                     {sessions.data.map((s: SessionRow) => {
                       const labTitle = labMeta[s.lab_id]?.title ?? s.lab_id
