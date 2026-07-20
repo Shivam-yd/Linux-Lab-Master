@@ -295,8 +295,14 @@ export default function Catalog() {
     return next
   })
 
-  // View mode
-  const [viewMode, setViewMode] = useState<"by-level" | "by-course">("by-level")
+  // View mode — persisted across refreshes
+  const [viewMode, setViewMode] = useState<"by-level" | "by-course">(() => {
+    try { return (localStorage.getItem("catalog-view-mode") as "by-level" | "by-course") ?? "by-level" } catch { return "by-level" }
+  })
+  const setViewModePersisted = (mode: "by-level" | "by-course") => {
+    try { localStorage.setItem("catalog-view-mode", mode) } catch {}
+    setViewMode(mode)
+  }
 
   // All track+level combos for "By Level" view
   type LabItem = NonNullable<typeof labs>[number]
@@ -333,7 +339,7 @@ export default function Catalog() {
       const defaults: Record<string, boolean> = {
         [`${filteredCards[0].track}-${filteredCards[0].level}`]: true,
       }
-      if (levels.length > 0) defaults[`course-${levels[0].level}`] = true
+      if (levels.length > 0) defaults[`course-${resolvedTrack}-${levels[0].level}`] = true
       setExpandedCards(defaults)
     }
   }, [filteredCards]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -553,7 +559,7 @@ export default function Catalog() {
                   {(["by-level", "by-course"] as const).map(mode => (
                     <button
                       key={mode}
-                      onClick={() => setViewMode(mode)}
+                      onClick={() => setViewModePersisted(mode)}
                       className={cn(
                         "px-4 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 whitespace-nowrap",
                         viewMode === mode
@@ -795,7 +801,7 @@ export default function Catalog() {
                   )}
                 </div>
                 {/* Slim progress bar */}
-                <div className="px-5 pb-4 mt-1">
+                <div className="px-5 pb-8 mt-1">
                   <div className="relative h-1.5 bg-background border border-border/60 rounded-full">
                     {totalLabs > 0 && (
                       <div
@@ -827,9 +833,9 @@ export default function Catalog() {
                   <Terminal className="w-5 h-5 text-primary" /> MODULES
                 </h3>
                 
-                {levels.map(({ level, labs: lvlLabs, locked }) => {
+                {levels.map(({ level, labs: lvlLabs }) => {
                   const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                  const courseKey = `course-${level}`
+                  const courseKey = `course-${resolvedTrack}-${level}`
                   const isCourseOpen = !!expandedCards[courseKey]
                   const lvlPassed = lvlLabs.filter(l => progressByLabId[l.id]?.status === "passed").length
 
