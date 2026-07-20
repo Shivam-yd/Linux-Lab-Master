@@ -350,7 +350,6 @@ export default function Catalog() {
             {!collapsed && (
               <div>
                 <p className="text-[15px] font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">DevLabMaster</p>
-                <p className="text-[10px] text-muted-foreground mt-1 font-semibold tracking-widest uppercase">Practice Range</p>
               </div>
             )}
           </Link>
