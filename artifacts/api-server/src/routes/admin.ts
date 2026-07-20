@@ -95,6 +95,7 @@ router.get("/cohort", async (_req, res): Promise<void> => {
       COUNT(*) FILTER (WHERE status = 'passed')::int  AS passed
     FROM lab_progress
     WHERE status != 'not_started'
+      AND student_id IN (SELECT id FROM "user")
     GROUP BY lab_id
     ORDER BY attempted DESC, passed DESC
   `);
