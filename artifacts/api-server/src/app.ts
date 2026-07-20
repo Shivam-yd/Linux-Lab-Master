@@ -81,4 +81,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
+// Global error handler — must be the last middleware (4 args tells Express it's an error handler).
+// Catches any unhandled error from async route handlers and returns JSON instead of Express's
+// default HTML 500, so API clients always get a machine-readable response.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  logger.error({ err }, "unhandled error");
+  res.status(500).json({ error: "Internal server error" });
+});
+
 export default app;

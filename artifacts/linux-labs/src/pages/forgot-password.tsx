@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Zap, Loader2, ArrowLeft, CheckCircle2, Clock } from "lucide-react"
+import { Loader2, ArrowLeft, CheckCircle2, Clock } from "lucide-react"
 import { Link } from "wouter"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
