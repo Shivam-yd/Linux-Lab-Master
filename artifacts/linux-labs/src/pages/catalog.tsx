@@ -757,98 +757,68 @@ export default function Catalog() {
           ) : (
             <div className="space-y-6">
               {/* Course Header Card */}
-              <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm overflow-hidden relative">
+              <div className="rounded-xl border border-border bg-card/80 backdrop-blur-sm overflow-hidden relative">
                 <div className={cn("absolute inset-0 opacity-10 bg-gradient-to-r", meta.gradient)} />
-                
-                <div className="relative p-6 sm:p-8">
-                  <div className="flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center">
-                    <div className="flex items-center gap-5">
-                      <div
-                        className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 border"
-                        style={{ background: `${meta.accentHex}15`, borderColor: `${meta.accentHex}30` }}
-                      >
-                        <meta.icon className="w-8 h-8" style={{ color: meta.accentHex }} />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold">{meta.label} Bootcamp</h2>
-                        <p className="text-muted-foreground mt-1 text-sm">{totalPassed} of {totalLabs} modules completed</p>
-                      </div>
-                    </div>
-
-                    {nextLabId && (
-                      <Link href={`/labs/${nextLabId}`}>
-                        <button
-                          className="w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(0,0,0,0.2)] hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
-                          style={{ background: meta.accentHex, color: "#000" }}
-                        >
-                          <PlayCircle className="w-5 h-5" />
-                          {totalPassed > 0 ? "Resume Course" : "Start Course"}
-                        </button>
-                      </Link>
-                    )}
+                <div className="relative px-5 py-4 flex items-center gap-4">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                    style={{ background: `${meta.accentHex}15`, borderColor: `${meta.accentHex}30` }}
+                  >
+                    <meta.icon className="w-5 h-5" style={{ color: meta.accentHex }} />
                   </div>
-
-                  {/* Progress milestones */}
-                  <div className="mt-10 mb-2 px-2">
-                    <div className="relative h-2.5 bg-background border border-border rounded-full flex items-center">
-                      {/* Fill */}
-                      {totalLabs > 0 && (
-                        <div
-                          className="absolute left-0 h-full rounded-full transition-all duration-1000 ease-out"
-                          style={{
-                            width: `${Math.max(2, (totalPassed / totalLabs) * 100)}%`,
-                            background: `linear-gradient(90deg, ${meta.accentHex}40, ${meta.accentHex})`,
-                          }}
-                        />
-                      )}
-                      
-                      {/* Markers */}
-                      {milestones.map(({ level, cumTotal, passed: lvlPassed }) => {
-                        const pos = totalLabs > 0 ? (cumTotal / totalLabs) * 100 : 0
-                        const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                        const isReached = totalPassed >= cumTotal - (levels.find(l => l.level === level)?.total ?? 0)
-                        const isComplete = totalPassed >= cumTotal
-                        
-                        return (
-                          <div
-                            key={level}
-                            className="absolute flex flex-col items-center"
-                            style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
-                          >
-                            <div
-                              className={cn(
-                                "w-6 h-6 rounded-full border-4 bg-card flex items-center justify-center transition-all z-10",
-                                isComplete ? "border-transparent" : "border-background"
-                              )}
-                              style={isComplete ? { background: lm.accentHex } : {}}
-                            >
-                              {isComplete && <CheckCircle2 className="w-4 h-4 text-black" />}
-                            </div>
-                            <span className="absolute top-8 text-xs font-mono font-medium whitespace-nowrap text-muted-foreground">
-                              {lm.name}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold leading-tight">{meta.label} Bootcamp</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{totalPassed} of {totalLabs} modules completed</p>
+                  </div>
+                  {/* Stats pills */}
+                  <div className="hidden sm:flex items-center gap-2 text-xs font-mono">
+                    {[
+                      { count: trackStats.completed, label: "done",     color: "#10b981" },
+                      { count: trackStats.pending,   label: "active",   color: "#0ea5e9" },
+                      { count: trackStats.unlocked,  label: "open",     color: "#8b5cf6" },
+                    ].map(({ count, label, color }) => (
+                      <span key={label} className="px-2 py-1 rounded-md border border-border bg-background/50 text-muted-foreground">
+                        <span className="font-bold" style={{ color }}>{count}</span> {label}
+                      </span>
+                    ))}
+                  </div>
+                  {nextLabId && (
+                    <Link href={`/labs/${nextLabId}`}>
+                      <button
+                        className="shrink-0 px-4 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 active:scale-95 flex items-center gap-1.5"
+                        style={{ background: meta.accentHex, color: "#000" }}
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" />
+                        {totalPassed > 0 ? "Resume" : "Start"}
+                      </button>
+                    </Link>
+                  )}
+                </div>
+                {/* Slim progress bar */}
+                <div className="px-5 pb-4 mt-1">
+                  <div className="relative h-1.5 bg-background border border-border/60 rounded-full">
+                    {totalLabs > 0 && (
+                      <div
+                        className="absolute left-0 h-full rounded-full transition-all duration-1000 ease-out"
+                        style={{
+                          width: `${Math.max(2, (totalPassed / totalLabs) * 100)}%`,
+                          background: `linear-gradient(90deg, ${meta.accentHex}60, ${meta.accentHex})`,
+                        }}
+                      />
+                    )}
+                    {milestones.map(({ level, cumTotal }) => {
+                      const pos = totalLabs > 0 ? (cumTotal / totalLabs) * 100 : 0
+                      const lm = LEVEL_META[level] ?? LEVEL_META[1]
+                      const isComplete = totalPassed >= cumTotal
+                      return (
+                        <div key={level} className="absolute flex flex-col items-center -translate-x-1/2 -top-0.5" style={{ left: `${pos}%` }}>
+                          <div className="w-2.5 h-2.5 rounded-full border-2 border-background transition-all" style={{ background: isComplete ? lm.accentHex : "#334155" }} />
+                          <span className="absolute top-4 text-[10px] font-mono text-muted-foreground/60 whitespace-nowrap">{lm.name}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { count: trackStats.completed, label: "Verified", color: "#10b981", Icon: CheckCircle2 },
-                  { count: trackStats.pending,   label: "In Progress", color: "#0ea5e9", Icon: Hourglass },
-                  { count: trackStats.unlocked,  label: "Available", color: "#8b5cf6", Icon: Unlock },
-                  { count: trackStats.locked,    label: "Locked", color: "#64748b", Icon: Lock },
-                ].map(({ count, label, color, Icon }) => (
-                  <div key={label} className="rounded-xl bg-card border border-border p-5 flex flex-col items-center justify-center text-center">
-                    <Icon className="w-6 h-6 mb-3" style={{ color }} />
-                    <span className="text-3xl font-black font-mono leading-none mb-1">{count}</span>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-                  </div>
-                ))}
               </div>
               
               {/* List of labs in course view */}
