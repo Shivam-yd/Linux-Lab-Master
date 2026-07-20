@@ -3,6 +3,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:20-slim AS builder
 
+# python3 + build-essential give node-gyp what it needs to compile
+# native addons (e.g. ssh2's optional crypto binding).
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN npm install -g pnpm@10.26.1
 
 WORKDIR /app
