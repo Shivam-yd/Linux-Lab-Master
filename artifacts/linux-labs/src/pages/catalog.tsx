@@ -6,7 +6,7 @@ import { useSession } from "@/lib/auth-client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, User, ChevronLeft } from "lucide-react"
+import { Info, User, ChevronLeft, ShieldCheck } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AccountDropdown } from "@/components/account-dropdown"
 import {
@@ -488,10 +488,21 @@ export default function Catalog() {
 
           {/* Admin banner */}
           {adminCheck?.isAdmin && (
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm">
-              <span className="text-amber-400 font-medium">You're signed in as an admin.</span>
-              <Link href={`${basePath}/admin`} className="text-amber-300 hover:text-amber-100 font-semibold underline underline-offset-2 transition-colors shrink-0">
-                Go to Admin Panel →
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-card/60 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm font-semibold text-foreground">Admin</span>
+                  <span className="text-xs text-muted-foreground">You have elevated access to this platform.</span>
+                </div>
+              </div>
+              <Link
+                href={`${basePath}/admin`}
+                className="text-xs font-semibold text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-lg px-3 py-1.5 transition-colors shrink-0"
+              >
+                Admin Panel →
               </Link>
             </div>
           )}
