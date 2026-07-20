@@ -29,6 +29,13 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction): Pr
 }
 
 const router = Router();
+
+/** GET /admin/check — returns { isAdmin } without erroring for non-admins */
+router.get("/check", async (req, res): Promise<void> => {
+  const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
+  res.json({ isAdmin: !!(session?.user?.email && ADMIN_EMAILS.includes(session.user.email)) });
+});
+
 router.use(requireAdmin);
 
 /**

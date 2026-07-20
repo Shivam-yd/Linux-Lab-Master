@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation, useSearch } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
@@ -276,6 +277,12 @@ export default function Catalog() {
     return trackLabs.find(l => progressByLabId[l.id]?.status !== "passed")?.id ?? trackLabs[0]?.id ?? null
   }, [labs, resolvedTrack, progressByLabId])
 
+  const { data: adminCheck } = useQuery({
+    queryKey: ["admin-check"],
+    queryFn: () => fetch(`${basePath}/api/admin/check`).then(r => r.json()) as Promise<{ isAdmin: boolean }>,
+    staleTime: Infinity,
+  })
+
   const [expanded, setExpanded] = useState(true)
 
   // Sidebar collapsed state — persisted across page loads
@@ -478,7 +485,17 @@ export default function Catalog() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
         
         <div className="p-8 max-w-6xl mx-auto space-y-8 relative z-10">
-          
+
+          {/* Admin banner */}
+          {adminCheck?.isAdmin && (
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm">
+              <span className="text-amber-400 font-medium">You're signed in as an admin.</span>
+              <Link href={`${basePath}/admin`} className="text-amber-300 hover:text-amber-100 font-semibold underline underline-offset-2 transition-colors shrink-0">
+                Go to Admin Panel →
+              </Link>
+            </div>
+          )}
+
           {/* Header Area */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border/40">
             <div>
