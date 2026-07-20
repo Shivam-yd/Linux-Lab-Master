@@ -7,6 +7,7 @@ import {
   registrationSettingsTable,
   registrationInvitesTable,
   registrationRequestsTable,
+  userTable,
 } from "@workspace/db/schema";
 import { auth } from "../lib/auth";
 import { stopSession } from "../lib/docker/manager";
@@ -49,6 +50,7 @@ router.get("/leaderboard", async (_req, res): Promise<void> => {
       s.id,
       u.name,
       u.email,
+      u.banned,
       s.created_at,
       COUNT(lp.id) FILTER (WHERE lp.status = 'passed')::int       AS passed,
       COUNT(lp.id) FILTER (WHERE lp.status != 'not_started')::int  AS attempted,
@@ -75,7 +77,7 @@ router.get("/leaderboard", async (_req, res): Promise<void> => {
     FROM students s
     INNER JOIN "user" u ON u.id = s.id
     LEFT JOIN lab_progress lp ON lp.student_id = s.id
-    GROUP BY s.id, u.name, u.email, s.created_at
+    GROUP BY s.id, u.name, u.email, u.banned, s.created_at
     ORDER BY passed DESC, attempted DESC, s.created_at DESC
   `);
   res.json(result.rows);
@@ -157,6 +159,52 @@ router.delete("/users/:userId", async (req, res): Promise<void> => {
   });
 
   res.status(204).send();
+});
+
+/**
+ * POST /admin/users/:userId/suspend
+ * Soft-disable an account: sets banned=true, kills active lab containers,
+ * and deletes all auth sessions (forces immediate sign-out).
+ */
+router.post("/users/:userId/suspend", async (req, res): Promise<void> => {
+  const { userId } = req.params;
+
+  const targetUser = await db.execute(sql`SELECT email FROM "user" WHERE id = ${userId} LIMIT 1`);
+  const targetEmail = (targetUser.rows[0] as Record<string, unknown> | undefined)?.email as string | undefined;
+  if (targetEmail && ADMIN_EMAILS.includes(targetEmail)) {
+    res.status(403).json({ error: "Cannot suspend an admin account" });
+    return;
+  }
+
+  // Kill live containers (non-fatal).
+  try {
+    const activeSessions = await db.execute(sql`
+      SELECT lab_id FROM lab_sessions
+      WHERE student_id = ${userId} AND status NOT IN ('stopped', 'error')
+    `);
+    await Promise.allSettled(
+      activeSessions.rows.map((row: Record<string, unknown>) =>
+        stopSession(userId, row.lab_id as string)
+      )
+    );
+  } catch (err) {
+    logger.error({ err }, "admin suspend: failed to stop sessions");
+  }
+
+  await db.execute(sql`UPDATE "user" SET banned = true  WHERE id = ${userId}`);
+  await db.execute(sql`DELETE FROM session WHERE user_id = ${userId}`);
+
+  res.json({ ok: true });
+});
+
+/**
+ * POST /admin/users/:userId/unsuspend
+ * Re-enable a suspended account.
+ */
+router.post("/users/:userId/unsuspend", async (req, res): Promise<void> => {
+  const { userId } = req.params;
+  await db.execute(sql`UPDATE "user" SET banned = false WHERE id = ${userId}`);
+  res.json({ ok: true });
 });
 
 /**

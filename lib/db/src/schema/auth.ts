@@ -8,6 +8,7 @@ export const userTable = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
+  banned: boolean("banned").notNull().default(false),
 });
 
 export const sessionTable = pgTable("session", {

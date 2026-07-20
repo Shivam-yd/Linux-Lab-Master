@@ -43,6 +43,7 @@ type StudentRow = {
   id: string
   name: string | null
   email: string | null
+  banned: boolean
   passed: number
   attempted: number
   last_active: string | null
@@ -300,6 +301,27 @@ export default function AdminPage() {
     onError: (err: Error) => toast({ title: "Cannot delete account", description: err.message, variant: "destructive" }),
   })
 
+  const suspendAccount = useMutation({
+    mutationFn: async (studentId: string) => {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(studentId)}/suspend`, { method: "POST" })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? "Failed to suspend account")
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
+    onError: (err: Error) => toast({ title: "Cannot suspend account", description: err.message, variant: "destructive" }),
+  })
+
+  const unsuspendAccount = useMutation({
+    mutationFn: async (studentId: string) => {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(studentId)}/unsuspend`, { method: "POST" })
+      if (!res.ok) throw new Error("Failed to unsuspend account")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
+    onError: (err: Error) => toast({ title: "Cannot unsuspend account", description: err.message, variant: "destructive" }),
+  })
+
   const labMeta = useMemo(() => {
     if (!labs) return {} as Record<string, { title: string; track: string }>
     return Object.fromEntries(labs.map((l: any) => [l.id, { title: l.title, track: l.track }]))
@@ -537,7 +559,14 @@ export default function AdminPage() {
                                 {RankIcon ? <RankIcon className="w-4 h-4 mx-auto" /> : `${rank}`}
                               </div>
                               <div className="min-w-0 text-left">
-                                <p className="font-semibold text-sm leading-tight truncate">{displayName(student)}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold text-sm leading-tight truncate">{displayName(student)}</p>
+                                  {student.banned && (
+                                    <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border border-amber-500/30 text-amber-400 bg-amber-500/10">
+                                      Suspended
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground truncate mt-0.5">
                                   {displaySub(student) ?? `Active ${relativeTime(student.last_active)}`}
                                 </p>
@@ -1198,6 +1227,27 @@ export default function AdminPage() {
                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                   Reset
                 </button>
+                {selectedStudent.banned ? (
+                  <button
+                    disabled={unsuspendAccount.isPending && unsuspendAccount.variables === selectedStudent.id}
+                    onClick={() => unsuspendAccount.mutate(selectedStudent.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2.5 rounded-xl border border-green-500/30 text-green-400 hover:bg-green-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
+                  >
+                    {unsuspendAccount.isPending && unsuspendAccount.variables === selectedStudent.id
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
+                    Unsuspend
+                  </button>
+                ) : (
+                  <button
+                    disabled={suspendAccount.isPending && suspendAccount.variables === selectedStudent.id}
+                    onClick={() => suspendAccount.mutate(selectedStudent.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2.5 rounded-xl border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
+                  >
+                    {suspendAccount.isPending && suspendAccount.variables === selectedStudent.id
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
+                    Suspend
+                  </button>
+                )}
                 <button
                   disabled={deleteAccount.isPending && deleteAccount.variables === selectedStudent.id}
                   onClick={() => { setConfirmDeleteAccount(selectedStudent); setDeleteAccountEmail("") }}
