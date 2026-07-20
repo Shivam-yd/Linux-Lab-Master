@@ -8,6 +8,8 @@ import { useListLabs } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
+
 const TRACKS = [
   { label: "Linux",     icon: Terminal,  color: "#22d3ee", iconClass: "group-hover:[animation:flicker_0.6s_ease-in-out_infinite]" },
   { label: "Terraform", icon: Layers,    color: "#c084fc", iconClass: "group-hover:animate-bounce" },

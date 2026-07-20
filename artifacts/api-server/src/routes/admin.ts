@@ -48,12 +48,12 @@ router.get("/leaderboard", async (_req, res): Promise<void> => {
       MAX(lp.last_attempt_at)                                       AS last_active,
       COALESCE((
         SELECT SUM(EXTRACT(EPOCH FROM (
-          CASE WHEN ls.status = 'stopped' THEN ls.updated_at ELSE NOW() END
+          CASE WHEN ls.status = 'running' THEN NOW() ELSE ls.updated_at END
           - ls.created_at
         )))::int
         FROM lab_sessions ls
         WHERE ls.student_id = s.id
-          AND ls.created_at >= CURRENT_DATE
+          AND ls.status IN ('running', 'stopped')
       ), 0)                                                         AS total_time_seconds,
       COALESCE(
         json_agg(
