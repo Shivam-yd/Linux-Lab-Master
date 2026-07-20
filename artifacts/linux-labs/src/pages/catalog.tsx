@@ -330,7 +330,11 @@ export default function Catalog() {
   // Default expand first card — must be useEffect, not useMemo (no side effects in memo)
   useEffect(() => {
     if (filteredCards.length > 0 && Object.keys(expandedCards).length === 0) {
-      setExpandedCards({ [`${filteredCards[0].track}-${filteredCards[0].level}`]: true })
+      const defaults: Record<string, boolean> = {
+        [`${filteredCards[0].track}-${filteredCards[0].level}`]: true,
+      }
+      if (levels.length > 0) defaults[`course-${levels[0].level}`] = true
+      setExpandedCards(defaults)
     }
   }, [filteredCards]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -855,15 +859,28 @@ export default function Catalog() {
                 
                 {levels.map(({ level, labs: lvlLabs, locked }) => {
                   const lm = LEVEL_META[level] ?? LEVEL_META[1]
-                  
+                  const courseKey = `course-${level}`
+                  const isCourseOpen = !!expandedCards[courseKey]
+                  const lvlPassed = lvlLabs.filter(l => progressByLabId[l.id]?.status === "passed").length
+
                   return (
-                    <div key={level} className="space-y-3">
-                      <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2 pt-2">
-                        <div className="w-2 h-2 rounded-full" style={{ background: lm.accentHex }} />
-                        LEVEL {level}: {lm.name.toUpperCase()}
-                      </h4>
-                      
-                      <div className="grid gap-3">
+                    <div key={level} className="rounded-xl border border-border/50 overflow-hidden">
+                      <button
+                        onClick={() => toggleCard(courseKey)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors text-left"
+                      >
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: lm.accentHex }} />
+                        <span className="text-sm font-bold text-muted-foreground flex-1">
+                          LEVEL {level}: {lm.name.toUpperCase()}
+                        </span>
+                        <span className="text-xs font-mono text-muted-foreground/50 mr-2">
+                          {lvlPassed}/{lvlLabs.length}
+                        </span>
+                        <ChevronDown className={cn("w-4 h-4 text-muted-foreground/50 transition-transform duration-200", isCourseOpen && "rotate-180")} />
+                      </button>
+
+                      {isCourseOpen && (
+                      <div className="grid gap-3 border-t border-border/40 bg-background/30 p-3">
                         {lvlLabs.map((lab, idx) => {
                           const prog = progressByLabId[lab.id]
                           const isPassed = prog?.status === "passed"
@@ -898,6 +915,7 @@ export default function Catalog() {
                           )
                         })}
                       </div>
+                      )}
                     </div>
                   )
                 })}
