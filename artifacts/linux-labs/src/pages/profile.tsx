@@ -336,7 +336,10 @@ export default function ProfilePage() {
           <Button
             variant="outline"
             className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = basePath || "/" } } })}
+            onClick={() => {
+              void fetch(`${basePath}/api/auth/sign-out`, { method: "POST", credentials: "include", keepalive: true })
+              window.location.href = basePath || "/"
+            }}
           >
             Sign out
           </Button>
