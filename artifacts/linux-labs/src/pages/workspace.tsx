@@ -117,7 +117,7 @@ export default function Workspace() {
     }
     const timer = setTimeout(() => setCloseCountdown(c => (c ?? 1) - 1), 1000)
     return () => clearTimeout(timer)
-  }, [closeCountdown, setLocation])
+  }, [closeCountdown, setLocation, lab?.track])
 
   // Leave-confirm modal state (replaces window.confirm for back/nav guards)
   const [leaveConfirm, setLeaveConfirm] = useState<{ onConfirm: () => void; onCancel?: () => void } | null>(null)
@@ -140,11 +140,12 @@ export default function Workspace() {
     setStepsRevealed(0)
     setVerifyResult(null)
     setCloseCountdown(null)
+    setActiveTerminal("")             // force terminal re-selection for new lab
   }, [labId])
 
   // Derived state
   const isRunning = session?.status === 'running'
-  const isStarting = session?.status === 'starting' || startSession.isPending || resetSession.isPending
+  const isStarting = sessionLoading || session?.status === 'starting' || startSession.isPending || resetSession.isPending
   const isStopped = session?.status === 'stopped' || !session || session.status === 'none'
   const sessionError = session?.status === 'error'
 
@@ -229,6 +230,7 @@ export default function Workspace() {
   
   const handleVerify = () => {
     setVerifyError(null)
+    setCloseCountdown(null)   // cancel any running auto-close from a prior verify
     verifyLab.mutate({ labId }, {
       onSuccess: (res) => {
         setVerifyResult(res)

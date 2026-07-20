@@ -76,13 +76,13 @@ interface SyncStatus {
 }
 
 async function fetchSyncStatus(): Promise<SyncStatus> {
-  const res = await fetch(`${import.meta.env.BASE_URL}api/labs/sync/status`, { credentials: "include" })
+  const res = await fetch("/api/labs/sync/status", { credentials: "include" })
   if (!res.ok) throw new Error("Failed to fetch sync status")
   return res.json()
 }
 
 async function triggerSync(): Promise<{ status: string; labsAdded: number; labsUpdated: number; totalRemote: number; errorMessage?: string }> {
-  const res = await fetch(`${import.meta.env.BASE_URL}api/labs/sync`, { method: "POST", credentials: "include" })
+  const res = await fetch("/api/labs/sync", { method: "POST", credentials: "include" })
   const body = await res.json().catch(() => ({}))
   if (!res.ok || body.status === "error") {
     throw new Error(body.errorMessage ?? body.error ?? "Sync failed")
