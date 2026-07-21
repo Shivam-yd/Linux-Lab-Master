@@ -128,7 +128,7 @@ verifyScript: |
 
   if [ "$cherry_pick_in_progress" -eq 1 ]; then
     echo "CHECK:working_tree_clean:FAIL:Cherry-pick is still in progress — resolve any conflicts then run: git cherry-pick --continue"
-  elif [ "$fix_committed" -eq 0 ]; then
+  elif [ "$fix_committed" -eq 0 ] || [ "$cherry_pick_done" -eq 0 ]; then
     echo "CHECK:working_tree_clean:FAIL:Complete the cherry-pick first: git log --oneline feature  then  git cherry-pick <hash>"
   elif [ -z "$porcelain" ]; then
     echo "CHECK:working_tree_clean:PASS:Working tree is clean"
