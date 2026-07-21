@@ -3,10 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { toNodeHandler } from "better-auth/node";
-import { eq } from "drizzle-orm";
 import { auth } from "./lib/auth";
-import { db } from "@workspace/db";
-import { userTable } from "@workspace/db/schema";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -43,33 +40,6 @@ if (!process.env.SESSION_SECRET) {
 // CORS must be registered FIRST so every response (including auth) carries
 // the correct Access-Control-Allow-* headers and Set-Cookie is honoured.
 app.use(cors({ credentials: true, origin: true }));
-
-// Ban pre-check: intercept email sign-in before Better Auth so we can return
-// a clean 403 instead of letting the session hook produce a noisy 500.
-app.post("/api/auth/sign-in/email", (req: Request, res: Response, next: NextFunction) => {
-  const chunks: Buffer[] = [];
-  req.on("data", (chunk: Buffer) => chunks.push(chunk));
-  req.on("end", async () => {
-    const rawBody = Buffer.concat(chunks);
-    try {
-      const { email } = JSON.parse(rawBody.toString()) as { email?: string };
-      if (email) {
-        const rows = await db
-          .select({ banned: userTable.banned })
-          .from(userTable)
-          .where(eq(userTable.email, email.toLowerCase()))
-          .limit(1);
-        if (rows[0]?.banned) {
-          res.status(403).json({ error: "Your account has been suspended. Contact your instructor." });
-          return;
-        }
-      }
-    } catch { /* ignore parse errors — let Better Auth handle the malformed request */ }
-    // Push body back so Better Auth can consume it normally.
-    req.unshift(rawBody);
-    next();
-  });
-});
 
 // Better Auth handles /api/auth/* — must be registered before body parsers
 // so it can consume the raw request body itself.

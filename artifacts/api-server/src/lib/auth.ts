@@ -76,6 +76,21 @@ export const auth = betterAuth({
     },
   }),
   databaseHooks: {
+    session: {
+      create: {
+        before: async (session: { userId: string }) => {
+          // Reject sign-in for banned users before the session is written.
+          const rows = await db
+            .select({ banned: userTable.banned })
+            .from(userTable)
+            .where(eq(userTable.id, session.userId))
+            .limit(1);
+          if (rows[0]?.banned) {
+            throw new Error("Your account has been suspended. Contact your instructor.");
+          }
+        },
+      },
+    },
     user: {
       create: {
         before: async (user: { email?: string }) => {
