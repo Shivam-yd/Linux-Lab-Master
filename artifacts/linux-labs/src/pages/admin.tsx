@@ -233,7 +233,10 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/registration/invites/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to remove invite")
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
+    },
   })
 
   const cleanupExpired = useMutation({
@@ -257,6 +260,7 @@ export default function AdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
     },
   })
 
@@ -268,6 +272,7 @@ export default function AdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "audit"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
     },
   })
 
@@ -294,7 +299,10 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/sessions/${encodeURIComponent(studentId)}/${encodeURIComponent(labId)}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to kill session")
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
+    },
   })
 
   const killIdle = useMutation({
@@ -305,6 +313,7 @@ export default function AdminPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
       toast({ title: `Killed ${data.killed} idle session${data.killed !== 1 ? "s" : ""}` })
     },
   })
