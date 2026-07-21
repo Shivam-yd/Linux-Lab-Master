@@ -1,0 +1,144 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Cherry-Pick — Apply a Single Commit
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-cherry-pick"
+title: "Cherry-Pick: Apply a Single Commit"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Use git cherry-pick to pull one specific bug-fix commit from a feature branch onto main — without merging the whole branch."
+estimatedMinutes: 20
+order: 900
+
+objectives:
+  - "Understand when cherry-pick is the right tool over a full merge"
+  - "Identify a specific commit by its hash using git log"
+  - "Apply a single commit from another branch with git cherry-pick"
+  - "Confirm only the cherry-picked change landed on main"
+
+instructions: |
+  ## Cherry-Pick: Apply a Single Commit
+
+  **Scenario**
+  Your team has a `feature` branch with three commits in progress — two
+  new features and a critical bug fix tucked in the middle. The features
+  aren't ready to ship, but the bug fix is urgently needed on `main` right
+  now. `git cherry-pick` lets you copy that one specific commit onto `main`
+  without merging anything else.
+
+  **Your task:** find the bug-fix commit on `feature` and cherry-pick it
+  onto `main`.
+
+  **What You'll Deliver**
+  - The bug-fix commit applied to `main` (`app.sh` has `logpath=/var/log/app.log`)
+  - `feature_a.txt` and `feature_b.txt` absent from `main` (no full merge)
+  - Clean working tree
+
+  ## Steps
+
+  1. `cd /root/project` (you start on `main`)
+  2. Inspect the feature branch: `git log --oneline feature`
+  3. Find the commit with message **"fix: correct log path to /var/log/app.log"** — copy its hash
+  4. Cherry-pick it onto main: `git cherry-pick <hash>`
+  5. Confirm the fix landed: `cat app.sh` — should show `logpath=/var/log/app.log`
+  6. Confirm no feature files came along: `ls` — no `feature_a.txt` or `feature_b.txt`
+
+tasks:
+  - id: "cherry_pick_applied"
+    description: "The bug-fix commit is on main — app.sh contains the corrected log path"
+  - id: "only_fix_cherry_picked"
+    description: "main has only the cherry-picked fix — feature_a.txt and feature_b.txt are not present"
+  - id: "working_tree_clean"
+    description: "git status shows a clean working tree with no cherry-pick in progress"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q -b main
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+  printf 'version=1.0\nlogpath=/tmp/app.log\n' > app.sh
+  git add app.sh
+  git commit -q -m "initial: add app.sh"
+  git switch -q -c feature
+  echo "featureA=true" > feature_a.txt
+  git add feature_a.txt
+  git commit -q -m "feat: add feature A"
+  printf 'version=1.0\nlogpath=/var/log/app.log\n' > app.sh
+  git commit -qam "fix: correct log path to /var/log/app.log"
+  echo "featureB=true" > feature_b.txt
+  git add feature_b.txt
+  git commit -q -m "feat: add feature B"
+  git switch -q main
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # ── Shared state ────────────────────────────────────────────────────────────
+
+  # fix_committed: read from the index so manually editing the file without
+  # committing does not count as a pass.
+  fix_committed=0
+  git show HEAD:app.sh 2>/dev/null | grep -q "logpath=/var/log/app.log" && fix_committed=1
+
+  # cherry_pick_done: git reflog records "cherry-pick: ..." on a successful
+  # cherry-pick, distinguishing it from a manual edit-and-commit.
+  cherry_pick_done=0
+  git reflog 2>/dev/null | grep -q "cherry-pick" && cherry_pick_done=1
+
+  # ── CHECK: cherry_pick_applied ──────────────────────────────────────────────
+  if [ "$fix_committed" -eq 1 ] && [ "$cherry_pick_done" -eq 1 ]; then
+    echo "CHECK:cherry_pick_applied:PASS:Bug-fix commit is on main and git cherry-pick was used"
+  elif [ "$fix_committed" -eq 1 ] && [ "$cherry_pick_done" -eq 0 ]; then
+    echo "CHECK:cherry_pick_applied:FAIL:app.sh has the fix but no cherry-pick in history — undo with: git reset HEAD~1  then use: git cherry-pick <hash>"
+  else
+    echo "CHECK:cherry_pick_applied:FAIL:app.sh still has the broken path — find the commit: git log --oneline feature  then run: git cherry-pick <hash>"
+  fi
+
+  # ── CHECK: only_fix_cherry_picked ───────────────────────────────────────────
+  # git ls-files returns the filename if tracked, empty string if not.
+  # If the student ran git merge feature instead, both files would be present.
+  feature_a_tracked=$(git ls-files feature_a.txt 2>/dev/null)
+  feature_b_tracked=$(git ls-files feature_b.txt 2>/dev/null)
+
+  if [ -z "$feature_a_tracked" ] && [ -z "$feature_b_tracked" ] && [ "$fix_committed" -eq 1 ]; then
+    echo "CHECK:only_fix_cherry_picked:PASS:Only the bug-fix commit landed on main — feature files are absent"
+  elif [ -n "$feature_a_tracked" ] || [ -n "$feature_b_tracked" ]; then
+    echo "CHECK:only_fix_cherry_picked:FAIL:feature_a.txt or feature_b.txt are on main — a full merge was used instead of cherry-pick. Reset with: git reset --hard HEAD~1  (repeat if needed), then: git cherry-pick <hash>"
+  else
+    echo "CHECK:only_fix_cherry_picked:FAIL:Cherry-pick the fix first: git log --oneline feature  then  git cherry-pick <hash>"
+  fi
+
+  # ── CHECK: working_tree_clean ───────────────────────────────────────────────
+  # Guard on fix_committed so a pristine fresh container (clean tree, no work
+  # done yet) cannot false-positive this check.
+  cherry_pick_in_progress=0
+  [ -f .git/CHERRY_PICK_HEAD ] && cherry_pick_in_progress=1
+  porcelain=$(git status --porcelain 2>/dev/null)
+
+  if [ "$cherry_pick_in_progress" -eq 1 ]; then
+    echo "CHECK:working_tree_clean:FAIL:Cherry-pick is still in progress — resolve any conflicts then run: git cherry-pick --continue"
+  elif [ "$fix_committed" -eq 0 ]; then
+    echo "CHECK:working_tree_clean:FAIL:Complete the cherry-pick first: git log --oneline feature  then  git cherry-pick <hash>"
+  elif [ -z "$porcelain" ]; then
+    echo "CHECK:working_tree_clean:PASS:Working tree is clean"
+  else
+    echo "CHECK:working_tree_clean:FAIL:Working tree has uncommitted changes — run: git status"
+  fi
+
+hints:
+  - "git log --oneline feature lists all commits on the feature branch — look for the one starting with 'fix:'."
+  - "git cherry-pick <hash> copies that commit's changes onto your current branch as a new commit. You only need the first 7 characters of the hash."
+  - "Cherry-pick is the right tool when you want one specific commit. git merge would bring over all three commits from feature."
+  - "If cherry-pick stops with a conflict, resolve the file, run git add <file>, then git cherry-pick --continue."
+  - "After cherry-pick, git log --oneline should show exactly two commits on main: the initial commit and the cherry-picked fix."
