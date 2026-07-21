@@ -110,10 +110,6 @@ verifyScript: |
   feature_on_main=0
   [ "$merge_base" = "$main_tip" ] && feature_on_main=1
 
-  # feature_commit_count: commits on feature not yet on main.
-  # After rebase (before fast-forward) this is 2; after fast-forward it's 0.
-  feature_ahead=$(git log feature ^main --oneline 2>/dev/null | wc -l | tr -d ' \t')
-
   # main_has_feature: main contains the feature commits (fast-forward done).
   # app.sh committed on feature must appear in main's tree.
   main_has_app=0

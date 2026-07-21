@@ -111,7 +111,7 @@ verifyScript: |
   feature_a_tracked=$(git ls-files feature_a.txt 2>/dev/null)
   feature_b_tracked=$(git ls-files feature_b.txt 2>/dev/null)
 
-  if [ -z "$feature_a_tracked" ] && [ -z "$feature_b_tracked" ] && [ "$fix_committed" -eq 1 ]; then
+  if [ -z "$feature_a_tracked" ] && [ -z "$feature_b_tracked" ] && [ "$fix_committed" -eq 1 ] && [ "$cherry_pick_done" -eq 1 ]; then
     echo "CHECK:only_fix_cherry_picked:PASS:Only the bug-fix commit landed on main — feature files are absent"
   elif [ -n "$feature_a_tracked" ] || [ -n "$feature_b_tracked" ]; then
     echo "CHECK:only_fix_cherry_picked:FAIL:feature_a.txt or feature_b.txt are on main — a full merge was used instead of cherry-pick. Reset with: git reset --hard HEAD~1  (repeat if needed), then: git cherry-pick <hash>"
