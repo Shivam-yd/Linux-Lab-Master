@@ -124,6 +124,7 @@ export default function AdminPage() {
   const [confirmDenyRequest, setConfirmDenyRequest] = useState<{ id: number; name: string; email: string } | null>(null)
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
+  const [newInviteExpiry, setNewInviteExpiry] = useState("")
   const [leaderboardSearch, setLeaderboardSearch] = useState("")
   const { toast } = useToast()
 
@@ -159,7 +160,7 @@ export default function AdminPage() {
   })
 
   type RegSettings = { id: number; mode: string }
-  type RegInvite = { id: number; email: string; createdAt: string; usedAt: string | null }
+  type RegInvite = { id: number; email: string; createdAt: string; usedAt: string | null; expiresAt: string | null }
   type RegRequest = { id: number; name: string; email: string; status: string; createdAt: string }
 
   const regSettings = useQuery<RegSettings>({
@@ -192,6 +193,14 @@ export default function AdminPage() {
     enabled: tab === "registration",
   })
 
+  type SummaryStats = { active_sessions: string; pending_requests: string; open_invites: string }
+  const summary = useQuery<SummaryStats>({
+    queryKey: ["admin", "summary"],
+    queryFn: () => fetchAdmin("/api/admin/summary"),
+    retry: false,
+    refetchInterval: 30_000,
+  })
+
   const setRegMode = useMutation({
     mutationFn: async (mode: string) => {
       const res = await fetch("/api/admin/registration", {
@@ -204,16 +213,18 @@ export default function AdminPage() {
   })
 
   const addInvite = useMutation({
-    mutationFn: async (email: string) => {
+    mutationFn: async ({ email, expiresAt }: { email: string; expiresAt?: string }) => {
       const res = await fetch("/api/admin/registration/invites", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, ...(expiresAt ? { expiresAt } : {}) }),
       })
       if (!res.ok) throw new Error("Failed to add invite")
     },
     onSuccess: () => {
       setNewInviteEmail("")
+      setNewInviteExpiry("")
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
     },
   })
 
@@ -223,6 +234,19 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Failed to remove invite")
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] }),
+  })
+
+  const cleanupExpired = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/registration/invites/expired", { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to clean up")
+      return res.json() as Promise<{ deleted: number }>
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
+      toast({ title: `Removed ${data.deleted} expired invite${data.deleted !== 1 ? "s" : ""}` })
+    },
   })
 
   const approveRequest = useMutation({
@@ -444,12 +468,13 @@ export default function AdminPage() {
           <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
             {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               {[
-                { label: "Total Students", value: totalStudents, sub: "registered accounts",  icon: Users,       color: "text-cyan-400",  bg: "bg-cyan-400/10",  border: "border-cyan-400/20"  },
-                { label: "Labs Completed", value: totalPassed,   sub: "across all students",  icon: CheckCircle2,color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20" },
-                { label: "Active Today",   value: activeToday,   sub: "in the last 24 hours", icon: TrendingUp,  color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20" },
-              ].map(({ label, value, sub, icon: Icon, color, bg, border }) => (
+                { label: "Active Today",     value: activeToday,                                        sub: "in the last 24 hours",  icon: TrendingUp, color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/20",  loading: leaderboard.isLoading },
+                { label: "Active Sessions",  value: Number(summary.data?.active_sessions  ?? 0),        sub: "live lab containers",   icon: Activity,   color: "text-green-400",  bg: "bg-green-400/10",  border: "border-green-400/20",  loading: summary.isLoading },
+                { label: "Pending Requests", value: Number(summary.data?.pending_requests ?? 0),        sub: "awaiting review",       icon: UserPlus,   color: "text-violet-400", bg: "bg-violet-400/10", border: "border-violet-400/20", loading: summary.isLoading },
+                { label: "Open Invites",     value: Number(summary.data?.open_invites     ?? 0),        sub: "unused & not expired",  icon: MailPlus,   color: "text-cyan-400",   bg: "bg-cyan-400/10",   border: "border-cyan-400/20",   loading: summary.isLoading },
+              ].map(({ label, value, sub, icon: Icon, color, bg, border, loading }) => (
                 <div key={label} className="rounded-2xl border border-border/60 bg-card p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
@@ -458,8 +483,8 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div>
-                    <p className={cn("text-3xl font-black font-mono leading-none", leaderboard.isLoading ? "text-muted-foreground/30" : "text-foreground")}>
-                      {leaderboard.isLoading ? "—" : value}
+                    <p className={cn("text-3xl font-black font-mono leading-none", loading ? "text-muted-foreground/30" : "text-foreground")}>
+                      {loading ? "—" : value}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">{sub}</p>
                   </div>
@@ -925,27 +950,52 @@ export default function AdminPage() {
                         {regInvites.data!.length}
                       </span>
                     )}
+                    {(() => {
+                      const expiredCount = regInvites.data?.filter(
+                        inv => inv.expiresAt && !inv.usedAt && new Date(inv.expiresAt) < new Date()
+                      ).length ?? 0
+                      return expiredCount > 0 ? (
+                        <button
+                          onClick={() => cleanupExpired.mutate()}
+                          disabled={cleanupExpired.isPending}
+                          className="ml-auto flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border border-red-500/30 text-red-400 bg-red-500/8 hover:bg-red-500/15 disabled:opacity-40 transition-colors font-semibold"
+                        >
+                          {cleanupExpired.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          Clean up {expiredCount} expired
+                        </button>
+                      ) : null
+                    })()}
                   </div>
 
                   <form
-                    onSubmit={e => { e.preventDefault(); if (newInviteEmail) addInvite.mutate(newInviteEmail) }}
-                    className="flex gap-2"
+                    onSubmit={e => { e.preventDefault(); if (newInviteEmail) addInvite.mutate({ email: newInviteEmail, expiresAt: newInviteExpiry || undefined }) }}
+                    className="space-y-2"
                   >
-                    <input
-                      type="email"
-                      placeholder="student@example.com"
-                      value={newInviteEmail}
-                      onChange={e => setNewInviteEmail(e.target.value)}
-                      className="flex-1 bg-background/60 border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
-                    />
-                    <button
-                      type="submit"
-                      disabled={addInvite.isPending || !newInviteEmail}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {addInvite.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MailPlus className="w-3.5 h-3.5" />}
-                      Add
-                    </button>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        placeholder="student@example.com"
+                        value={newInviteEmail}
+                        onChange={e => setNewInviteEmail(e.target.value)}
+                        className="flex-1 bg-background/60 border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
+                      />
+                      <input
+                        type="date"
+                        value={newInviteExpiry}
+                        onChange={e => setNewInviteExpiry(e.target.value)}
+                        min={new Date().toISOString().slice(0, 10)}
+                        title="Expiry date (optional)"
+                        className="w-36 bg-background/60 border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 text-muted-foreground"
+                      />
+                      <button
+                        type="submit"
+                        disabled={addInvite.isPending || !newInviteEmail}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {addInvite.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MailPlus className="w-3.5 h-3.5" />}
+                        Add
+                      </button>
+                    </div>
                   </form>
 
                   {regInvites.isLoading && (
@@ -956,34 +1006,44 @@ export default function AdminPage() {
                   )}
                   {regInvites.data && regInvites.data.length > 0 && (
                     <div className="space-y-1">
-                      {regInvites.data.map((inv: { id: number; email: string; usedAt: string | null }) => (
-                        <div key={inv.id} className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg group hover:bg-muted/20 transition-colors",
-                          inv.usedAt && "opacity-50"
-                        )}>
-                          <div className={cn(
-                            "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
-                            inv.usedAt ? "bg-muted/30 text-muted-foreground" : "bg-primary/15 text-primary"
+                      {regInvites.data.map((inv: RegInvite) => {
+                        const isExpired = !inv.usedAt && !!inv.expiresAt && new Date(inv.expiresAt) < new Date()
+                        return (
+                          <div key={inv.id} className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg group hover:bg-muted/20 transition-colors",
+                            (inv.usedAt || isExpired) && "opacity-50"
                           )}>
-                            {inv.email.charAt(0).toUpperCase()}
+                            <div className={cn(
+                              "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
+                              inv.usedAt ? "bg-muted/30 text-muted-foreground" : isExpired ? "bg-red-500/15 text-red-400" : "bg-primary/15 text-primary"
+                            )}>
+                              {inv.email.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="flex-1 text-sm truncate">{inv.email}</span>
+                            {inv.usedAt
+                              ? <span className="text-[10px] px-2 py-0.5 rounded-full border border-green-500/20 text-green-400 bg-green-500/8 font-medium shrink-0">registered</span>
+                              : isExpired
+                              ? <span className="text-[10px] px-2 py-0.5 rounded-full border border-red-500/20 text-red-400 bg-red-500/8 font-medium shrink-0">expired</span>
+                              : <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground bg-muted/10 font-medium shrink-0">pending</span>
+                            }
+                            {inv.expiresAt && !inv.usedAt && !isExpired && (
+                              <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
+                                exp {new Date(inv.expiresAt).toLocaleDateString()}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => removeInvite.mutate(inv.id)}
+                              disabled={removeInvite.isPending && removeInvite.variables === inv.id}
+                              className="shrink-0 p-1 rounded text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/8 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-40"
+                              title="Remove"
+                            >
+                              {removeInvite.isPending && removeInvite.variables === inv.id
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : <Trash2 className="w-3.5 h-3.5" />}
+                            </button>
                           </div>
-                          <span className="flex-1 text-sm truncate">{inv.email}</span>
-                          {inv.usedAt
-                            ? <span className="text-[10px] px-2 py-0.5 rounded-full border border-green-500/20 text-green-400 bg-green-500/8 font-medium shrink-0">registered</span>
-                            : <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground bg-muted/10 font-medium shrink-0">pending</span>
-                          }
-                          <button
-                            onClick={() => removeInvite.mutate(inv.id)}
-                            disabled={removeInvite.isPending && removeInvite.variables === inv.id}
-                            className="shrink-0 p-1 rounded text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/8 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-40"
-                            title="Remove"
-                          >
-                            {removeInvite.isPending && removeInvite.variables === inv.id
-                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              : <Trash2 className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>

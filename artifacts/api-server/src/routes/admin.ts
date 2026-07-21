@@ -40,6 +40,20 @@ router.get("/check", async (req, res): Promise<void> => {
 router.use(requireAdmin);
 
 /**
+ * GET /admin/summary
+ * Quick counts for the dashboard stat cards.
+ */
+router.get("/summary", async (_req, res): Promise<void> => {
+  const result = await db.execute(sql`
+    SELECT
+      (SELECT COUNT(*) FROM lab_sessions WHERE status NOT IN ('stopped', 'error')) AS active_sessions,
+      (SELECT COUNT(*) FROM registration_requests WHERE status = 'pending') AS pending_requests,
+      (SELECT COUNT(*) FROM registration_invites WHERE used_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())) AS open_invites
+  `);
+  res.json(result.rows[0]);
+});
+
+/**
  * GET /admin/leaderboard
  * All students ranked by passed lab count.
  * Includes name/email for Better Auth users, null for guests.
@@ -379,13 +393,26 @@ router.get("/registration/invites", async (_req, res): Promise<void> => {
 });
 
 router.post("/registration/invites", async (req, res): Promise<void> => {
-  const { email } = req.body ?? {};
+  const { email, expiresAt } = req.body ?? {};
   if (!email) { res.status(400).json({ error: "email required" }); return; }
   await db
     .insert(registrationInvitesTable)
-    .values({ email: String(email).toLowerCase().trim() })
+    .values({
+      email: String(email).toLowerCase().trim(),
+      ...(expiresAt ? { expiresAt: new Date(expiresAt) } : {}),
+    })
     .onConflictDoNothing();
   res.status(201).json({ ok: true });
+});
+
+/** DELETE /admin/registration/invites/expired — remove all expired unused invites */
+router.delete("/registration/invites/expired", async (_req, res): Promise<void> => {
+  const result = await db.execute(sql`
+    DELETE FROM registration_invites
+    WHERE expires_at IS NOT NULL AND expires_at < NOW() AND used_at IS NULL
+    RETURNING id
+  `);
+  res.json({ deleted: result.rows.length });
 });
 
 router.delete("/registration/invites/:id", async (req, res): Promise<void> => {

@@ -137,6 +137,7 @@ export const registrationInvitesTable = pgTable("registration_invites", {
   email: text("email").notNull().unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   usedAt: timestamp("used_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 export type RegistrationInviteRow = typeof registrationInvitesTable.$inferSelect;
 
