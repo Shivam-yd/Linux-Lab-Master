@@ -1,0 +1,167 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Git Lab: Rebase — Replay Commits onto a New Base
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "git-rebase"
+title: "Rebase: Replay Commits onto a New Base"
+track: "git"
+level: 1
+category: "Git Fundamentals"
+difficulty: "beginner"
+summary: "Rebase a feature branch onto an updated main so the history stays linear — no merge commit needed."
+estimatedMinutes: 20
+order: 1000
+
+objectives:
+  - "Understand why rebase produces a cleaner history than merge"
+  - "Rebase a feature branch onto the latest main with git rebase"
+  - "Fast-forward merge after a rebase"
+  - "Read a linear git log to confirm the result"
+
+instructions: |
+  ## Rebase: Replay Commits onto a New Base
+
+  **Scenario**
+  You branched off `main` to build a feature. While you were working, a
+  teammate pushed a new commit to `main`. Now your branch is out of date —
+  its two commits sit on top of the *old* main tip, not the new one.
+
+  You have two ways to bring your branch up to date:
+  - **merge main into feature** — works, but leaves a noisy merge commit
+  - **rebase feature onto main** — replays your commits on top of the new
+    main tip, keeping history perfectly linear
+
+  **Your task:** rebase `feature` onto `main`, then fast-forward `main`
+  to include your work.
+
+  **What You'll Deliver**
+  - `feature` rebased so its base is main's latest commit
+  - `main` fast-forwarded to the tip of `feature`
+  - A fully linear history — no merge commits anywhere
+
+  ## Steps
+
+  1. `cd /root/project` — you start on `feature`
+  2. Check the diverged history: `git log --oneline --all --graph`
+  3. Rebase onto main: `git rebase main`
+  4. Switch to main: `git switch main`
+  5. Fast-forward: `git merge feature`
+  6. Confirm linear history: `git log --oneline` — all commits in a straight line
+
+tasks:
+  - id: "feature_rebased"
+    description: "feature is rebased onto main — its commits now sit directly on top of main's latest commit"
+  - id: "main_fast_forwarded"
+    description: "main was fast-forwarded to include the two feature commits"
+  - id: "history_linear"
+    description: "No merge commits anywhere — every commit in the log has exactly one parent"
+
+image: "alpine/git:latest"
+entrypoint: ["sleep", "infinity"]
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root/project"
+
+setupScript: |
+  mkdir -p /root/project
+  cd /root/project
+  git init -q -b main
+  git config user.name "Lab Student"
+  git config user.email "student@lab.local"
+
+  # Shared base commit
+  echo "readme" > README.md
+  git add README.md
+  git commit -q -m "initial: add README"
+
+  # Feature branch starts here (before main moves forward)
+  git switch -q -c feature
+  echo "app=true" > app.sh
+  git add app.sh
+  git commit -q -m "feat: add app.sh"
+  echo "debug=false" >> app.sh
+  git commit -qam "feat: add debug flag to app.sh"
+
+  # Main moves forward while feature was being built
+  git switch -q main
+  echo "v1.0" > CHANGELOG.md
+  git add CHANGELOG.md
+  git commit -q -m "main: add CHANGELOG"
+
+  # Leave the student on the feature branch, facing a diverged history
+  git switch -q feature
+
+verifyScript: |
+  cd /root/project || exit 1
+
+  # ── Shared state ────────────────────────────────────────────────────────────
+
+  # rebase_done: reflog records "rebase" entries when git rebase runs.
+  rebase_done=0
+  git reflog 2>/dev/null | grep -q "rebase" && rebase_done=1
+
+  # merge_base: the common ancestor of the current main tip and feature tip.
+  # After a successful rebase, merge_base == main tip (feature is fully on top).
+  main_tip=$(git rev-parse main 2>/dev/null)
+  merge_base=$(git merge-base feature main 2>/dev/null)
+
+  feature_on_main=0
+  [ "$merge_base" = "$main_tip" ] && feature_on_main=1
+
+  # feature_commit_count: commits on feature not yet on main.
+  # After rebase (before fast-forward) this is 2; after fast-forward it's 0.
+  feature_ahead=$(git log feature ^main --oneline 2>/dev/null | wc -l | tr -d ' \t')
+
+  # main_has_feature: main contains the feature commits (fast-forward done).
+  # app.sh committed on feature must appear in main's tree.
+  main_has_app=0
+  git show main:app.sh 2>/dev/null | grep -q "app=true" && main_has_app=1
+
+  # merge_commit_exists: any commit in history with two parents = merge commit.
+  merge_commit_count=$(git log --all --merges --oneline 2>/dev/null | wc -l | tr -d ' \t')
+  merge_commit_count=${merge_commit_count:-0}
+
+  # ── CHECK: feature_rebased ──────────────────────────────────────────────────
+  # Pass when: rebase was run AND feature's base is now main's tip.
+  if [ "$rebase_done" -eq 1 ] && [ "$feature_on_main" -eq 1 ]; then
+    echo "CHECK:feature_rebased:PASS:feature is rebased on top of main's latest commit"
+  elif [ "$rebase_done" -eq 0 ]; then
+    echo "CHECK:feature_rebased:FAIL:No rebase in history yet — switch to feature and run: git rebase main"
+  else
+    echo "CHECK:feature_rebased:FAIL:Rebase started but feature is not fully on top of main — try: git switch feature && git rebase main"
+  fi
+
+  # ── CHECK: main_fast_forwarded ──────────────────────────────────────────────
+  # Guard on rebase being done first — fast-forwarding before rebasing would
+  # create a merge commit, which is exactly what we're trying to avoid.
+  if [ "$rebase_done" -eq 0 ]; then
+    echo "CHECK:main_fast_forwarded:FAIL:Rebase feature onto main first: git rebase main  then  git switch main  then  git merge feature"
+  elif [ "$feature_on_main" -eq 0 ]; then
+    echo "CHECK:main_fast_forwarded:FAIL:Finish the rebase first: git switch feature && git rebase main"
+  elif [ "$main_has_app" -eq 1 ]; then
+    echo "CHECK:main_fast_forwarded:PASS:main fast-forwarded to include the feature commits"
+  else
+    echo "CHECK:main_fast_forwarded:FAIL:Rebase done — now fast-forward main: git switch main && git merge feature"
+  fi
+
+  # ── CHECK: history_linear ───────────────────────────────────────────────────
+  # Guard on main having the feature commits; a linear history only makes sense
+  # once the full workflow is complete.
+  if [ "$main_has_app" -eq 0 ] && [ "$rebase_done" -eq 0 ]; then
+    echo "CHECK:history_linear:FAIL:Complete the rebase and fast-forward first"
+  elif [ "$merge_commit_count" -gt 0 ]; then
+    echo "CHECK:history_linear:FAIL:A merge commit exists in history — history is not linear. Reset with: git reset --hard <pre-merge-hash>  and use git rebase instead of git merge"
+  elif [ "$main_has_app" -eq 1 ] && [ "$rebase_done" -eq 1 ]; then
+    echo "CHECK:history_linear:PASS:History is fully linear — no merge commits"
+  else
+    echo "CHECK:history_linear:FAIL:Fast-forward main to complete the workflow: git switch main && git merge feature"
+  fi
+
+hints:
+  - "git log --oneline --all --graph shows all branches at once — the diverged V-shape is what you're about to clean up."
+  - "Run git rebase main while you are on the feature branch — it replays your commits on top of main's latest commit."
+  - "After rebasing, git merge feature from main is a fast-forward (no new commit needed) because feature is already ahead of main in a straight line."
+  - "Rebase rewrites commit hashes — the rebased commits are new objects with the same changes but a different parent. That's why you should only rebase branches that haven't been pushed to a shared remote."
+  - "If rebase stops with a conflict, fix the file, run git add <file>, then git rebase --continue."
