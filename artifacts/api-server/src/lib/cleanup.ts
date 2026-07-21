@@ -23,7 +23,7 @@ async function runCleanup(): Promise<void> {
     await db.execute(sql`
       DELETE FROM students
       WHERE id NOT IN (SELECT id FROM "user")
-        AND created_at < NOW() - INTERVAL '24 hours'
+        AND created_at < NOW() - INTERVAL '7 days'
         AND id NOT IN (
           SELECT student_id FROM lab_sessions WHERE status = 'running'
         )

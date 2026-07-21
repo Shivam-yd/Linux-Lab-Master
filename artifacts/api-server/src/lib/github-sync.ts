@@ -146,7 +146,7 @@ async function fetchAndValidateLab(file: GhContent): Promise<ValidatedLab | null
 // ── Core sync logic ───────────────────────────────────────────────────────────
 
 export interface SyncResult {
-  status: "success" | "error";
+  status: "success" | "error" | "skipped";
   labsAdded: number;
   labsUpdated: number;
   totalRemote: number;
@@ -159,9 +159,8 @@ let _syncRunning = false;
 export async function runSync(triggeredBy: "auto" | "manual" = "auto"): Promise<SyncResult> {
   if (_syncRunning) {
     logger.info("github-sync: sync already in progress, skipping");
-    // Return current state rather than erroring
     const rows = await db.select().from(remoteLabsTable).catch(() => []);
-    return { status: "success", labsAdded: 0, labsUpdated: 0, totalRemote: rows.length };
+    return { status: "skipped", labsAdded: 0, labsUpdated: 0, totalRemote: rows.length };
   }
 
   _syncRunning = true;

@@ -397,21 +397,20 @@ export async function recordProgress(
   const status = allPassed ? "passed" : "in_progress";
   const now = new Date();
 
-  // Read the current best score so we never regress it on a worse attempt.
-  const [existing] = await db
-    .select({ bestScore: labProgressTable.bestScore })
-    .from(labProgressTable)
-    .where(and(eq(labProgressTable.studentId, studentId), eq(labProgressTable.labId, labId)))
-    .limit(1);
-  const bestScore = Math.max(existing?.bestScore ?? 0, score);
-
-  // Atomic upsert — no race-induced duplicate rows.
+  // Single atomic upsert — GREATEST ensures the best score never regresses
+  // even when two verify requests race (eliminates the read-then-write hazard).
   await db
     .insert(labProgressTable)
-    .values({ studentId, labId, status, bestScore, lastAttemptAt: now, lastResults: checks })
+    .values({ studentId, labId, status, bestScore: score, lastAttemptAt: now, lastResults: checks })
     .onConflictDoUpdate({
       target: [labProgressTable.studentId, labProgressTable.labId],
-      set: { status, bestScore, lastAttemptAt: now, lastResults: checks, updatedAt: new Date() },
+      set: {
+        status,
+        bestScore: sql`GREATEST(${labProgressTable.bestScore}, EXCLUDED.best_score)`,
+        lastAttemptAt: now,
+        lastResults: checks,
+        updatedAt: new Date(),
+      },
     });
 }
 

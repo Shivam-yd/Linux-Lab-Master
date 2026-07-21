@@ -34,6 +34,32 @@ router.get("/labs", async (_req, res): Promise<void> => {
   res.json(ListLabsResponse.parse(labs));
 });
 
+// ── GitHub sync ───────────────────────────────────────────────────────────────
+// Must be registered BEFORE /labs/:labId — otherwise Express matches "sync"
+// as a labId param and the sync routes always return 404.
+
+/** GET /labs/sync/status — last sync info + total remote lab count */
+router.get("/labs/sync/status", async (_req, res): Promise<void> => {
+  try {
+    const status = await getLastSyncStatus();
+    res.json(status);
+  } catch {
+    res.status(500).json({ error: "Failed to get sync status" });
+  }
+});
+
+/** POST /labs/sync — trigger an immediate sync from GitHub */
+router.post("/labs/sync", async (_req, res): Promise<void> => {
+  try {
+    const result = await runSync("manual");
+    if (result.status === "error") { res.status(502).json(result); return; }
+    if (result.status === "skipped") { res.status(202).json(result); return; }
+    res.json(result);
+  } catch {
+    res.status(500).json({ error: "Sync failed unexpectedly" });
+  }
+});
+
 router.get("/labs/:labId", async (req, res): Promise<void> => {
   const params = GetLabParams.safeParse(req.params);
   if (!params.success) {
@@ -107,32 +133,5 @@ router.get("/rank", async (req, res): Promise<void> => {
   res.json({ rank: row.rank ? Number(row.rank) : null, total: row.total });
 });
 
-// ── GitHub sync ───────────────────────────────────────────────────────────────
-
-/** GET /labs/sync/status — last sync info + total remote lab count */
-router.get("/labs/sync/status", async (_req, res): Promise<void> => {
-  try {
-    const status = await getLastSyncStatus();
-    res.json(status);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to get sync status" });
-  }
-});
-
-/** POST /labs/sync — trigger an immediate sync from GitHub */
-router.post("/labs/sync", async (_req, res): Promise<void> => {
-  try {
-    const result = await runSync("manual");
-    // Surface sync errors as HTTP 502 so the frontend can distinguish
-    // "sync ran but GitHub had an error" from "lab list fetch failed"
-    if (result.status === "error") {
-      res.status(502).json(result);
-      return;
-    }
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: "Sync failed unexpectedly" });
-  }
-});
 
 export default router;

@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
 import type { Duplex } from "node:stream";
 import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../lib/auth";
+import { auth, trustedOrigins } from "../lib/auth";
 import { getLabByIdAsync } from "../lib/labs/registry";
 import { getRunningContainer, stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
@@ -125,9 +125,17 @@ export function attachTerminalWebSocketServer(server: HttpServer): void {
 
   server.on("upgrade", (req, socket: Duplex, head) => {
     const url = new URL(req.url ?? "", "http://localhost");
-    if (url.pathname !== "/api/ws/terminal") {
+    if (url.pathname !== "/api/ws/terminal") return;
+
+    // Reject cross-origin WebSocket connections — cookies are used for auth,
+    // so an unguarded upgrade handler is vulnerable to cross-site hijacking.
+    // Requests with no Origin header (e.g. server-to-server) are allowed through.
+    const origin = req.headers.origin;
+    if (origin && !trustedOrigins.some((o) => origin === o)) {
+      socket.destroy();
       return;
     }
+
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("connection", ws, req, url);
     });

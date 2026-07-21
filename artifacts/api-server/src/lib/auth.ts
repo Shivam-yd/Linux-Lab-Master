@@ -45,7 +45,7 @@ const baseURL =
 // Collect all trusted origins: baseURL + Replit dev domain + any extras from TRUSTED_ORIGINS.
 // TRUSTED_ORIGINS is a comma-separated list, useful for self-hosted deployments where
 // the raw IP (e.g. http://59.185.230.105:8085) differs from the public DuckDNS domain.
-const trustedOrigins = [baseURL];
+export const trustedOrigins = [baseURL];
 if (process.env.REPLIT_DEV_DOMAIN) {
   const replitDev = `https://${process.env.REPLIT_DEV_DOMAIN}`;
   const replCo = `https://${process.env.REPLIT_DEV_DOMAIN.replace("replit.dev", "repl.co")}`;
