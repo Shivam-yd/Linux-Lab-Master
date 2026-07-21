@@ -50,11 +50,11 @@ export function Terminal({ labId, terminalName, className }: TerminalProps) {
         const buf = new Uint8Array(event.data)
         if (buf.length === 0) return
         if (buf[0] === 0x01) {
-          // Fast path: write raw bytes directly — no JSON parse
-          xtermRef.current?.write(buf.slice(1))
+          // Fast path: write raw bytes directly — subarray avoids a buffer copy
+          xtermRef.current?.write(buf.subarray(1))
         } else if (buf[0] === 0x02) {
           try {
-            const msg = JSON.parse(new TextDecoder().decode(buf.slice(1)))
+            const msg = JSON.parse(new TextDecoder().decode(buf.subarray(1)))
             if (msg.type === "status" && msg.message) {
               xtermRef.current?.write(`\x1b[90m\r\n--- ${msg.message} ---\x1b[0m\r\n`)
             }

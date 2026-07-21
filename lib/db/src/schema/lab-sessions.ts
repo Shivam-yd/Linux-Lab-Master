@@ -81,6 +81,8 @@ export const labProgressTable = pgTable(
     // Unique constraint enables ON CONFLICT DO UPDATE upserts and prevents
     // duplicate rows from concurrent verify requests for the same student+lab.
     uniqueIndex("uq_lab_progress_student_lab").on(table.studentId, table.labId),
+    // Supports per-lab analytics (cohort stats, leaderboard) without a full scan.
+    index("idx_lab_progress_lab_id").on(table.labId),
   ],
 );
 
@@ -139,13 +141,21 @@ export const registrationInvitesTable = pgTable("registration_invites", {
 export type RegistrationInviteRow = typeof registrationInvitesTable.$inferSelect;
 
 /** Account creation requests submitted by prospective students. */
-export const registrationRequestsTable = pgTable("registration_requests", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  status: text("status").notNull().default("pending"), // pending | approved | denied
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const registrationRequestsTable = pgTable(
+  "registration_requests",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    status: text("status").notNull().default("pending"), // pending | approved | denied
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Prevents duplicate requests for the same email and makes the race-safe
+    // onConflictDoNothing insert in registration.ts actually atomic.
+    uniqueIndex("uq_reg_req_email").on(table.email),
+  ],
+);
 export type RegistrationRequestRow = typeof registrationRequestsTable.$inferSelect;
 
 /** One row written after every sync attempt (background or manual). */

@@ -63,22 +63,17 @@ router.post("/registration-request", async (req, res): Promise<void> => {
     return;
   }
 
-  // Deduplicate pending requests for same email
-  const existing = await db
-    .select()
-    .from(registrationRequestsTable)
-    .where(eq(registrationRequestsTable.email, email.toLowerCase().trim()))
-    .limit(1);
-  if (existing.length > 0) {
+  // Atomic insert — unique index on email turns a race-condition duplicate into
+  // a detectable conflict instead of a silent second row.
+  const inserted = await db
+    .insert(registrationRequestsTable)
+    .values({ name: name.trim(), email: email.toLowerCase().trim(), status: "pending" })
+    .onConflictDoNothing()
+    .returning({ id: registrationRequestsTable.id });
+  if (inserted.length === 0) {
     res.status(409).json({ error: "A request for this email already exists" });
     return;
   }
-
-  await db.insert(registrationRequestsTable).values({
-    name: name.trim(),
-    email: email.toLowerCase().trim(),
-    status: "pending",
-  });
 
   res.status(201).json({ ok: true });
 });
