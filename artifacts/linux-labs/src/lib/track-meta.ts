@@ -1,4 +1,4 @@
-import { Terminal, Layers, Server, Container, GitBranch, Cpu, ShipWheel, Settings } from "lucide-react"
+import { Terminal, Layers, Server, Container, GitBranch, Cpu, ShipWheel, Bot } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export type TrackMeta = {
@@ -71,7 +71,7 @@ export const TRACK_META: Record<string, TrackMeta> = {
   ansible: {
     label: "Ansible",
     description: "Coming soon — automate configuration, provisioning, and deployment at scale.",
-    icon: Settings,
+    icon: Bot,
     accentClass: "text-emerald-400",
     accentHex: "#34d399",
     bgClass: "bg-emerald-400/10",
