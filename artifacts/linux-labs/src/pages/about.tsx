@@ -1,6 +1,6 @@
 import { Link } from "wouter"
 import {
-  ArrowLeft, Zap, Github, Linkedin, MapPin, Terminal,
+  ArrowLeft, Zap, Linkedin, MapPin, Terminal,
   Layers, Server, Container, GitBranch, CheckCircle2,
   BookOpen, ExternalLink, Heart, Award, BarChart3,
 } from "lucide-react"
@@ -174,21 +174,7 @@ export default function About() {
 
                 {/* Links */}
                 <div className="flex flex-wrap gap-3 pt-1">
-                  <a
-                    href="https://github.com/Shivam-yd/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold",
-                      "bg-foreground/5 border border-border hover:border-foreground/30 hover:bg-foreground/10",
-                      "transition-all duration-200"
-                    )}
-                  >
-                    <Github className="w-4 h-4" />
-                    GitHub
-                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                  </a>
-                  <a
+                  <
                     href="https://www.linkedin.com/in/shivamyd"
                     target="_blank"
                     rel="noopener noreferrer"
