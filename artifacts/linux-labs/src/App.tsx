@@ -28,6 +28,7 @@ import SignUpPage from '@/pages/sign-up';
 import ProgressPage from '@/pages/progress';
 import ProfilePage from '@/pages/profile';
 import CertificatePage from '@/pages/certificate';
+import VerifyPage from '@/pages/verify';
 import AdminPage from '@/pages/admin';
 import ForgotPasswordPage from '@/pages/forgot-password';
 import ResetPasswordPage from '@/pages/reset-password';
@@ -63,6 +64,7 @@ function App() {
               <Route path="/profile" component={ProfilePage} />
               <Route path="/certificate/:track/level/:level" component={CertificatePage} />
               <Route path="/certificate/:track" component={CertificatePage} />
+              <Route path="/verify/:certId" component={VerifyPage} />
               <Route path="/admin" component={AdminPage} />
               <Route path="/forgot-password" component={ForgotPasswordPage} />
               <Route path="/reset-password" component={ResetPasswordPage} />

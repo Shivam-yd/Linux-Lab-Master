@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { labProgressTable } from "@workspace/db/schema";
+import { labProgressTable, labRatingsTable } from "@workspace/db/schema";
 import {
   ListLabsResponse,
   GetLabParams,
@@ -133,5 +133,25 @@ router.get("/rank", async (req, res): Promise<void> => {
   res.json({ rank: row.rank ? Number(row.rank) : null, total: row.total });
 });
 
+
+/** POST /labs/:labId/rating — student submits easy/ok/hard after passing */
+router.post("/labs/:labId/rating", async (req, res): Promise<void> => {
+  const { rating } = req.body;
+  if (!["easy", "ok", "hard"].includes(rating)) { res.status(400).json({ error: "Invalid rating" }); return; }
+  await db.insert(labRatingsTable)
+    .values({ studentId: req.studentId, labId: req.params.labId, rating })
+    .onConflictDoUpdate({ target: [labRatingsTable.studentId, labRatingsTable.labId], set: { rating } });
+  res.json({ ok: true });
+});
+
+/** GET /labs/:labId/rating — counts + this student's own pick */
+router.get("/labs/:labId/rating", async (req, res): Promise<void> => {
+  const rows = await db.select({ studentId: labRatingsTable.studentId, rating: labRatingsTable.rating })
+    .from(labRatingsTable).where(eq(labRatingsTable.labId, req.params.labId));
+  const counts = { easy: 0, ok: 0, hard: 0 };
+  for (const r of rows) counts[r.rating as keyof typeof counts]++;
+  const mine = rows.find(r => r.studentId === req.studentId)?.rating ?? null;
+  res.json({ counts, mine });
+});
 
 export default router;

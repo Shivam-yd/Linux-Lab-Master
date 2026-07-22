@@ -87,6 +87,16 @@ export default function Workspace() {
   const verifyLab = useVerifyLab()
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
+  const [myRating, setMyRating] = useState<string | null>(null)
+
+  const submitRating = async (rating: string) => {
+    setMyRating(rating)
+    await fetch(`${basePath}/api/labs/${labId}/rating`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rating }),
+    }).catch(() => {})
+  }
 
   // Seed verifyResult from stored lastResults when progress loads or lab changes.
   // Compute score from lastResults directly so it matches the checks shown —

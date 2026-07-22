@@ -8,6 +8,7 @@ import {
   registrationInvitesTable,
   registrationRequestsTable,
   userTable,
+  labRatingsTable,
 } from "@workspace/db/schema";
 import { auth } from "../lib/auth";
 import { stopSession } from "../lib/docker/manager";
@@ -38,6 +39,21 @@ router.get("/check", async (req, res): Promise<void> => {
 });
 
 router.use(requireAdmin);
+
+/** GET /admin/lab-ratings — per-lab difficulty distribution for all rated labs */
+router.get("/lab-ratings", async (_req, res): Promise<void> => {
+  const result = await db.execute(sql`
+    SELECT lab_id,
+      COUNT(*) FILTER (WHERE rating = 'easy')::int AS easy,
+      COUNT(*) FILTER (WHERE rating = 'ok')::int   AS ok,
+      COUNT(*) FILTER (WHERE rating = 'hard')::int  AS hard,
+      COUNT(*)::int                                  AS total
+    FROM lab_ratings
+    GROUP BY lab_id
+    ORDER BY hard DESC, lab_id
+  `);
+  res.json(result.rows);
+});
 
 /**
  * GET /admin/summary

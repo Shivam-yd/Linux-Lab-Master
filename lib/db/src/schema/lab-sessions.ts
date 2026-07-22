@@ -159,6 +159,29 @@ export const registrationRequestsTable = pgTable(
 );
 export type RegistrationRequestRow = typeof registrationRequestsTable.$inferSelect;
 
+/** One cert record written when a student shares their certificate. */
+export const certRecordsTable = pgTable("cert_records", {
+  certId:      text("cert_id").primaryKey(),
+  studentName: text("student_name").notNull(),
+  track:       text("track").notNull(),
+  level:       integer("level"),
+  earnedAt:    timestamp("earned_at", { withTimezone: true }).notNull(),
+});
+export type CertRecordRow = typeof certRecordsTable.$inferSelect;
+
+/** One difficulty rating per student per lab (upserted on submission). */
+export const labRatingsTable = pgTable(
+  "lab_ratings",
+  {
+    studentId: text("student_id").notNull().references(() => studentsTable.id, { onDelete: "cascade" }),
+    labId:     text("lab_id").notNull(),
+    rating:    text("rating").notNull(), // 'easy' | 'ok' | 'hard'
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("uq_lab_ratings_student_lab").on(table.studentId, table.labId)],
+);
+export type LabRatingRow = typeof labRatingsTable.$inferSelect;
+
 /** One row written after every sync attempt (background or manual). */
 export const labSyncLogTable = pgTable("lab_sync_log", {
   id: serial("id").primaryKey(),
