@@ -1,0 +1,24 @@
+{
+  "name": "DevLabMaster",
+  "short_name": "DevLabMaster",
+  "description": "Hands-on DevOps labs for Linux, Terraform, Docker, Jenkins, and Git. Real terminals, no VM setup.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#22d3ee",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "categories": ["education", "developer", "productivity"]
+}
