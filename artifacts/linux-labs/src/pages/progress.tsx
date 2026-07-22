@@ -239,10 +239,23 @@ export default function ProgressPage() {
                         />
                       </div>
 
-                      {/* Count */}
-                      <span className="text-sm font-mono text-muted-foreground shrink-0 w-12 text-right">
-                        {lvlPassed}/{lvlTotal}
-                      </span>
+                      {/* Count + cert link */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-sm font-mono text-muted-foreground w-12 text-right">
+                          {lvlPassed}/{lvlTotal}
+                        </span>
+                        {lvlDone && (
+                          <Link
+                            href={`${basePath}/certificate/${track}/level/${lvl}`}
+                            onClick={e => e.stopPropagation()}
+                            className="flex items-center gap-1 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            Certificate
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   )
                 })}

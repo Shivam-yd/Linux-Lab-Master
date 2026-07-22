@@ -61,6 +61,7 @@ function App() {
               <Route path="/sign-up" component={SignUpPage} />
               <Route path="/progress" component={ProgressPage} />
               <Route path="/profile" component={ProfilePage} />
+              <Route path="/certificate/:track/level/:level" component={CertificatePage} />
               <Route path="/certificate/:track" component={CertificatePage} />
               <Route path="/admin" component={AdminPage} />
               <Route path="/forgot-password" component={ForgotPasswordPage} />

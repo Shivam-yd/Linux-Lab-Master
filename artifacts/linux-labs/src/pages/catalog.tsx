@@ -663,6 +663,13 @@ export default function Catalog() {
                               <span>{passed} / {total} Completed</span>
                               <span className="w-1 h-1 rounded-full bg-border" />
                               <span>{lvlLabs.reduce((acc, l) => acc + l.estimatedMinutes, 0)}m est.</span>
+                              {allPassed && (
+                                <Link href={`${basePath}/certificate/${track}/level/${level}`} onClick={e => e.stopPropagation()}>
+                                  <span className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors">
+                                    <Award className="w-3 h-3" />View Certificate
+                                  </span>
+                                </Link>
+                              )}
                             </div>
                           </div>
 

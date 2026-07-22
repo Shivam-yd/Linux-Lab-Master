@@ -13,9 +13,16 @@ function formatLongDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
 }
 
-/** Deterministic short ID from student + track — no backend needed. */
-async function makeCertId(studentId: string, track: string): Promise<string> {
-  const data = new TextEncoder().encode(`${studentId}:${track}`)
+const LEVEL_NAMES: Record<number, string> = {
+  1: "Foundation",
+  2: "Intermediate",
+  3: "Advanced",
+}
+
+/** Deterministic short ID from student + track (+ optional level) — no backend needed. */
+async function makeCertId(studentId: string, track: string, level?: string): Promise<string> {
+  const key = level ? `${studentId}:${track}:level:${level}` : `${studentId}:${track}`
+  const data = new TextEncoder().encode(key)
   const hash = await crypto.subtle.digest("SHA-256", data)
   return Array.from(new Uint8Array(hash))
     .slice(0, 6)
@@ -25,7 +32,7 @@ async function makeCertId(studentId: string, track: string): Promise<string> {
 }
 
 export default function CertificatePage() {
-  const { track } = useParams<{ track: string }>()
+  const { track, level } = useParams<{ track: string; level?: string }>()
   const { data: session } = useSession()
   const { data: labs,     isLoading: labsLoading }     = useListLabs()
   const { data: progress, isLoading: progressLoading } = useListProgress()
@@ -35,21 +42,23 @@ export default function CertificatePage() {
 
   const tm = TRACK_META[track ?? ""] ?? { ...DEFAULT_TRACK_META, label: track ?? "Unknown" }
   const Icon = tm.icon
+  const levelNum = level ? Number(level) : undefined
+  const levelName = levelNum ? (LEVEL_NAMES[levelNum] ?? `Level ${levelNum}`) : undefined
 
   const { passed, total, lastPassedAt, isComplete } = useMemo(() => {
     if (!labs || !progress) return { passed: 0, total: 0, lastPassedAt: null, isComplete: false }
     const byLabId = Object.fromEntries(progress.map(p => [p.labId, p]))
-    const trackLabs = labs.filter(l => l.track === track)
-    const passedLabs = trackLabs.filter(l => byLabId[l.id]?.status === "passed")
+    const scopedLabs = labs.filter(l => l.track === track && (levelNum == null || l.level === levelNum))
+    const passedLabs = scopedLabs.filter(l => byLabId[l.id]?.status === "passed")
     const dates = passedLabs.map(l => byLabId[l.id]?.lastAttemptAt).filter(Boolean) as string[]
     const lastPassedAt = dates.length > 0 ? dates.sort().at(-1)! : null
     return {
       passed: passedLabs.length,
-      total: trackLabs.length,
+      total: scopedLabs.length,
       lastPassedAt,
-      isComplete: passedLabs.length === trackLabs.length && trackLabs.length > 0,
+      isComplete: passedLabs.length === scopedLabs.length && scopedLabs.length > 0,
     }
-  }, [labs, progress, track])
+  }, [labs, progress, track, levelNum])
 
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "Student"
 
@@ -57,8 +66,8 @@ export default function CertificatePage() {
   useEffect(() => {
     const sid = session?.user?.id
     if (!sid || !track) return
-    makeCertId(sid, track).then(setCertId)
-  }, [session?.user?.id, track])
+    makeCertId(sid, track, level).then(setCertId)
+  }, [session?.user?.id, track, level])
 
   if (loading) {
     return (
@@ -142,12 +151,16 @@ export default function CertificatePage() {
               <p className="text-sm text-muted-foreground print:text-gray-500">has successfully completed all labs in the</p>
             </div>
 
-            {/* Track */}
+            {/* Track / Level */}
             <div className="flex items-center gap-3 px-8 py-4 rounded-xl border" style={{ borderColor: `${tm.accentHex}40`, background: `${tm.accentHex}10` }}>
               <Icon className="w-7 h-7 shrink-0" style={{ color: tm.accentHex }} />
               <div className="text-left">
-                <p className="text-2xl font-black" style={{ color: tm.accentHex }}>{tm.label}</p>
-                <p className="text-xs text-muted-foreground font-medium print:text-gray-500">Track — {total} labs</p>
+                <p className="text-2xl font-black" style={{ color: tm.accentHex }}>
+                  {tm.label}{levelName ? ` · L${levelNum}` : ""}
+                </p>
+                <p className="text-xs text-muted-foreground font-medium print:text-gray-500">
+                  {levelName ? `${levelName} — ${total} labs` : `Track — ${total} labs`}
+                </p>
               </div>
             </div>
 
@@ -160,7 +173,7 @@ export default function CertificatePage() {
               <div className="w-px h-10 bg-border/60" />
               <div>
                 <p className="text-2xl font-black font-mono">100%</p>
-                <p className="text-xs text-muted-foreground mt-0.5 print:text-gray-500">Track complete</p>
+                <p className="text-xs text-muted-foreground mt-0.5 print:text-gray-500">{levelName ? "Level complete" : "Track complete"}</p>
               </div>
               <div className="w-px h-10 bg-border/60" />
               <div>
