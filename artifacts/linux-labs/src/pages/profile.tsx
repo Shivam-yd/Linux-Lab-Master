@@ -140,7 +140,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 py-10 space-y-6 relative z-10">
+      <main className="max-w-3xl mx-auto px-6 py-10 space-y-6 relative z-10">
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
 
         {/* Account info card */}
