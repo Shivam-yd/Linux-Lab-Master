@@ -7,6 +7,7 @@ import configRouter from "./config";
 import adminRouter from "./admin";
 import passwordResetRouter from "./password-reset";
 import registrationRouter from "./registration";
+import accountRouter from "./account";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(labsRouter);
 router.use(sessionsRouter);
 router.use("/admin", adminRouter);
 router.use(passwordResetRouter);
+router.use(accountRouter);
 
 export default router;

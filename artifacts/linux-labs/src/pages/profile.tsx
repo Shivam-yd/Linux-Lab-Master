@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award } from "lucide-react"
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award, Trash2, AlertTriangle } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
@@ -28,6 +28,12 @@ export default function ProfilePage() {
   const [confirmPwd, setConfirmPwd] = useState("")
   const [pwdLoading, setPwdLoading] = useState(false)
   const [pwdMsg, setPwdMsg]         = useState<{ ok: boolean; text: string } | null>(null)
+
+  // Account deletion
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0) // 0=hidden, 1=confirm, 2=typing
+  const [deleteInput, setDeleteInput] = useState("")
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const user = session?.user
 
@@ -113,6 +119,26 @@ export default function ProfilePage() {
       setPwdMsg({ ok: false, text: "Something went wrong." })
     } finally {
       setPwdLoading(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteLoading(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`${basePath}/api/account`, { method: "DELETE", credentials: "include" })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setDeleteError((body as { error?: string }).error ?? "Deletion failed. Please try again.")
+        return
+      }
+      // Sign out then redirect home
+      await fetch(`${basePath}/api/auth/sign-out`, { method: "POST", credentials: "include", keepalive: true })
+      window.location.href = basePath || "/"
+    } catch {
+      setDeleteError("Network error. Please try again.")
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -328,22 +354,114 @@ export default function ProfilePage() {
         )}
 
         {/* Danger zone */}
-        <div className="rounded-2xl border border-border/50 bg-card/50 p-6 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold">Sign out</p>
-            <p className="text-xs text-muted-foreground mt-0.5">End your current session</p>
+        <div className="rounded-2xl border border-border/50 bg-card/50 p-6 space-y-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">Account</p>
+
+          {/* Sign out */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold">Sign out</p>
+              <p className="text-xs text-muted-foreground mt-0.5">End your current session</p>
+            </div>
+            <Button
+              variant="outline"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => {
+                void fetch(`${basePath}/api/auth/sign-out`, { method: "POST", credentials: "include", keepalive: true })
+                window.location.href = basePath || "/"
+              }}
+            >
+              Sign out
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => {
-              void fetch(`${basePath}/api/auth/sign-out`, { method: "POST", credentials: "include", keepalive: true })
-              window.location.href = basePath || "/"
-            }}
-          >
-            Sign out
-          </Button>
+
+          <div className="border-t border-border/40" />
+
+          {/* Delete account */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-destructive">Delete account</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Permanently erase your account and all progress</p>
+            </div>
+            <Button
+              variant="outline"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setDeleteStep(1)}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Delete
+            </Button>
+          </div>
         </div>
+
+        {/* ── Delete confirmation modal ── */}
+        {deleteStep > 0 && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md rounded-2xl border border-destructive/40 bg-card p-6 shadow-2xl space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Delete your account?</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">This cannot be undone.</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                All your data will be permanently deleted — your progress, certificates, and account details. You will not be able to recover them.
+              </p>
+
+              {deleteStep === 1 && (
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" className="flex-1" onClick={() => setDeleteStep(0)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+                    onClick={() => { setDeleteInput(""); setDeleteError(null); setDeleteStep(2) }}
+                  >
+                    Yes, I understand
+                  </Button>
+                </div>
+              )}
+
+              {deleteStep === 2 && (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Type <span className="font-mono font-bold text-foreground">DELETE</span> to confirm
+                    </Label>
+                    <Input
+                      className="mt-1.5 font-mono"
+                      placeholder="DELETE"
+                      value={deleteInput}
+                      onChange={e => { setDeleteInput(e.target.value); setDeleteError(null) }}
+                      autoFocus
+                    />
+                  </div>
+                  {deleteError && (
+                    <p className="text-xs text-destructive">{deleteError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setDeleteStep(0)} disabled={deleteLoading}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+                      disabled={deleteInput !== "DELETE" || deleteLoading}
+                      onClick={handleDeleteAccount}
+                    >
+                      {deleteLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Delete my account"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
