@@ -101,7 +101,7 @@ export default function CertificatePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground print:bg-white">
-      <div className="print:hidden flex items-center justify-between px-6 py-4 border-b border-border/50">
+      <header className="print:hidden sticky top-0 z-20 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 py-4">
         <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" /> Progress
         </Link>
@@ -117,7 +117,7 @@ export default function CertificatePage() {
           </button>
           <AccountDropdown />
         </div>
-      </div>
+      </header>
 
       <div className="flex items-center justify-center min-h-[calc(100vh-65px)] print:block print:min-h-0 p-8 print:p-6">
         <div className="cert-card w-full max-w-2xl border border-border/60 rounded-2xl bg-card overflow-hidden print:rounded-none print:border print:max-w-none">
