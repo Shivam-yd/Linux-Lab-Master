@@ -75,8 +75,6 @@ verifyScript: |
   fi
 
   # CHECK: extract-restore
-  mkdir -p /restore
-  tar xzf /root/project-backup.tar.gz -C /restore 2>/dev/null
   if [ -f /restore/project/config.yaml ] && grep -q "config data" /restore/project/config.yaml; then
     echo "CHECK:extract-restore:PASS:Archive extracted and content matches original"
   else

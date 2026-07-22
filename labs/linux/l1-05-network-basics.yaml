@@ -34,7 +34,7 @@ instructions: |
 
   1. `echo "10.5.0.9 db.internal" >> /etc/hosts`
   2. `grep db.internal /etc/hosts`
-  3. `nc -lk -p 9090 &`
+  3. `nc -l -p 9090 &`
   4. `netstat -tln | grep 9090`
   5. `ip -4 addr show eth0 | awk '/inet /{print $2}' | cut -d/ -f1 > /root/my-ip.txt`
 
@@ -82,6 +82,6 @@ verifyScript: |
 
 hints:
   - "The /etc/hosts format is: `<ip> <hostname>`, one mapping per line."
-  - "`nc -lk -p 9090 &` starts a persistent background listener; the `&` is required to keep your terminal free."
+  - "`nc -l -p 9090 &` starts a background listener; the `&` is required to keep your terminal free."
   - "`netstat -tln` lists all listening TCP ports."
   - "`ip -4 addr show eth0` prints a line like `inet 172.17.0.2/16 ...` — the IP is before the `/`."
