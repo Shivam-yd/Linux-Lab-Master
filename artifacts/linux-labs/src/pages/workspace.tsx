@@ -381,7 +381,7 @@ export default function Workspace() {
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden font-sans">
       {/* ── Control Bar (Header) ── */}
-      <header className="h-14 shrink-0 border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center justify-between px-4 relative z-20">
+      <header className="h-14 shrink-0 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-4 relative z-20">
         <div className="flex items-center space-x-4">
           <Link
             href={`/dashboard?track=${encodeURIComponent(lab.track)}`}

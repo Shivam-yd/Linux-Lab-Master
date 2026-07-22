@@ -102,7 +102,7 @@ export default function Home() {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="sticky top-0 z-20 border-b border-border/60 bg-card/80 backdrop-blur-md"
+        className="sticky top-0 z-20 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md"
       >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -29,7 +29,7 @@ export default function About() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Top Bar ── */}
-      <header className="sticky top-0 z-20 h-14 border-b border-border/60 bg-card/80 backdrop-blur-md flex items-center justify-between px-6 gap-4">
+      <header className="sticky top-0 z-20 h-14 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 gap-4">
         <div className="flex items-center gap-4">
           <Link
             href="/"
