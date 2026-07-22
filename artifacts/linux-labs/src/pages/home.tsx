@@ -235,7 +235,7 @@ export default function Home() {
       <div className="h-32 pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(13,148,136,0.07) 0%, transparent 70%)" }} />
 
       {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-border/60 py-4 bg-card/80 backdrop-blur-md">
+      <footer className="relative z-10 border-t border-primary/20 py-4 bg-primary/[0.07] backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>DevLabMaster — DevOps practice range</span>
           <Link href="/about" className="hover:text-foreground transition-colors">About</Link>

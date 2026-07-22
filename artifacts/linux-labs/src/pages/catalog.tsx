@@ -424,8 +424,8 @@ export default function Catalog() {
                         "w-full flex flex-col gap-2 rounded-xl text-left transition-all duration-200 group relative overflow-hidden",
                         collapsed ? "px-0 py-2 items-center justify-center" : "px-3 py-3",
                         isActive
-                          ? "bg-muted/40 border border-border/80 shadow-sm"
-                          : "hover:bg-muted/20 border border-transparent"
+                          ? "bg-primary/10 border border-primary/25 shadow-sm"
+                          : "hover:bg-primary/5 border border-transparent"
                       )}
                     >
                       {isActive && (
@@ -434,7 +434,7 @@ export default function Catalog() {
                       <div className={cn("flex items-center w-full relative z-10", collapsed ? "justify-center" : "gap-3")}>
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-                          isActive ? "bg-background border border-border" : "bg-muted/50 group-hover:bg-muted"
+                          isActive ? "bg-primary/10 border border-primary/20" : "bg-muted/50 group-hover:bg-muted"
                         )}>
                           <Icon className={cn("w-4 h-4", isActive ? tm?.accentClass : "text-muted-foreground")} />
                         </div>
@@ -442,7 +442,7 @@ export default function Catalog() {
                           <>
                             <div className="flex-1 min-w-0">
                               <p className={cn("text-sm font-semibold leading-tight flex items-center gap-1.5",
-                                isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/90"
+                                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground/90"
                               )}>
                                 {tm?.label ?? track}
                                 {trackComplete && <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
@@ -453,7 +453,7 @@ export default function Catalog() {
                                 </p>
                               )}
                             </div>
-                            <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", isActive ? "text-foreground translate-x-1" : "text-muted-foreground/40")} />
+                            <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", isActive ? "text-primary translate-x-1" : "text-muted-foreground/40")} />
                           </>
                         )}
                       </div>

@@ -557,7 +557,7 @@ export default function AdminPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/50 w-fit">
+            <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/50 w-full overflow-x-auto sm:w-fit">
               {([
                 { id: "leaderboard",     label: "Leaderboard",    icon: Trophy    },
                 { id: "cohort",          label: "Lab Stats",       icon: BarChart3 },
