@@ -119,7 +119,7 @@ export default function CertificatePage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-65px)] print:min-h-screen p-8 print:p-0">
+      <div className="flex items-center justify-center min-h-[calc(100vh-65px)] print:block print:min-h-0 p-8 print:p-6">
         <div className="cert-card w-full max-w-2xl border border-border/60 rounded-2xl bg-card overflow-hidden print:rounded-none print:border print:max-w-none">
 
           {/* Accent top bar */}
@@ -178,8 +178,9 @@ export default function CertificatePage() {
 
       <style>{`
         @media print {
-          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .cert-card { background: white !important; color: black !important; }
+          @page { margin: 0; size: A4 portrait; }
+          body { margin: 0; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .cert-card { background: white !important; color: black !important; box-shadow: none !important; }
           .print\\:hidden { display: none !important; }
         }
       `}</style>

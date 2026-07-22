@@ -532,7 +532,7 @@ export default function AdminPage() {
           <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
             {/* Summary cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
                 { label: "Active Today",     value: activeToday,                                        sub: "in the last 24 hours",  icon: TrendingUp, color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/20",  loading: leaderboard.isLoading },
                 { label: "Active Sessions",  value: Number(summary.data?.active_sessions  ?? 0),        sub: "live lab containers",   icon: Activity,   color: "text-green-400",  bg: "bg-green-400/10",  border: "border-green-400/20",  loading: summary.isLoading },
@@ -716,7 +716,7 @@ export default function AdminPage() {
                               <ChevronRight className={cn("w-4 h-4 transition-all", isSelected ? "rotate-90 text-primary" : "text-muted-foreground/40 group-hover:text-muted-foreground")} />
                             </div>
                             {pct > 0 && (
-                              <div className="mx-5 mb-3 h-1 rounded-full bg-white/5 overflow-hidden">
+                              <div className="mx-5 mb-3 h-1 rounded-full bg-muted/30 overflow-hidden">
                                 <div className="h-full rounded-full bg-primary/50 transition-all" style={{ width: `${pct}%` }} />
                               </div>
                             )}
@@ -795,7 +795,7 @@ export default function AdminPage() {
                                 <span className="text-sm font-mono text-right text-muted-foreground">{row.attempted}</span>
                                 <span className="text-sm font-mono text-right text-foreground">{row.passed}</span>
                                 <div className="flex items-center gap-2">
-                                  <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                  <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
                                     <div
                                       className={cn("h-full rounded-full", barColor)}
                                       style={{ width: `${rate}%` }}
@@ -914,7 +914,7 @@ export default function AdminPage() {
                               r.status === "pending"                   ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
                               r.status === "approved" && !tokenExpired ? "text-green-400 border-green-500/30 bg-green-500/10" :
                               r.status === "approved" && tokenExpired  ? "text-orange-400 border-orange-500/30 bg-orange-500/10" :
-                                                                         "text-muted-foreground border-border bg-white/5",
+                                                                         "text-muted-foreground border-border bg-muted/20",
                             )}>{tokenExpired ? "expired" : r.status}</span>
                           </div>
                           <span className="w-20 text-xs text-muted-foreground text-center font-mono">{relativeTime(r.requestedAt)}</span>
@@ -1211,7 +1211,7 @@ export default function AdminPage() {
                                   "text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0",
                                   r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
                                   r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
-                                                            "text-muted-foreground border-border bg-white/5",
+                                                            "text-muted-foreground border-border bg-muted/20",
                                 )}>{r.status}</span>
                                 <span className="text-xs text-muted-foreground font-mono w-14 text-right shrink-0">{relativeTime(r.createdAt)}</span>
                                 {r.status === "pending" && (
@@ -1344,7 +1344,7 @@ export default function AdminPage() {
                                 <span className="text-sm font-mono text-right text-green-400">{row.easy}</span>
                                 <span className="text-sm font-mono text-right text-amber-400">{row.ok}</span>
                                 <span className="text-sm font-mono text-right text-red-400">{row.hard}</span>
-                                <div className="flex h-2 rounded-full overflow-hidden bg-white/5">
+                                <div className="flex h-2 rounded-full overflow-hidden bg-muted/30">
                                   <div className="bg-green-400/70 h-full" style={{ width: `${easyPct}%` }} />
                                   <div className="bg-amber-400/70 h-full" style={{ width: `${okPct}%` }} />
                                   <div className="bg-red-400/70  h-full" style={{ width: `${hardPct}%` }} />
@@ -1512,7 +1512,7 @@ export default function AdminPage() {
                 </div>
                 <button
                   onClick={() => setSelectedStudent(null)}
-                  className="shrink-0 w-7 h-7 rounded-lg hover:bg-white/5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors mt-0.5"
+                  className="shrink-0 w-7 h-7 rounded-lg hover:bg-muted/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors mt-0.5"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1564,7 +1564,7 @@ export default function AdminPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                        <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
                           <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: meta.accentHex }} />
                         </div>
                       </div>
