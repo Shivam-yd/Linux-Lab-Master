@@ -34,6 +34,7 @@ import AdminPage from '@/pages/admin';
 import ForgotPasswordPage from '@/pages/forgot-password';
 import ResetPasswordPage from '@/pages/reset-password';
 import TermsPage from '@/pages/terms';
+import PricingPage from '@/pages/pricing';
 import PrivacyPage from '@/pages/privacy';
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ function App() {
               <Route path="/admin" component={AdminPage} />
               <Route path="/forgot-password" component={ForgotPasswordPage} />
               <Route path="/reset-password" component={ResetPasswordPage} />
+              <Route path="/pricing" component={PricingPage} />
               <Route path="/terms" component={TermsPage} />
               <Route path="/privacy" component={PrivacyPage} />
               <Route component={NotFound} />
