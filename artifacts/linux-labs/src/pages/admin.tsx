@@ -126,7 +126,7 @@ export default function AdminPage() {
   const [selectedRequestIds, setSelectedRequestIds] = useState<Set<number>>(new Set())
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
-  const [collapsedLevels, setCollapsedLevels] = useState<Set<string>>(new Set())
+  const [openLevels, setOpenLevels] = useState<Set<string>>(new Set())
   const [leaderboardSearch, setLeaderboardSearch] = useState("")
   const { toast } = useToast()
 
@@ -1392,8 +1392,8 @@ export default function AdminPage() {
                         <div>
                           {Object.entries(byLevel).sort(([a], [b]) => (a === "—" ? 1 : b === "—" ? -1 : Number(a) - Number(b))).map(([level, labs]) => {
                             const key = `${track}:${level}`
-                            const open = !collapsedLevels.has(key)
-                            const toggle = () => setCollapsedLevels(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
+                            const open = openLevels.has(key)
+                            const toggle = () => setOpenLevels(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
                             return (
                               <div key={key}>
                                 <button onClick={toggle} className="w-full flex items-center gap-2 px-4 py-3 bg-muted/5 hover:bg-muted/10 border-b border-border/30 transition-colors">
