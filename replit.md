@@ -1,46 +1,47 @@
 # Linux Lab Master (DevLabMaster)
 
-A self-hosted DevOps lab platform providing browser-based terminal sandboxes for hands-on practice with Linux, Docker, Terraform, Jenkins, and Git.
+A self-hosted, browser-based DevOps training platform with 78+ interactive labs across Linux, Docker, Terraform, Jenkins, and Git tracks. Students get real terminal sandboxes with automatic verification.
 
 ## Stack
 
-- **Frontend**: React 19 + Vite + Tailwind CSS v4 + Radix UI + Wouter + TanStack Query + Xterm.js
-- **Backend**: Node.js/Express (ESM) + Dockerode (container management) + ssh2 (terminal sessions)
-- **Database**: PostgreSQL via Drizzle ORM (Replit built-in database)
-- **Auth**: Better Auth (email/password + optional Google OAuth)
-- **Monorepo**: pnpm workspaces
+- **Frontend**: React 19, Vite, Tailwind CSS v4, TanStack Query, Xterm.js — `artifacts/linux-labs/`
+- **API Server**: Node.js/Express (ESM), esbuild — `artifacts/api-server/`
+- **Shared libs**: `lib/db/` (Drizzle ORM + PostgreSQL), `lib/api-zod/` (Zod schemas), `lib/api-client-react/` (generated fetch client)
+- **Auth**: Better Auth (email/password + Google OAuth)
+- **Labs**: YAML definitions in `labs/`, synced from GitHub on startup
 
-## How to run (dev mode)
+## Running on Replit
 
-Both workflows start automatically:
+Both services start automatically via managed workflows:
 
-- **API Server** (`artifacts/api-server`): builds with esbuild then starts on `PORT=8080`
-- **Frontend** (`artifacts/linux-labs`): Vite dev server, proxies `/api` to the backend
+| Workflow | Command |
+|---|---|
+| `artifacts/api-server: API Server` | `PORT=8080 pnpm --filter @workspace/api-server run dev` |
+| `artifacts/linux-labs: web` | `PORT=21398 BASE_PATH=/ pnpm --filter @workspace/devlabmaster run dev` |
 
-## Key environment variables
+The frontend proxies `/api` requests to the API server at `localhost:8080`.
+
+## Environment Variables
 
 | Variable | Required | Notes |
 |---|---|---|
-| `DATABASE_URL` | Yes | Auto-set by Replit |
-| `SESSION_SECRET` | Yes | Set as Replit Secret |
-| `BETTER_AUTH_URL` | Yes | Set to `https://<REPLIT_DEV_DOMAIN>` |
-| `SECURE_COOKIES` | No | `"true"` on HTTPS (default on Replit) |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | No | Enables Google OAuth |
-| `ADMIN_EMAILS` | No | Comma-separated admin email list |
-| `GITHUB_TOKEN` | No | For syncing lab definitions from GitHub |
+| `SESSION_SECRET` | Yes | Random secret for session signing |
+| `BETTER_AUTH_URL` | Yes | Full URL of the API server (e.g. `https://<your-repl>.replit.dev`) |
+| `DATABASE_URL` | Auto | Injected by Replit's PostgreSQL database |
+| `GOOGLE_CLIENT_ID` | Optional | Google OAuth — leave unset to disable |
+| `GOOGLE_CLIENT_SECRET` | Optional | Google OAuth — leave unset to disable |
+| `ADMIN_EMAILS` | Optional | Comma-separated list of admin email addresses |
 
-## Database migrations
+## Database
 
-```bash
-pnpm --filter @workspace/db run push
-```
+Replit's built-in PostgreSQL. Schema managed by Drizzle ORM.
 
-## Architecture notes
+To push schema changes: `pnpm --filter @workspace/db run push`
 
-- Lab containers require Docker at runtime — not available in Replit's sandbox. The API will start, but launching lab terminals requires a real Docker daemon.
-- Lab definitions live in `labs/` as YAML files; the "Fetch Labs" admin feature syncs them.
-- Better Auth trusted origins are configured via `BETTER_AUTH_URL` + `REPLIT_DEV_DOMAIN` auto-detection in `artifacts/api-server/src/lib/auth.ts`.
+## Lab Sandboxes
 
-## User preferences
+Terminal labs spin up Docker containers (`rastasheep/ubuntu-sshd:18.04`) via the Docker daemon. **Docker is not available in the Replit environment**, so students cannot launch live terminals here. All other features (auth, progress tracking, lab browsing) work normally.
 
-- Keep code minimal (YAGNI, reuse first, deletion over addition).
+## User Preferences
+
+- Keep code minimal: YAGNI, reuse first, deletion over addition (ponytail style).
