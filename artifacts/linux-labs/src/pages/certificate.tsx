@@ -57,10 +57,25 @@ export default function CertificatePage() {
 
   useEffect(() => {
     const sid = session?.user?.id
-    if (sid && track) makeCertId(sid, track, level).then(setCertId)
-  }, [session?.user?.id, track, level])
+    if (!sid || !track || !isComplete || !lastPassedAt) return
+    makeCertId(sid, track, level).then(id => {
+      setCertId(id)
+      fetch(`${basePath}/api/certs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ certId: id, studentName: session?.user?.name || session?.user?.email?.split("@")[0] || "Student", track, level: level ? Number(level) : undefined, earnedAt: lastPassedAt }),
+      }).catch(() => {})
+    })
+  }, [session?.user?.id, track, level, isComplete, lastPassedAt])
 
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "Student"
+  const [copied, setCopied] = useState(false)
+
+  function handleShare() {
+    const url = `${window.location.origin}${basePath}/verify/${certId}`
+    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+  }
 
   if (labsLoading || progressLoading)
     return <div className="min-h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
@@ -87,6 +102,12 @@ export default function CertificatePage() {
           <ArrowLeft className="w-4 h-4" /> Progress
         </Link>
         <div className="flex items-center gap-3">
+          {certId && (
+            <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-muted transition-colors">
+              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
+              {copied ? "Copied!" : "Share"}
+            </button>
+          )}
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">
             <Printer className="w-4 h-4" /> Print / Save PDF
           </button>
