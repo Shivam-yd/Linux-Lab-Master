@@ -1411,7 +1411,7 @@ export default function AdminPage() {
                                 {open && (
                                   <div className="divide-y divide-border/20 bg-background/40">
                                     {labs.sort((a, b) => a.order - b.order).map((lab) => (
-                                      <div key={lab.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/10 transition-colors">
+                                      <div key={lab.id} className="flex items-center gap-4 px-5 py-2 hover:bg-muted/10 transition-colors">
                                         <div className="flex-1 min-w-0">
                                           <p className={cn("text-sm font-medium truncate", !lab.active ? "text-muted-foreground/50" : "text-foreground/90")}>{lab.title}</p>
                                         </div>
