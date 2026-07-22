@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Redirect, Router as WouterRouter } from 'wouter';
@@ -50,6 +51,7 @@ function NotFound() {
 function App() {
   return (
     <ErrorBoundary>
+      <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
       <WouterRouter base={basePath}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
@@ -74,6 +76,7 @@ function App() {
           </TooltipProvider>
         </QueryClientProvider>
       </WouterRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

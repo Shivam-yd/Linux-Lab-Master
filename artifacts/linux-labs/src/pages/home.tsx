@@ -8,6 +8,7 @@ import { motion } from "framer-motion"
 import { useListLabs } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -112,6 +113,7 @@ export default function Home() {
             <Link href="/about" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
               About
             </Link>
+            <ThemeToggle />
             <Link href="/sign-in" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2">
               Sign In
             </Link>

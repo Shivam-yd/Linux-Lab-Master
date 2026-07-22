@@ -6,6 +6,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AccountDropdown } from "@/components/account-dropdown"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const TRACKS = [
   { label: "Linux",     icon: Terminal,  color: "#22d3ee", desc: "Filesystem, processes, networking, permissions, scripting" },
@@ -44,7 +45,10 @@ export default function About() {
             <span className="text-muted-foreground/50 font-mono text-xs">/ about</span>
           </div>
         </div>
-        <AccountDropdown />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <AccountDropdown />
+        </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-14 space-y-20">

@@ -12,6 +12,7 @@ import {
   Eye, EyeOff, Beaker,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -516,7 +517,10 @@ export default function AdminPage() {
           </div>
 
           {/* Right: account */}
-          <AccountDropdown />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <AccountDropdown />
+          </div>
         </div>
       </header>
 

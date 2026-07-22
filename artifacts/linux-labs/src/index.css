@@ -141,9 +141,13 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    /* Subtle dot grid — barely visible on light, gives depth */
+    /* Subtle dot grid on light mode */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='1' cy='1' r='1' fill='%2394a3b8' fill-opacity='0.25'/%3E%3C/svg%3E");
     background-attachment: fixed;
+  }
+  .dark body {
+    /* Remove dot grid in dark — solid dark bg looks cleaner */
+    background-image: none;
   }
 
   /* Track icon animations */

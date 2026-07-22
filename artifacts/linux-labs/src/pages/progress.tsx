@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 import { AccountDropdown } from "@/components/account-dropdown"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -76,7 +77,10 @@ export default function ProgressPage() {
               <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
             </div>
           </div>
-          <AccountDropdown />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <AccountDropdown />
+          </div>
         </div>
       </header>
 

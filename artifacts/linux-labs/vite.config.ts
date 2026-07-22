@@ -44,7 +44,7 @@ export default defineConfig({
         'attached_assets',
       ),
     },
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', 'next-themes'],
   },
   root: path.resolve(import.meta.dirname),
   build: {

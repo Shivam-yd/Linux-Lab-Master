@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Info, User, ChevronLeft, ShieldCheck } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AccountDropdown } from "@/components/account-dropdown"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -574,6 +575,7 @@ export default function Catalog() {
                 </div>
 
                 {/* Account dropdown */}
+                <ThemeToggle />
                 <AccountDropdown />
               </div>
 
