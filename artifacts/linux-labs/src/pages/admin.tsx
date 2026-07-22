@@ -1490,7 +1490,7 @@ export default function AdminPage() {
         {/* ── Student detail panel — inline sidebar ── */}
         {selectedStudent && (
           <div
-            className="w-96 shrink-0 border-l border-border bg-background flex flex-col overflow-hidden"
+            className="w-96 shrink-0 border-l border-border bg-card shadow-2xl flex flex-col overflow-hidden"
             style={{ animation: "slideInPanel 0.18s ease-out" }}
           >
             <style>{`@keyframes slideInPanel{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}`}</style>
@@ -1527,7 +1527,7 @@ export default function AdminPage() {
                 { label: "Avg Score", value: sliderPassedLabs.length > 0 ? `${sliderAvgScore}%` : "—", sub: "on passed labs" },
                 { label: "Time",      value: fmtDuration(selectedStudent.total_time_seconds ?? 0), sub: "platform total" },
               ].map(({ label, value, sub }) => (
-                <div key={label} className="bg-background px-2 py-3.5 text-center">
+                <div key={label} className="bg-muted/50 px-2 py-3.5 text-center">
                   <p className="text-lg font-black font-mono text-foreground leading-none">{value}</p>
                   <p className="text-[9px] text-muted-foreground/50 mt-0.5 uppercase tracking-wider">{sub}</p>
                   <p className="text-[9px] text-muted-foreground uppercase tracking-wide mt-1 font-semibold">{label}</p>
