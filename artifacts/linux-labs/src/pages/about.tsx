@@ -174,7 +174,7 @@ export default function About() {
 
                 {/* Links */}
                 <div className="flex flex-wrap gap-3 pt-1">
-                  <
+                  <a
                     href="https://www.linkedin.com/in/shivamyd"
                     target="_blank"
                     rel="noopener noreferrer"
