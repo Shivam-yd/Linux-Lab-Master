@@ -32,7 +32,7 @@ instructions: |
 
   1. `while true; do date >> /tmp/heartbeat.log; sleep 1; done & echo $! > /tmp/heartbeat.pid`
   2. `cat /tmp/heartbeat.pid | xargs ps -p`
-  3. `renice -n 10 -p $(cat /tmp/heartbeat.pid)`
+  3. `renice -n 10 -p $(cat /tmp/heartbeat.pid) && ps -o ni= -p $(cat /tmp/heartbeat.pid) > /tmp/heartbeat-nice.txt`
   4. `kill -SIGTERM $(cat /tmp/heartbeat.pid)`
   5. `kill -0 $(cat /tmp/heartbeat.pid) 2>/dev/null && echo "still running" || echo "stopped"`
 
@@ -72,11 +72,11 @@ verifyScript: |
     echo "CHECK:find-pid:FAIL:/tmp/heartbeat.pid not found"
   fi
 
-  # CHECK: renice-proc — accept as pass if file exists (process may have stopped)
-  if [[ -f /tmp/heartbeat.pid ]]; then
-    echo "CHECK:renice-proc:PASS:Accepted (process was running at some point)"
+  # CHECK: renice-proc
+  if [[ -f /tmp/heartbeat-nice.txt ]] && [[ $(tr -d '[:space:]' < /tmp/heartbeat-nice.txt) == "10" ]]; then
+    echo "CHECK:renice-proc:PASS:Process was reniced to +10"
   else
-    echo "CHECK:renice-proc:FAIL:Could not verify renice without heartbeat.pid"
+    echo "CHECK:renice-proc:FAIL:Nice value not confirmed at +10 (run: renice -n 10 -p \$(cat /tmp/heartbeat.pid) && ps -o ni= -p \$(cat /tmp/heartbeat.pid) > /tmp/heartbeat-nice.txt)"
   fi
 
   # CHECK: graceful-stop
@@ -94,5 +94,5 @@ verifyScript: |
 hints:
   - "Run in background: `while true; do date >> /tmp/heartbeat.log; sleep 1; done & echo $! > /tmp/heartbeat.pid`"
   - "Check it's running: `cat /tmp/heartbeat.pid | xargs ps -p`"
-  - "Renice: `renice -n 10 -p $(cat /tmp/heartbeat.pid)`"
+  - "Renice and capture: `renice -n 10 -p $(cat /tmp/heartbeat.pid) && ps -o ni= -p $(cat /tmp/heartbeat.pid) > /tmp/heartbeat-nice.txt`"
   - "Stop it: `kill -SIGTERM $(cat /tmp/heartbeat.pid)`"

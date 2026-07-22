@@ -35,7 +35,7 @@ instructions: |
   1. `netstat -tlnp | grep :8080`
   2. `echo <pid> > /root/blocker-pid.txt`
   3. `kill <pid>`
-  4. `nc -lk -p 8080 &`
+  4. `nc -l -p 8080 &`
   5. `netstat -tlnp | grep :8080`
 
 tasks:
@@ -57,7 +57,7 @@ setupScript: |
   mkdir -p /usr/local/bin /var/run
   cat > /usr/local/bin/legacy-service.sh <<'EOF'
   #!/bin/sh
-  exec nc -lk -p 8080
+  exec nc -l -p 8080
   EOF
   chmod +x /usr/local/bin/legacy-service.sh
   /usr/local/bin/legacy-service.sh >/dev/null 2>&1 &
@@ -93,4 +93,4 @@ hints:
   - "`netstat -tlnp | grep :8080` — the last column is `pid/program`; the PID is the part before the slash."
   - "Save that number (not the name) to /root/blocker-pid.txt: `echo <pid> > /root/blocker-pid.txt`"
   - "`kill <pid>` (or `kill -9 <pid>` if it won't stop) terminates the exact process holding the port."
-  - "After freeing the port, `nc -lk -p 8080 &` claims it again with a brand-new PID — the `&` keeps it running in the background."
+  - "After freeing the port, `nc -l -p 8080 &` claims it again with a brand-new PID — the `&` keeps it running in the background."
