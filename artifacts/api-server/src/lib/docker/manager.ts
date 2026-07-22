@@ -1,7 +1,7 @@
 import Docker from "dockerode";
 import { Writable } from "node:stream";
 import { db } from "@workspace/db";
-import { eq, and, lt } from "drizzle-orm";
+import { eq, and, lt, sql } from "drizzle-orm";
 import {
   labSessionsTable,
   labProgressTable,
