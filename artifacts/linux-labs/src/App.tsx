@@ -33,6 +33,8 @@ import VerifyPage from '@/pages/verify';
 import AdminPage from '@/pages/admin';
 import ForgotPasswordPage from '@/pages/forgot-password';
 import ResetPasswordPage from '@/pages/reset-password';
+import TermsPage from '@/pages/terms';
+import PrivacyPage from '@/pages/privacy';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -70,6 +72,8 @@ function App() {
               <Route path="/admin" component={AdminPage} />
               <Route path="/forgot-password" component={ForgotPasswordPage} />
               <Route path="/reset-password" component={ResetPasswordPage} />
+              <Route path="/terms" component={TermsPage} />
+              <Route path="/privacy" component={PrivacyPage} />
               <Route component={NotFound} />
             </Switch>
             <Toaster />
