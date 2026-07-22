@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { Link } from "wouter"
-import { Terminal, Container, Layers, Server, GitBranch, Check, ArrowRight, Zap } from "lucide-react"
+import { Terminal, Container, Layers, Server, GitBranch, Check, X, ArrowRight, Zap } from "lucide-react"
 import { useSession } from "@/lib/auth-client"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
@@ -20,6 +20,7 @@ const PLANS = [
     tracks: [
       { icon: Terminal, label: "Linux", color: "#22d3ee" },
     ],
+    stats: ["36 labs", "4 difficulty levels", "~12 hrs of content"],
     features: [
       "All Linux labs (beginner → advanced)",
       "Real terminal sandboxes",
@@ -51,9 +52,21 @@ const PLANS = [
       "Terraform infrastructure as code",
       "Jenkins CI/CD pipelines",
       "Git version control",
-      "All future tracks included",
     ],
+    callout: "All future tracks included — one plan, forever.",
   },
+]
+
+const COMPARE = [
+  { label: "Linux labs",              starter: true,  pro: true  },
+  { label: "Docker labs",             starter: false, pro: true  },
+  { label: "Terraform labs",          starter: false, pro: true  },
+  { label: "Jenkins labs",            starter: false, pro: true  },
+  { label: "Git labs",                starter: false, pro: true  },
+  { label: "Real terminal sandboxes", starter: true,  pro: true  },
+  { label: "Progress tracking",       starter: true,  pro: true  },
+  { label: "Completion certificate",  starter: true,  pro: true  },
+  { label: "All future tracks",       starter: false, pro: true  },
 ]
 
 export default function PricingPage() {
@@ -108,11 +121,12 @@ export default function PricingPage() {
             <div
               key={plan.id}
               className={cn(
-                "relative rounded-2xl border p-8 flex flex-col",
+                "relative rounded-2xl border p-8 flex flex-col transition-transform",
                 plan.popular
-                  ? `${plan.borderClass} ${plan.bgClass}`
+                  ? `${plan.borderClass} ${plan.bgClass} scale-[1.03] shadow-[0_0_40px_-8px_var(--glow)]`
                   : "border-border bg-card/60"
               )}
+              style={plan.popular ? { "--glow": plan.accentHex } as React.CSSProperties : undefined}
             >
               {plan.popular && (
                 <div
@@ -131,14 +145,16 @@ export default function PricingPage() {
 
               {/* Price */}
               <div className="mb-6">
-                <div className="flex items-end gap-2">
-                  <span className="text-4xl font-black">Free</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black">₹0</span>
+                  <span className="text-sm text-muted-foreground font-medium">/ mo</span>
+                  <span className="text-sm text-muted-foreground line-through">₹X soon</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Paid plans coming soon · ₹ pricing for India</p>
               </div>
 
               {/* Tracks */}
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {plan.tracks.map(({ icon: Icon, label, color }) => (
                   <span
                     key={label}
@@ -151,8 +167,18 @@ export default function PricingPage() {
                 ))}
               </div>
 
+              {/* Stats (Starter only) */}
+              {"stats" in plan && plan.stats && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {(plan.stats as string[]).map(s => (
+                    <span key={s} className="text-xs font-mono text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-md">{s}</span>
+                  ))}
+                </div>
+              )}
+              {!("stats" in plan) && <div className="mb-6" />}
+
               {/* Features */}
-              <ul className="space-y-2.5 mb-8 flex-1">
+              <ul className="space-y-2.5 mb-5 flex-1">
                 {plan.features.map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm">
                     <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: plan.accentHex }} />
@@ -160,6 +186,16 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
+
+              {/* Callout (Pro only) */}
+              {"callout" in plan && plan.callout && (
+                <div
+                  className="text-xs font-semibold px-3 py-2 rounded-lg mb-5"
+                  style={{ background: plan.accentHex + "18", border: `1px solid ${plan.accentHex}35`, color: plan.accentHex }}
+                >
+                  ✦ {plan.callout as string}
+                </div>
+              )}
 
               {/* CTA */}
               <Link
@@ -179,9 +215,42 @@ export default function PricingPage() {
         </div>
 
         {/* Fine print */}
-        <p className="text-center text-xs text-muted-foreground mt-8">
+        <p className="text-center text-xs text-muted-foreground mt-10">
           No credit card required now. Early users get a discount when paid plans launch.
         </p>
+
+        {/* ── Comparison table ── */}
+        <div className="mt-14 max-w-2xl mx-auto">
+          <h2 className="text-center text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-6">Compare plans</h2>
+          <div className="rounded-2xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-5 py-3 font-semibold text-muted-foreground w-full">Feature</th>
+                  <th className="px-5 py-3 font-bold text-cyan-400 whitespace-nowrap">Linux Starter</th>
+                  <th className="px-5 py-3 font-bold text-purple-400 whitespace-nowrap">DevOps Pro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARE.map((row, i) => (
+                  <tr key={row.label} className={cn("border-b border-border last:border-0", i % 2 === 0 ? "bg-card/40" : "")}>
+                    <td className="px-5 py-3 text-muted-foreground">{row.label}</td>
+                    <td className="px-5 py-3 text-center">
+                      {row.starter
+                        ? <Check className="w-4 h-4 text-cyan-400 mx-auto" />
+                        : <X className="w-4 h-4 text-muted-foreground/40 mx-auto" />}
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      {row.pro
+                        ? <Check className="w-4 h-4 text-purple-400 mx-auto" />
+                        : <X className="w-4 h-4 text-muted-foreground/40 mx-auto" />}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       {/* ── Footer ── */}
