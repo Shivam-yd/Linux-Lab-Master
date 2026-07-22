@@ -272,6 +272,9 @@ export default function Workspace() {
 
   const [activeTerminal, setActiveTerminal] = useState<string>("")
   useEffect(() => {
+    if (lab?.title) document.title = `${lab.title} — DevLabMaster`
+  }, [lab?.title])
+  useEffect(() => {
     if (lab?.terminals?.length && !activeTerminal) {
       setActiveTerminal(lab.terminals[0])
     }

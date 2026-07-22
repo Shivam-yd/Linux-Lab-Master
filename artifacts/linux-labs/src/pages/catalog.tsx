@@ -196,6 +196,10 @@ export default function Catalog() {
 
   // Ensure activeTrack stays valid once data loads
   const resolvedTrack = tracks.includes(activeTrack) ? activeTrack : (tracks[0] ?? "linux")
+  useEffect(() => {
+    const label = (TRACK_META[resolvedTrack] ?? DEFAULT_TRACK_META).label
+    document.title = `${label} Labs — DevLabMaster`
+  }, [resolvedTrack])
 
   const handleTrackChange = (track: string) => {
     setActiveTrack(track)

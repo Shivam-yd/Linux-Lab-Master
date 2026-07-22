@@ -73,6 +73,7 @@ export default function ProfilePage() {
   const hasCredentialAccount = accounts?.some(a => a.providerId === "credential") ?? null
   // null = still loading; true/false = determined
 
+  useEffect(() => { document.title = "Profile — DevLabMaster" }, [])
   useEffect(() => {
     if (!isPending && !user) setLocation(`${basePath}/sign-in`)
   }, [isPending, user])

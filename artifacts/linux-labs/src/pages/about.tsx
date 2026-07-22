@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Link } from "wouter"
 import {
   ArrowLeft, Zap, Linkedin, MapPin, Terminal,
@@ -25,6 +26,7 @@ const FEATURES = [
 ]
 
 export default function About() {
+  useEffect(() => { document.title = "About — DevLabMaster" }, [])
   return (
     <div className="min-h-screen bg-background text-foreground">
 

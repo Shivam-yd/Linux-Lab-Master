@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Link } from "wouter"
 import { Redirect } from "wouter"
 import {
@@ -77,6 +78,7 @@ function Orb({ className, color, xRange, yRange, duration }: {
 
 // ─────────────────────────────────────────────────────────────────
 export default function Home() {
+  useEffect(() => { document.title = "DevLabMaster — Master DevOps. One lab at a time." }, [])
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
   const labCount   = labs?.length ?? null
