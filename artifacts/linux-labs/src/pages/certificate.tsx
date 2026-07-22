@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client"
 import { ArrowLeft, Printer, Award, CheckCircle2, Share2, Check } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
+import { useToast } from "@/hooks/use-toast"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -38,6 +39,7 @@ export default function CertificatePage() {
   const { data: labs,     isLoading: labsLoading }     = useListLabs()
   const { data: progress, isLoading: progressLoading } = useListProgress()
   const [certId, setCertId] = useState("")
+  const { toast } = useToast()
 
   const tm       = TRACK_META[track ?? ""] ?? { ...DEFAULT_TRACK_META, label: track ?? "Unknown" }
   const Icon     = tm.icon
@@ -57,14 +59,17 @@ export default function CertificatePage() {
   useEffect(() => {
     const sid = session?.user?.id
     if (!sid || !track || !isComplete || !lastPassedAt) return
-    makeCertId(sid, track, level).then(id => {
+    makeCertId(sid, track, level).then(async id => {
       setCertId(id)
-      fetch(`${basePath}/api/certs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ certId: id, studentName: session?.user?.name || session?.user?.email?.split("@")[0] || "Student", track, level: level ? Number(level) : undefined, earnedAt: lastPassedAt }),
-      }).catch(() => {})
+      const payload = JSON.stringify({ certId: id, studentName: session?.user?.name || session?.user?.email?.split("@")[0] || "Student", track, level: level ? Number(level) : undefined, earnedAt: lastPassedAt })
+      const save = () => fetch(`${basePath}/api/certs`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: payload })
+      const res = await save().catch(() => null)
+      if (!res?.ok) {
+        // retry once after 3 s
+        await new Promise(r => setTimeout(r, 3000))
+        const retry = await save().catch(() => null)
+        if (!retry?.ok) toast({ title: "Certificate not saved", description: "Your certificate was earned but couldn't be registered for public verification. Try reloading the page.", variant: "destructive" })
+      }
     })
   }, [session?.user?.id, track, level, isComplete, lastPassedAt])
 

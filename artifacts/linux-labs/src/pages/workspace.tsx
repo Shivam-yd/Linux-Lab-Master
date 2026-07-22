@@ -729,6 +729,30 @@ export default function Workspace() {
                   <p className="text-xs font-mono text-muted-foreground/60 mt-3 relative z-10">
                     {verifyResult.passed ? "// All objectives verified — see checklist above" : "// See objectives above for details"}
                   </p>
+
+                  {verifyResult.passed && (
+                    <div className="mt-4 pt-3 border-t border-white/10 relative z-10">
+                      <p className="text-xs text-muted-foreground mb-2">How difficult was this lab?</p>
+                      <div className="flex gap-2">
+                        {(["easy", "ok", "hard"] as const).map(r => (
+                          <button
+                            key={r}
+                            onClick={() => submitRating(r)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all",
+                              myRating === r
+                                ? r === "easy" ? "bg-green-500/20 border-green-500/50 text-green-400"
+                                : r === "ok"   ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
+                                :                "bg-red-500/20 border-red-500/50 text-red-400"
+                                : "border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                            )}
+                          >
+                            {r === "easy" ? "Easy" : r === "ok" ? "Just right" : "Hard"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
