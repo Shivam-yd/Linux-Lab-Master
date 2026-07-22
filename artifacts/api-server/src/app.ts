@@ -42,6 +42,10 @@ if (!process.env.SESSION_SECRET) {
 // the correct Access-Control-Allow-* headers and Set-Cookie is honoured.
 app.use(cors({ credentials: true, origin: true }));
 
+// Trust the first proxy hop (Replit's reverse proxy sends X-Forwarded-For).
+// Required for express-rate-limit to identify clients correctly.
+app.set("trust proxy", 1);
+
 // Rate-limit auth endpoints to blunt brute-force attacks.
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false });
 
