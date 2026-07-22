@@ -8,7 +8,7 @@ import {
   Trophy, Medal, Crown,
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Target,
-  Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList,
+  Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList, Star,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -102,8 +102,8 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration"
-  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration"]
+  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "ratings"
+  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "ratings"]
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
@@ -191,6 +191,14 @@ export default function AdminPage() {
     queryFn: () => fetchAdmin("/api/admin/registration/audit"),
     retry: false,
     enabled: tab === "registration",
+  })
+
+  type LabRatingRow = { lab_id: string; easy: number; ok: number; hard: number; total: number }
+  const labRatings = useQuery<LabRatingRow[]>({
+    queryKey: ["admin", "lab-ratings"],
+    queryFn: () => fetchAdmin("/api/admin/lab-ratings"),
+    retry: false,
+    enabled: tab === "ratings",
   })
 
   type SummaryStats = { active_sessions: string; pending_requests: string; open_invites: string }
@@ -509,6 +517,7 @@ export default function AdminPage() {
                 { id: "sessions",        label: "Sessions",        icon: Activity  },
                 { id: "password-resets", label: "Password Resets", icon: KeyRound  },
               { id: "registration",    label: "Registration",   icon: Lock      },
+              { id: "ratings",         label: "Lab Ratings",    icon: Star      },
               ] as const).map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -1179,6 +1188,76 @@ export default function AdminPage() {
                   )}
                 </div>
 
+              </div>
+            )}
+
+            {/* ── Lab Ratings ── */}
+            {tab === "ratings" && (
+              <div className="space-y-8">
+                {labRatings.isLoading && (
+                  <div className="text-center py-20 text-muted-foreground text-sm animate-pulse">Loading ratings…</div>
+                )}
+                {!labRatings.isLoading && (labRatings.data?.length ?? 0) === 0 && (
+                  <div className="text-center py-20 space-y-2">
+                    <Star className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                    <p className="text-muted-foreground text-sm">No ratings submitted yet.</p>
+                  </div>
+                )}
+                {labRatings.data && labRatings.data.length > 0 && (() => {
+                  const byTrack: Record<string, typeof labRatings.data> = {}
+                  for (const row of labRatings.data) {
+                    const track = labMeta[row.lab_id]?.track ?? "unknown"
+                    ;(byTrack[track] ??= []).push(row)
+                  }
+                  return Object.entries(byTrack).map(([track, rows]) => {
+                    const tm = TRACK_META[track] ?? DEFAULT_TRACK_META
+                    const totalRatings = rows.reduce((a, r) => a + r.total, 0)
+                    const totalHard    = rows.reduce((a, r) => a + r.hard,  0)
+                    const hardPct = totalRatings > 0 ? Math.round((totalHard / totalRatings) * 100) : 0
+                    return (
+                      <div key={track}>
+                        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border/40">
+                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", tm.bgClass)}>
+                            <tm.icon className={cn("w-3.5 h-3.5", tm.accentClass)} />
+                          </div>
+                          <p className={cn("text-sm font-bold", tm.accentClass)}>{tm.label}</p>
+                          <p className="text-xs text-muted-foreground">{rows.length} lab{rows.length !== 1 ? "s" : ""}</p>
+                          <div className="flex-1" />
+                          <span className="text-xs text-muted-foreground">{totalRatings} ratings · {hardPct}% found it hard</span>
+                        </div>
+
+                        <div className="grid grid-cols-[1fr_52px_52px_52px_180px] gap-x-4 px-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          <span>Lab</span>
+                          <span className="text-right text-green-400">Easy</span>
+                          <span className="text-right text-amber-400">OK</span>
+                          <span className="text-right text-red-400">Hard</span>
+                          <span className="text-right">Distribution</span>
+                        </div>
+
+                        <div>
+                          {rows.map(row => {
+                            const easyPct = row.total > 0 ? (row.easy / row.total) * 100 : 0
+                            const okPct   = row.total > 0 ? (row.ok   / row.total) * 100 : 0
+                            const hardPct = row.total > 0 ? (row.hard / row.total) * 100 : 0
+                            return (
+                              <div key={row.lab_id} className="grid grid-cols-[1fr_52px_52px_52px_180px] gap-x-4 items-center px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors">
+                                <p className="text-sm truncate text-foreground/90">{labMeta[row.lab_id]?.title ?? row.lab_id}</p>
+                                <span className="text-sm font-mono text-right text-green-400">{row.easy}</span>
+                                <span className="text-sm font-mono text-right text-amber-400">{row.ok}</span>
+                                <span className="text-sm font-mono text-right text-red-400">{row.hard}</span>
+                                <div className="flex h-2 rounded-full overflow-hidden bg-white/5">
+                                  <div className="bg-green-400/70 h-full" style={{ width: `${easyPct}%` }} />
+                                  <div className="bg-amber-400/70 h-full" style={{ width: `${okPct}%` }} />
+                                  <div className="bg-red-400/70  h-full" style={{ width: `${hardPct}%` }} />
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
               </div>
             )}
 
