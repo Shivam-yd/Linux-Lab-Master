@@ -102,7 +102,7 @@ export default function Home() {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="sticky top-0 z-20 border-b border-border/70 bg-white/80 backdrop-blur-md"
+        className="sticky top-0 z-20 border-b border-border/60 bg-card/80 backdrop-blur-md"
       >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -132,7 +132,7 @@ export default function Home() {
         <motion.div variants={heroContainer} initial="hidden" animate="show">
 
           {/* Badge */}
-          <motion.div variants={heroItem} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-white/80 text-xs font-mono font-semibold text-muted-foreground mb-8 shadow-sm">
+          <motion.div variants={heroItem} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card/60 text-xs font-mono font-semibold text-muted-foreground mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
             {labCount !== null ? `${labCount} labs across ${trackCount} tracks` : "Labs across 5 tracks"}
           </motion.div>
@@ -163,7 +163,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/sign-in"
-                className="px-8 py-3.5 rounded-xl text-sm font-bold border border-border bg-white hover:bg-muted/60 transition-colors shadow-sm"
+                className="px-8 py-3.5 rounded-xl text-sm font-bold border border-border bg-card hover:bg-muted/40 transition-colors"
               >
                 Sign In
               </Link>
@@ -188,7 +188,7 @@ export default function Home() {
               key={label}
               variants={trackCard}
               whileHover={{ y: -3, scale: 1.03, transition: { duration: 0.18 } }}
-              className="rounded-xl border border-border bg-white/90 p-5 flex flex-col items-center gap-3 text-center hover:border-primary/40 hover:shadow-md transition-shadow group cursor-default"
+              className="rounded-xl border border-border bg-card/60 p-5 flex flex-col items-center gap-3 text-center hover:border-primary/30 transition-colors group cursor-default"
             >
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center"
@@ -216,7 +216,7 @@ export default function Home() {
               key={title}
               variants={featureCard}
               whileHover={{ y: -5, boxShadow: "0 12px 32px rgba(0,0,0,0.09)", transition: { duration: 0.2 } }}
-              className="rounded-2xl border border-border bg-white/90 p-6 group cursor-default"
+              className="rounded-2xl border border-border bg-card/60 p-6 group cursor-default"
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
@@ -235,7 +235,7 @@ export default function Home() {
       <div className="h-32 pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(13,148,136,0.07) 0%, transparent 70%)" }} />
 
       {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-border/70 py-4 bg-white/80 backdrop-blur-md">
+      <footer className="relative z-10 border-t border-border/60 py-4 bg-card/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>DevLabMaster — DevOps practice range</span>
           <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
