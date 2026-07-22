@@ -995,7 +995,7 @@ export default function AdminPage() {
                                 "flex flex-col items-start gap-2 p-4 rounded-xl border text-left transition-all duration-150 disabled:opacity-60",
                                 isActive
                                   ? active
-                                  : "border-border/40 bg-card/40 hover:bg-card/80 hover:border-border text-muted-foreground",
+                                  : "border-border/40 bg-card hover:bg-muted/40 hover:border-border text-muted-foreground",
                               )}
                             >
                               <Icon className={cn("w-4 h-4", isActive ? icon_active : "text-muted-foreground/60")} />
@@ -1012,7 +1012,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* ── Approved emails + Account requests side by side ── */}
-                <div className="grid grid-cols-2 gap-0 items-start divide-x divide-border border-t border-border/50 pt-6">
+                <div className="grid grid-cols-2 gap-0 items-start divide-x divide-border bg-card border border-border/50 rounded-xl px-0 py-5 mt-2">
 
                 {/* ── Approved emails (invites) ── */}
                 <div className="space-y-3 pr-6">
