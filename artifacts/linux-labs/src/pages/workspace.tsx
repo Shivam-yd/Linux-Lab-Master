@@ -100,12 +100,17 @@ export default function Workspace() {
   }
 
   // Load any previously submitted rating when the lab is already passed.
+  // AbortController prevents a stale response for a previous lab from
+  // overwriting the rating of the current lab when labId changes mid-flight.
   useEffect(() => {
-    if (!verifyResult?.passed || !labId) return
-    fetch(`${basePath}/api/labs/${labId}/rating`, { credentials: "include" })
+    setMyRating(null)
+    if (!labId || !verifyResult?.passed) return
+    const controller = new AbortController()
+    fetch(`${basePath}/api/labs/${labId}/rating`, { credentials: "include", signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.mine) setMyRating(d.mine) })
       .catch(() => {})
+    return () => controller.abort()
   }, [labId, verifyResult?.passed])
 
   // Seed verifyResult from stored lastResults when progress loads or lab changes.
