@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Link } from "wouter"
 import { useQuery } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
@@ -119,6 +119,16 @@ export default function AdminPage() {
     window.addEventListener("popstate", onPop)
     return () => window.removeEventListener("popstate", onPop)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onScroll = () => setScrolled(el.scrollTop > 0)
+    el.addEventListener("scroll", onScroll, { passive: true })
+    return () => el.removeEventListener("scroll", onScroll)
+  }, [])
+
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null)
   const [confirmReset, setConfirmReset] = useState<StudentRow | null>(null)
   const [confirmDeleteReset, setConfirmDeleteReset] = useState<PasswordResetRequest | null>(null)
@@ -488,7 +498,7 @@ export default function AdminPage() {
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md">
+      <header className={cn("sticky top-0 z-20 border-b transition-all duration-200", scrolled ? "border-primary/20 bg-primary/[0.07] backdrop-blur-md" : "border-transparent")}>
         <div className="px-6 py-4 flex items-center justify-between gap-4">
 
           {/* Left: back link + divider + brand */}
@@ -529,7 +539,7 @@ export default function AdminPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Main scrollable area ── */}
-        <div className="flex-1 overflow-y-auto min-w-0">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto min-w-0">
           <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
             {/* Summary cards */}
