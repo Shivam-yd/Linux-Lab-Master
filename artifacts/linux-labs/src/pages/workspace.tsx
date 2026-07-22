@@ -94,9 +94,19 @@ export default function Workspace() {
     await fetch(`${basePath}/api/labs/${labId}/rating`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ rating }),
     }).catch(() => {})
   }
+
+  // Load any previously submitted rating when the lab is already passed.
+  useEffect(() => {
+    if (!verifyResult?.passed || !labId) return
+    fetch(`${basePath}/api/labs/${labId}/rating`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.mine) setMyRating(d.mine) })
+      .catch(() => {})
+  }, [labId, verifyResult?.passed])
 
   // Seed verifyResult from stored lastResults when progress loads or lab changes.
   // Compute score from lastResults directly so it matches the checks shown —
