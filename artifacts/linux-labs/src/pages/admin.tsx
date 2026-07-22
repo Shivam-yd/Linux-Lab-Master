@@ -275,7 +275,8 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/registration/requests/${id}/approve`, { method: "POST" })
       if (!res.ok) throw new Error("Failed to approve request")
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      setSelectedRequestIds((prev) => { const next = new Set(prev); next.delete(id); return next })
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
@@ -318,7 +319,8 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/registration/requests/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to deny request")
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      setSelectedRequestIds((prev) => { const next = new Set(prev); next.delete(id); return next })
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "audit"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
