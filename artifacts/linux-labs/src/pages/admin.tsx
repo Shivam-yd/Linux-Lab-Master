@@ -128,6 +128,7 @@ export default function AdminPage() {
   const [newInviteEmail, setNewInviteEmail] = useState("")
   const [openLevels, setOpenLevels] = useState<Set<string>>(new Set())
   const [leaderboardSearch, setLeaderboardSearch] = useState("")
+  const [labSearch, setLabSearch] = useState("")
   const { toast } = useToast()
 
   const leaderboard = useQuery<StudentRow[]>({
@@ -1087,7 +1088,11 @@ export default function AdminPage() {
                             }
                             {inv.expiresAt && !inv.usedAt && !isExpired && (
                               <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
-                                exp {new Date(inv.expiresAt).toLocaleDateString()}
+                                {(() => {
+                                  const ms = new Date(inv.expiresAt).getTime() - Date.now()
+                                  const h = Math.ceil(ms / 3_600_000)
+                                  return h < 24 ? `exp ${h}h` : `exp ${Math.ceil(h / 24)}d`
+                                })()}
                               </span>
                             )}
                             <button
@@ -1354,10 +1359,20 @@ export default function AdminPage() {
             {/* ── Labs ── */}
             {tab === "labs" && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Beaker className="w-4 h-4 text-muted-foreground" />
                   <p className="text-sm font-semibold">Lab visibility</p>
                   <span className="text-xs text-muted-foreground">— toggle to hide a broken lab from students without a code deploy</span>
+                  <div className="ml-auto flex items-center gap-2 min-w-[200px] relative">
+                    <Search className="absolute left-2.5 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Search labs…"
+                      value={labSearch}
+                      onChange={e => setLabSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
                 </div>
                 {adminLabs.isLoading && (
                   <div className="text-center py-20 text-muted-foreground text-sm animate-pulse">Loading labs…</div>
@@ -1369,8 +1384,13 @@ export default function AdminPage() {
                   </div>
                 )}
                 {adminLabs.data && adminLabs.data.length > 0 && (() => {
-                  const byTrack: Record<string, typeof adminLabs.data> = {}
-                  for (const lab of adminLabs.data) {
+                  const q = labSearch.trim().toLowerCase()
+                  const filtered = q ? adminLabs.data!.filter(l => l.title.toLowerCase().includes(q)) : adminLabs.data!
+                  if (q && filtered.length === 0) return (
+                    <div className="text-center py-12 text-muted-foreground text-sm">No labs match &ldquo;{labSearch}&rdquo;</div>
+                  )
+                  const byTrack: Record<string, typeof filtered> = {}
+                  for (const lab of filtered) {
                     ;(byTrack[lab.track] ??= []).push(lab)
                   }
                   return Object.entries(byTrack).map(([track, trackLabs]) => {
@@ -1394,7 +1414,7 @@ export default function AdminPage() {
                         <div className="divide-y divide-border/30">
                           {Object.entries(byLevel).sort(([a], [b]) => (a === "—" ? 1 : b === "—" ? -1 : Number(a) - Number(b))).map(([level, labs]) => {
                             const key = `${track}:${level}`
-                            const open = openLevels.has(key)
+                            const open = openLevels.has(key) || q.length > 0
                             const toggle = () => setOpenLevels(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
                             const onlineCount = labs.filter(l => l.active).length
                             return (
