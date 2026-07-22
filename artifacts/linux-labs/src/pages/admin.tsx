@@ -1050,7 +1050,7 @@ export default function AdminPage() {
                       placeholder="student@example.com"
                       value={newInviteEmail}
                       onChange={e => setNewInviteEmail(e.target.value)}
-                      className="flex-1 min-w-0 bg-card border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
+                      className="flex-1 min-w-0 bg-transparent border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
                     />
                     <button
                       type="submit"
