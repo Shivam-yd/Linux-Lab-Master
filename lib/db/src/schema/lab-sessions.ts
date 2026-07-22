@@ -183,6 +183,35 @@ export const labRatingsTable = pgTable(
 );
 export type LabRatingRow = typeof labRatingsTable.$inferSelect;
 
+// ─── Subscriptions & plan overrides ──────────────────────────────────────────
+
+/** One active subscription per user (upserted on plan change). */
+export const subscriptionsTable = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().unique(),
+  plan: text("plan").notNull().default("linux-starter"), // 'linux-starter' | 'devops-pro'
+  status: text("status").notNull().default("active"),    // 'active' | 'cancelled' | 'past_due'
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  renewsAt: timestamp("renews_at", { withTimezone: true }),
+  providerRef: text("provider_ref"), // payment provider reference ID (Razorpay/Stripe)
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+export type SubscriptionRow = typeof subscriptionsTable.$inferSelect;
+
+/** Admin-granted plan overrides — bypass the payment flow. */
+export const planOverridesTable = pgTable("plan_overrides", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().unique(),
+  plan: text("plan").notNull(), // 'linux-starter' | 'devops-pro'
+  grantedBy: text("granted_by").notNull(), // admin email
+  expiresAt: timestamp("expires_at", { withTimezone: true }), // null = never expires
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export type PlanOverrideRow = typeof planOverridesTable.$inferSelect;
+
 /** One row written after every sync attempt (background or manual). */
 export const labSyncLogTable = pgTable("lab_sync_log", {
   id: serial("id").primaryKey(),
