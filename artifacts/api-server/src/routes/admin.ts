@@ -15,7 +15,7 @@ import {
   type RegistrationRequestRow,
   type RemoteLabRow,
 } from "@workspace/db/schema";
-import { getAllLabs } from "../lib/labs/registry";
+import { BUILTIN_LABS } from "../lib/labs/registry";
 import { auth } from "../lib/auth";
 import { stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
@@ -507,24 +507,39 @@ router.post("/registration/requests/bulk-approve", async (req, res): Promise<voi
 });
 
 /**
- * GET /admin/labs — all labs (built-in + remote) with active flag for remote ones.
- * Built-in labs are always active; only remote labs can be toggled.
+ * GET /admin/labs — all labs (built-in + remote) with active flag.
+ * Unlike the student-facing endpoint, this returns ALL remote labs regardless
+ * of their active status so admins can see and toggle disabled labs.
+ * Built-in labs that are overridden by a remote entry appear as remote.
  */
 router.get("/labs", async (_req, res): Promise<void> => {
-  const [all, remoteRows] = await Promise.all([
-    getAllLabs(),
-    db.select({ id: remoteLabsTable.id, active: remoteLabsTable.active }).from(remoteLabsTable),
-  ]);
-  const activeById = new Map((remoteRows as Pick<RemoteLabRow, "id" | "active">[]).map((r) => [r.id, r.active]));
-  res.json(all.map((l) => ({
-    id: l.id,
-    title: l.title,
-    track: l.track,
-    level: l.level ?? null,
-    order: l.order,
-    isRemote: activeById.has(l.id),
-    active: activeById.has(l.id) ? activeById.get(l.id) : true,
-  })));
+  // Fetch every remote row — no active filter, so admins can see hidden labs.
+  const allRemote = (await db
+    .select({ id: remoteLabsTable.id, definition: remoteLabsTable.definition, active: remoteLabsTable.active })
+    .from(remoteLabsTable)) as Pick<RemoteLabRow, "id" | "definition" | "active">[];
+
+  const remoteIdSet = new Set(allRemote.map((r) => r.id));
+
+  // Builtins that have no remote counterpart — always active, not toggleable.
+  const builtinEntries = BUILTIN_LABS
+    .filter((l) => !remoteIdSet.has(l.id))
+    .map((l) => ({ id: l.id, title: l.title, track: l.track, level: l.level ?? null, order: l.order, isRemote: false, active: true }));
+
+  // All remote labs (active + inactive) — include overrides of builtins.
+  const remoteEntries = allRemote.map((r) => {
+    const def = r.definition as Record<string, unknown>;
+    return {
+      id: r.id,
+      title: String(def.title ?? r.id),
+      track: String(def.track ?? ""),
+      level: (def.level as number | null) ?? null,
+      order: Number(def.order ?? 0),
+      isRemote: true,
+      active: r.active,
+    };
+  });
+
+  res.json([...builtinEntries, ...remoteEntries].sort((a, b) => a.order - b.order));
 });
 
 /** PUT /admin/labs/:labId/active — enable or disable a remote lab */

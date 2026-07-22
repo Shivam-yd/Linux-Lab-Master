@@ -42,7 +42,7 @@ export const LABS = BUILTIN_LABS;
 async function getRemoteLabs(): Promise<LabDefinition[]> {
   try {
     const rows = await db.select().from(remoteLabsTable).where(eq(remoteLabsTable.active, true));
-    return rows.map((r) => r.definition as unknown as LabDefinition);
+    return rows.map((r: { definition: unknown }) => r.definition as unknown as LabDefinition);
   } catch {
     // DB might not be ready during very early startup — fail gracefully
     return [];
