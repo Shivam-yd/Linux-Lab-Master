@@ -827,7 +827,7 @@ export default function Workspace() {
                     <TabsTrigger 
                       key={term} 
                       value={term}
-                      className="data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
+                      className="data-[state=active]:bg-[#050505] data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
                     >
                       <Terminal className="w-3.5 h-3.5 mr-2 opacity-70" />
                       {term}
