@@ -58,9 +58,20 @@ export async function getAllLabs(): Promise<LabDefinition[]> {
   const remote = await getRemoteLabs();
   const remoteById = new Map(remote.map((l) => [l.id, l]));
 
-  // Start with built-ins, override any whose ID exists in remote
-  const merged = BUILTIN_LABS.map((l) => remoteById.get(l.id) ?? l);
-  // Append remote labs that aren't in built-ins
+  // Fetch ALL remote IDs (including inactive) so we can suppress builtins whose
+  // remote counterpart has been disabled — without this, disabling a remote lab
+  // that overrides a builtin would silently show the builtin to students.
+  const allRemoteIds = await db
+    .select({ id: remoteLabsTable.id })
+    .from(remoteLabsTable)
+    .catch(() => [] as { id: string }[]);
+  const remoteIdSet = new Set(allRemoteIds.map((r) => r.id));
+
+  // Include a builtin only if it has no remote counterpart, OR its remote counterpart is active.
+  const merged = BUILTIN_LABS
+    .filter((l) => !remoteIdSet.has(l.id) || remoteById.has(l.id))
+    .map((l) => remoteById.get(l.id) ?? l);
+  // Append active remote labs that have no builtin equivalent.
   for (const lab of remote) {
     if (!BUILTIN_LABS.some((b) => b.id === lab.id)) {
       merged.push(lab);
