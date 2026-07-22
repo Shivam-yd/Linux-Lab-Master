@@ -575,8 +575,8 @@ export default function AdminPage() {
                     className={cn(
                       "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150",
                       tab === id
-                        ? "bg-card border border-border/60 text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
+                        ? "bg-primary/10 border border-primary/25 text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-primary/5",
                     )}
                   >
                     <Icon className="w-4 h-4" />
