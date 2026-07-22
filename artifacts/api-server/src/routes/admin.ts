@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, inArray } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
 import { db } from "@workspace/db";
 import {
@@ -8,10 +8,14 @@ import {
   registrationSettingsTable,
   registrationInvitesTable,
   registrationRequestsTable,
+  remoteLabsTable,
   userTable,
   labRatingsTable,
   certRecordsTable,
+  type RegistrationRequestRow,
+  type RemoteLabRow,
 } from "@workspace/db/schema";
+import { getAllLabs } from "../lib/labs/registry";
 import { auth } from "../lib/auth";
 import { stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
@@ -475,6 +479,68 @@ router.delete("/registration/requests/:id", async (req, res): Promise<void> => {
   res.status(204).send();
 });
 
+/** POST /admin/registration/requests/bulk-approve — approve multiple pending requests at once */
+router.post("/registration/requests/bulk-approve", async (req, res): Promise<void> => {
+  const ids: unknown = req.body?.ids;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ error: "ids must be a non-empty array" }); return;
+  }
+  const parsed = ids.map((id) => parseInt(id as string, 10)).filter((n) => !isNaN(n));
+  if (parsed.length === 0) { res.status(400).json({ error: "No valid ids" }); return; }
+
+  const rows = await db
+    .select()
+    .from(registrationRequestsTable)
+    .where(inArray(registrationRequestsTable.id, parsed));
+  const pending = (rows as RegistrationRequestRow[]).filter((r) => r.status === "pending");
+  if (pending.length === 0) { res.json({ approved: 0 }); return; }
+
+  await db
+    .insert(registrationInvitesTable)
+    .values(pending.map((r) => ({ email: r.email })))
+    .onConflictDoNothing();
+  await db
+    .update(registrationRequestsTable)
+    .set({ status: "approved" })
+    .where(inArray(registrationRequestsTable.id, pending.map((r) => r.id)));
+  res.json({ approved: pending.length });
+});
+
+/**
+ * GET /admin/labs — all labs (built-in + remote) with active flag for remote ones.
+ * Built-in labs are always active; only remote labs can be toggled.
+ */
+router.get("/labs", async (_req, res): Promise<void> => {
+  const [all, remoteRows] = await Promise.all([
+    getAllLabs(),
+    db.select({ id: remoteLabsTable.id, active: remoteLabsTable.active }).from(remoteLabsTable),
+  ]);
+  const activeById = new Map((remoteRows as Pick<RemoteLabRow, "id" | "active">[]).map((r) => [r.id, r.active]));
+  res.json(all.map((l) => ({
+    id: l.id,
+    title: l.title,
+    track: l.track,
+    level: l.level ?? null,
+    order: l.order,
+    isRemote: activeById.has(l.id),
+    active: activeById.has(l.id) ? activeById.get(l.id) : true,
+  })));
+});
+
+/** PUT /admin/labs/:labId/active — enable or disable a remote lab */
+router.put("/labs/:labId/active", async (req, res): Promise<void> => {
+  const { labId } = req.params;
+  const { active } = req.body ?? {};
+  if (typeof active !== "boolean") { res.status(400).json({ error: "active must be a boolean" }); return; }
+  const result = await db
+    .update(remoteLabsTable)
+    .set({ active })
+    .where(eq(remoteLabsTable.id, labId))
+    .returning({ id: remoteLabsTable.id });
+  if (result.length === 0) { res.status(404).json({ error: "Lab not found or not a remote lab" }); return; }
+  res.json({ ok: true, id: labId, active });
+});
+
 /**
  * GET /admin/registration/audit
  * Chronological list of registration events (invites, registrations, requests).
@@ -498,7 +564,8 @@ router.get("/registration/audit", async (_req, res): Promise<void> => {
  * or level but never visited the certificate page (so no record was written).
  * Safe to run multiple times — uses upsert on certId PK.
  */
-router.post("/certs/backfill", async (_req, res): Promise<void> => {
+router.post("/certs/backfill", async (req, res): Promise<void> => {
+  const dryRun = req.query.dryRun === "true";
   function makeCertId(studentId: string, track: string, level?: number | null): string {
     const key = level != null ? `${studentId}:${track}:level:${level}` : `${studentId}:${track}`;
     return createHash("sha256").update(key).digest("hex").slice(0, 16).toUpperCase();
@@ -576,7 +643,12 @@ router.post("/certs/backfill", async (_req, res): Promise<void> => {
     earnedAt: new Date(r.earned_at),
   }));
 
-  if (records.length === 0) { res.json({ upserted: 0 }); return; }
+  if (records.length === 0) { res.json({ upserted: 0, dryRun }); return; }
+
+  if (dryRun) {
+    res.json({ upserted: records.length, dryRun: true, records });
+    return;
+  }
 
   await db.insert(certRecordsTable)
     .values(records)
@@ -585,7 +657,7 @@ router.post("/certs/backfill", async (_req, res): Promise<void> => {
       set: { studentName: sql`excluded.student_name`, earnedAt: sql`excluded.earned_at` },
     });
 
-  res.json({ upserted: records.length });
+  res.json({ upserted: records.length, dryRun: false });
 });
 
 export default router;

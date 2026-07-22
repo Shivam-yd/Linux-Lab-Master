@@ -9,6 +9,7 @@ import {
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Target,
   Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList, Star,
+  Eye, EyeOff, Beaker,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -102,8 +103,8 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "ratings"
-  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "ratings"]
+  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "ratings" | "labs"
+  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "ratings", "labs"]
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
@@ -122,6 +123,7 @@ export default function AdminPage() {
   const [confirmApprovePwReset, setConfirmApprovePwReset] = useState<PasswordResetRequest | null>(null)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
   const [confirmDenyRequest, setConfirmDenyRequest] = useState<{ id: number; name: string; email: string } | null>(null)
+  const [selectedRequestIds, setSelectedRequestIds] = useState<Set<number>>(new Set())
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
   const [newInviteExpiry, setNewInviteExpiry] = useState("")
@@ -201,6 +203,14 @@ export default function AdminPage() {
     enabled: tab === "ratings",
   })
 
+  type AdminLabRow = { id: string; title: string; track: string; level: number | null; order: number; isRemote: boolean; active: boolean }
+  const adminLabs = useQuery<AdminLabRow[]>({
+    queryKey: ["admin", "labs"],
+    queryFn: () => fetchAdmin("/api/admin/labs"),
+    retry: false,
+    enabled: tab === "labs",
+  })
+
   type SummaryStats = { active_sessions: string; pending_requests: string; open_invites: string }
   const summary = useQuery<SummaryStats>({
     queryKey: ["admin", "summary"],
@@ -270,6 +280,37 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
     },
+  })
+
+  const bulkApprove = useMutation({
+    mutationFn: async (ids: number[]) => {
+      const res = await fetch("/api/admin/registration/requests/bulk-approve", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      })
+      if (!res.ok) throw new Error("Failed to bulk approve")
+      return res.json() as Promise<{ approved: number }>
+    },
+    onSuccess: (data) => {
+      setSelectedRequestIds(new Set())
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
+      toast({ title: `Approved ${data.approved} request${data.approved !== 1 ? "s" : ""}` })
+    },
+    onError: (err: Error) => toast({ title: "Bulk approve failed", description: err.message, variant: "destructive" }),
+  })
+
+  const toggleLabActive = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const res = await fetch(`/api/admin/labs/${encodeURIComponent(id)}/active`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active }),
+      })
+      if (!res.ok) throw new Error("Failed to update lab")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "labs"] }),
+    onError: (err: Error) => toast({ title: "Failed to update lab", description: err.message, variant: "destructive" }),
   })
 
   const denyRequest = useMutation({
@@ -516,23 +557,32 @@ export default function AdminPage() {
                 { id: "cohort",          label: "Lab Stats",       icon: BarChart3 },
                 { id: "sessions",        label: "Sessions",        icon: Activity  },
                 { id: "password-resets", label: "Password Resets", icon: KeyRound  },
-              { id: "registration",    label: "Registration",   icon: Lock      },
-              { id: "ratings",         label: "Lab Ratings",    icon: Star      },
-              ] as const).map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setTabAndHash(id)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150",
-                    tab === id
-                      ? "bg-card border border-border/60 text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
-              ))}
+                { id: "registration",    label: "Registration",   icon: Lock      },
+                { id: "ratings",         label: "Lab Ratings",    icon: Star      },
+                { id: "labs",            label: "Labs",            icon: Beaker    },
+              ] as const).map(({ id, label, icon: Icon }) => {
+                const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setTabAndHash(id)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150",
+                      tab === id
+                        ? "bg-card border border-border/60 text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                    {pendingCount > 0 && (
+                      <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
 
             {/* ── Leaderboard ── */}
@@ -1068,83 +1118,132 @@ export default function AdminPage() {
 
                 {/* ── Account requests ── */}
                 <div className="space-y-3 pl-6">
-                  <div className="flex items-center gap-2">
-                    <UserPlus className="w-4 h-4 text-muted-foreground" />
-                    <p className="text-sm font-semibold">Account requests</p>
-                    {!regRequests.isLoading && (regRequests.data?.length ?? 0) > 0 && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
-                        {regRequests.data!.length}
-                      </span>
-                    )}
-                    {(regRequests.data?.filter((r: { status: string }) => r.status === "pending").length ?? 0) > 0 && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-semibold">
-                        {regRequests.data!.filter((r: { status: string }) => r.status === "pending").length} pending
-                      </span>
-                    )}
-                  </div>
-
-                  {regRequests.isLoading && (
-                    <p className="text-sm text-muted-foreground animate-pulse py-4">Loading…</p>
-                  )}
-                  {!regRequests.isLoading && regRequests.data?.length === 0 && (
-                    <div className="flex flex-col items-center gap-2 py-8">
-                      <UserPlus className="w-7 h-7 text-muted-foreground/25" />
-                      <p className="text-sm text-muted-foreground">No account requests yet.</p>
-                    </div>
-                  )}
-                  {regRequests.data && regRequests.data.length > 0 && (
-                    <div className="space-y-1">
-                      {regRequests.data.map((r: { id: number; name: string; email: string; status: string; createdAt: string }) => (
-                        <div key={r.id} className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors",
-                          r.status !== "pending" && "opacity-50"
-                        )}>
-                          <div className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                            r.status === "pending"  ? "bg-amber-500/15 text-amber-400" :
-                            r.status === "approved" ? "bg-green-500/15 text-green-400" :
-                                                      "bg-muted/20 text-muted-foreground",
-                          )}>
-                            {r.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{r.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{r.email}</p>
-                          </div>
-                          <span className={cn(
-                            "text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0",
-                            r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
-                            r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
-                                                      "text-muted-foreground border-border bg-white/5",
-                          )}>{r.status}</span>
-                          <span className="text-xs text-muted-foreground font-mono w-14 text-right shrink-0">{relativeTime(r.createdAt)}</span>
-                          {r.status === "pending" && (
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <button
-                                onClick={() => approveRequest.mutate(r.id)}
-                                disabled={approveRequest.isPending && approveRequest.variables === r.id}
-                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 disabled:opacity-40 transition-colors font-semibold"
-                              >
-                                {approveRequest.isPending && approveRequest.variables === r.id
-                                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                                  : <UserCheck className="w-3 h-3" />}
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => setConfirmDenyRequest({ id: r.id, name: r.name, email: r.email })}
-                                disabled={denyRequest.isPending && denyRequest.variables === r.id}
-                                title="Deny"
-                                className="p-1.5 rounded-lg border border-border/40 text-muted-foreground hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/8 disabled:opacity-40 transition-colors"
-                              >
-                                {denyRequest.isPending && denyRequest.variables === r.id
-                                  ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
-                              </button>
-                            </div>
+                  {(() => {
+                    const pending = regRequests.data?.filter((r: { status: string }) => r.status === "pending") ?? []
+                    const allPendingSelected = pending.length > 0 && pending.every((r: { id: number }) => selectedRequestIds.has(r.id))
+                    return (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <UserPlus className="w-4 h-4 text-muted-foreground" />
+                          <p className="text-sm font-semibold">Account requests</p>
+                          {!regRequests.isLoading && (regRequests.data?.length ?? 0) > 0 && (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
+                              {regRequests.data!.length}
+                            </span>
+                          )}
+                          {pending.length > 0 && (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-semibold">
+                              {pending.length} pending
+                            </span>
+                          )}
+                          {selectedRequestIds.size > 0 && (
+                            <button
+                              onClick={() => bulkApprove.mutate([...selectedRequestIds])}
+                              disabled={bulkApprove.isPending}
+                              className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 disabled:opacity-40 transition-colors font-semibold"
+                            >
+                              {bulkApprove.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
+                              Approve selected ({selectedRequestIds.size})
+                            </button>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+
+                        {regRequests.isLoading && (
+                          <p className="text-sm text-muted-foreground animate-pulse py-4">Loading…</p>
+                        )}
+                        {!regRequests.isLoading && regRequests.data?.length === 0 && (
+                          <div className="flex flex-col items-center gap-2 py-8">
+                            <UserPlus className="w-7 h-7 text-muted-foreground/25" />
+                            <p className="text-sm text-muted-foreground">No account requests yet.</p>
+                          </div>
+                        )}
+                        {regRequests.data && regRequests.data.length > 0 && (
+                          <div className="space-y-1">
+                            {/* Select-all row */}
+                            {pending.length > 1 && (
+                              <div className="flex items-center gap-3 px-3 py-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={allPendingSelected}
+                                  onChange={(e) => {
+                                    const next = new Set(selectedRequestIds)
+                                    if (e.target.checked) pending.forEach((r: { id: number }) => next.add(r.id))
+                                    else pending.forEach((r: { id: number }) => next.delete(r.id))
+                                    setSelectedRequestIds(next)
+                                  }}
+                                  className="w-3.5 h-3.5 rounded accent-green-500 cursor-pointer"
+                                />
+                                <span className="text-xs text-muted-foreground">Select all pending</span>
+                              </div>
+                            )}
+                            {regRequests.data.map((r: { id: number; name: string; email: string; status: string; createdAt: string }) => (
+                              <div key={r.id} className={cn(
+                                "flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors",
+                                r.status !== "pending" && "opacity-50"
+                              )}>
+                                {r.status === "pending" ? (
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedRequestIds.has(r.id)}
+                                    onChange={(e) => {
+                                      const next = new Set(selectedRequestIds)
+                                      if (e.target.checked) next.add(r.id); else next.delete(r.id)
+                                      setSelectedRequestIds(next)
+                                    }}
+                                    className="w-3.5 h-3.5 rounded accent-green-500 cursor-pointer shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-3.5 h-3.5 shrink-0" />
+                                )}
+                                <div className={cn(
+                                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                                  r.status === "pending"  ? "bg-amber-500/15 text-amber-400" :
+                                  r.status === "approved" ? "bg-green-500/15 text-green-400" :
+                                                            "bg-muted/20 text-muted-foreground",
+                                )}>
+                                  {r.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{r.name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                                </div>
+                                <span className={cn(
+                                  "text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0",
+                                  r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
+                                  r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
+                                                            "text-muted-foreground border-border bg-white/5",
+                                )}>{r.status}</span>
+                                <span className="text-xs text-muted-foreground font-mono w-14 text-right shrink-0">{relativeTime(r.createdAt)}</span>
+                                {r.status === "pending" && (
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                      onClick={() => approveRequest.mutate(r.id)}
+                                      disabled={approveRequest.isPending && approveRequest.variables === r.id}
+                                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 disabled:opacity-40 transition-colors font-semibold"
+                                    >
+                                      {approveRequest.isPending && approveRequest.variables === r.id
+                                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                                        : <UserCheck className="w-3 h-3" />}
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmDenyRequest({ id: r.id, name: r.name, email: r.email })}
+                                      disabled={denyRequest.isPending && denyRequest.variables === r.id}
+                                      title="Deny"
+                                      className="p-1.5 rounded-lg border border-border/40 text-muted-foreground hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/8 disabled:opacity-40 transition-colors"
+                                    >
+                                      {denyRequest.isPending && denyRequest.variables === r.id
+                                        ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
 
                 </div>{/* end side-by-side grid */}
@@ -1253,6 +1352,77 @@ export default function AdminPage() {
                               </div>
                             )
                           })}
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            )}
+
+            {/* ── Labs ── */}
+            {tab === "labs" && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Beaker className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm font-semibold">Lab visibility</p>
+                  <span className="text-xs text-muted-foreground">— toggle to hide a broken lab from students without a code deploy</span>
+                </div>
+                {adminLabs.isLoading && (
+                  <div className="text-center py-20 text-muted-foreground text-sm animate-pulse">Loading labs…</div>
+                )}
+                {!adminLabs.isLoading && (adminLabs.data?.length ?? 0) === 0 && (
+                  <div className="text-center py-20 space-y-2">
+                    <Beaker className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                    <p className="text-muted-foreground text-sm">No labs found.</p>
+                  </div>
+                )}
+                {adminLabs.data && adminLabs.data.length > 0 && (() => {
+                  const byTrack: Record<string, typeof adminLabs.data> = {}
+                  for (const lab of adminLabs.data) {
+                    ;(byTrack[lab.track] ??= []).push(lab)
+                  }
+                  return Object.entries(byTrack).map(([track, trackLabs]) => {
+                    const tm = TRACK_META[track] ?? DEFAULT_TRACK_META
+                    return (
+                      <div key={track} className="rounded-2xl border border-border/60 bg-card overflow-hidden">
+                        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-muted/10">
+                          <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", tm.bgClass)}>
+                            <tm.icon className={cn("w-3 h-3", tm.accentClass)} />
+                          </div>
+                          <p className={cn("text-sm font-bold", tm.accentClass)}>{tm.label}</p>
+                          <span className="text-xs text-muted-foreground">{trackLabs.length} labs</span>
+                        </div>
+                        <div>
+                          {trackLabs.sort((a, b) => a.order - b.order).map((lab) => (
+                            <div key={lab.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors">
+                              <div className="flex-1 min-w-0">
+                                <p className={cn("text-sm font-medium truncate", !lab.active && "line-through text-muted-foreground")}>{lab.title}</p>
+                                <p className="text-xs text-muted-foreground font-mono">{lab.id}</p>
+                              </div>
+                              {!lab.isRemote && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground bg-muted/20 shrink-0">built-in</span>
+                              )}
+                              <button
+                                onClick={() => lab.isRemote && toggleLabActive.mutate({ id: lab.id, active: !lab.active })}
+                                disabled={!lab.isRemote || toggleLabActive.isPending}
+                                title={!lab.isRemote ? "Built-in labs cannot be disabled" : lab.active ? "Disable lab" : "Enable lab"}
+                                className={cn(
+                                  "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold shrink-0 transition-colors",
+                                  !lab.isRemote
+                                    ? "opacity-30 cursor-not-allowed border-border text-muted-foreground"
+                                    : lab.active
+                                      ? "border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                                      : "border-border/40 bg-muted/20 text-muted-foreground hover:border-amber-500/30 hover:text-amber-400",
+                                )}
+                              >
+                                {toggleLabActive.isPending && toggleLabActive.variables?.id === lab.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : lab.active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                                {lab.active ? "Visible" : "Hidden"}
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )

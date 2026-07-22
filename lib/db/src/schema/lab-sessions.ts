@@ -99,6 +99,7 @@ export const remoteLabsTable = pgTable("remote_labs", {
   id: text("id").primaryKey(), // matches LabDefinition.id
   definition: jsonb("definition").notNull(), // full LabDefinition serialised
   sha: text("sha"), // GitHub blob SHA — used to skip unchanged files
+  active: boolean("active").notNull().default(true), // admin can disable a lab without a deploy
   syncedAt: timestamp("synced_at", { withTimezone: true })
     .notNull()
     .defaultNow()

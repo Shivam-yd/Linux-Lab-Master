@@ -10,6 +10,7 @@ import { linuxL1Files } from "./linux-l1-files";
 import { linuxL1Text } from "./linux-l1-text";
 import { linuxL1Processes } from "./linux-l1-processes";
 import { linuxL1Environment } from "./linux-l1-environment";
+import { eq } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { remoteLabsTable } from "@workspace/db/schema";
 
@@ -37,10 +38,10 @@ export const LABS = BUILTIN_LABS;
 
 // ── Remote labs (fetched from GitHub, stored in DB) ───────────────────────────
 
-/** Returns labs stored in the remote_labs table. */
+/** Returns active labs stored in the remote_labs table. */
 async function getRemoteLabs(): Promise<LabDefinition[]> {
   try {
-    const rows = await db.select().from(remoteLabsTable);
+    const rows = await db.select().from(remoteLabsTable).where(eq(remoteLabsTable.active, true));
     return rows.map((r) => r.definition as unknown as LabDefinition);
   } catch {
     // DB might not be ready during very early startup — fail gracefully
