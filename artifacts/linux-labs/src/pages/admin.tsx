@@ -126,6 +126,7 @@ export default function AdminPage() {
   const [selectedRequestIds, setSelectedRequestIds] = useState<Set<number>>(new Set())
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
+  const [collapsedLevels, setCollapsedLevels] = useState<Set<string>>(new Set())
   const [leaderboardSearch, setLeaderboardSearch] = useState("")
   const { toast } = useToast()
 
@@ -1374,6 +1375,11 @@ export default function AdminPage() {
                   }
                   return Object.entries(byTrack).map(([track, trackLabs]) => {
                     const tm = TRACK_META[track] ?? DEFAULT_TRACK_META
+                    const byLevel: Record<string, typeof trackLabs> = {}
+                    for (const lab of trackLabs) {
+                      const key = lab.level != null ? String(lab.level) : "—"
+                      ;(byLevel[key] ??= []).push(lab)
+                    }
                     return (
                       <div key={track} className="rounded-2xl border border-border/60 bg-card overflow-hidden">
                         <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-muted/10">
@@ -1384,44 +1390,58 @@ export default function AdminPage() {
                           <span className="text-xs text-muted-foreground">{trackLabs.length} labs</span>
                         </div>
                         <div>
-                          {trackLabs.sort((a, b) => a.order - b.order).map((lab) => (
-                            <div key={lab.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors">
-                              <div className="flex-1 min-w-0">
-                                <p className={cn("text-sm font-medium truncate", !lab.active && "line-through text-muted-foreground")}>{lab.title}</p>
-                                <p className="text-xs text-muted-foreground font-mono">{lab.id}</p>
+                          {Object.entries(byLevel).sort(([a], [b]) => (a === "—" ? 1 : b === "—" ? -1 : Number(a) - Number(b))).map(([level, labs]) => {
+                            const key = `${track}:${level}`
+                            const open = !collapsedLevels.has(key)
+                            const toggle = () => setCollapsedLevels(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
+                            return (
+                              <div key={key}>
+                                <button onClick={toggle} className="w-full flex items-center gap-2 px-4 py-2 bg-muted/5 hover:bg-muted/10 border-b border-border/30 transition-colors">
+                                  <ChevronRight className={cn("w-3 h-3 text-muted-foreground transition-transform", open && "rotate-90")} />
+                                  <span className="text-xs font-semibold text-muted-foreground">{level === "—" ? "No level" : `Level ${level}`}</span>
+                                  <span className="text-xs text-muted-foreground/50">{labs.length} labs</span>
+                                </button>
+                                {open && labs.sort((a, b) => a.order - b.order).map((lab) => (
+                                  <div key={lab.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors">
+                                    <div className="flex-1 min-w-0">
+                                      <p className={cn("text-sm font-medium truncate", !lab.active && "line-through text-muted-foreground")}>{lab.title}</p>
+                                      <p className="text-xs text-muted-foreground font-mono">{lab.id}</p>
+                                    </div>
+                                    {!lab.isRemote && (
+                                      <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground bg-muted/20 shrink-0">built-in</span>
+                                    )}
+                                    {toggleLabActive.isPending && toggleLabActive.variables?.id === lab.id ? (
+                                      <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 text-muted-foreground">
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      </span>
+                                    ) : lab.active ? (
+                                      <button
+                                        onClick={() => toggleLabActive.mutate({ id: lab.id, active: false })}
+                                        disabled={!lab.isRemote}
+                                        title={!lab.isRemote ? "Built-in labs cannot be disabled" : "Take offline"}
+                                        className={cn(
+                                          "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold shrink-0 transition-colors",
+                                          !lab.isRemote
+                                            ? "opacity-30 cursor-not-allowed border-border text-muted-foreground"
+                                            : "border-green-500/30 bg-green-500/10 text-green-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400",
+                                        )}
+                                      >
+                                        <Eye className="w-3 h-3" /> Online
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => toggleLabActive.mutate({ id: lab.id, active: true })}
+                                        title="Bring online"
+                                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold shrink-0 transition-colors border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+                                      >
+                                        <EyeOff className="w-3 h-3" /> Offline
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
-                              {!lab.isRemote && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground bg-muted/20 shrink-0">built-in</span>
-                              )}
-                              {toggleLabActive.isPending && toggleLabActive.variables?.id === lab.id ? (
-                                <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 text-muted-foreground">
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                </span>
-                              ) : lab.active ? (
-                                <button
-                                  onClick={() => toggleLabActive.mutate({ id: lab.id, active: false })}
-                                  disabled={!lab.isRemote}
-                                  title={!lab.isRemote ? "Built-in labs cannot be disabled" : "Hide from students"}
-                                  className={cn(
-                                    "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold shrink-0 transition-colors",
-                                    !lab.isRemote
-                                      ? "opacity-30 cursor-not-allowed border-border text-muted-foreground"
-                                      : "border-green-500/30 bg-green-500/10 text-green-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400",
-                                  )}
-                                >
-                                  <Eye className="w-3 h-3" /> Visible
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => toggleLabActive.mutate({ id: lab.id, active: true })}
-                                  title="Make visible to students"
-                                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold shrink-0 transition-colors border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                                >
-                                  <EyeOff className="w-3 h-3" /> Hidden — click to show
-                                </button>
-                              )}
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )
