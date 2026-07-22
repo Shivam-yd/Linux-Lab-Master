@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Zap, Loader2, Lock, CheckCircle2, Clock } from "lucide-react"
+import { Loader2, Lock, CheckCircle2, Clock } from "lucide-react"
 import { Link, useLocation, Redirect } from "wouter"
 import { signIn, signUp, useSession } from "@/lib/auth-client"
 import { useConfig } from "@/lib/use-config"
@@ -142,9 +142,7 @@ export default function SignUpPage() {
       <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-sm">
 
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_15px_rgba(45,212,191,0.15)]">
-            <Zap className="w-5 h-5 text-primary fill-primary/20" />
-          </div>
+          <img src={`${basePath}/logo.svg`} className="w-10 h-10 rounded-xl" alt="DevLabMaster" />
           <span className="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
             DevLabMaster
           </span>
