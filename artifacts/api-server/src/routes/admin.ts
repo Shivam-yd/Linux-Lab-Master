@@ -415,13 +415,14 @@ router.get("/registration/invites", async (_req, res): Promise<void> => {
 });
 
 router.post("/registration/invites", async (req, res): Promise<void> => {
-  const { email, expiresAt } = req.body ?? {};
+  const { email } = req.body ?? {};
   if (!email) { res.status(400).json({ error: "email required" }); return; }
+  const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   await db
     .insert(registrationInvitesTable)
     .values({
       email: String(email).toLowerCase().trim(),
-      ...(expiresAt ? { expiresAt: new Date(expiresAt) } : {}),
+      expiresAt,
     })
     .onConflictDoNothing();
   res.status(201).json({ ok: true });

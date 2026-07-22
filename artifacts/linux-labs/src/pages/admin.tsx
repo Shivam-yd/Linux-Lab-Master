@@ -126,7 +126,6 @@ export default function AdminPage() {
   const [selectedRequestIds, setSelectedRequestIds] = useState<Set<number>>(new Set())
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
-  const [newInviteExpiry, setNewInviteExpiry] = useState("")
   const [leaderboardSearch, setLeaderboardSearch] = useState("")
   const { toast } = useToast()
 
@@ -231,16 +230,15 @@ export default function AdminPage() {
   })
 
   const addInvite = useMutation({
-    mutationFn: async ({ email, expiresAt }: { email: string; expiresAt?: string }) => {
+    mutationFn: async ({ email }: { email: string }) => {
       const res = await fetch("/api/admin/registration/invites", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, ...(expiresAt ? { expiresAt } : {}) }),
+        body: JSON.stringify({ email }),
       })
       if (!res.ok) throw new Error("Failed to add invite")
     },
     onSuccess: () => {
       setNewInviteEmail("")
-      setNewInviteExpiry("")
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
     },
@@ -1038,7 +1036,7 @@ export default function AdminPage() {
                   </div>
 
                   <form
-                    onSubmit={e => { e.preventDefault(); if (newInviteEmail) addInvite.mutate({ email: newInviteEmail, expiresAt: newInviteExpiry || undefined }) }}
+                    onSubmit={e => { e.preventDefault(); if (newInviteEmail) addInvite.mutate({ email: newInviteEmail }) }}
                     className="space-y-2"
                   >
                     <input
@@ -1048,24 +1046,14 @@ export default function AdminPage() {
                       onChange={e => setNewInviteEmail(e.target.value)}
                       className="w-full bg-background/60 border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
                     />
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={newInviteExpiry}
-                        onChange={e => setNewInviteExpiry(e.target.value)}
-                        min={new Date().toISOString().slice(0, 10)}
-                        title="Expiry date (optional)"
-                        className="flex-1 min-w-0 bg-background/60 border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 text-muted-foreground"
-                      />
-                      <button
-                        type="submit"
-                        disabled={addInvite.isPending || !newInviteEmail}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
-                      >
-                        {addInvite.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MailPlus className="w-3.5 h-3.5" />}
-                        Add
-                      </button>
-                    </div>
+                    <button
+                      type="submit"
+                      disabled={addInvite.isPending || !newInviteEmail}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {addInvite.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MailPlus className="w-3.5 h-3.5" />}
+                      Add
+                    </button>
                   </form>
 
                   {regInvites.isLoading && (
