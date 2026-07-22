@@ -519,19 +519,20 @@ export default function Catalog() {
           {/* Header Area */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border/40">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
                 {meta.label} Range
-                {trackStats.total > 0 && trackStats.completed === trackStats.total && (
-                  <Link href={`${basePath}/certificate/${resolvedTrack}`}>
-                    <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 gap-1.5 cursor-pointer hover:bg-amber-500/20 transition-colors">
-                      <Award className="w-3.5 h-3.5" /> Track Complete · View Certificate
-                    </Badge>
-                  </Link>
-                )}
               </h1>
               <p className="text-muted-foreground mt-2 max-w-xl text-sm leading-relaxed">
                 {meta.description}
               </p>
+              {trackStats.total > 0 && trackStats.completed === trackStats.total && (
+                <Link href={`${basePath}/certificate/${resolvedTrack}`}>
+                  <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-medium hover:bg-amber-500/20 transition-colors cursor-pointer">
+                    <Award className="w-3.5 h-3.5 shrink-0" />
+                    Track Complete — View Certificate
+                  </div>
+                </Link>
+              )}
             </div>
 
             <div className="flex flex-col items-end gap-1.5">
