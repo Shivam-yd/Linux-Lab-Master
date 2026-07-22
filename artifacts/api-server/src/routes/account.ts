@@ -5,6 +5,7 @@ import { auth } from "../lib/auth";
 import { db } from "@workspace/db";
 import { stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
+import { getEffectivePlan } from "../lib/plan";
 
 const router = Router();
 
@@ -47,6 +48,14 @@ router.delete("/account", async (req, res): Promise<void> => {
     logger.error({ userId, err }, "account: self-deletion failed");
     res.status(500).json({ error: "Deletion failed. Please try again." });
   }
+});
+
+/** GET /account/plan — returns the caller's effective plan */
+router.get("/account/plan", async (req, res): Promise<void> => {
+  const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
+  if (!session?.user?.id) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const plan = await getEffectivePlan(session.user.id);
+  res.json({ plan });
 });
 
 export default router;

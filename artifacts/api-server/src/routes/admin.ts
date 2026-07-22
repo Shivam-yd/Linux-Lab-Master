@@ -12,6 +12,8 @@ import {
   userTable,
   labRatingsTable,
   certRecordsTable,
+  subscriptionsTable,
+  planOverridesTable,
   type RegistrationRequestRow,
   type RemoteLabRow,
 } from "@workspace/db/schema";
@@ -674,6 +676,75 @@ router.post("/certs/backfill", async (req, res): Promise<void> => {
     });
 
   res.json({ upserted: records.length, dryRun: false });
+});
+
+// ── Billing / subscriptions ───────────────────────────────────────────────────
+
+/** GET /admin/subscriptions — all subscribers with user info */
+router.get("/subscriptions", async (_req, res): Promise<void> => {
+  const rows = await db.execute(sql`
+    SELECT
+      s.user_id, s.plan, s.status, s.started_at, s.renews_at, s.provider_ref, s.updated_at,
+      u.name, u.email,
+      o.plan AS override_plan, o.expires_at AS override_expires
+    FROM subscriptions s
+    JOIN "user" u ON u.id = s.user_id
+    LEFT JOIN plan_overrides o ON o.user_id = s.user_id
+    ORDER BY s.updated_at DESC
+  `);
+  res.json(rows.rows);
+});
+
+/** PATCH /admin/subscriptions/:userId — change plan/status */
+router.patch("/subscriptions/:userId", async (req, res): Promise<void> => {
+  const { userId } = req.params;
+  const { plan, status } = req.body ?? {};
+  if (!plan && !status) { res.status(400).json({ error: "plan or status required" }); return; }
+  await db.execute(sql`
+    INSERT INTO subscriptions (user_id, plan, status)
+    VALUES (${userId}, ${plan ?? "linux-starter"}, ${status ?? "active"})
+    ON CONFLICT (user_id) DO UPDATE SET
+      plan = COALESCE(${plan ?? null}, subscriptions.plan),
+      status = COALESCE(${status ?? null}, subscriptions.status),
+      updated_at = NOW()
+  `);
+  res.json({ ok: true });
+});
+
+/** POST /admin/subscriptions/:userId/override — grant free plan override */
+router.post("/subscriptions/:userId/override", async (req, res): Promise<void> => {
+  const { userId } = req.params;
+  const { plan, expiresAt } = req.body ?? {};
+  if (!plan) { res.status(400).json({ error: "plan required" }); return; }
+  const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
+  await db.execute(sql`
+    INSERT INTO plan_overrides (user_id, plan, granted_by, expires_at)
+    VALUES (${userId}, ${plan}, ${session!.user.email}, ${expiresAt ?? null})
+    ON CONFLICT (user_id) DO UPDATE SET
+      plan = ${plan}, granted_by = ${session!.user.email},
+      expires_at = ${expiresAt ?? null}, created_at = NOW()
+  `);
+  res.json({ ok: true });
+});
+
+/** DELETE /admin/subscriptions/:userId/override — remove override */
+router.delete("/subscriptions/:userId/override", async (req, res): Promise<void> => {
+  await db.execute(sql`DELETE FROM plan_overrides WHERE user_id = ${req.params.userId}`);
+  res.json({ ok: true });
+});
+
+/** GET /admin/revenue — MRR + subscriber counts + churn */
+router.get("/revenue", async (_req, res): Promise<void> => {
+  const rows = await db.execute(sql`
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'active')::int                        AS active_total,
+      COUNT(*) FILTER (WHERE status = 'active' AND plan = 'linux-starter')::int AS starter_active,
+      COUNT(*) FILTER (WHERE status = 'active' AND plan = 'devops-pro')::int    AS pro_active,
+      COUNT(*) FILTER (WHERE status = 'cancelled'
+        AND updated_at > NOW() - interval '30 days')::int                   AS churned_30d
+    FROM subscriptions
+  `);
+  res.json(rows.rows[0]);
 });
 
 export default router;
