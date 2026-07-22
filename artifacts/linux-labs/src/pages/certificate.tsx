@@ -100,7 +100,7 @@ export default function CertificatePage() {
   const blurb = lm ? lm.blurb : "has successfully completed all hands-on labs in the"
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground print:bg-white">
       <div className="print:hidden flex items-center justify-between px-6 py-4 border-b border-border/50">
         <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" /> Progress
