@@ -74,4 +74,6 @@ packages = ["vim-full"]
 BETTER_AUTH_URL = "https://e8ebe057-1797-4c66-8ee8-d93a2dbf1cb3-00-wjekeia6lcsw.pike.replit.dev"
 ADMIN_EMAILS = "robert4host@gmail.com"
 NODE_ENV = "development"
-SECURE_COOKIES = "false"
+
+[userenv.production]
+SECURE_COOKIES = "true"

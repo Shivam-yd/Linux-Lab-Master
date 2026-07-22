@@ -681,7 +681,7 @@ export default function Workspace() {
           </div>
           
           {/* ── Action / Verify Panel ── */}
-          <div className="p-5 border-t border-border/60 bg-card relative z-20">
+          <div className="p-5 border-t border-primary/20 bg-primary/[0.07] relative z-20">
             <Button 
               className={cn(
                 "w-full h-12 font-bold font-mono tracking-wide text-sm transition-all duration-300 relative overflow-hidden group",

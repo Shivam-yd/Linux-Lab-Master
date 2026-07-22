@@ -428,9 +428,6 @@ export default function Catalog() {
                           : "hover:bg-primary/5 border border-transparent"
                       )}
                     >
-                      {isActive && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-md" />
-                      )}
                       <div className={cn("flex items-center w-full relative z-10", collapsed ? "justify-center" : "gap-3")}>
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
