@@ -1414,7 +1414,6 @@ export default function AdminPage() {
                                       <div key={lab.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/10 transition-colors">
                                         <div className="flex-1 min-w-0">
                                           <p className={cn("text-sm font-medium truncate", !lab.active ? "text-muted-foreground/50" : "text-foreground/90")}>{lab.title}</p>
-                                          <p className="text-[11px] text-muted-foreground/40 font-mono mt-0.5">{lab.id}</p>
                                         </div>
                                         {!lab.isRemote && (
                                           <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground/50 bg-muted/20 shrink-0">built-in</span>
