@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "bash", "web"]
+modules = ["nodejs-20", "bash", "web", "postgresql-16"]
 
 [[ports]]
 localPort = 8080
@@ -71,7 +71,7 @@ packages = ["vim-full"]
 [userenv]
 
 [userenv.shared]
-BETTER_AUTH_URL = "https://e8ebe057-1797-4c66-8ee8-d93a2dbf1cb3-00-wjekeia6lcsw.pike.replit.dev"
+BETTER_AUTH_URL = "https://9dab7b6b-aaeb-4c3d-80e2-dc82ced4de6c-00-2kswmns1d4o0o.pike.replit.dev"
 ADMIN_EMAILS = "robert4host@gmail.com"
 NODE_ENV = "development"
 
