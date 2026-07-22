@@ -1403,24 +1403,33 @@ export default function AdminPage() {
                               {!lab.isRemote && (
                                 <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground bg-muted/20 shrink-0">built-in</span>
                               )}
-                              <button
-                                onClick={() => lab.isRemote && toggleLabActive.mutate({ id: lab.id, active: !lab.active })}
-                                disabled={!lab.isRemote || toggleLabActive.isPending}
-                                title={!lab.isRemote ? "Built-in labs cannot be disabled" : lab.active ? "Disable lab" : "Enable lab"}
-                                className={cn(
-                                  "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold shrink-0 transition-colors",
-                                  !lab.isRemote
-                                    ? "opacity-30 cursor-not-allowed border-border text-muted-foreground"
-                                    : lab.active
-                                      ? "border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20"
-                                      : "border-border/40 bg-muted/20 text-muted-foreground hover:border-amber-500/30 hover:text-amber-400",
-                                )}
-                              >
-                                {toggleLabActive.isPending && toggleLabActive.variables?.id === lab.id
-                                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                                  : lab.active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                                {lab.active ? "Visible" : "Hidden"}
-                              </button>
+                              {toggleLabActive.isPending && toggleLabActive.variables?.id === lab.id ? (
+                                <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 text-muted-foreground">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                </span>
+                              ) : lab.active ? (
+                                <button
+                                  onClick={() => toggleLabActive.mutate({ id: lab.id, active: false })}
+                                  disabled={!lab.isRemote}
+                                  title={!lab.isRemote ? "Built-in labs cannot be disabled" : "Hide from students"}
+                                  className={cn(
+                                    "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold shrink-0 transition-colors",
+                                    !lab.isRemote
+                                      ? "opacity-30 cursor-not-allowed border-border text-muted-foreground"
+                                      : "border-green-500/30 bg-green-500/10 text-green-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400",
+                                  )}
+                                >
+                                  <Eye className="w-3 h-3" /> Visible
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => toggleLabActive.mutate({ id: lab.id, active: true })}
+                                  title="Make visible to students"
+                                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-semibold shrink-0 transition-colors border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+                                >
+                                  <EyeOff className="w-3 h-3" /> Hidden — click to show
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
