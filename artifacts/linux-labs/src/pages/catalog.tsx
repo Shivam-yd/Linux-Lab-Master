@@ -636,8 +636,8 @@ export default function Catalog() {
 
                     return (
                       <div key={cardKey} className={cn(
-                        "rounded-xl border bg-card/80 backdrop-blur-sm overflow-hidden transition-all duration-300",
-                        isOpen ? "border-border shadow-lg" : "border-border/50 hover:border-border"
+                        "rounded-xl border bg-card overflow-hidden transition-all duration-300 shadow-sm",
+                        isOpen ? "border-border shadow-md" : "border-border/60 hover:border-border"
                       )}>
                         {/* Card header row */}
                         <div
@@ -847,7 +847,7 @@ export default function Catalog() {
                   const lvlPassed = lvlLabs.filter(l => progressByLabId[l.id]?.status === "passed").length
 
                   return (
-                    <div key={level} className="rounded-xl border border-border/50 overflow-hidden">
+                    <div key={level} className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
                       <button
                         onClick={() => toggleCard(courseKey)}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors text-left"
