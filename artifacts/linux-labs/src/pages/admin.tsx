@@ -1402,7 +1402,7 @@ export default function AdminPage() {
                                   <span className="text-xs text-muted-foreground/50">{labs.length} labs</span>
                                 </button>
                                 {open && labs.sort((a, b) => a.order - b.order).map((lab) => (
-                                  <div key={lab.id} className="flex items-center gap-3 px-4 py-4 border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors">
+                                  <div key={lab.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors">
                                     <div className="flex-1 min-w-0">
                                       <p className={cn("text-sm font-medium truncate", !lab.active && "text-muted-foreground")}>{lab.title}</p>
                                       <p className="text-xs text-muted-foreground font-mono">{lab.id}</p>
