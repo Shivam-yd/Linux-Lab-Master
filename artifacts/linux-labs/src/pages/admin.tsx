@@ -1012,7 +1012,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* ── Approved emails + Account requests side by side ── */}
-                <div className="grid grid-cols-2 gap-0 items-start divide-x divide-border bg-card border border-border/50 rounded-xl px-0 py-5 mt-2">
+                <div className="grid grid-cols-2 gap-0 items-start divide-x divide-border bg-card border border-border/50 rounded-xl px-6 py-5 mt-2">
 
                 {/* ── Approved emails (invites) ── */}
                 <div className="space-y-3 pr-6">
