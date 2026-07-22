@@ -5,7 +5,6 @@ import { useSession } from "@/lib/auth-client"
 import { ArrowLeft, Printer, Award, CheckCircle2, Share2, Check } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
-import { useToast } from "@/hooks/use-toast"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
