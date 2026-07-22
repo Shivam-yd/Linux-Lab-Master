@@ -85,7 +85,7 @@ export default function Home() {
   if (!isPending && session?.user) return <Redirect to="/dashboard" />
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Background orbs ── */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
