@@ -52,29 +52,29 @@
 
 /* ── Light theme (default) ── */
 :root {
-  --background: 210 40% 98%;
+  --background: 210 30% 95%;
   --foreground: 225 30% 12%;
 
-  --border: 220 13% 88%;
-  --input: 220 13% 88%;
+  --border: 170 28% 78%;
+  --input: 170 22% 82%;
   --ring: 170 75% 40%;
 
   --card: 0 0% 100%;
   --card-foreground: 225 30% 12%;
-  --card-border: 220 13% 91%;
+  --card-border: 170 22% 84%;
 
-  --sidebar: 220 20% 97%;
+  --sidebar: 210 25% 97%;
   --sidebar-foreground: 225 30% 12%;
-  --sidebar-border: 220 13% 88%;
+  --sidebar-border: 170 22% 82%;
   --sidebar-primary: 170 75% 40%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 220 14% 93%;
+  --sidebar-accent: 170 18% 92%;
   --sidebar-accent-foreground: 225 30% 12%;
   --sidebar-ring: 170 75% 40%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 225 30% 12%;
-  --popover-border: 220 13% 88%;
+  --popover-border: 170 22% 82%;
 
   --primary: 170 75% 38%;
   --primary-foreground: 0 0% 100%;
@@ -82,10 +82,10 @@
   --secondary: 260 75% 60%;
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 220 14% 95%;
-  --muted-foreground: 215 16% 47%;
+  --muted: 170 18% 92%;
+  --muted-foreground: 215 16% 44%;
 
-  --accent: 220 14% 95%;
+  --accent: 170 18% 92%;
   --accent-foreground: 225 30% 12%;
 
   --destructive: 0 80% 58%;
@@ -141,8 +141,8 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    /* Subtle dot grid on light mode */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='1' cy='1' r='1' fill='%2394a3b8' fill-opacity='0.25'/%3E%3C/svg%3E");
+    /* Subtle dot grid on light mode — teal-tinted to match brand */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='1' cy='1' r='1' fill='%230d9488' fill-opacity='0.18'/%3E%3C/svg%3E");
     background-attachment: fixed;
   }
   .dark body {
