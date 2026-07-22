@@ -9,7 +9,7 @@ import {
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Target,
   Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList, Star,
-  Eye, EyeOff, Beaker,
+  Eye, EyeOff, Beaker, CreditCard,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -104,8 +104,8 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "ratings" | "labs"
-  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "ratings", "labs"]
+  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "ratings" | "labs" | "billing"
+  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "ratings", "labs", "billing"]
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
@@ -222,6 +222,50 @@ export default function AdminPage() {
     queryFn: () => fetchAdmin("/api/admin/labs"),
     retry: false,
     enabled: tab === "labs",
+  })
+
+  type SubRow = { user_id: string; plan: string; status: string; started_at: string; renews_at: string | null; name: string; email: string; override_plan: string | null; override_expires: string | null }
+  const subscriptions = useQuery<SubRow[]>({
+    queryKey: ["admin", "subscriptions"],
+    queryFn: () => fetchAdmin("/api/admin/subscriptions"),
+    retry: false,
+    enabled: tab === "billing",
+  })
+  type RevenueRow = { active_total: number; starter_active: number; pro_active: number; churned_30d: number }
+  const revenue = useQuery<RevenueRow>({
+    queryKey: ["admin", "revenue"],
+    queryFn: () => fetchAdmin("/api/admin/revenue"),
+    retry: false,
+    enabled: tab === "billing",
+  })
+  const [overrideUserId, setOverrideUserId] = useState("")
+  const [overridePlan, setOverridePlan] = useState("devops-pro")
+  const [overrideExpiry, setOverrideExpiry] = useState("")
+  const applyOverride = useMutation({
+    mutationFn: async ({ userId, plan, expiresAt }: { userId: string; plan: string; expiresAt?: string }) => {
+      const res = await fetch(`/api/admin/subscriptions/${userId}/override`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, expiresAt: expiresAt || undefined }),
+      })
+      if (!res.ok) throw new Error("Failed")
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin", "subscriptions"] }); setOverrideUserId("") },
+  })
+  const removeOverride = useMutation({
+    mutationFn: async (userId: string) => {
+      await fetch(`/api/admin/subscriptions/${userId}/override`, { method: "DELETE" })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "subscriptions"] }),
+  })
+  const changePlan = useMutation({
+    mutationFn: async ({ userId, plan }: { userId: string; plan: string }) => {
+      const res = await fetch(`/api/admin/subscriptions/${userId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      })
+      if (!res.ok) throw new Error("Failed")
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "subscriptions"] }),
   })
 
   type SummaryStats = { active_sessions: string; pending_requests: string; open_invites: string }
@@ -577,6 +621,7 @@ export default function AdminPage() {
                 { id: "registration",    label: "Registration",   icon: Lock      },
                 { id: "ratings",         label: "Lab Ratings",    icon: Star      },
                 { id: "labs",            label: "Labs",            icon: Beaker    },
+                { id: "billing",         label: "Billing",         icon: CreditCard },
               ] as const).map(({ id, label, icon: Icon }) => {
                 const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
                 return (
@@ -1492,6 +1537,138 @@ export default function AdminPage() {
                     )
                   })
                 })()}
+              </div>
+            )}
+
+            {/* ── Billing ── */}
+            {tab === "billing" && (
+              <div className="space-y-6">
+
+                {/* Revenue stat cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: "Active subscribers", value: revenue.data?.active_total ?? "—" },
+                    { label: "Linux Starter",       value: revenue.data?.starter_active ?? "—" },
+                    { label: "DevOps Pro",           value: revenue.data?.pro_active ?? "—" },
+                    { label: "Churned (30d)",        value: revenue.data?.churned_30d ?? "—" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-xl border border-border/50 bg-card/60 px-4 py-4">
+                      <p className="text-2xl font-black font-mono">{revenue.isLoading ? "—" : value}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Manual override form */}
+                <div className="rounded-xl border border-border/50 bg-card/60 p-5 space-y-3">
+                  <p className="text-sm font-semibold">Grant plan override</p>
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-muted-foreground">User ID</label>
+                      <input
+                        placeholder="user_…"
+                        value={overrideUserId}
+                        onChange={e => setOverrideUserId(e.target.value)}
+                        className="text-sm px-3 py-1.5 rounded-lg border border-border bg-background w-52 focus:outline-none focus:border-primary/50"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-muted-foreground">Plan</label>
+                      <select
+                        value={overridePlan}
+                        onChange={e => setOverridePlan(e.target.value)}
+                        className="text-sm px-3 py-1.5 rounded-lg border border-border bg-background focus:outline-none focus:border-primary/50"
+                      >
+                        <option value="linux-starter">Linux Starter</option>
+                        <option value="devops-pro">DevOps Pro</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-muted-foreground">Expires (optional)</label>
+                      <input
+                        type="date"
+                        value={overrideExpiry}
+                        onChange={e => setOverrideExpiry(e.target.value)}
+                        className="text-sm px-3 py-1.5 rounded-lg border border-border bg-background focus:outline-none focus:border-primary/50"
+                      />
+                    </div>
+                    <button
+                      disabled={!overrideUserId || applyOverride.isPending}
+                      onClick={() => applyOverride.mutate({ userId: overrideUserId, plan: overridePlan, expiresAt: overrideExpiry || undefined })}
+                      className="px-4 py-1.5 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    >
+                      {applyOverride.isPending ? "Saving…" : "Apply"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Subscriber table */}
+                {subscriptions.isLoading && <div className="text-center py-12 text-muted-foreground text-sm animate-pulse">Loading…</div>}
+                {!subscriptions.isLoading && (subscriptions.data?.length ?? 0) === 0 && (
+                  <div className="text-center py-12 space-y-2">
+                    <CreditCard className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                    <p className="text-muted-foreground text-sm">No subscribers yet.</p>
+                  </div>
+                )}
+                {(subscriptions.data?.length ?? 0) > 0 && (
+                  <div className="rounded-xl border border-border/50 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/30">
+                          <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">User</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Plan</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Status</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Since</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Renews</th>
+                          <th className="text-left px-4 py-2.5 font-semibold text-muted-foreground">Override</th>
+                          <th className="px-4 py-2.5" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subscriptions.data!.map(row => (
+                          <tr key={row.user_id} className="border-b border-border/40 last:border-0 hover:bg-muted/10">
+                            <td className="px-4 py-3">
+                              <p className="font-medium text-foreground/90 truncate max-w-[160px]">{row.name ?? row.email}</p>
+                              <p className="text-[11px] text-muted-foreground truncate max-w-[160px]">{row.email}</p>
+                            </td>
+                            <td className="px-4 py-3">
+                              <select
+                                value={row.plan}
+                                onChange={e => changePlan.mutate({ userId: row.user_id, plan: e.target.value })}
+                                className="text-xs px-2 py-1 rounded-lg border border-border bg-background focus:outline-none focus:border-primary/50"
+                              >
+                                <option value="linux-starter">Linux Starter</option>
+                                <option value="devops-pro">DevOps Pro</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full", row.status === "active" ? "bg-green-500/10 text-green-400" : row.status === "past_due" ? "bg-amber-500/10 text-amber-400" : "bg-muted/40 text-muted-foreground")}>
+                                {row.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(row.started_at).toLocaleDateString()}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{row.renews_at ? new Date(row.renews_at).toLocaleDateString() : "—"}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">
+                              {row.override_plan
+                                ? <span className="text-purple-400 font-medium">{row.override_plan}{row.override_expires ? ` · ${new Date(row.override_expires).toLocaleDateString()}` : ""}</span>
+                                : <span className="text-muted-foreground/40">—</span>}
+                            </td>
+                            <td className="px-4 py-3">
+                              {row.override_plan ? (
+                                <button
+                                  onClick={() => removeOverride.mutate(row.user_id)}
+                                  className="text-xs text-muted-foreground hover:text-red-400 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              ) : null}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 

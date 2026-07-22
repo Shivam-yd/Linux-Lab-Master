@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation, useSearch } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
+import { usePlan, PRO_TRACKS } from "@/lib/use-plan"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -282,6 +283,8 @@ export default function Catalog() {
     return trackLabs.find(l => progressByLabId[l.id]?.status !== "passed")?.id ?? trackLabs[0]?.id ?? null
   }, [labs, resolvedTrack, progressByLabId])
 
+  const plan = usePlan()
+
   const { data: adminCheck } = useQuery({
     queryKey: ["admin-check"],
     queryFn: () => fetch(`${basePath}/api/admin/check`).then(r => r.json()) as Promise<{ isAdmin: boolean }>,
@@ -447,6 +450,9 @@ export default function Catalog() {
                               )}>
                                 {tm?.label ?? track}
                                 {trackComplete && <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                {PRO_TRACKS.has(track) && plan === "linux-starter" && (
+                                  <Lock className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+                                )}
                               </p>
                               {sum && (
                                 <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
