@@ -1396,7 +1396,7 @@ export default function AdminPage() {
                             const toggle = () => setCollapsedLevels(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
                             return (
                               <div key={key}>
-                                <button onClick={toggle} className="w-full flex items-center gap-2 px-4 py-2 bg-muted/5 hover:bg-muted/10 border-b border-border/30 transition-colors">
+                                <button onClick={toggle} className="w-full flex items-center gap-2 px-4 py-3 bg-muted/5 hover:bg-muted/10 border-b border-border/30 transition-colors">
                                   <ChevronRight className={cn("w-3 h-3 text-muted-foreground transition-transform", open && "rotate-90")} />
                                   <span className="text-xs font-semibold text-muted-foreground">{level === "—" ? "No level" : `Level ${level}`}</span>
                                   <span className="text-xs text-muted-foreground/50">{labs.length} labs</span>
