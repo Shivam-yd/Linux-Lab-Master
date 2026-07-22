@@ -97,7 +97,7 @@ export default function PricingPage() {
           </span>
         </h1>
         <p className="mt-4 text-muted-foreground text-lg max-w-lg mx-auto">
-          All plans are free during early access. Paid plans launching soon — early users get a discount.
+          Paid plans launching soon. Sign up now and lock in an early-user discount when billing goes live.
         </p>
       </section>
 
@@ -180,7 +180,7 @@ export default function PricingPage() {
 
         {/* Fine print */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          No credit card required. Early users will be grandfathered when paid plans launch.
+          No credit card required now. Early users get a discount when paid plans launch.
         </p>
       </section>
 
