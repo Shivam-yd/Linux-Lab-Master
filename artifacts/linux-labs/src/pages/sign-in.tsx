@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Zap, Loader2 } from "lucide-react"
 import { Link, useLocation, Redirect } from "wouter"
 import { signIn, useSession } from "@/lib/auth-client"
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 export default function SignInPage() {
+  useEffect(() => { document.title = "Sign In — DevLabMaster" }, [])
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const [email, setEmail] = useState("")

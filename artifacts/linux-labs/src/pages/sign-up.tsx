@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Zap, Loader2, Lock, CheckCircle2, Clock } from "lucide-react"
 import { Link, useLocation, Redirect } from "wouter"
 import { signIn, signUp, useSession } from "@/lib/auth-client"
@@ -15,6 +15,7 @@ type CheckStatus = "approved" | "pending" | "none"
 type CheckPhase = "email" | "checking" | "approved" | "pending" | "request" | "done"
 
 export default function SignUpPage() {
+  useEffect(() => { document.title = "Sign Up — DevLabMaster" }, [])
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const { data: config } = useConfig()

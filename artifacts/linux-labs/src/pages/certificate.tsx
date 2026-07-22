@@ -57,6 +57,10 @@ export default function CertificatePage() {
   }, [labs, progress, track, levelNum])
 
   useEffect(() => {
+    document.title = `${tm.label} Certificate — DevLabMaster`
+  }, [tm.label])
+
+  useEffect(() => {
     const sid = session?.user?.id
     if (!sid || !track || !isComplete || !lastPassedAt) return
     makeCertId(sid, track, level).then(async id => {
@@ -129,7 +133,7 @@ export default function CertificatePage() {
 
             {/* Issuer */}
             <div className="flex items-center gap-2">
-              <img src="/logo.svg" className="w-7 h-7 rounded-lg print:hidden" alt="" />
+              <img src="/logo.svg" className="w-7 h-7 rounded-lg print:hidden" alt="DevLabMaster" />
               <span className="text-xs font-bold tracking-[0.25em] uppercase text-muted-foreground">DevLabMaster</span>
             </div>
 

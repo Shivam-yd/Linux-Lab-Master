@@ -21,7 +21,11 @@ export default function VerifyPage() {
   useEffect(() => {
     fetch(`${basePath}/api/certs/${certId}`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => { setCert(data); setLoading(false) })
+      .then(data => {
+        setCert(data)
+        setLoading(false)
+        if (data) document.title = `${data.studentName}'s Certificate — DevLabMaster`
+      })
       .catch(() => setLoading(false))
   }, [certId])
 

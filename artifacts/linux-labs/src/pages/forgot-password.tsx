@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Loader2, ArrowLeft, CheckCircle2, Clock } from "lucide-react"
 import { Link } from "wouter"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 type Stage = "form" | "pending" | "approved"
 
 export default function ForgotPasswordPage() {
+  useEffect(() => { document.title = "Forgot Password — DevLabMaster" }, [])
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>("form")

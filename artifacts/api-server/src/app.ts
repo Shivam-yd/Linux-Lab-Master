@@ -2,6 +2,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
+import { rateLimit } from "express-rate-limit";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import router from "./routes";
@@ -41,10 +42,13 @@ if (!process.env.SESSION_SECRET) {
 // the correct Access-Control-Allow-* headers and Set-Cookie is honoured.
 app.use(cors({ credentials: true, origin: true }));
 
+// Rate-limit auth endpoints to blunt brute-force attacks.
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false });
+
 // Better Auth handles /api/auth/* — must be registered before body parsers
 // so it can consume the raw request body itself.
 // Use app.use (not app.all) because Express 5 requires named wildcard params.
-app.use("/api/auth", toNodeHandler(auth));
+app.use("/api/auth", authLimiter, toNodeHandler(auth));
 app.use(cookieParser(sessionSecret));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
