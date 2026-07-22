@@ -13,17 +13,17 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 const TRACKS = [
-  { label: "Linux",     icon: Terminal,  color: "#0d9488", iconClass: "group-hover:[animation:flicker_0.6s_ease-in-out_infinite]" },
-  { label: "Terraform", icon: Layers,    color: "#7c3aed", iconClass: "group-hover:animate-bounce" },
-  { label: "Jenkins",   icon: Server,    color: "#ea580c", iconClass: "group-hover:animate-pulse group-hover:[animation-duration:0.7s]" },
-  { label: "Docker",    icon: Container, color: "#0284c7", iconClass: "group-hover:[animation:breathe_1s_ease-in-out_infinite]" },
-  { label: "Git",       icon: GitBranch, color: "#dc2626", iconClass: "group-hover:[animation:swing_0.8s_ease-in-out_infinite]" },
+  { label: "Linux",     icon: Terminal,  color: "#22d3ee", iconClass: "group-hover:[animation:flicker_0.6s_ease-in-out_infinite]" },
+  { label: "Terraform", icon: Layers,    color: "#c084fc", iconClass: "group-hover:animate-bounce" },
+  { label: "Jenkins",   icon: Server,    color: "#f97316", iconClass: "group-hover:animate-pulse group-hover:[animation-duration:0.7s]" },
+  { label: "Docker",    icon: Container, color: "#38bdf8", iconClass: "group-hover:[animation:breathe_1s_ease-in-out_infinite]" },
+  { label: "Git",       icon: GitBranch, color: "#f87171", iconClass: "group-hover:[animation:swing_0.8s_ease-in-out_infinite]" },
 ]
 
 const FEATURES = [
-  { icon: Terminal,   color: "#0d9488", title: "Real Terminals",         desc: "Every lab opens a live shell inside an isolated Docker container — no multiple choice, no VMs to configure." },
-  { icon: ScanLine,   color: "#7c3aed", title: "Automatic Verification", desc: "Click Verify and the platform runs the check scripts inside your container. Each task is PASS or FAIL, with an exact hint." },
-  { icon: TrendingUp, color: "#059669", title: "Your Own Progress",      desc: "Sign in and every lab you pass is saved to your account — pick up where you left off, anywhere." },
+  { icon: Terminal,   color: "#22d3ee", title: "Real Terminals",         desc: "Every lab opens a live shell inside an isolated Docker container — no multiple choice, no VMs to configure." },
+  { icon: ScanLine,   color: "#a78bfa", title: "Automatic Verification", desc: "Click Verify and the platform runs the check scripts inside your container. Each task is PASS or FAIL, with an exact hint." },
+  { icon: TrendingUp, color: "#34d399", title: "Your Own Progress",      desc: "Sign in and every lab you pass is saved to your account — pick up where you left off, anywhere." },
 ]
 
 // ── Animation variants ────────────────────────────────────────────

@@ -51,7 +51,7 @@ function NotFound() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+      <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
       <WouterRouter base={basePath}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
