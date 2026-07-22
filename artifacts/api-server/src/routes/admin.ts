@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { sql, eq } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
@@ -9,6 +10,7 @@ import {
   registrationRequestsTable,
   userTable,
   labRatingsTable,
+  certRecordsTable,
 } from "@workspace/db/schema";
 import { auth } from "../lib/auth";
 import { stopSession } from "../lib/docker/manager";
@@ -488,6 +490,102 @@ router.get("/registration/audit", async (_req, res): Promise<void> => {
     LIMIT 200
   `);
   res.json(result.rows);
+});
+
+/**
+ * POST /admin/certs/backfill
+ * Generates and upserts cert_records for every student who completed a track
+ * or level but never visited the certificate page (so no record was written).
+ * Safe to run multiple times — uses upsert on certId PK.
+ */
+router.post("/certs/backfill", async (_req, res): Promise<void> => {
+  function makeCertId(studentId: string, track: string, level?: number | null): string {
+    const key = level != null ? `${studentId}:${track}:level:${level}` : `${studentId}:${track}`;
+    return createHash("sha256").update(key).digest("hex").slice(0, 16).toUpperCase();
+  }
+
+  // Find students who passed every lab in a track (track cert, no level param)
+  // and students who passed every lab at a specific level (level cert).
+  // remote_labs stores the full LabDefinition as JSONB.
+  const rows = await db.execute(sql`
+    WITH lab_meta AS (
+      SELECT
+        definition->>'id'    AS lab_id,
+        definition->>'track' AS track,
+        (definition->>'level')::int AS level
+      FROM remote_labs
+    ),
+    -- track certs: student passed ALL labs in the track regardless of level
+    track_totals AS (
+      SELECT track, COUNT(*) AS total FROM lab_meta GROUP BY track
+    ),
+    track_earned AS (
+      SELECT lp.student_id, lm.track, NULL::int AS level,
+             COUNT(*) FILTER (WHERE lp.status = 'passed') AS passed,
+             MAX(lp.last_attempt_at) FILTER (WHERE lp.status = 'passed') AS earned_at
+      FROM lab_progress lp
+      JOIN lab_meta lm ON lm.lab_id = lp.lab_id
+      GROUP BY lp.student_id, lm.track
+    ),
+    track_complete AS (
+      SELECT te.student_id, te.track, te.level, te.earned_at
+      FROM track_earned te
+      JOIN track_totals tt ON tt.track = te.track
+      WHERE te.passed >= tt.total
+    ),
+    -- level certs: student passed ALL labs at a specific level within a track
+    level_totals AS (
+      SELECT track, level, COUNT(*) AS total FROM lab_meta WHERE level IS NOT NULL GROUP BY track, level
+    ),
+    level_earned AS (
+      SELECT lp.student_id, lm.track, lm.level,
+             COUNT(*) FILTER (WHERE lp.status = 'passed') AS passed,
+             MAX(lp.last_attempt_at) FILTER (WHERE lp.status = 'passed') AS earned_at
+      FROM lab_progress lp
+      JOIN lab_meta lm ON lm.lab_id = lp.lab_id AND lm.level IS NOT NULL
+      GROUP BY lp.student_id, lm.track, lm.level
+    ),
+    level_complete AS (
+      SELECT le.student_id, le.track, le.level, le.earned_at
+      FROM level_earned le
+      JOIN level_totals lt ON lt.track = le.track AND lt.level = le.level
+      WHERE le.passed >= lt.total
+    ),
+    all_complete AS (
+      SELECT * FROM track_complete
+      UNION ALL
+      SELECT * FROM level_complete
+    )
+    SELECT
+      ac.student_id,
+      ac.track,
+      ac.level,
+      ac.earned_at,
+      COALESCE(u.name, split_part(u.email, '@', 1), 'Student') AS student_name
+    FROM all_complete ac
+    LEFT JOIN "user" u ON u.id = ac.student_id
+    WHERE ac.earned_at IS NOT NULL
+  `);
+
+  type Row = { student_id: string; track: string; level: number | null; earned_at: Date; student_name: string };
+  const records = (rows.rows as Row[]).map(r => ({
+    certId: makeCertId(r.student_id, r.track, r.level),
+    studentName: r.student_name,
+    track: r.track,
+    level: r.level,
+    earnedAt: new Date(r.earned_at),
+  }));
+
+  if (records.length === 0) { res.json({ upserted: 0 }); return; }
+
+  await db.insert(certRecordsTable)
+    .values(records)
+    .onConflictDoUpdate({
+      target: certRecordsTable.certId,
+      set: { studentName: sql`excluded.student_name`, earnedAt: sql`excluded.earned_at` },
+    });
+
+  res.json({ upserted: records.length });
 });
 
 export default router;
