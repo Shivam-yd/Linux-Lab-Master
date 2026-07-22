@@ -487,7 +487,7 @@ export default function AdminPage() {
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
 
       {/* Header */}
-      <header className="shrink-0 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md">
         <div className="px-6 py-4 flex items-center justify-between gap-4">
 
           {/* Left: back link + divider + brand */}
