@@ -290,6 +290,9 @@ export default function Catalog() {
   }, [labs, resolvedTrack, progressByLabId])
 
   const { plan, hasSubscription, isLoading: planLoading } = usePlan()
+  // Derived once; used by upgrade wall, view gates, and lab-button lock.
+  // !planLoading prevents flashing "locked" for devops-pro users while plan resolves.
+  const isTrackLocked = !planLoading && PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter"
 
   const { data: adminCheck } = useQuery({
     queryKey: ["admin-check"],
@@ -625,7 +628,7 @@ export default function Catalog() {
           </div>
 
           {/* ── Pro track upgrade wall ── */}
-          {PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter" && (
+          {isTrackLocked && (
             <div className="rounded-2xl border border-primary/20 bg-card/80 backdrop-blur-sm p-12 text-center space-y-6">
               <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
                 <Lock className="w-7 h-7 text-primary" />
@@ -649,7 +652,7 @@ export default function Catalog() {
           )}
 
           {/* Coming soon placeholder for empty tracks */}
-          {totalLabs === 0 && !(PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter") && (
+          {totalLabs === 0 && !isTrackLocked && (
             <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-10 text-center space-y-4">
               <div
                 className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center border"
@@ -665,7 +668,7 @@ export default function Catalog() {
           )}
 
           {/* ── By Level view ── */}
-          {viewMode === "by-level" && totalLabs > 0 && !(PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter") && (
+          {viewMode === "by-level" && totalLabs > 0 && !isTrackLocked && (
             <div className="space-y-6">
               {loading
                 ? Array.from({ length: 3 }).map((_, i) => (
@@ -808,7 +811,7 @@ export default function Catalog() {
           )}
 
           {/* ── By Course view (existing) ── */}
-          {viewMode === "by-course" && !(PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter") && (loading ? (
+          {viewMode === "by-course" && !isTrackLocked && (loading ? (
             <div className="rounded-xl border border-border/50 bg-card/80 p-6 space-y-6">
               <div className="flex items-center gap-5">
                 <Skeleton className="w-16 h-16 rounded-xl" />
