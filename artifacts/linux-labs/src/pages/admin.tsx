@@ -742,11 +742,11 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* ── Lab Stats ── */}
+            {/* ── Lab Insights (stats + ratings) ── */}
             {tab === "cohort" && (
               <div className="space-y-8">
                 {cohort.isLoading && (
-                  <div className="text-center py-20 text-muted-foreground text-sm animate-pulse">Loading lab stats…</div>
+                  <div className="text-center py-20 text-muted-foreground text-sm animate-pulse">Loading lab insights…</div>
                 )}
                 {!cohort.isLoading && cohort.data?.length === 0 && (
                   <div className="text-center py-20 space-y-2">
@@ -755,9 +755,8 @@ export default function AdminPage() {
                   </div>
                 )}
                 {cohort.data && cohort.data.length > 0 && (() => {
-                  // Group rows by track
-                  const byTrack: Record<string, CohortRow[]> = {}
-                  for (const row of cohort.data as CohortRow[]) {
+                  const byTrack: Record<string, LabInsightRow[]> = {}
+                  for (const row of cohort.data) {
                     const track = labMeta[row.lab_id]?.track ?? "unknown"
                     ;(byTrack[track] ??= []).push(row)
                   }
@@ -765,8 +764,11 @@ export default function AdminPage() {
                     const tm = TRACK_META[track] ?? DEFAULT_TRACK_META
                     const trackAttempts = rows.reduce((a, r) => a + r.attempted, 0)
                     const trackPassed   = rows.reduce((a, r) => a + r.passed,   0)
+                    const trackRatings  = rows.reduce((a, r) => a + r.ratings,  0)
+                    const trackHard     = rows.reduce((a, r) => a + r.hard,     0)
                     const avgRate = trackAttempts > 0 ? Math.round((trackPassed / trackAttempts) * 100) : 0
                     const avgColor = avgRate >= 80 ? "text-green-400" : avgRate >= 50 ? "text-amber-400" : "text-red-400"
+                    const hardPct  = trackRatings  > 0 ? Math.round((trackHard  / trackRatings)  * 100) : 0
                     return (
                       <div key={track}>
                         {/* Track header */}
@@ -781,26 +783,37 @@ export default function AdminPage() {
                           <span className="text-xs text-muted-foreground">avg pass rate</span>
                           <span className="text-xs text-muted-foreground">·</span>
                           <span className="text-xs text-muted-foreground">{trackAttempts} attempts</span>
+                          {trackRatings > 0 && <>
+                            <span className="text-xs text-muted-foreground">·</span>
+                            <span className="text-xs text-muted-foreground">{trackRatings} ratings · {hardPct}% hard</span>
+                          </>}
                         </div>
 
                         {/* Column headers */}
-                        <div className="grid grid-cols-[1fr_56px_56px_200px] gap-x-4 px-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        <div className="grid grid-cols-[1fr_52px_52px_130px_52px_52px_52px_120px] gap-x-3 px-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                           <span>Lab</span>
-                          <span className="text-right">Attempts</span>
+                          <span className="text-right">Tries</span>
                           <span className="text-right">Passed</span>
                           <span className="text-right">Pass rate</span>
+                          <span className="text-right text-green-400">Easy</span>
+                          <span className="text-right text-amber-400">OK</span>
+                          <span className="text-right text-red-400">Hard</span>
+                          <span className="text-right">Difficulty</span>
                         </div>
 
                         {/* Lab rows */}
                         <div>
                           {rows.map(row => {
-                            const rate = row.attempted > 0 ? Math.round((row.passed / row.attempted) * 100) : 0
+                            const rate     = row.attempted > 0 ? Math.round((row.passed / row.attempted) * 100) : 0
                             const barColor  = rate >= 80 ? "bg-green-400"   : rate >= 50 ? "bg-amber-400"   : "bg-red-400"
                             const textColor = rate >= 80 ? "text-green-400" : rate >= 50 ? "text-amber-400" : "text-red-400"
+                            const easyPct  = row.ratings > 0 ? (row.easy / row.ratings) * 100 : 0
+                            const okPct    = row.ratings > 0 ? (row.ok   / row.ratings) * 100 : 0
+                            const hardPct  = row.ratings > 0 ? (row.hard / row.ratings) * 100 : 0
                             return (
                               <div
                                 key={row.lab_id}
-                                className="grid grid-cols-[1fr_56px_56px_200px] gap-x-4 items-center px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors"
+                                className="grid grid-cols-[1fr_52px_52px_130px_52px_52px_52px_120px] gap-x-3 items-center px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors"
                               >
                                 <p className="text-sm truncate text-foreground/90">
                                   {labMeta[row.lab_id]?.title ?? row.lab_id}
@@ -809,15 +822,22 @@ export default function AdminPage() {
                                 <span className="text-sm font-mono text-right text-foreground">{row.passed}</span>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
-                                    <div
-                                      className={cn("h-full rounded-full", barColor)}
-                                      style={{ width: `${rate}%` }}
-                                    />
+                                    <div className={cn("h-full rounded-full", barColor)} style={{ width: `${rate}%` }} />
                                   </div>
-                                  <span className={cn("text-xs font-bold font-mono w-8 text-right shrink-0", textColor)}>
-                                    {rate}%
-                                  </span>
+                                  <span className={cn("text-xs font-bold font-mono w-8 text-right shrink-0", textColor)}>{rate}%</span>
                                 </div>
+                                {row.ratings > 0 ? <>
+                                  <span className="text-sm font-mono text-right text-green-400">{row.easy}</span>
+                                  <span className="text-sm font-mono text-right text-amber-400">{row.ok}</span>
+                                  <span className="text-sm font-mono text-right text-red-400">{row.hard}</span>
+                                  <div className="flex h-2 rounded-full overflow-hidden bg-muted/30">
+                                    <div className="bg-green-400/70 h-full" style={{ width: `${easyPct}%` }} />
+                                    <div className="bg-amber-400/70 h-full" style={{ width: `${okPct}%`  }} />
+                                    <div className="bg-red-400/70  h-full" style={{ width: `${hardPct}%` }} />
+                                  </div>
+                                </> : <>
+                                  <span className="text-xs text-muted-foreground/40 text-right col-span-4">—</span>
+                                </>}
                               </div>
                             )
                           })}
@@ -1303,75 +1323,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* ── Lab Ratings ── */}
-            {tab === "ratings" && (
-              <div className="space-y-8">
-                {labRatings.isLoading && (
-                  <div className="text-center py-20 text-muted-foreground text-sm animate-pulse">Loading ratings…</div>
-                )}
-                {!labRatings.isLoading && (labRatings.data?.length ?? 0) === 0 && (
-                  <div className="text-center py-20 space-y-2">
-                    <Star className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-muted-foreground text-sm">No ratings submitted yet.</p>
-                  </div>
-                )}
-                {labRatings.data && labRatings.data.length > 0 && (() => {
-                  const byTrack: Record<string, typeof labRatings.data> = {}
-                  for (const row of labRatings.data) {
-                    const track = labMeta[row.lab_id]?.track ?? "unknown"
-                    ;(byTrack[track] ??= []).push(row)
-                  }
-                  return Object.entries(byTrack).map(([track, rows]) => {
-                    const tm = TRACK_META[track] ?? DEFAULT_TRACK_META
-                    const totalRatings = rows.reduce((a, r) => a + r.total, 0)
-                    const totalHard    = rows.reduce((a, r) => a + r.hard,  0)
-                    const hardPct = totalRatings > 0 ? Math.round((totalHard / totalRatings) * 100) : 0
-                    return (
-                      <div key={track}>
-                        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border/40">
-                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", tm.bgClass)}>
-                            <tm.icon className={cn("w-3.5 h-3.5", tm.accentClass)} />
-                          </div>
-                          <p className={cn("text-sm font-bold", tm.accentClass)}>{tm.label}</p>
-                          <p className="text-xs text-muted-foreground">{rows.length} lab{rows.length !== 1 ? "s" : ""}</p>
-                          <div className="flex-1" />
-                          <span className="text-xs text-muted-foreground">{totalRatings} ratings · {hardPct}% found it hard</span>
-                        </div>
-
-                        <div className="grid grid-cols-[1fr_52px_52px_52px_180px] gap-x-4 px-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          <span>Lab</span>
-                          <span className="text-right text-green-400">Easy</span>
-                          <span className="text-right text-amber-400">OK</span>
-                          <span className="text-right text-red-400">Hard</span>
-                          <span className="text-right">Distribution</span>
-                        </div>
-
-                        <div>
-                          {rows.map(row => {
-                            const easyPct = row.total > 0 ? (row.easy / row.total) * 100 : 0
-                            const okPct   = row.total > 0 ? (row.ok   / row.total) * 100 : 0
-                            const hardPct = row.total > 0 ? (row.hard / row.total) * 100 : 0
-                            return (
-                              <div key={row.lab_id} className="grid grid-cols-[1fr_52px_52px_52px_180px] gap-x-4 items-center px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors">
-                                <p className="text-sm truncate text-foreground/90">{labMeta[row.lab_id]?.title ?? row.lab_id}</p>
-                                <span className="text-sm font-mono text-right text-green-400">{row.easy}</span>
-                                <span className="text-sm font-mono text-right text-amber-400">{row.ok}</span>
-                                <span className="text-sm font-mono text-right text-red-400">{row.hard}</span>
-                                <div className="flex h-2 rounded-full overflow-hidden bg-muted/30">
-                                  <div className="bg-green-400/70 h-full" style={{ width: `${easyPct}%` }} />
-                                  <div className="bg-amber-400/70 h-full" style={{ width: `${okPct}%` }} />
-                                  <div className="bg-red-400/70  h-full" style={{ width: `${hardPct}%` }} />
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })
-                })()}
-              </div>
-            )}
 
             {/* ── Labs ── */}
             {tab === "labs" && (
