@@ -71,7 +71,7 @@ packages = ["vim-full"]
 [userenv]
 
 [userenv.shared]
-BETTER_AUTH_URL = "https://1cabb2ca-9443-412e-bb2d-6f3279bf9579-00-1sior2os6km0u.sisko.replit.dev"
+BETTER_AUTH_URL = "https://37ca1fb4-27b8-4a52-92c7-73959fafc3cb-00-2awwub8b1pw32.sisko.replit.dev"
 ADMIN_EMAILS = "robert4host@gmail.com"
 NODE_ENV = "development"
 
