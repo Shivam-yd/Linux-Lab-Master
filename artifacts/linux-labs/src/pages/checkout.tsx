@@ -80,6 +80,18 @@ export default function CheckoutPage() {
   const params = new URLSearchParams(window.location.search)
   const planId = params.get("plan") as PlanId | null
 
+  if (done) return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-6 text-center px-4">
+      <div className="w-20 h-20 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center">
+        <CheckCircle2 className="w-10 h-10 text-green-400" />
+      </div>
+      <div>
+        <p className="text-2xl font-bold">You're all set!</p>
+        <p className="text-muted-foreground mt-1">Taking you to your dashboard…</p>
+      </div>
+    </div>
+  )
+
   if (!isPending && !session?.user) return <Redirect to="/sign-in" />
   if (!isPending && !planLoading && hasSubscription) return <Redirect to="/dashboard" />
   if (planId && !(planId in PLANS)) return <Redirect to="/choose-plan" />

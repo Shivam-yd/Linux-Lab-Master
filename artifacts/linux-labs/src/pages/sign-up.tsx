@@ -50,6 +50,21 @@ export default function SignUpPage() {
     staleTime: 30_000,
   })
 
+  if (done) return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-background text-foreground px-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
+      <div className="relative z-10 flex flex-col items-center gap-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center">
+          <CheckCircle2 className="w-8 h-8 text-green-400" />
+        </div>
+        <div>
+          <p className="text-lg font-bold">Account created!</p>
+          <p className="text-sm text-muted-foreground mt-1">Welcome to DevLabMaster. Setting up your plan…</p>
+        </div>
+      </div>
+    </div>
+  )
+
   if (!isPending && session?.user) return <Redirect to="/dashboard" />
 
   const mode = regStatus?.mode ?? "open"
@@ -157,21 +172,8 @@ export default function SignUpPage() {
 
         <div className="w-full bg-card border border-border rounded-2xl p-8 shadow-[0_0_40px_rgba(45,212,191,0.08)]">
 
-          {/* ── Success ───────────────────────────────────────────────── */}
-          {done && (
-            <div className="text-center space-y-5 py-4">
-              <div className="w-16 h-16 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8 text-green-400" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">Account created!</p>
-                <p className="text-sm text-muted-foreground mt-1">Welcome to DevLabMaster. Setting up your plan…</p>
-              </div>
-            </div>
-          )}
-
           {/* ── Open: standard signup ──────────────────────────────────── */}
-          {!done && mode === "open" && (
+          {mode === "open" && (
             <>
               <h1 className="text-xl font-bold mb-1">Create your account</h1>
               <p className="text-sm text-muted-foreground mb-6">Track your progress across every lab and track</p>
@@ -222,7 +224,7 @@ export default function SignUpPage() {
           )}
 
           {/* ── Restricted: email-first check ─────────────────────────── */}
-          {!done && mode !== "open" && (
+          {mode !== "open" && (
             <>
               <div className="flex items-center gap-2 mb-5">
                 <Lock className="w-4 h-4 text-amber-400 shrink-0" />
