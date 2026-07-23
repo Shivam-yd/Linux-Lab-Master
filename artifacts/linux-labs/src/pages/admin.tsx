@@ -53,10 +53,14 @@ type StudentRow = {
   labs: { labId: string; status: string; bestScore: number }[]
 }
 
-type CohortRow = {
+type LabInsightRow = {
   lab_id: string
   attempted: number
   passed: number
+  easy: number
+  ok: number
+  hard: number
+  ratings: number
 }
 
 function displayName(s: StudentRow) {
@@ -104,8 +108,8 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "ratings" | "labs"
-  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "ratings", "labs"]
+  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "labs"
+  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "labs"]
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
@@ -149,9 +153,9 @@ export default function AdminPage() {
     retry: false,
   })
 
-  const cohort = useQuery<CohortRow[]>({
-    queryKey: ["admin", "cohort"],
-    queryFn: () => fetchAdmin("/api/admin/cohort"),
+  const cohort = useQuery<LabInsightRow[]>({
+    queryKey: ["admin", "lab-insights"],
+    queryFn: () => fetchAdmin("/api/admin/lab-insights"),
     retry: false,
     enabled: tab === "cohort",
   })
@@ -206,14 +210,6 @@ export default function AdminPage() {
     queryFn: () => fetchAdmin("/api/admin/registration/audit"),
     retry: false,
     enabled: tab === "registration",
-  })
-
-  type LabRatingRow = { lab_id: string; easy: number; ok: number; hard: number; total: number }
-  const labRatings = useQuery<LabRatingRow[]>({
-    queryKey: ["admin", "lab-ratings"],
-    queryFn: () => fetchAdmin("/api/admin/lab-ratings"),
-    retry: false,
-    enabled: tab === "ratings",
   })
 
   type AdminLabRow = { id: string; title: string; track: string; level: number | null; order: number; isRemote: boolean; active: boolean }
@@ -578,11 +574,10 @@ export default function AdminPage() {
             <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/50 w-full overflow-x-auto sm:w-fit">
               {([
                 { id: "leaderboard",     label: "Leaderboard",    icon: Trophy    },
-                { id: "cohort",          label: "Lab Stats",       icon: BarChart3 },
+                { id: "cohort",          label: "Lab Insights",    icon: BarChart3 },
                 { id: "sessions",        label: "Sessions",        icon: Activity  },
                 { id: "password-resets", label: "Password Resets", icon: KeyRound  },
-                { id: "registration",    label: "Registration",   icon: Lock      },
-                { id: "ratings",         label: "Lab Ratings",    icon: Star      },
+                { id: "registration",    label: "Registration",    icon: Lock      },
                 { id: "labs",            label: "Labs",            icon: Beaker    },
               ] as const).map(({ id, label, icon: Icon }) => {
                 const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0

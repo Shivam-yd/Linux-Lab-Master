@@ -48,17 +48,39 @@ router.get("/check", async (req, res): Promise<void> => {
 
 router.use(requireAdmin);
 
-/** GET /admin/lab-ratings — per-lab difficulty distribution for all rated labs */
-router.get("/lab-ratings", async (_req, res): Promise<void> => {
+/**
+ * GET /admin/lab-insights
+ * Per-lab attempt/pass stats joined with difficulty ratings in one response.
+ */
+router.get("/lab-insights", async (_req, res): Promise<void> => {
   const result = await db.execute(sql`
-    SELECT lab_id,
-      COUNT(*) FILTER (WHERE rating = 'easy')::int AS easy,
-      COUNT(*) FILTER (WHERE rating = 'ok')::int   AS ok,
-      COUNT(*) FILTER (WHERE rating = 'hard')::int  AS hard,
-      COUNT(*)::int                                  AS total
-    FROM lab_ratings
-    GROUP BY lab_id
-    ORDER BY hard DESC, lab_id
+    SELECT
+      COALESCE(c.lab_id, r.lab_id)  AS lab_id,
+      COALESCE(c.attempted, 0)::int  AS attempted,
+      COALESCE(c.passed,    0)::int  AS passed,
+      COALESCE(r.easy,      0)::int  AS easy,
+      COALESCE(r.ok,        0)::int  AS ok,
+      COALESCE(r.hard,      0)::int  AS hard,
+      COALESCE(r.total,     0)::int  AS ratings
+    FROM (
+      SELECT lab_id,
+        COUNT(*)::int                                   AS attempted,
+        COUNT(*) FILTER (WHERE status = 'passed')::int  AS passed
+      FROM lab_progress
+      WHERE status != 'not_started'
+        AND student_id IN (SELECT id FROM "user")
+      GROUP BY lab_id
+    ) c
+    FULL OUTER JOIN (
+      SELECT lab_id,
+        COUNT(*) FILTER (WHERE rating = 'easy')::int AS easy,
+        COUNT(*) FILTER (WHERE rating = 'ok')::int   AS ok,
+        COUNT(*) FILTER (WHERE rating = 'hard')::int  AS hard,
+        COUNT(*)::int                                  AS total
+      FROM lab_ratings
+      GROUP BY lab_id
+    ) r ON c.lab_id = r.lab_id
+    ORDER BY COALESCE(c.attempted, 0) DESC, COALESCE(r.total, 0) DESC
   `);
   res.json(result.rows);
 });
