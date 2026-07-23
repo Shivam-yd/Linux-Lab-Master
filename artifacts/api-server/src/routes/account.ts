@@ -22,6 +22,14 @@ router.delete("/account", async (req, res): Promise<void> => {
   }
 
   const userId = session.user.id;
+  const userEmail = session.user.email ?? "";
+
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  if (adminEmails.includes(userEmail.toLowerCase())) {
+    res.status(403).json({ error: "Admin accounts cannot be deleted." });
+    return;
+  }
 
   try {
     // Stop any running lab container for this user before wiping data.
