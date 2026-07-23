@@ -3,7 +3,7 @@ import { Link } from "wouter"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
 import { Redirect } from "wouter"
-import { ArrowLeft, CreditCard, Users, TrendingDown, Zap } from "lucide-react"
+import { ArrowLeft, CreditCard, Users, TrendingDown, Zap, Shield } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
@@ -115,7 +115,14 @@ export default function BillingAdmin() {
             <span className="font-bold text-sm tracking-tight">Billing</span>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <Link
+            href={`${basePath}/admin`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border/60 bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all duration-150"
+          >
+            <Shield className="w-4 h-4" />
+            Admin
+          </Link>
           <ThemeToggle />
           <AccountDropdown />
         </div>
