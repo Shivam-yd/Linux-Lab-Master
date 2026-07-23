@@ -1,16 +1,13 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { Link, useLocation } from "wouter"
 import { useSession, signOut, authClient } from "@/lib/auth-client"
 import { useQuery } from "@tanstack/react-query"
-import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award, Trash2, AlertTriangle, Terminal, Server } from "lucide-react"
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Trash2, AlertTriangle, Terminal, Server } from "lucide-react"
 import { usePlan } from "@/lib/use-plan"
 import { AccountDropdown } from "@/components/account-dropdown"
-import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -38,26 +35,6 @@ export default function ProfilePage() {
 
   const user = session?.user
   const { plan, isLoading: planLoading } = usePlan()
-
-  // Progress data
-  const { data: labs } = useListLabs()
-  const { data: progress } = useListProgress()
-
-  const trackStats = useMemo(() => {
-    if (!labs || !progress) return []
-    const byLabId = Object.fromEntries(
-      (progress as Array<{ labId: string; status: string }>).map(p => [p.labId, p])
-    )
-    const trackOrder = ["linux", "terraform", "jenkins", "docker", "git"]
-    const seen = new Set((labs as Array<{ track: string; id: string }>).map(l => l.track))
-    const tracks = [...trackOrder.filter(t => seen.has(t)), ...[...seen].filter(t => !trackOrder.includes(t))]
-    return tracks.map(track => {
-      const trackLabs = (labs as Array<{ track: string; id: string }>).filter(l => l.track === track)
-      const passed = trackLabs.filter(l => byLabId[l.id]?.status === "passed").length
-      const total = trackLabs.length
-      return { track, passed, total, complete: passed === total && total > 0 }
-    })
-  }, [labs, progress])
 
   // Detect whether this user has a credential (email/password) account or is
   // OAuth-only. Better Auth exposes GET /api/auth/list-accounts for exactly this.
