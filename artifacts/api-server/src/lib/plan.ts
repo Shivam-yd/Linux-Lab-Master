@@ -11,6 +11,9 @@ export const PRO_TRACKS = new Set(["docker", "terraform", "jenkins", "git"]);
  * Defaults to "linux-starter" if no row exists.
  */
 export async function getEffectivePlan(userId: string): Promise<Plan> {
+  // Free period: grant full access to everyone until ENFORCE_PLANS=true
+  if (process.env.ENFORCE_PLANS !== "true") return "devops-pro";
+
   const result = await db.execute(sql`
     SELECT plan FROM plan_overrides
     WHERE user_id = ${userId}

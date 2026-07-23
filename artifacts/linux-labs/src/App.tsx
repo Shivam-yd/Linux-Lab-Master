@@ -31,6 +31,7 @@ import ProfilePage from '@/pages/profile';
 import CertificatePage from '@/pages/certificate';
 import VerifyPage from '@/pages/verify';
 import AdminPage from '@/pages/admin';
+import BillingAdmin from '@/pages/billing-admin';
 import ForgotPasswordPage from '@/pages/forgot-password';
 import ResetPasswordPage from '@/pages/reset-password';
 import TermsPage from '@/pages/terms';
@@ -71,6 +72,7 @@ function App() {
               <Route path="/certificate/:track" component={CertificatePage} />
               <Route path="/verify/:certId" component={VerifyPage} />
               <Route path="/admin" component={AdminPage} />
+              <Route path="/admin/billing" component={BillingAdmin} />
               <Route path="/forgot-password" component={ForgotPasswordPage} />
               <Route path="/reset-password" component={ResetPasswordPage} />
               <Route path="/pricing" component={PricingPage} />
