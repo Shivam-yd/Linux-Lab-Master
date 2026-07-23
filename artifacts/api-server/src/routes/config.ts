@@ -8,6 +8,7 @@ router.get("/config", (_req, res) => {
     googleEnabled: !!(
       process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
     ),
+    enforcePlans: process.env.ENFORCE_PLANS !== "false",
   });
 });
 

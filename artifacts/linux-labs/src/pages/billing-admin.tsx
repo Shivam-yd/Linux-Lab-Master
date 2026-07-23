@@ -62,6 +62,11 @@ export default function BillingAdmin() {
 
   if (!isPending && !session?.user) return <Redirect to="/sign-in" />
 
+  const config = useQuery<{ enforcePlans: boolean }>({
+    queryKey: ["config"],
+    queryFn: () => apiFetch(`${basePath}/api/config`),
+    staleTime: 60_000,
+  })
   const revenue = useQuery<Revenue>({
     queryKey: ["admin", "revenue"],
     queryFn: () => apiFetch("/api/admin/revenue"),
@@ -123,15 +128,17 @@ export default function BillingAdmin() {
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
-        {/* Enforcement notice */}
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/30 bg-amber-500/8">
-          <ShieldOff className="w-4 h-4 text-amber-400 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-300">Plan enforcement is off — free unlimited access</p>
-            <p className="text-xs text-amber-400/70 mt-0.5">All users receive DevOps Pro access. Set <code className="font-mono bg-black/20 px-1 rounded">ENFORCE_PLANS=true</code> when ready to activate billing.</p>
+        {/* Enforcement notice — only shown when ENFORCE_PLANS=false */}
+        {config.data && !config.data.enforcePlans && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/30 bg-amber-500/8">
+            <ShieldOff className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-300">Plan enforcement is off — free unlimited access</p>
+              <p className="text-xs text-amber-400/70 mt-0.5">All users receive DevOps Pro access. Remove <code className="font-mono bg-black/20 px-1 rounded">ENFORCE_PLANS=false</code> (or delete the variable) to activate plan gating.</p>
+            </div>
+            <ToggleLeft className="w-5 h-5 text-amber-400/60 shrink-0" />
           </div>
-          <ToggleLeft className="w-5 h-5 text-amber-400/60 shrink-0" />
-        </div>
+        )}
 
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
