@@ -2,8 +2,7 @@ import { useEffect, useState } from "react"
 import { useLocation, Redirect } from "wouter"
 import { useSession } from "@/lib/auth-client"
 import { usePlan } from "@/lib/use-plan"
-import { useQueryClient } from "@tanstack/react-query"
-import { Loader2, Terminal, Server } from "lucide-react"
+import { Terminal, Server } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -35,30 +34,14 @@ export default function ChoosePlan() {
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const { hasSubscription, isLoading: planLoading } = usePlan()
-  const qc = useQueryClient()
   const [choosing, setChoosing] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   if (!isPending && !session?.user) return <Redirect to="/sign-in" />
   if (!isPending && !planLoading && hasSubscription) return <Redirect to="/dashboard" />
 
-  async function choose(plan: string) {
+  function choose(plan: string) {
     setChoosing(plan)
-    setError(null)
-    try {
-      const res = await fetch(`${basePath}/api/account/plan`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ plan }),
-      })
-      if (!res.ok) throw new Error("Failed to save plan")
-      await qc.invalidateQueries({ queryKey: ["account", "plan"] })
-      setLocation("/dashboard")
-    } catch {
-      setError("Something went wrong. Please try again.")
-      setChoosing(null)
-    }
+    setLocation(`/checkout?plan=${plan}`)
   }
 
   return (
@@ -76,12 +59,6 @@ export default function ChoosePlan() {
           <h1 className="text-2xl font-bold mt-4 mb-2">Choose your learning path</h1>
           <p className="text-sm text-muted-foreground">Pick a plan to unlock your labs. You can change it anytime.</p>
         </div>
-
-        {error && (
-          <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2 w-full text-center">
-            {error}
-          </p>
-        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
           {PLANS.map(({ id, name, description, tracks, features, Icon, pro }) => (
