@@ -209,15 +209,17 @@ else
   success "Secrets written to ${ENV_FILE}"
 fi
 
-# ── Step 4: Build Docker images ───────────────────────────────────────────────
-header "Step 4/6 — Build images"
-
-# Source the .env so env vars are available as shell vars for the build arg.
-# (They may not be set if the .env already existed before this run.)
+# Validate an existing configuration before Docker Compose interpolates it.
+# This prevents a stale or hand-edited .env from starting a broken API service.
 set -o allexport
 # shellcheck source=/dev/null
 source "${ENV_FILE}"
 set +o allexport
+[[ -n "${SESSION_SECRET:-}" ]] || die "SESSION_SECRET is missing from ${ENV_FILE}. Delete the file to regenerate it."
+[[ -n "${BETTER_AUTH_URL:-}" ]] || die "BETTER_AUTH_URL is missing from ${ENV_FILE}. Delete the file and rerun the installer."
+
+# ── Step 4: Build Docker images ───────────────────────────────────────────────
+header "Step 4/6 — Build images"
 
 info "Stopping any existing containers..."
 docker compose --project-directory "${INSTALL_DIR}" down --remove-orphans 2>/dev/null || true
@@ -271,17 +273,20 @@ EnvironmentFile=${INSTALL_DIR}/.env
 # Start: docker compose up (foreground — systemd manages the process)
 ExecStart=${COMPOSE_BIN} compose \
   --project-directory ${INSTALL_DIR} \
+  --env-file ${ENV_FILE} \
   up --no-build
 
 # Stop: tear down containers gracefully
 ExecStop=${COMPOSE_BIN} compose \
   --project-directory ${INSTALL_DIR} \
+  --env-file ${ENV_FILE} \
   down
 
 # Run the DB migration before starting on each boot
 # (drizzle-kit push is idempotent — safe to run every time)
 ExecStartPre=${COMPOSE_BIN} compose \
   --project-directory ${INSTALL_DIR} \
+  --env-file ${ENV_FILE} \
   run --rm migrate
 
 Restart=on-failure

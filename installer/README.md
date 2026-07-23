@@ -8,7 +8,7 @@ Run this from the project root on the target machine:
 sudo bash installer/install.sh
 ```
 
-That's it. The script installs Docker, builds the images, pulls lab containers, and registers a systemd service that starts on boot. Open `http://localhost` when it finishes.
+That's it. The script installs Docker, builds the images, pulls lab containers, and registers a systemd service that starts on boot. Open `http://localhost:8085` when it finishes.
 
 | Command | What it does |
 |---|---|
@@ -27,11 +27,25 @@ The installer packages Linux Labs as a self-contained Windows application:
 
 - Installs Docker Desktop (via winget) if not already present
 - Builds all Docker images from source (Node.js API, nginx frontend, PostgreSQL)
-- Pre-pulls the four lab container images so labs start instantly
+- Pre-pulls the six lab container images so labs start instantly
 - Registers a Windows service (`LinuxLabs`) that starts on boot
-- Creates a desktop shortcut that opens `http://localhost` in the browser
+- Creates a desktop shortcut that opens `http://localhost:8085` in the browser
 
 After installation the user never touches a terminal — the service manages everything.
+
+The generated configuration defaults to `http://localhost:8085`. If other
+machines will access the server, edit
+`C:\Program Files\LinuxLabs\.env` before starting the service:
+
+```dotenv
+BETTER_AUTH_URL=http://SERVER-IP:8085
+TRUSTED_ORIGINS=http://SERVER-IP:8085
+SECURE_COOKIES=false
+```
+
+Replace `SERVER-IP` with the server's LAN address, then restart the
+`LinuxLabs` service. Use an HTTPS URL and set `SECURE_COOKIES=true` when the
+application is behind TLS.
 
 ## Prerequisites (for building the installer, not for end users)
 

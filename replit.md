@@ -46,7 +46,10 @@ To push schema changes: `pnpm --filter @workspace/db run push`
 
 ## Lab Sandboxes
 
-Terminal labs spin up Docker containers (`rastasheep/ubuntu-sshd:18.04`) via the Docker daemon. **Docker is not available in the Replit environment**, so students cannot launch live terminals here. All other features (auth, progress tracking, lab browsing) work normally.
+Terminal labs spin up Docker containers via the Docker daemon. The current
+Replit runtime exposes Docker, so live sandboxes are available here; if a future
+runtime does not expose the daemon, lab browsing, authentication, and progress
+tracking still work but sandbox deployment will be unavailable.
 
 ## User Preferences
 

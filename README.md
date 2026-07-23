@@ -27,11 +27,11 @@ Linux Lab Master is a self-hosted web application that provides **browser-based 
 
 | Track | Levels | Labs | What you'll learn |
 |-------|--------|------|-------------------|
-| **Linux** | L1 · L2 · L3 | 29 | Filesystem, processes, networking, permissions, scripting, system administration |
-| **Terraform** | L1 · L2 · L3 | 48+ | Infrastructure as Code — variables, modules, state, workspaces, lifecycle rules |
-| **Jenkins** | L1 | 5 | CI/CD fundamentals — server setup, plugins, user access, jobs, folders |
-| **Docker** | L1 | 5 | Images, containers, exec/logs, Dockerfiles, volumes — all taught via a realistic in-sandbox simulator |
-| **Git** | L1 | 5 | Init, commits, branching, remotes, stash & reset |
+| **Linux** | L1 · L2 · L3 | 18 | Filesystem, processes, networking, permissions, scripting, system administration |
+| **Terraform** | L1 · L2 · L3 | 30 | Infrastructure as Code — variables, modules, state, workspaces, lifecycle rules |
+| **Jenkins** | L1 | 9 | CI/CD fundamentals — server setup, plugins, user access, jobs, folders |
+| **Docker** | L1 | 11 | Images, containers, exec/logs, Dockerfiles, volumes — all taught via a realistic in-sandbox simulator |
+| **Git** | L1 | 10 | Init, commits, branching, remotes, stash & reset |
 
 > Labs are fetched directly from this repository. Click **Fetch Labs** inside the app at any time to pull the latest content without restarting.
 
@@ -124,6 +124,11 @@ journalctl -u linuxlabs -f         # live logs
    - Create a desktop shortcut that opens the app in your browser
 5. When the wizard finishes, open **http://localhost:8085** in your browser
 
+The Windows installer defaults to local-only access. For LAN access, update
+`C:\Program Files\LinuxLabs\.env` with the server URL in `BETTER_AUTH_URL` and
+`TRUSTED_ORIGINS`, then restart the `LinuxLabs` service. See
+[`installer/README.md`](installer/README.md) for the exact settings.
+
 #### Managing the Windows service
 
 ```powershell
@@ -157,6 +162,24 @@ C:\Program Files\LinuxLabs\LinuxLabs.err.log
 4. Press Ctrl+F9 to compile
 5. Installer is written to installer\Output\LinuxLabs-Setup.exe
 ```
+
+---
+
+### ☁️ Replit
+
+The imported project is configured as a pnpm workspace with managed API and web
+workflows. Replit supplies PostgreSQL through the `postgresql-16` module and
+injects `DATABASE_URL`; add `SESSION_SECRET` as a Replit Secret before starting.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @workspace/db run push
+```
+
+The web preview runs at the root path and proxies `/api` to the API workflow.
+Live terminal sandboxes work when the Replit runtime exposes the Docker daemon;
+otherwise lab browsing, authentication, and progress tracking remain available
+but sandbox deployment is unavailable.
 
 ---
 
