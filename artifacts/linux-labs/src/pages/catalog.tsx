@@ -624,8 +624,32 @@ export default function Catalog() {
             </div>
           </div>
 
+          {/* ── Pro track upgrade wall ── */}
+          {PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter" && (
+            <div className="rounded-2xl border border-primary/20 bg-card/80 backdrop-blur-sm p-12 text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
+                <Lock className="w-7 h-7 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">DevOps Pro Required</p>
+                <h2 className="text-2xl font-bold">This track is locked</h2>
+                <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto leading-relaxed">
+                  The <span className="font-semibold text-foreground">{meta.label}</span> track is included in the DevOps Pro plan.
+                  Upgrade to unlock all 5 tracks — Docker, Terraform, Jenkins, Git, and Linux.
+                </p>
+              </div>
+              <Link
+                href={`${basePath}/pricing`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+              >
+                <Zap className="w-4 h-4" />
+                Upgrade to DevOps Pro
+              </Link>
+            </div>
+          )}
+
           {/* Coming soon placeholder for empty tracks */}
-          {totalLabs === 0 && (
+          {totalLabs === 0 && !(PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter") && (
             <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-10 text-center space-y-4">
               <div
                 className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center border"
@@ -641,7 +665,7 @@ export default function Catalog() {
           )}
 
           {/* ── By Level view ── */}
-          {viewMode === "by-level" && totalLabs > 0 && (
+          {viewMode === "by-level" && totalLabs > 0 && !(PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter") && (
             <div className="space-y-6">
               {loading
                 ? Array.from({ length: 3 }).map((_, i) => (
@@ -749,20 +773,28 @@ export default function Catalog() {
                                   </span>
 
                                   {/* Action button */}
-                                  <Link href={`/labs/${lab.id}`} className="shrink-0">
-                                    <button className={cn(
-                                      "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all duration-200",
-                                      isPassed
-                                        ? "bg-background border border-border text-muted-foreground hover:text-foreground hover:border-border/80"
-                                        : isInProgress
-                                        ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25"
-                                        : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
-                                    )}>
-                                      {isPassed ? <><CheckCircle2 className="w-3 h-3" />Review</>
-                                        : isInProgress ? <><PlayCircle className="w-3 h-3" />Continue</>
-                                        : <><Terminal className="w-3 h-3" />Start</>}
-                                    </button>
-                                  </Link>
+                                  {PRO_TRACKS.has(lab.track) && plan === "linux-starter" ? (
+                                    <Link href={`${basePath}/pricing`} className="shrink-0">
+                                      <button className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-primary/5 border border-primary/20 text-primary/60 hover:bg-primary/10 hover:text-primary transition-all duration-200">
+                                        <Lock className="w-3 h-3" />Pro
+                                      </button>
+                                    </Link>
+                                  ) : (
+                                    <Link href={`/labs/${lab.id}`} className="shrink-0">
+                                      <button className={cn(
+                                        "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all duration-200",
+                                        isPassed
+                                          ? "bg-background border border-border text-muted-foreground hover:text-foreground hover:border-border/80"
+                                          : isInProgress
+                                          ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25"
+                                          : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                                      )}>
+                                        {isPassed ? <><CheckCircle2 className="w-3 h-3" />Review</>
+                                          : isInProgress ? <><PlayCircle className="w-3 h-3" />Continue</>
+                                          : <><Terminal className="w-3 h-3" />Start</>}
+                                      </button>
+                                    </Link>
+                                  )}
                                 </div>
                               )
                             })}
@@ -776,7 +808,7 @@ export default function Catalog() {
           )}
 
           {/* ── By Course view (existing) ── */}
-          {viewMode === "by-course" && (loading ? (
+          {viewMode === "by-course" && !(PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter") && (loading ? (
             <div className="rounded-xl border border-border/50 bg-card/80 p-6 space-y-6">
               <div className="flex items-center gap-5">
                 <Skeleton className="w-16 h-16 rounded-xl" />

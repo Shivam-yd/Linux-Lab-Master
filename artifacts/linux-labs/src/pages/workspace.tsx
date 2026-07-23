@@ -23,11 +23,11 @@ import {
   Terminal, Play, Square, RotateCcw, ArrowLeft, 
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity,
   Lightbulb, ChevronDown, ChevronRight, Eye, Server, Loader2, Target, Trophy,
-  Award, ExternalLink
+  Award, ExternalLink, Lock, Zap
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSession } from "@/lib/auth-client"
-import { usePlan } from "@/lib/use-plan"
+import { usePlan, PRO_TRACKS } from "@/lib/use-plan"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -357,7 +357,7 @@ export default function Workspace() {
   }, [stepsMarkdown])
 
   const { data: authSession, isPending: authPending } = useSession()
-  const { hasSubscription, isLoading: planLoading } = usePlan()
+  const { plan, hasSubscription, isLoading: planLoading } = usePlan()
 
   if (!authPending && !authSession?.user) return <Redirect to="/sign-in" />
   if (!authPending && !planLoading && authSession?.user && !hasSubscription) return <Redirect to="/choose-plan" />
@@ -368,6 +368,41 @@ export default function Workspace() {
         <div className="flex flex-col items-center gap-4 text-primary">
           <Loader2 className="w-12 h-12 animate-spin" />
           <p className="font-mono text-sm tracking-widest uppercase">Initializing Interface...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!authPending && !planLoading && PRO_TRACKS.has(lab?.track ?? "") && plan === "linux-starter") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+        <div className="relative text-center max-w-md space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">DevOps Pro Required</p>
+            <h2 className="text-2xl font-bold">This lab is locked</h2>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+              The <span className="font-semibold text-foreground capitalize">{lab?.track}</span> track is part of the DevOps Pro plan.
+              Upgrade to access all labs across Docker, Terraform, Jenkins, and Git.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href={`${basePath}/pricing`}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+            >
+              <Zap className="w-4 h-4" />
+              Upgrade to DevOps Pro
+            </Link>
+            <Link href={`${basePath}/dashboard`}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-muted/30 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     )
