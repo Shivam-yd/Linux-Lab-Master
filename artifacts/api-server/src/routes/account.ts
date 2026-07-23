@@ -34,7 +34,12 @@ router.delete("/account", async (req, res): Promise<void> => {
   try {
     // Stop any running lab container for this user before wiping data.
     try {
-      await stopSession(userId);
+      const sessions = await db.execute(sql`
+        SELECT lab_id FROM lab_sessions WHERE student_id = ${userId}
+      `);
+      await Promise.all(
+        sessions.rows.map((row) => stopSession(userId, row.lab_id as string)),
+      );
     } catch {
       // Non-fatal — a dangling container is less bad than a stuck account.
     }
@@ -68,7 +73,17 @@ router.get("/account/plan", async (req, res): Promise<void> => {
     getEffectivePlan(session.user.id),
     hasPlanAccess(session.user.id),
   ]);
-  res.json({ plan, hasSubscription });
+  const trial = await db.execute(sql`
+    SELECT trial_ends_at
+    FROM subscriptions
+    WHERE user_id = ${session.user.id}
+    LIMIT 1
+  `);
+  res.json({
+    plan,
+    hasSubscription,
+    trialEndsAt: (trial.rows[0] as { trial_ends_at: Date | null } | undefined)?.trial_ends_at ?? null,
+  });
 });
 
 /** POST /account/plan — choose a free plan (creates subscription row) */
@@ -80,9 +95,23 @@ router.post("/account/plan", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid plan" }); return;
   }
   await db.execute(sql`
-    INSERT INTO subscriptions (user_id, plan, status)
-    VALUES (${session.user.id}, ${plan}, 'active')
-    ON CONFLICT (user_id) DO UPDATE SET plan = ${plan}, status = 'active', updated_at = NOW()
+    INSERT INTO subscriptions (user_id, plan, status, trial_ends_at)
+    VALUES (
+      ${session.user.id},
+      ${plan},
+      'active',
+      CASE WHEN ${plan} = 'devops-pro' THEN NOW() + interval '14 days' ELSE NULL END
+    )
+    ON CONFLICT (user_id) DO UPDATE SET
+      plan = ${plan},
+      status = 'active',
+      trial_ends_at = CASE
+        WHEN subscriptions.plan <> 'devops-pro' AND ${plan} = 'devops-pro'
+          THEN NOW() + interval '14 days'
+        WHEN ${plan} <> 'devops-pro' THEN NULL
+        ELSE subscriptions.trial_ends_at
+      END,
+      updated_at = NOW()
   `);
   res.json({ ok: true });
 });

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useLocation, Redirect } from "wouter"
 import { useSession } from "@/lib/auth-client"
 import { usePlan } from "@/lib/use-plan"
-import { Terminal, Server } from "lucide-react"
+import { Loader2, Terminal, Server } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -21,9 +21,9 @@ const PLANS = [
   {
     id: "devops-pro",
     name: "DevOps Pro",
-    description: "Everything in Starter plus all DevOps tracks.",
+    description: "Everything in Starter plus all DevOps tracks, with a 14-day Pro trial.",
     tracks: ["Linux", "Docker", "Terraform", "Jenkins", "Git"],
-    features: ["All Linux labs", "All DevOps labs", "Progress tracking", "Certificates"],
+    features: ["All Linux labs", "All DevOps labs", "14-day Pro trial", "Progress tracking", "Certificates"],
     Icon: Server,
     pro: true,
   },

@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import {
   GetLabSessionParams,
   GetLabSessionResponse,
@@ -12,7 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { getLabByIdAsync } from "../lib/labs/registry";
 import { requireAuth } from "../middleware/auth";
-import { getEffectivePlan, hasPlanAccess, PRO_TRACKS } from "../lib/plan";
+import { getLabAccessError } from "../lib/plan";
 import {
   getSessionRow,
   startSession,
@@ -26,6 +26,12 @@ import { logger } from "../lib/logger";
 const router: IRouter = Router();
 
 router.use(requireAuth);
+
+async function allowLabAccess(studentId: string, track: string, res: Response): Promise<boolean> {
+  const accessError = await getLabAccessError(studentId, track);
+  if (accessError) res.status(accessError.status).json(accessError);
+  return !accessError;
+}
 
 function toSessionResponse(labId: string, terminals: string[], row: Awaited<ReturnType<typeof getSessionRow>>) {
   return {
@@ -48,6 +54,7 @@ router.get("/labs/:labId/session", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Lab not found" });
     return;
   }
+  if (!await allowLabAccess(req.studentId, lab.track, res)) return;
   const row = await getSessionRow(req.studentId, lab.id);
   res.json(
     GetLabSessionResponse.parse(
@@ -71,17 +78,7 @@ router.post("/labs/:labId/session", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Lab not found" });
     return;
   }
-  if (!await hasPlanAccess(req.studentId)) {
-    res.status(402).json({ error: "Plan required", requiresPlan: true });
-    return;
-  }
-  if (PRO_TRACKS.has(lab.track)) {
-    const plan = await getEffectivePlan(req.studentId);
-    if (plan !== "devops-pro") {
-      res.status(403).json({ error: "DevOps Pro plan required for this track", upgrade: true });
-      return;
-    }
-  }
+  if (!await allowLabAccess(req.studentId, lab.track, res)) return;
   const row = await startSession(req.studentId, lab.id);
   res.json(
     StartLabSessionResponse.parse(
@@ -120,6 +117,7 @@ router.post("/labs/:labId/session/reset", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Lab not found" });
     return;
   }
+  if (!await allowLabAccess(req.studentId, lab.track, res)) return;
   const row = await resetSession(req.studentId, lab.id);
   res.json(
     ResetLabSessionResponse.parse(
@@ -143,6 +141,7 @@ router.post("/labs/:labId/verify", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Lab not found" });
     return;
   }
+  if (!await allowLabAccess(req.studentId, lab.track, res)) return;
 
   try {
     const checks = await verifyLab(req.studentId, lab.id);

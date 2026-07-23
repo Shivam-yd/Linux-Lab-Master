@@ -193,6 +193,7 @@ export const subscriptionsTable = pgTable("subscriptions", {
   status: text("status").notNull().default("active"),    // 'active' | 'cancelled' | 'past_due'
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   renewsAt: timestamp("renews_at", { withTimezone: true }),
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
   providerRef: text("provider_ref"), // payment provider reference ID (Razorpay/Stripe)
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

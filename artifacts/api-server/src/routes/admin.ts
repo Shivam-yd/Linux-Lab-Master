@@ -707,6 +707,7 @@ router.get("/subscriptions", async (_req, res): Promise<void> => {
   const rows = await db.execute(sql`
     SELECT
       s.user_id, s.plan, s.status, s.started_at, s.renews_at, s.provider_ref, s.updated_at,
+      s.trial_ends_at,
       u.name, u.email,
       o.plan AS override_plan, o.expires_at AS override_expires
     FROM subscriptions s
@@ -721,6 +722,14 @@ router.get("/subscriptions", async (_req, res): Promise<void> => {
 router.patch("/subscriptions/:userId", async (req, res): Promise<void> => {
   const { userId } = req.params;
   const { plan, status } = req.body ?? {};
+  if (plan && !["linux-starter", "devops-pro"].includes(plan)) {
+    res.status(400).json({ error: "Invalid plan" });
+    return;
+  }
+  if (status && !["active", "cancelled", "past_due"].includes(status)) {
+    res.status(400).json({ error: "Invalid status" });
+    return;
+  }
   if (!plan && !status) { res.status(400).json({ error: "plan or status required" }); return; }
   await db.execute(sql`
     INSERT INTO subscriptions (user_id, plan, status)
@@ -737,7 +746,7 @@ router.patch("/subscriptions/:userId", async (req, res): Promise<void> => {
 router.post("/subscriptions/:userId/override", async (req, res): Promise<void> => {
   const { userId } = req.params;
   const { plan, expiresAt } = req.body ?? {};
-  if (!plan) { res.status(400).json({ error: "plan required" }); return; }
+  if (!["linux-starter", "devops-pro"].includes(plan)) { res.status(400).json({ error: "Invalid plan" }); return; }
   const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
   await db.execute(sql`
     INSERT INTO plan_overrides (user_id, plan, granted_by, expires_at)
@@ -762,6 +771,8 @@ router.get("/revenue", async (_req, res): Promise<void> => {
       COUNT(*) FILTER (WHERE status = 'active')::int                        AS active_total,
       COUNT(*) FILTER (WHERE status = 'active' AND plan = 'linux-starter')::int AS starter_active,
       COUNT(*) FILTER (WHERE status = 'active' AND plan = 'devops-pro')::int    AS pro_active,
+      COUNT(*) FILTER (WHERE status = 'active' AND plan = 'devops-pro'
+        AND provider_ref IS NOT NULL)::int AS paid_pro_active,
       COUNT(*) FILTER (WHERE status = 'cancelled'
         AND updated_at > NOW() - interval '30 days')::int                   AS churned_30d
     FROM subscriptions

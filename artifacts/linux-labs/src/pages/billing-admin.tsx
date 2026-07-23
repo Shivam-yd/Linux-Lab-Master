@@ -15,10 +15,11 @@ const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "").split(",").map((s
 type SubRow = {
   user_id: string; plan: string; status: string
   started_at: string; renews_at: string | null
+  trial_ends_at: string | null
   name: string | null; email: string
   override_plan: string | null; override_expires: string | null
 }
-type Revenue = { active_total: number; starter_active: number; pro_active: number; churned_30d: number }
+type Revenue = { active_total: number; starter_active: number; pro_active: number; paid_pro_active: number; churned_30d: number }
 
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const r = await fetch(url, { credentials: "include", ...opts })
@@ -94,10 +95,20 @@ export default function BillingAdmin() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "subscriptions"] }),
   })
 
+  const changeStatus = useMutation({
+    mutationFn: ({ userId, status }: { userId: string; status: string }) =>
+      apiFetch(`/api/admin/subscriptions/${userId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "subscriptions"] }),
+  })
+
   const stats = [
     { label: "Total subscribers", value: revenue.data?.active_total ?? "—", icon: Users,         color: "text-primary" },
     { label: "Linux Starter",     value: revenue.data?.starter_active ?? "—", icon: CreditCard,   color: "text-muted-foreground" },
     { label: "DevOps Pro",        value: revenue.data?.pro_active ?? "—",     icon: Zap,           color: "text-violet-400" },
+    { label: "Paid Pro",          value: revenue.data?.paid_pro_active ?? "—", icon: CreditCard,  color: "text-emerald-400" },
     { label: "Churned (30 d)",    value: revenue.data?.churned_30d ?? "—",    icon: TrendingDown,  color: "text-rose-400" },
   ]
 
@@ -132,7 +143,7 @@ export default function BillingAdmin() {
 
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {stats.map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
               <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-muted/40", color)}>
@@ -216,7 +227,7 @@ export default function BillingAdmin() {
                     <th className="text-left px-4 py-3 font-semibold">Plan</th>
                     <th className="text-left px-4 py-3 font-semibold">Status</th>
                     <th className="text-left px-4 py-3 font-semibold">Since</th>
-                    <th className="text-left px-4 py-3 font-semibold">Renews</th>
+                     <th className="text-left px-4 py-3 font-semibold">Trial / Renews</th>
                     <th className="text-left px-4 py-3 font-semibold">Override</th>
                     <th className="px-4 py-3" />
                   </tr>
@@ -245,9 +256,23 @@ export default function BillingAdmin() {
                           <option value="devops-pro">DevOps Pro</option>
                         </select>
                       </td>
-                      <td className="px-4 py-3.5"><StatusBadge status={row.status} /></td>
+                       <td className="px-4 py-3.5">
+                         <select
+                           value={row.status}
+                           onChange={e => changeStatus.mutate({ userId: row.user_id, status: e.target.value })}
+                           className="text-xs px-2 py-1 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/40"
+                         >
+                           <option value="active">Active</option>
+                           <option value="past_due">Past due</option>
+                           <option value="cancelled">Cancelled</option>
+                         </select>
+                       </td>
                       <td className="px-4 py-3.5 text-xs text-muted-foreground">{new Date(row.started_at).toLocaleDateString()}</td>
-                      <td className="px-4 py-3.5 text-xs text-muted-foreground">{row.renews_at ? new Date(row.renews_at).toLocaleDateString() : "—"}</td>
+                       <td className="px-4 py-3.5 text-xs text-muted-foreground">
+                         {row.trial_ends_at
+                           ? `Trial ends ${new Date(row.trial_ends_at).toLocaleDateString()}`
+                           : row.renews_at ? new Date(row.renews_at).toLocaleDateString() : "—"}
+                       </td>
                       <td className="px-4 py-3.5">
                         {row.override_plan
                           ? <PlanBadge plan={row.override_plan} override />

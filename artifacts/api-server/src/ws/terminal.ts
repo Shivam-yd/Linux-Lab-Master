@@ -5,6 +5,7 @@ import type { Duplex } from "node:stream";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth, trustedOrigins } from "../lib/auth";
 import { getLabByIdAsync } from "../lib/labs/registry";
+import { getLabAccessError } from "../lib/plan";
 import { getRunningContainer, stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
 
@@ -168,6 +169,13 @@ async function handleConnection(ws: WebSocket, req: IncomingMessage, url: URL): 
   const terminal = lab?.terminals.find((t) => t.name === terminalName);
   if (!lab || !terminal) {
     sendControl(ws, { type: "status", message: "Unknown lab or terminal." });
+    ws.close();
+    return;
+  }
+
+  const accessError = await getLabAccessError(studentId, lab.track);
+  if (accessError) {
+    sendControl(ws, { type: "status", message: accessError.error });
     ws.close();
     return;
   }

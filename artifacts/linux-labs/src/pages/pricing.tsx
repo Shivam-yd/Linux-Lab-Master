@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "wouter"
 import { Terminal, Container, Layers, Server, GitBranch, Check, X, ArrowRight, Zap } from "lucide-react"
 import { useSession } from "@/lib/auth-client"
@@ -72,6 +72,7 @@ const COMPARE = [
 export default function PricingPage() {
   useEffect(() => { document.title = "Pricing — DevLabMaster" }, [])
   const { data: session, isPending } = useSession()
+  const [term, setTerm] = useState<"monthly" | "two-years">("monthly")
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -112,6 +113,20 @@ export default function PricingPage() {
         <p className="mt-4 text-muted-foreground text-lg max-w-lg mx-auto">
           Paid plans launching soon. Sign up now and lock in an early-user discount when billing goes live.
         </p>
+        <div className="inline-flex items-center gap-1 mt-6 rounded-xl border border-border bg-card p-1">
+          {(["monthly", "two-years"] as const).map(value => (
+            <button
+              key={value}
+              onClick={() => setTerm(value)}
+              className={cn(
+                "rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
+                term === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {value === "monthly" ? "Monthly" : "2 Years · Save 55%"}
+            </button>
+          ))}
+        </div>
       </section>
 
       {/* ── Plan cards ── */}
@@ -147,7 +162,9 @@ export default function PricingPage() {
               <div className="mb-6">
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-black">₹0</span>
-                  <span className="text-sm text-muted-foreground font-medium">/ mo</span>
+                  <span className="text-sm text-muted-foreground font-medium">
+                    {term === "monthly" ? "/ mo" : "/ mo · billed biennially"}
+                  </span>
                   <span className="text-sm text-muted-foreground line-through">₹X soon</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Paid plans coming soon · ₹ pricing for India</p>

@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TRACK_META, DEFAULT_TRACK_META, type TrackMeta } from "@/lib/track-meta"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -293,6 +294,7 @@ export default function Catalog() {
   // Derived once; used by upgrade wall, view gates, and lab-button lock.
   // !planLoading prevents flashing "locked" for devops-pro users while plan resolves.
   const isTrackLocked = !planLoading && PRO_TRACKS.has(resolvedTrack) && plan === "linux-starter"
+  const [lockedLab, setLockedLab] = useState<string | null>(null)
 
   const { data: adminCheck } = useQuery({
     queryKey: ["admin-check"],
@@ -777,11 +779,9 @@ export default function Catalog() {
 
                                   {/* Action button */}
                                   {PRO_TRACKS.has(lab.track) && plan === "linux-starter" ? (
-                                    <Link href={`${basePath}/pricing`} className="shrink-0">
-                                      <button className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-primary/5 border border-primary/20 text-primary/60 hover:bg-primary/10 hover:text-primary transition-all duration-200">
-                                        <Lock className="w-3 h-3" />Pro
-                                      </button>
-                                    </Link>
+                                    <button onClick={() => setLockedLab(lab.title)} className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-primary/5 border border-primary/20 text-primary/60 hover:bg-primary/10 hover:text-primary transition-all duration-200">
+                                      <Lock className="w-3 h-3" />Pro
+                                    </button>
                                   ) : (
                                     <Link href={`/labs/${lab.id}`} className="shrink-0">
                                       <button className={cn(
@@ -925,7 +925,16 @@ export default function Catalog() {
                           const isPassed = prog?.status === "passed"
                           
                           return (
-                            <Link key={lab.id} href={`/labs/${lab.id}`}>
+                            <Link
+                              key={lab.id}
+                              href={`/labs/${lab.id}`}
+                              onClick={e => {
+                                if (PRO_TRACKS.has(lab.track) && plan === "linux-starter") {
+                                  e.preventDefault()
+                                  setLockedLab(lab.title)
+                                }
+                              }}
+                            >
                               <div className="group flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer">
                                 <div className="w-8 font-mono text-muted-foreground/50 text-right text-lg font-bold group-hover:text-primary/50 transition-colors">
                                   {(idx + 1).toString().padStart(2, '0')}
@@ -964,6 +973,21 @@ export default function Catalog() {
           ))}
         </div>
       </div>
+      <Dialog open={!!lockedLab} onOpenChange={open => !open && setLockedLab(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upgrade to DevOps Pro to access this lab</DialogTitle>
+            <DialogDescription>
+              {lockedLab} is part of the DevOps Pro plan. Unlock Docker, Terraform, Jenkins, and Git labs with one upgrade.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Link href={`${basePath}/pricing`} onClick={() => setLockedLab(null)} className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">
+              Upgrade to DevOps Pro
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

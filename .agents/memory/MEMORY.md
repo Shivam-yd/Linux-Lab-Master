@@ -7,3 +7,4 @@
 - [Drizzle upsert pattern for lab sessions/progress](drizzle-upsert-pattern.md) — use onConflictDoUpdate, not read-then-write; unique constraints uq_lab_sessions_student_lab and uq_lab_progress_student_lab exist on (student_id, lab_id).
 - [Lab verify script audit patterns](lab-verify-audit.md) — known false-positive bugs in verify scripts and how to fix them.
 - [Ban pre-check body stream bug](ban-precheck-body-stream.md) — req.unshift() after stream end breaks Better Auth body parsing; use databaseHooks.session.create.before instead.
+- [Plan access and trials](plan-access-and-trials.md) — sandbox boundaries enforce track plans; DevOps Pro account selection has a 14-day server-side trial.
