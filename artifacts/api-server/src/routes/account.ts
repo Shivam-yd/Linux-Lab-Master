@@ -32,16 +32,16 @@ router.delete("/account", async (req, res): Promise<void> => {
     }
 
     await db.transaction(async (tx) => {
-      await tx.execute(sql`DELETE FROM session             WHERE user_id  = ${userId}`);
-      await tx.execute(sql`DELETE FROM lab_sessions        WHERE student_id = ${userId}`);
-      await tx.execute(sql`DELETE FROM lab_progress        WHERE student_id = ${userId}`);
-      await tx.execute(sql`DELETE FROM cert_records        WHERE student_id = ${userId}`);
-      await tx.execute(sql`DELETE FROM lab_ratings         WHERE student_id = ${userId}`);
-      await tx.execute(sql`DELETE FROM password_reset_requests WHERE user_id = ${userId}`);
-      await tx.execute(sql`DELETE FROM subscriptions        WHERE user_id = ${userId}`);
-      await tx.execute(sql`DELETE FROM students            WHERE id = ${userId}`);
-      await tx.execute(sql`DELETE FROM account             WHERE user_id = ${userId}`);
-      await tx.execute(sql`DELETE FROM "user"              WHERE id = ${userId}`);
+      await tx.execute(sql`DELETE FROM session                  WHERE user_id = ${userId}`);
+      await tx.execute(sql`DELETE FROM lab_sessions             WHERE student_id = ${userId}`);
+      await tx.execute(sql`DELETE FROM lab_progress             WHERE student_id = ${userId}`);
+      await tx.execute(sql`DELETE FROM lab_ratings              WHERE student_id = ${userId}`);
+      await tx.execute(sql`DELETE FROM password_reset_requests  WHERE user_id = ${userId}`);
+      await tx.execute(sql`DELETE FROM subscriptions            WHERE user_id = ${userId}`);
+      await tx.execute(sql`DELETE FROM plan_overrides           WHERE user_id = ${userId}`);
+      await tx.execute(sql`DELETE FROM students                 WHERE id = ${userId}`);
+      await tx.execute(sql`DELETE FROM account                  WHERE user_id = ${userId}`);
+      await tx.execute(sql`DELETE FROM "user"                   WHERE id = ${userId}`);
     });
 
     logger.info({ userId }, "account: self-deletion completed");
