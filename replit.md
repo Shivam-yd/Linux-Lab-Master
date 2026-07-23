@@ -21,6 +21,12 @@ Both services start automatically via managed workflows:
 
 The frontend proxies `/api` requests to the API server at `localhost:8080`.
 
+The imported project requires PostgreSQL for authentication, sessions, progress,
+and lab data. Replit setup provisions this through the `postgresql-16` module in
+`.replit`; `DATABASE_URL` is supplied automatically. `SESSION_SECRET` must be
+available as a Replit Secret, and `BETTER_AUTH_URL` must match the current
+`REPLIT_DEV_DOMAIN` when the domain changes.
+
 ## Environment Variables
 
 | Variable | Required | Notes |
