@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Link, useLocation } from "wouter"
 import { useSession, signOut, authClient } from "@/lib/auth-client"
 import { useQuery } from "@tanstack/react-query"
+import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Trash2, AlertTriangle, Terminal, Server } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Trash2, AlertTriangle, Terminal, Server, Award } from "lucide-react"
 import { usePlan } from "@/lib/use-plan"
 import { AccountDropdown } from "@/components/account-dropdown"
+import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -35,6 +38,24 @@ export default function ProfilePage() {
 
   const user = session?.user
   const { plan, isLoading: planLoading } = usePlan()
+
+  const { data: labs } = useListLabs()
+  const { data: progress } = useListProgress()
+
+  const trackStats = useMemo(() => {
+    if (!labs || !progress) return []
+    const passedIds = new Set(progress.filter(p => p.status === "passed").map(p => p.labId))
+    const byTrack = new Map<string, { passed: number; total: number }>()
+    for (const lab of labs) {
+      const e = byTrack.get(lab.track) ?? { passed: 0, total: 0 }
+      e.total++
+      if (passedIds.has(lab.id)) e.passed++
+      byTrack.set(lab.track, e)
+    }
+    return [...byTrack.entries()].map(([track, { passed, total }]) => ({
+      track, passed, total, complete: passed === total && total > 0,
+    }))
+  }, [labs, progress])
 
   // Detect whether this user has a credential (email/password) account or is
   // OAuth-only. Better Auth exposes GET /api/auth/list-accounts for exactly this.
