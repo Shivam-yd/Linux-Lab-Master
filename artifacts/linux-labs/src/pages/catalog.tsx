@@ -54,12 +54,6 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
             </p>
           </div>
         )}
-        {/* About — always visible info icon on the right */}
-        {!collapsed && (
-          <Link href="/about" title="About" className="shrink-0 p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
-            <Info className="w-4 h-4" />
-          </Link>
-        )}
       </div>
     </div>
   )
@@ -493,7 +487,22 @@ export default function Catalog() {
 
         </nav>
 
-        {/* Footer — About + identity, unified zone */}
+        {/* About link */}
+        <div className={cn("border-t border-border/50 py-2", collapsed ? "px-2" : "px-3")}>
+          <Link
+            href="/about"
+            title="About"
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs text-muted-foreground/70 hover:text-foreground hover:bg-primary/5 transition-colors",
+              collapsed && "justify-center"
+            )}
+          >
+            <Info className="w-3.5 h-3.5 shrink-0" />
+            {!collapsed && <span>About</span>}
+          </Link>
+        </div>
+
+        {/* Footer — identity */}
         <UserMenu collapsed={collapsed} />
       </aside>
 
