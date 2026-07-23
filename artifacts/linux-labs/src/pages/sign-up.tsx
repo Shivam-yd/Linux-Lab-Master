@@ -26,6 +26,13 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("")
   const [signupError, setSignupError] = useState<string | null>(null)
   const [signupLoading, setSignupLoading] = useState(false)
+  const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    if (!done) return
+    const t = setTimeout(() => setLocation("/choose-plan"), 2000)
+    return () => clearTimeout(t)
+  }, [done])
 
   // Restricted-mode state machine
   const [checkEmail, setCheckEmail] = useState("")
@@ -56,7 +63,7 @@ export default function SignUpPage() {
     try {
       const res = await signUp.email({ name, email, password })
       if (res.error) setSignupError(res.error.message ?? "Could not create account.")
-      else setLocation("/choose-plan")
+      else setDone(true)
     } catch {
       setSignupError("Something went wrong. Please try again.")
     } finally {
@@ -105,7 +112,7 @@ export default function SignUpPage() {
     try {
       const res = await signUp.email({ name: reqName, email: checkEmail, password })
       if (res.error) setActionError(res.error.message ?? "Could not create account.")
-      else setLocation("/choose-plan")
+      else setDone(true)
     } catch {
       setActionError("Something went wrong. Please try again.")
     } finally {
@@ -150,8 +157,21 @@ export default function SignUpPage() {
 
         <div className="w-full bg-card border border-border rounded-2xl p-8 shadow-[0_0_40px_rgba(45,212,191,0.08)]">
 
+          {/* ── Success ───────────────────────────────────────────────── */}
+          {done && (
+            <div className="text-center space-y-5 py-4">
+              <div className="w-16 h-16 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-green-400" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">Account created!</p>
+                <p className="text-sm text-muted-foreground mt-1">Welcome to DevLabMaster. Setting up your plan…</p>
+              </div>
+            </div>
+          )}
+
           {/* ── Open: standard signup ──────────────────────────────────── */}
-          {mode === "open" && (
+          {!done && mode === "open" && (
             <>
               <h1 className="text-xl font-bold mb-1">Create your account</h1>
               <p className="text-sm text-muted-foreground mb-6">Track your progress across every lab and track</p>
@@ -202,7 +222,7 @@ export default function SignUpPage() {
           )}
 
           {/* ── Restricted: email-first check ─────────────────────────── */}
-          {mode !== "open" && (
+          {!done && mode !== "open" && (
             <>
               <div className="flex items-center gap-2 mb-5">
                 <Lock className="w-4 h-4 text-amber-400 shrink-0" />

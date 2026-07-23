@@ -5,7 +5,7 @@ import { usePlan } from "@/lib/use-plan"
 import { useQueryClient } from "@tanstack/react-query"
 import {
   Terminal, Container, Layers, Server, GitBranch,
-  Check, ArrowRight, Loader2, ShieldCheck, Zap,
+  Check, ArrowRight, Loader2, ShieldCheck, Zap, CheckCircle2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -68,6 +68,13 @@ export default function CheckoutPage() {
   const qc = useQueryClient()
   const [activating, setActivating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    if (!done) return
+    const t = setTimeout(() => setLocation("/dashboard"), 2000)
+    return () => clearTimeout(t)
+  }, [done])
 
   // Read plan from URL query string
   const params = new URLSearchParams(window.location.search)
@@ -92,7 +99,7 @@ export default function CheckoutPage() {
       })
       if (!res.ok) throw new Error()
       await qc.invalidateQueries({ queryKey: ["account", "plan"] })
-      setLocation("/dashboard")
+      setDone(true)
     } catch {
       setError("Something went wrong. Please try again.")
       setActivating(false)
@@ -111,7 +118,21 @@ export default function CheckoutPage() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-10 grid lg:grid-cols-[1fr_340px] gap-8 items-start">
+      {done && (
+        <div className="flex flex-col items-center justify-center py-32 gap-6 text-center">
+          <div className="w-20 h-20 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center">
+            <CheckCircle2 className="w-10 h-10 text-green-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">You're all set!</p>
+            <p className="text-muted-foreground mt-1">
+              <span className="font-semibold" style={{ color: plan.accentHex }}>{plan.name}</span> activated. Taking you to your dashboard…
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!done && <div className="max-w-5xl mx-auto px-4 py-10 grid lg:grid-cols-[1fr_340px] gap-8 items-start">
 
         {/* ── Left: plan details ── */}
         <div className="space-y-6">
@@ -239,7 +260,8 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-      </div>
+      </div>}
+
     </div>
   )
 }
