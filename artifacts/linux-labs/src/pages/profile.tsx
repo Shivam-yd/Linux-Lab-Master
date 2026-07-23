@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award, Trash2, AlertTriangle } from "lucide-react"
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Award, Trash2, AlertTriangle, Terminal, Server } from "lucide-react"
+import { usePlan } from "@/lib/use-plan"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
@@ -36,6 +37,7 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const user = session?.user
+  const { plan, isLoading: planLoading } = usePlan()
 
   // Progress data
   const { data: labs } = useListLabs()
@@ -186,6 +188,45 @@ export default function ProfilePage() {
             <Mail className="w-3.5 h-3.5" />
             <span>Student ID: <span className="font-mono">{user.id.slice(0, 8)}…</span></span>
           </div>
+        </div>
+
+        {/* Current plan */}
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-semibold">Your plan</h2>
+          </div>
+          {planLoading ? (
+            <div className="h-10 rounded-lg bg-muted/30 animate-pulse" />
+          ) : plan === "devops-pro" ? (
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                  <Server className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">DevOps Pro</p>
+                  <p className="text-xs text-muted-foreground">All tracks — Linux, Docker, Terraform, Jenkins, Git</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/30 bg-primary/10 rounded-full px-2 py-0.5 shrink-0">Active</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/10 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/15 flex items-center justify-center shrink-0">
+                  <Terminal className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Linux Starter</p>
+                  <p className="text-xs text-muted-foreground">Linux track only</p>
+                </div>
+              </div>
+              <Link href={`${basePath}/pricing`} className="text-xs font-semibold text-primary hover:underline shrink-0">
+                Upgrade →
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Update name */}
