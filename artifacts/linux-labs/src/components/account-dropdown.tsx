@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "wouter"
 import { useSession, signOut } from "@/lib/auth-client"
+import { useQuery } from "@tanstack/react-query"
 import { User, LogOut, BarChart2, Shield, LogIn, UserPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -8,6 +9,12 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 export function AccountDropdown() {
   const { data: session } = useSession()
+  const { data: adminCheck } = useQuery<{ isAdmin: boolean }>({
+    queryKey: ["admin", "check"],
+    queryFn: () => fetch(`${basePath}/api/admin/check`).then(r => r.json()),
+    enabled: !!session?.user,
+    staleTime: 5 * 60 * 1000,
+  })
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -93,7 +100,7 @@ export function AccountDropdown() {
               <>
                 {item(`${basePath}/profile`,  <User className="w-3.5 h-3.5" />,     "Profile")}
                 {item(`${basePath}/progress`, <BarChart2 className="w-3.5 h-3.5" />, "My Progress")}
-                {item(`${basePath}/admin`,    <Shield className="w-3.5 h-3.5" />,    "Admin Panel")}
+                {adminCheck?.isAdmin && item(`${basePath}/admin`, <Shield className="w-3.5 h-3.5" />, "Admin Panel")}
               </>
             ) : (
               item(`${basePath}/progress`, <BarChart2 className="w-3.5 h-3.5" />, "My Progress")
