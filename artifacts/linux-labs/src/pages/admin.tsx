@@ -104,8 +104,8 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "ratings" | "labs" | "billing"
-  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "ratings", "labs", "billing"]
+  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "ratings" | "labs"
+  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "ratings", "labs"]
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
@@ -577,7 +577,6 @@ export default function AdminPage() {
                 { id: "registration",    label: "Registration",   icon: Lock      },
                 { id: "ratings",         label: "Lab Ratings",    icon: Star      },
                 { id: "labs",            label: "Labs",            icon: Beaker    },
-                { id: "billing",         label: "Billing",         icon: CreditCard },
               ] as const).map(({ id, label, icon: Icon }) => {
                 const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
                 return (
@@ -601,6 +600,14 @@ export default function AdminPage() {
                   </button>
                 )
               })}
+              <div className="w-px self-stretch bg-border/50 mx-0.5" />
+              <Link
+                href={`${basePath}/admin/billing`}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-primary/5"
+              >
+                <CreditCard className="w-4 h-4" />
+                Billing
+              </Link>
             </div>
 
             {/* ── Leaderboard ── */}
@@ -1496,19 +1503,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* ── Billing ── */}
-            {tab === "billing" && (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <CreditCard className="w-10 h-10 text-primary/40" />
-                <p className="text-sm text-muted-foreground">Billing has moved to its own page.</p>
-                <Link
-                  href={`${basePath}/admin/billing`}
-                  className="px-5 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center gap-2"
-                >
-                  Open Billing <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
-            )}
 
           </div>{/* end inner padding */}
         </div>{/* end scroll area */}
