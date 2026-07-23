@@ -26,13 +26,6 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("")
   const [signupError, setSignupError] = useState<string | null>(null)
   const [signupLoading, setSignupLoading] = useState(false)
-  const [done, setDone] = useState(false)
-
-  useEffect(() => {
-    if (!done) return
-    const t = setTimeout(() => setLocation("/choose-plan"), 2000)
-    return () => clearTimeout(t)
-  }, [done])
 
   // Restricted-mode state machine
   const [checkEmail, setCheckEmail] = useState("")
@@ -50,21 +43,6 @@ export default function SignUpPage() {
     staleTime: 30_000,
   })
 
-  if (done) return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background text-foreground px-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
-      <div className="relative z-10 flex flex-col items-center gap-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center">
-          <CheckCircle2 className="w-8 h-8 text-green-400" />
-        </div>
-        <div>
-          <p className="text-lg font-bold">Account created!</p>
-          <p className="text-sm text-muted-foreground mt-1">Welcome to DevLabMaster. Setting up your plan…</p>
-        </div>
-      </div>
-    </div>
-  )
-
   if (!isPending && session?.user) return <Redirect to="/dashboard" />
 
   const mode = regStatus?.mode ?? "open"
@@ -78,7 +56,7 @@ export default function SignUpPage() {
     try {
       const res = await signUp.email({ name, email, password })
       if (res.error) setSignupError(res.error.message ?? "Could not create account.")
-      else setDone(true)
+      else setLocation("/choose-plan")
     } catch {
       setSignupError("Something went wrong. Please try again.")
     } finally {
@@ -127,7 +105,7 @@ export default function SignUpPage() {
     try {
       const res = await signUp.email({ name: reqName, email: checkEmail, password })
       if (res.error) setActionError(res.error.message ?? "Could not create account.")
-      else setDone(true)
+      else setLocation("/choose-plan")
     } catch {
       setActionError("Something went wrong. Please try again.")
     } finally {

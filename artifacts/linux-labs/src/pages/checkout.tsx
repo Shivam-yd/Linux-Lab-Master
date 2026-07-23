@@ -81,11 +81,40 @@ export default function CheckoutPage() {
   const planId = params.get("plan") as PlanId | null
 
   if (done) return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-6 text-center px-4">
-      <div className="w-20 h-20 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center">
-        <CheckCircle2 className="w-10 h-10 text-green-400" />
-      </div>
-      <div>
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-8 text-center px-4">
+      <style>{`
+        @keyframes draw-circle {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes draw-check {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes fade-up {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      <svg viewBox="0 0 100 100" className="w-28 h-28 text-green-400" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {/* glow ring */}
+        <circle cx="50" cy="50" r="44" stroke="currentColor" strokeOpacity="0.08" strokeWidth="8" />
+        {/* animated circle */}
+        <circle
+          cx="50" cy="50" r="38"
+          stroke="currentColor" strokeWidth="4"
+          strokeDasharray="239" strokeDashoffset="239"
+          style={{ animation: "draw-circle 0.65s cubic-bezier(0.4,0,0.2,1) forwards" }}
+        />
+        {/* animated tick — M26 50 L42 66 L74 34, total path ≈ 66 */}
+        <path
+          d="M26 50 L42 66 L74 34"
+          stroke="currentColor" strokeWidth="5"
+          strokeDasharray="66" strokeDashoffset="66"
+          style={{ animation: "draw-check 0.35s cubic-bezier(0.4,0,0.2,1) 0.7s forwards" }}
+        />
+      </svg>
+
+      <div style={{ animation: "fade-up 0.4s ease 0.9s both" }}>
         <p className="text-2xl font-bold">You're all set!</p>
         <p className="text-muted-foreground mt-1">Taking you to your dashboard…</p>
       </div>
