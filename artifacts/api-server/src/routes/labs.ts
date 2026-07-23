@@ -48,16 +48,10 @@ router.get("/labs/sync/status", async (_req, res): Promise<void> => {
   }
 });
 
-/** POST /labs/sync — trigger an immediate sync from GitHub */
-router.post("/labs/sync", async (_req, res): Promise<void> => {
-  try {
-    const result = await runSync("manual");
-    if (result.status === "error") { res.status(502).json(result); return; }
-    if (result.status === "skipped") { res.status(202).json(result); return; }
-    res.json(result);
-  } catch {
-    res.status(500).json({ error: "Sync failed unexpectedly" });
-  }
+/** POST /labs/sync — kick off a sync and return immediately; poll GET /labs/sync/status for result */
+router.post("/labs/sync", (_req, res): void => {
+  res.status(202).json({ status: "started" });
+  runSync("manual").catch(() => {});
 });
 
 router.get("/labs/:labId", async (req, res): Promise<void> => {

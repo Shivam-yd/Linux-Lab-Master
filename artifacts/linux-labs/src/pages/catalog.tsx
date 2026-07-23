@@ -84,13 +84,8 @@ async function fetchSyncStatus(): Promise<SyncStatus> {
   return res.json()
 }
 
-async function triggerSync(): Promise<{ status: string; labsAdded: number; labsUpdated: number; totalRemote: number; errorMessage?: string }> {
-  const res = await fetch("/api/labs/sync", { method: "POST", credentials: "include" })
-  const body = await res.json().catch(() => ({}))
-  if (!res.ok || body.status === "error") {
-    throw new Error(body.errorMessage ?? body.error ?? "Sync failed")
-  }
-  return body
+async function triggerSync(): Promise<void> {
+  await fetch("/api/labs/sync", { method: "POST", credentials: "include" })
 }
 
 function formatRelativeTime(iso: string): string {
@@ -149,20 +144,31 @@ export default function Catalog() {
   const handleFetchLabs = useCallback(async () => {
     setSyncing(true)
     setSyncMessage(null)
+    const beforeSyncedAt = syncStatus?.lastSync?.syncedAt ?? null
     try {
-      const result = await triggerSync()
-      const added   = result.labsAdded   ?? 0
-      const updated = result.labsUpdated ?? 0
-      if (added === 0 && updated === 0) {
-        setSyncMessage("Already up to date")
-      } else {
-        const parts = []
-        if (added   > 0) parts.push(`${added} new`)
-        if (updated > 0) parts.push(`${updated} updated`)
-        setSyncMessage(`✓ ${parts.join(", ")} lab${(added + updated) !== 1 ? "s" : ""} synced`)
+      await triggerSync()
+      // Poll until syncedAt changes (sync completed) or 90s timeout
+      let fresh = syncStatus
+      for (let i = 0; i < 45; i++) {
+        await new Promise(r => setTimeout(r, 2000))
+        fresh = await fetchSyncStatus().catch(() => fresh)
+        if (fresh?.lastSync?.syncedAt !== beforeSyncedAt) break
       }
-      const fresh = await fetchSyncStatus()
       setSyncStatus(fresh)
+      if (fresh?.lastSync?.status === "error") {
+        setSyncMessage("✗ Sync failed — check network or repo")
+      } else {
+        const added   = fresh?.lastSync?.labsAdded   ?? 0
+        const updated = fresh?.lastSync?.labsUpdated ?? 0
+        if (added === 0 && updated === 0) {
+          setSyncMessage("Already up to date")
+        } else {
+          const parts = []
+          if (added   > 0) parts.push(`${added} new`)
+          if (updated > 0) parts.push(`${updated} updated`)
+          setSyncMessage(`✓ ${parts.join(", ")} lab${(added + updated) !== 1 ? "s" : ""} synced`)
+        }
+      }
       await refetchLabs()
       await refetchProgress()
     } catch {
@@ -170,7 +176,7 @@ export default function Catalog() {
     } finally {
       setSyncing(false)
     }
-  }, [refetchLabs, refetchProgress])
+  }, [syncStatus, refetchLabs, refetchProgress])
 
   // Derive sorted unique tracks that have labs, plus coming-soon tracks
   const tracks = useMemo(() => {
