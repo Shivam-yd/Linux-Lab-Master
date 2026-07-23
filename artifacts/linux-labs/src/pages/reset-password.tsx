@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
       <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-sm">
         <Link href="/" className="flex items-center gap-3">
-          <img src="/logo.svg" className="w-10 h-10 rounded-xl" />
+          <img src={`${basePath}/logo.svg`} className="w-10 h-10 rounded-xl" alt="DevLabMaster" />
           <span className="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
             DevLabMaster
           </span>
