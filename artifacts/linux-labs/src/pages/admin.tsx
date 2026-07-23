@@ -527,8 +527,15 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Right: account */}
-          <div className="flex items-center gap-1">
+          {/* Right: billing + account */}
+          <div className="flex items-center gap-2">
+            <Link
+              href={`${basePath}/admin/billing`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border/60 bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all duration-150"
+            >
+              <CreditCard className="w-4 h-4" />
+              Billing
+            </Link>
             <ThemeToggle />
             <AccountDropdown />
           </div>
@@ -600,14 +607,6 @@ export default function AdminPage() {
                   </button>
                 )
               })}
-              <div className="w-px self-stretch bg-border/50 mx-0.5" />
-              <Link
-                href={`${basePath}/admin/billing`}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-primary/5"
-              >
-                <CreditCard className="w-4 h-4" />
-                Billing
-              </Link>
             </div>
 
             {/* ── Leaderboard ── */}
