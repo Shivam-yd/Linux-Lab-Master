@@ -56,7 +56,7 @@ export default function SignUpPage() {
     try {
       const res = await signUp.email({ name, email, password })
       if (res.error) setSignupError(res.error.message ?? "Could not create account.")
-      else setLocation("/dashboard")
+      else setLocation("/choose-plan")
     } catch {
       setSignupError("Something went wrong. Please try again.")
     } finally {
@@ -105,7 +105,7 @@ export default function SignUpPage() {
     try {
       const res = await signUp.email({ name: reqName, email: checkEmail, password })
       if (res.error) setActionError(res.error.message ?? "Could not create account.")
-      else setLocation("/dashboard")
+      else setLocation("/choose-plan")
     } catch {
       setActionError("Something went wrong. Please try again.")
     } finally {

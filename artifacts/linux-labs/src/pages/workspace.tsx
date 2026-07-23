@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
-import { useParams, useLocation, Link } from "wouter"
+import { useParams, useLocation, Link, Redirect } from "wouter"
 import { 
   useGetLab, 
   useGetLabSession, 
@@ -26,6 +26,8 @@ import {
   Award, ExternalLink
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useSession } from "@/lib/auth-client"
+import { usePlan } from "@/lib/use-plan"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -353,6 +355,12 @@ export default function Workspace() {
     }
     return items
   }, [stepsMarkdown])
+
+  const { data: authSession, isPending: authPending } = useSession()
+  const { hasSubscription, isLoading: planLoading } = usePlan()
+
+  if (!authPending && !authSession?.user) return <Redirect to="/sign-in" />
+  if (!authPending && !planLoading && authSession?.user && !hasSubscription) return <Redirect to="/choose-plan" />
 
   if (labLoading) {
     return (

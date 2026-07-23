@@ -12,7 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { getLabByIdAsync } from "../lib/labs/registry";
 import { requireAuth } from "../middleware/auth";
-import { getEffectivePlan, PRO_TRACKS } from "../lib/plan";
+import { getEffectivePlan, hasPlanAccess, PRO_TRACKS } from "../lib/plan";
 import {
   getSessionRow,
   startSession,
@@ -69,6 +69,10 @@ router.post("/labs/:labId/session", async (req, res): Promise<void> => {
   const lab = await getLabByIdAsync(params.data.labId);
   if (!lab) {
     res.status(404).json({ error: "Lab not found" });
+    return;
+  }
+  if (!await hasPlanAccess(req.studentId)) {
+    res.status(402).json({ error: "Plan required", requiresPlan: true });
     return;
   }
   if (PRO_TRACKS.has(lab.track)) {

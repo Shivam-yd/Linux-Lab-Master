@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Link, useLocation, useSearch } from "wouter"
+import { Link, useLocation, useSearch, Redirect } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
 import { usePlan, PRO_TRACKS } from "@/lib/use-plan"
@@ -283,7 +283,7 @@ export default function Catalog() {
     return trackLabs.find(l => progressByLabId[l.id]?.status !== "passed")?.id ?? trackLabs[0]?.id ?? null
   }, [labs, resolvedTrack, progressByLabId])
 
-  const plan = usePlan()
+  const { plan, hasSubscription, isLoading: planLoading } = usePlan()
 
   const { data: adminCheck } = useQuery({
     queryKey: ["admin-check"],
@@ -351,6 +351,11 @@ export default function Catalog() {
       setExpandedCards(defaults)
     }
   }, [filteredCards]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { data: authSession, isPending: authPending } = useSession()
+  if (!authPending && !planLoading && authSession?.user && !hasSubscription) {
+    return <Redirect to="/choose-plan" />
+  }
 
   return (
     <div className="relative flex h-screen bg-background text-foreground overflow-hidden">

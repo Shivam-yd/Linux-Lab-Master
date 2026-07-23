@@ -5,7 +5,7 @@ import { auth } from "../lib/auth";
 import { db } from "@workspace/db";
 import { stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
-import { getEffectivePlan } from "../lib/plan";
+import { getEffectivePlan, hasPlanAccess } from "../lib/plan";
 
 const router = Router();
 
@@ -50,12 +50,31 @@ router.delete("/account", async (req, res): Promise<void> => {
   }
 });
 
-/** GET /account/plan — returns the caller's effective plan */
+/** GET /account/plan — returns the caller's effective plan + whether they've chosen one */
 router.get("/account/plan", async (req, res): Promise<void> => {
   const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
   if (!session?.user?.id) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const plan = await getEffectivePlan(session.user.id);
-  res.json({ plan });
+  const [plan, hasSubscription] = await Promise.all([
+    getEffectivePlan(session.user.id),
+    hasPlanAccess(session.user.id),
+  ]);
+  res.json({ plan, hasSubscription });
+});
+
+/** POST /account/plan — choose a free plan (creates subscription row) */
+router.post("/account/plan", async (req, res): Promise<void> => {
+  const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
+  if (!session?.user?.id) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const { plan } = req.body as { plan?: string };
+  if (plan !== "linux-starter" && plan !== "devops-pro") {
+    res.status(400).json({ error: "Invalid plan" }); return;
+  }
+  await db.execute(sql`
+    INSERT INTO subscriptions (user_id, plan, status)
+    VALUES (${session.user.id}, ${plan}, 'active')
+    ON CONFLICT (user_id) DO UPDATE SET plan = ${plan}, status = 'active', updated_at = NOW()
+  `);
+  res.json({ ok: true });
 });
 
 export default router;
