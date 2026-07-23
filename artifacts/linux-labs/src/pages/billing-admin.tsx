@@ -3,14 +3,12 @@ import { Link } from "wouter"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
 import { Redirect } from "wouter"
-import { ArrowLeft, CreditCard, Users, TrendingDown, Zap, Shield } from "lucide-react"
+import { ArrowLeft, CreditCard, Users, TrendingDown, Zap, Shield, ShieldAlert } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
-
-const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "").split(",").map((s: string) => s.trim()).filter(Boolean)
 
 type SubRow = {
   user_id: string; plan: string; status: string
@@ -23,7 +21,10 @@ type Revenue = { active_total: number; starter_active: number; pro_active: numbe
 
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const r = await fetch(url, { credentials: "include", ...opts })
-  if (!r.ok) throw new Error(await r.text())
+  if (!r.ok) {
+    const err = Object.assign(new Error(await r.text()), { status: r.status })
+    throw err
+  }
   return r.json()
 }
 
@@ -61,15 +62,18 @@ export default function BillingAdmin() {
   const [overridePlan, setOverridePlan] = useState("devops-pro")
   const [overrideExpiry, setOverrideExpiry] = useState("")
 
-  if (!isPending && !session?.user) return <Redirect to="/sign-in" />
-
+  // All hooks must be declared before any early returns (Rules of Hooks).
   const revenue = useQuery<Revenue>({
     queryKey: ["admin", "revenue"],
     queryFn: () => apiFetch("/api/admin/revenue"),
+    enabled: !isPending && !!session?.user,
+    retry: false,
   })
   const subs = useQuery<SubRow[]>({
     queryKey: ["admin", "subscriptions"],
     queryFn: () => apiFetch("/api/admin/subscriptions"),
+    enabled: !isPending && !!session?.user,
+    retry: false,
   })
 
   const applyOverride = useMutation({
@@ -103,6 +107,29 @@ export default function BillingAdmin() {
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "subscriptions"] }),
   })
+
+  if (isPending) return null
+  if (!session?.user) return <Redirect to="/sign-in" />
+
+  const is403 = (revenue.error as any)?.status === 403
+  if (is403) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Access restricted</p>
+            <p className="text-sm text-muted-foreground mt-1">Your account doesn't have admin access.</p>
+          </div>
+          <Link href={`${basePath}/admin`} className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to admin
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   const stats = [
     { label: "Total subscribers", value: revenue.data?.active_total ?? "—", icon: Users,         color: "text-primary" },
