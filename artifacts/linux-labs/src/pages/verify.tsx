@@ -12,28 +12,41 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
 }
 
-type CertRecord = { certId: string; studentName: string; track: string; level: number | null; earnedAt: string }
+type CertRecord = { certId: string; studentName: string; track: string; level: number | null; earnedAt: string; expiresAt: string }
 
 export default function VerifyPage() {
   const { certId } = useParams<{ certId: string }>()
   const [cert, setCert] = useState<CertRecord | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [status, setStatus] = useState<"loading" | "ok" | "not_found" | "expired">("loading")
   useMeta(cert ? `${cert.studentName}'s Certificate — DevLabMaster` : "DevLabMaster")
 
   useEffect(() => {
     fetch(`${basePath}/api/certs/${certId}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        setCert(data)
-        setLoading(false)
+      .then(r => {
+        if (r.status === 410) { setStatus("expired"); return null }
+        if (!r.ok) { setStatus("not_found"); return null }
+        return r.json()
       })
-      .catch(() => setLoading(false))
+      .then(data => { if (data) { setCert(data); setStatus("ok") } })
+      .catch(() => setStatus("not_found"))
   }, [certId])
 
-  if (loading)
+  if (status === "loading")
     return <div className="min-h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
 
-  if (!cert)
+  if (status === "expired")
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
+        <XCircle className="w-14 h-14 text-yellow-400/60" />
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Certificate expired</h1>
+          <p className="text-muted-foreground mt-2 text-sm">This certificate was valid for one year and is no longer active.</p>
+        </div>
+        <Link href={`${basePath}/`} className="text-sm text-primary hover:underline">← Go home</Link>
+      </div>
+    )
+
+  if (status === "not_found")
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
         <XCircle className="w-14 h-14 text-red-400/60" />

@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import { userTable } from "./auth";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -163,10 +164,12 @@ export type RegistrationRequestRow = typeof registrationRequestsTable.$inferSele
 /** One cert record written when a student shares their certificate. */
 export const certRecordsTable = pgTable("cert_records", {
   certId:      text("cert_id").primaryKey(),
+  studentId:   text("student_id").references(() => userTable.id, { onDelete: "cascade" }),
   studentName: text("student_name").notNull(),
   track:       text("track").notNull(),
   level:       integer("level"),
-  earnedAt:    timestamp("earned_at", { withTimezone: true }).notNull(),
+  earnedAt:    timestamp("earned_at",  { withTimezone: true }).notNull(),
+  expiresAt:   timestamp("expires_at", { withTimezone: true }).notNull(),
 });
 export type CertRecordRow = typeof certRecordsTable.$inferSelect;
 
