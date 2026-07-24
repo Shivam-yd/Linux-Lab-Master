@@ -107,7 +107,7 @@ export default function Home() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="sticky top-0 z-20 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md"
       >
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" />
             <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
@@ -129,7 +129,7 @@ export default function Home() {
       </motion.header>
 
       {/* ── Hero ── */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
+      <section className="relative z-10 max-w-7xl mx-auto px-6 pt-24 pb-20 text-center">
         <motion.div variants={heroContainer} initial="hidden" animate="show">
 
           {/* Badge */}
@@ -139,7 +139,7 @@ export default function Home() {
           </motion.div>
 
           {/* Headline */}
-          <motion.h1 variants={heroItem} className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1] max-w-3xl mx-auto">
+          <motion.h1 variants={heroItem} className="text-5xl sm:text-7xl font-bold tracking-tight leading-[1.06] max-w-4xl mx-auto">
             Learn DevOps by{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
               doing it for real
@@ -147,7 +147,7 @@ export default function Home() {
           </motion.h1>
 
           {/* Subtitle */}
-          <motion.p variants={heroItem} className="mt-6 text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
+          <motion.p variants={heroItem} className="mt-7 text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
             Hands-on Linux, Terraform, Jenkins, Docker, and Git labs — each one a real terminal,
             automatically verified. Create a free account to track your progress.
           </motion.p>
@@ -177,9 +177,9 @@ export default function Home() {
       </section>
 
       {/* ── Tracks ── */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 pb-16">
+      <section className="relative z-10 max-w-7xl mx-auto px-6 pb-20">
         <motion.div
-          className="grid grid-cols-2 sm:grid-cols-5 gap-4"
+          className="grid grid-cols-2 sm:grid-cols-5 gap-5"
           variants={trackContainer}
           initial="hidden"
           animate="show"
@@ -189,22 +189,22 @@ export default function Home() {
               key={label}
               variants={trackCard}
               whileHover={{ y: -3, scale: 1.03, transition: { duration: 0.18 } }}
-              className="rounded-xl border border-border bg-card/60 p-5 flex flex-col items-center gap-3 text-center hover:border-primary/30 transition-colors group cursor-default"
+              className="rounded-2xl border border-border bg-card/60 p-7 flex flex-col items-center gap-4 text-center hover:border-primary/30 transition-colors group cursor-default"
             >
               <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center"
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
                 style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
               >
-                <Icon className={cn("w-5 h-5", iconClass)} style={{ color }} />
+                <Icon className={cn("w-6 h-6", iconClass)} style={{ color }} />
               </div>
-              <span className="text-sm font-semibold">{label}</span>
+              <span className="text-base font-semibold">{label}</span>
             </motion.div>
           ))}
         </motion.div>
       </section>
 
       {/* ── Features ── */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
+      <section className="relative z-10 max-w-7xl mx-auto px-6 pb-24">
         <motion.div
           className="grid sm:grid-cols-3 gap-6"
           variants={featureContainer}
@@ -237,7 +237,7 @@ export default function Home() {
 
       {/* ── Footer ── */}
       <footer className="relative z-10 border-t border-primary/20 py-4 bg-primary/[0.07] backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>DevLabMaster — DevOps practice range</span>
           <div className="flex items-center gap-6">
             <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
