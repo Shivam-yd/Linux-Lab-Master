@@ -82,9 +82,53 @@ export default function CertificatePage() {
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "Student"
   const [copied, setCopied] = useState(false)
 
-  function handleShare() {
+  async function copyCertificateUrl(url: string) {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url)
+        return
+      } catch {
+        // Clipboard access can be blocked in an embedded preview. Use the
+        // document fallback below before reporting an error.
+      }
+    }
+
+    const textarea = document.createElement("textarea")
+    textarea.value = url
+    textarea.setAttribute("readonly", "")
+    textarea.style.position = "fixed"
+    textarea.style.opacity = "0"
+    document.body.appendChild(textarea)
+    textarea.select()
+    const copied = document.execCommand("copy")
+    textarea.remove()
+
+    if (!copied) throw new Error("Clipboard access is unavailable")
+  }
+
+  async function handleShare() {
     const url = `${window.location.origin}${basePath}/verify/${certId}`
-    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${title} Certificate — DevLabMaster`,
+          text: `Verify my ${title} certificate`,
+          url,
+        })
+      } else {
+        await copyCertificateUrl(url)
+      }
+
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return
+      toast({
+        title: "Couldn't share certificate",
+        description: "Copy the verification link from your browser and try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   if (labsLoading || progressLoading)
