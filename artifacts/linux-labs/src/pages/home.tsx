@@ -112,7 +112,6 @@ export default function Home() {
             <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/about" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">About</Link>
             <Link href="/pricing" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
             <ThemeToggle />
             <Link href="/sign-in" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2">

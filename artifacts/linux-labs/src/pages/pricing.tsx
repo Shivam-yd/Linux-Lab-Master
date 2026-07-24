@@ -85,7 +85,6 @@ export default function PricingPage() {
             <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/about" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">About</Link>
             <ThemeToggle />
             {!isPending && session?.user
               ? <Link href="/dashboard" className="text-sm font-bold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity">Dashboard</Link>
