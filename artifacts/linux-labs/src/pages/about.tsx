@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
 
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
+
 const TRACKS = [
   { label: "Linux",     icon: Terminal,  color: "#22d3ee", desc: "Filesystem, processes, networking, permissions, scripting" },
   { label: "Terraform", icon: Layers,    color: "#c084fc", desc: "Infrastructure as Code — variables, modules, state, workspaces" },
@@ -25,26 +27,34 @@ const FEATURES = [
   { icon: Award,         title: "Completion Certificates", desc: "Finish every lab in a track and a certificate is generated automatically — shareable proof of your achievement." },
 ]
 
+const STATS = [
+  { value: "78+", label: "Hands-on labs" },
+  { value: "5",   label: "DevOps tracks" },
+  { value: "0",   label: "Cloud accounts needed" },
+  { value: "100%", label: "Terminal-based" },
+]
+
 export default function About() {
   useEffect(() => { document.title = "About — DevLabMaster" }, [])
+
   return (
     <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Top Bar ── */}
-      <header className="sticky top-0 z-20 h-14 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 gap-4">
+      <header className="sticky top-0 z-20 h-14 border-b border-primary/20 bg-background/80 backdrop-blur-md flex items-center justify-between px-6 gap-4">
         <div className="flex items-center gap-4">
           <Link
             href="/"
             className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            BACK
+            Back
           </Link>
           <div className="w-px h-5 bg-border/80" />
           <div className="flex items-center gap-2">
-            <img src="/logo.svg" className="w-4 h-4 rounded-sm" />
+            <img src={`${basePath}/logo.svg`} className="w-4 h-4 rounded-sm" alt="DevLabMaster" />
             <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
-            <span className="text-muted-foreground/50 font-mono text-xs">/ about</span>
+            <span className="text-muted-foreground/40 font-mono text-xs">/ about</span>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -53,40 +63,48 @@ export default function About() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-14 space-y-20">
+      {/* ── Hero — full-width ── */}
+      <div className="relative overflow-hidden border-b border-border/40">
+        {/* Background layers */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-background to-background" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/[0.06] rounded-full blur-3xl pointer-events-none" />
 
-        {/* ── Hero ── */}
-        <section className="text-center space-y-6 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent rounded-3xl pointer-events-none -mx-6" />
-          <div className="relative z-10 space-y-5 py-10">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-mono font-semibold tracking-widest uppercase">
-              <Zap className="w-3.5 h-3.5 fill-primary/30" />
-              DevLabMaster
-            </div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
-              Learn DevOps by{" "}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-300">
-                doing it
-              </span>
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-              A self-hosted platform that drops you into real terminal environments to
-              practise Linux, Terraform, Jenkins, Docker, and Git — no cloud account,
-              no local setup, no multiple-choice questions.
-            </p>
+        <div className="relative max-w-4xl mx-auto px-6 pt-16 pb-14 text-center">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-mono font-semibold tracking-widest uppercase mb-6">
+            <Zap className="w-3 h-3 fill-primary/30" />
+            DevOps Practice Range
           </div>
-        </section>
+
+          <h1 className="text-4xl md:text-[3.25rem] font-black tracking-tight leading-[1.12] mb-5">
+            Learn DevOps by{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-300">
+              doing it
+            </span>
+          </h1>
+
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+            A self-hosted platform that drops you into real terminal environments to
+            practise Linux, Terraform, Jenkins, Docker, and Git — no cloud account,
+            no local setup, no multiple-choice questions.
+          </p>
+
+          {/* Stats row */}
+          <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/40 rounded-2xl overflow-hidden border border-border/40">
+            {STATS.map(({ value, label }) => (
+              <div key={label} className="bg-card/60 px-6 py-5 text-center">
+                <p className="text-2xl font-black text-foreground tabular-nums">{value}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-tight">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-4xl mx-auto px-6 py-14 space-y-20">
 
         {/* ── How it works ── */}
         <section className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border/50" />
-            <h2 className="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground px-2">
-              How It Works
-            </h2>
-            <div className="h-px flex-1 bg-border/50" />
-          </div>
-
+          <SectionHeading>How It Works</SectionHeading>
           <div className="grid sm:grid-cols-2 gap-4">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
               <div
@@ -105,14 +123,7 @@ export default function About() {
 
         {/* ── Tracks ── */}
         <section className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border/50" />
-            <h2 className="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground px-2">
-              Lab Tracks
-            </h2>
-            <div className="h-px flex-1 bg-border/50" />
-          </div>
-
+          <SectionHeading>Lab Tracks</SectionHeading>
           <div className="space-y-3">
             {TRACKS.map(({ label, icon: Icon, color, desc }) => (
               <div
@@ -136,27 +147,17 @@ export default function About() {
 
         {/* ── Author ── */}
         <section className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border/50" />
-            <h2 className="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground px-2">
-              Author
-            </h2>
-            <div className="h-px flex-1 bg-border/50" />
-          </div>
+          <SectionHeading>Author</SectionHeading>
 
           <div className="rounded-2xl bg-card border border-border/60 overflow-hidden">
-            {/* Accent band */}
             <div className="h-1.5 w-full bg-gradient-to-r from-primary via-cyan-400 to-blue-500" />
-
             <div className="p-8 flex flex-col sm:flex-row gap-8 items-start">
-
               <div className="shrink-0">
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/30 to-cyan-500/20 border border-primary/20 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary),0.15)]">
                   <span className="text-4xl font-black text-primary select-none">S</span>
                 </div>
               </div>
 
-              {/* Info */}
               <div className="flex-1 space-y-4">
                 <div>
                   <h3 className="text-2xl font-black tracking-tight">Shivam Yadav</h3>
@@ -169,12 +170,11 @@ export default function About() {
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
                   DevOps engineer focused on building practical tools for
                   infrastructure and cloud learning. I created DevLabMaster to give engineers
-                  a hands-on environment for mastering the full DevOps toolchain—Linux, Terraform,
-                  Docker, Kubernetes, and more—without configuring VMs or cloud accounts.
+                  a hands-on environment for mastering the full DevOps toolchain — Linux, Terraform,
+                  Docker, Kubernetes, and more — without configuring VMs or cloud accounts.
                   Just open a lab and start solving real-world tasks.
                 </p>
 
-                {/* Links */}
                 <div className="flex flex-wrap gap-3 pt-1">
                   <a
                     href="https://www.linkedin.com/in/shivamyd"
@@ -204,6 +204,18 @@ export default function About() {
         </footer>
 
       </main>
+    </div>
+  )
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-px flex-1 bg-border/50" />
+      <h2 className="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground px-2">
+        {children}
+      </h2>
+      <div className="h-px flex-1 bg-border/50" />
     </div>
   )
 }
