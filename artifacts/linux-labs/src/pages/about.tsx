@@ -3,7 +3,7 @@ import { Link } from "wouter"
 import {
   ArrowLeft, Zap, Linkedin, MapPin, Terminal,
   Layers, Server, Container, GitBranch, CheckCircle2,
-  BookOpen, ExternalLink, Heart, Award, BarChart3,
+  BookOpen, ExternalLink, Heart, Award, BarChart3, RefreshCw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AccountDropdown } from "@/components/account-dropdown"
@@ -25,6 +25,7 @@ const FEATURES = [
   { icon: BookOpen,      title: "Progressive Curriculum",  desc: "Labs are ordered Foundation → Intermediate → Advanced. Each one builds on the last so concepts stack naturally." },
   { icon: BarChart3,     title: "Progress Tracking",       desc: "Every lab attempt is recorded. Your dashboard shows passed labs, scores, and last-active time across all tracks." },
   { icon: Award,         title: "Completion Certificates", desc: "Finish every lab in a track and a certificate is generated automatically — shareable proof of your achievement." },
+  { icon: RefreshCw,     title: "Instant Sandbox Reset",   desc: "Blown up your container? Hit Reset and a fresh environment is spun up in seconds — no penalty, just keep going." },
 ]
 
 const STATS = [
