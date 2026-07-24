@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { Link, useLocation } from "wouter"
 import { useSession, signOut, authClient } from "@/lib/auth-client"
 import { useQuery } from "@tanstack/react-query"
@@ -73,7 +74,7 @@ export default function ProfilePage() {
   const hasCredentialAccount = accounts?.some(a => a.providerId === "credential") ?? null
   // null = still loading; true/false = determined
 
-  useEffect(() => { document.title = "Profile — DevLabMaster" }, [])
+  useMeta("Profile — DevLabMaster")
   useEffect(() => {
     if (!isPending && !user) setLocation(`${basePath}/sign-in`)
   }, [isPending, user])

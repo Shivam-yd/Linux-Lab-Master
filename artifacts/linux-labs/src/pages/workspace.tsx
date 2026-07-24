@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { useParams, useLocation, Link, Redirect } from "wouter"
 import { 
   useGetLab, 
@@ -273,9 +274,7 @@ export default function Workspace() {
   }
 
   const [activeTerminal, setActiveTerminal] = useState<string>("")
-  useEffect(() => {
-    if (lab?.title) document.title = `${lab.title} — DevLabMaster`
-  }, [lab?.title])
+  useMeta(lab?.title ? `${lab.title} — DevLabMaster` : "DevLabMaster")
   useEffect(() => {
     if (lab?.terminals?.length && !activeTerminal) {
       setActiveTerminal(lab.terminals[0])

@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { useListLabs, useListProgress, useGetMyRank } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
@@ -23,7 +24,7 @@ const LEVEL_META: Record<number, { name: string; accentHex: string }> = {
 }
 
 export default function ProgressPage() {
-  useEffect(() => { document.title = "My Progress — DevLabMaster" }, [])
+  useMeta("My Progress — DevLabMaster")
   const { data: session } = useSession()
   const { data: labs, isLoading: labsLoading } = useListLabs()
   const { data: progress, isLoading: progressLoading } = useListProgress()

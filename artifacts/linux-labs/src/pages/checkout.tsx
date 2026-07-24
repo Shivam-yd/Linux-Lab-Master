@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { useLocation, Redirect } from "wouter"
 import { useSession } from "@/lib/auth-client"
 import { usePlan } from "@/lib/use-plan"
@@ -61,7 +62,7 @@ const PLANS = {
 type PlanId = keyof typeof PLANS
 
 export default function CheckoutPage() {
-  useEffect(() => { document.title = "Checkout — DevLabMaster" }, [])
+  useMeta("Checkout — DevLabMaster")
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const { hasSubscription, isLoading: planLoading } = usePlan()

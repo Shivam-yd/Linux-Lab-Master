@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { Redirect } from "wouter"
 import {
@@ -78,7 +78,7 @@ function Orb({ className, color, xRange, yRange, duration }: {
 
 // ─────────────────────────────────────────────────────────────────
 export default function Home() {
-  useEffect(() => { document.title = "DevLabMaster — Master DevOps. One lab at a time." }, [])
+  useMeta("DevLabMaster — Master DevOps. One lab at a time.", "Hands-on DevOps labs for Linux, Terraform, Docker, Kubernetes and more. No VM setup required.")
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
   const labCount   = labs?.length ?? null

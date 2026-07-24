@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import {
   Zap, Linkedin, MapPin, Terminal,
@@ -36,7 +36,7 @@ const STATS = [
 ]
 
 export default function About() {
-  useEffect(() => { document.title = "About — DevLabMaster" }, [])
+  useMeta("About — DevLabMaster", "The team and mission behind DevLabMaster, the hands-on DevOps training platform.")
   const { data: session, isPending } = useSession()
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { ArrowLeft, Zap } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const EFFECTIVE_DATE = "July 22, 2025"
 
 export default function PrivacyPage() {
-  useEffect(() => { document.title = "Privacy Policy — DevLabMaster" }, [])
+  useMeta("Privacy Policy — DevLabMaster")
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}

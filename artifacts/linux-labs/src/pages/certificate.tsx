@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { useParams, Link } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
@@ -56,9 +57,7 @@ export default function CertificatePage() {
     return { passed: done.length, total: scoped.length, lastPassedAt: dates.sort().at(-1) ?? null, isComplete: done.length === scoped.length && scoped.length > 0 }
   }, [labs, progress, track, levelNum])
 
-  useEffect(() => {
-    document.title = `${tm.label} Certificate — DevLabMaster`
-  }, [tm.label])
+  useMeta(`${tm.label} Certificate — DevLabMaster`)
 
   useEffect(() => {
     const sid = session?.user?.id

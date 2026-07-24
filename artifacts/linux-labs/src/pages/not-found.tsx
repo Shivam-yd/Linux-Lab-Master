@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useMeta } from "@/hooks/use-meta"
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
 export default function NotFound() {
-  useEffect(() => { document.title = "Page Not Found — DevLabMaster" }, [])
+  useMeta("Page Not Found — DevLabMaster")
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md mx-4">

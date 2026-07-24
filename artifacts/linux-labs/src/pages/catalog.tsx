@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation, useSearch, Redirect } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
@@ -198,10 +199,8 @@ export default function Catalog() {
 
   // Ensure activeTrack stays valid once data loads
   const resolvedTrack = tracks.includes(activeTrack) ? activeTrack : (tracks[0] ?? "linux")
-  useEffect(() => {
-    const label = (TRACK_META[resolvedTrack] ?? DEFAULT_TRACK_META).label
-    document.title = `${label} Labs — DevLabMaster`
-  }, [resolvedTrack])
+  const trackLabel = (TRACK_META[resolvedTrack] ?? DEFAULT_TRACK_META).label
+  useMeta(`${trackLabel} Labs — DevLabMaster`)
 
   const handleTrackChange = (track: string) => {
     setActiveTrack(track)

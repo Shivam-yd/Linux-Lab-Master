@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { Loader2, CheckCircle2 } from "lucide-react"
 import { Link, useLocation } from "wouter"
 import { Button } from "@/components/ui/button"
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 export default function ResetPasswordPage() {
-  useEffect(() => { document.title = "Reset Password — DevLabMaster" }, [])
+  useMeta("Reset Password — DevLabMaster")
   const [, setLocation] = useLocation()
 
   // Support both flows:

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { useQuery } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
@@ -114,7 +115,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
   // Sync tab when browser back/forward changes the hash
-  useEffect(() => { document.title = "Admin — DevLabMaster" }, [])
+  useMeta("Admin — DevLabMaster")
   useEffect(() => {
     const onPop = () => {
       const h = window.location.hash.replace("#", "") as Tab

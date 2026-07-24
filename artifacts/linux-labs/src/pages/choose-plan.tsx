@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { useLocation, Redirect } from "wouter"
 import { useSession } from "@/lib/auth-client"
 import { usePlan } from "@/lib/use-plan"
@@ -30,7 +31,7 @@ const PLANS = [
 ] as const
 
 export default function ChoosePlan() {
-  useEffect(() => { document.title = "Choose a Plan — DevLabMaster" }, [])
+  useMeta("Choose a Plan — DevLabMaster")
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const { hasSubscription, isLoading: planLoading } = usePlan()

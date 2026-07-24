@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { useParams, Link } from "wouter"
 import { CheckCircle2, Award, XCircle, ArrowLeft } from "lucide-react"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
@@ -17,6 +18,7 @@ export default function VerifyPage() {
   const { certId } = useParams<{ certId: string }>()
   const [cert, setCert] = useState<CertRecord | null>(null)
   const [loading, setLoading] = useState(true)
+  useMeta(cert ? `${cert.studentName}'s Certificate — DevLabMaster` : "DevLabMaster")
 
   useEffect(() => {
     fetch(`${basePath}/api/certs/${certId}`)
@@ -24,7 +26,6 @@ export default function VerifyPage() {
       .then(data => {
         setCert(data)
         setLoading(false)
-        if (data) document.title = `${data.studentName}'s Certificate — DevLabMaster`
       })
       .catch(() => setLoading(false))
   }, [certId])

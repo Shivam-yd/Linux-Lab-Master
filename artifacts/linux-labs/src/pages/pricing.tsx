@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { Terminal, Container, Layers, Server, GitBranch, Check, X, ArrowRight, Zap } from "lucide-react"
 import { useSession } from "@/lib/auth-client"
@@ -70,7 +71,7 @@ const COMPARE = [
 ]
 
 export default function PricingPage() {
-  useEffect(() => { document.title = "Pricing — DevLabMaster" }, [])
+  useMeta("Pricing — DevLabMaster", "Simple, transparent pricing for hands-on DevOps labs. Start free, upgrade when you're ready.")
   const { data: session, isPending } = useSession()
   const [term, setTerm] = useState<"monthly" | "two-years">("monthly")
 
