@@ -6,8 +6,8 @@ import {
   BookOpen, ExternalLink, Heart, Award, BarChart3, RefreshCw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useSession } from "@/lib/auth-client"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -37,6 +37,7 @@ const STATS = [
 
 export default function About() {
   useEffect(() => { document.title = "About — DevLabMaster" }, [])
+  const { data: session, isPending } = useSession()
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -58,9 +59,16 @@ export default function About() {
             <span className="text-muted-foreground/40 font-mono text-xs">/ about</span>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-3">
+          <Link href="/pricing" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
           <ThemeToggle />
-          <AccountDropdown />
+          {!isPending && session?.user
+            ? <Link href="/dashboard" className="text-sm font-bold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity">Dashboard</Link>
+            : <>
+                <Link href="/sign-in" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2">Sign In</Link>
+                <Link href="/sign-up" className="text-sm font-bold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity shadow-[0_2px_16px_rgba(13,148,136,0.25)]">Get Started</Link>
+              </>
+          }
         </div>
       </header>
 
