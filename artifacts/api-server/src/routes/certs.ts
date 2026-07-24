@@ -1,52 +1,36 @@
 import { Router } from "express";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { certRecordsTable, labProgressTable } from "@workspace/db/schema";
+import { certRecordsTable } from "@workspace/db/schema";
 import { requireAuth } from "../middleware/auth";
-import { getAllLabs } from "../lib/labs/registry";
+import { issueCert } from "../lib/certs";
 
 const router = Router();
 
+/** POST /certs — register/refresh a cert. Server generates the ID. */
 router.post("/certs", requireAuth, async (req, res): Promise<void> => {
-  const { certId, studentName, track, level } = req.body;
-  if (!certId || !track) { res.status(400).json({ error: "Missing fields" }); return; }
-
-  const levelNum = level != null ? Number(level) : null;
-  const allLabs = await getAllLabs();
-  const scoped = allLabs.filter(l => l.track === track && (levelNum == null || l.level === levelNum));
-  if (!scoped.length) { res.status(400).json({ error: "No labs found for that track/level" }); return; }
-
-  const passed = await db
-    .select({ lastAttemptAt: labProgressTable.lastAttemptAt })
-    .from(labProgressTable)
-    .where(and(
-      eq(labProgressTable.studentId, req.studentId),
-      eq(labProgressTable.status, "passed"),
-      inArray(labProgressTable.labId, scoped.map(l => l.id)),
-    ));
-
-  if (passed.length < scoped.length) { res.status(403).json({ error: "Not all labs completed" }); return; }
-
-  const earnedAt = passed.map(r => r.lastAttemptAt).filter((d): d is Date => d != null)
-    .reduce<Date>((max, d) => (d > max ? d : max), new Date(0));
-  const expiresAt = new Date(earnedAt);
-  expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-  await db.execute(sql`
-    INSERT INTO cert_records (cert_id, student_id, student_name, track, level, earned_at, expires_at)
-    VALUES (${certId}, ${req.studentId}, ${(studentName as string | undefined) ?? "Student"}, ${track}, ${levelNum}, ${earnedAt}, ${expiresAt})
-    ON CONFLICT (cert_id) DO UPDATE SET
-      student_name = EXCLUDED.student_name,
-      earned_at    = EXCLUDED.earned_at,
-      expires_at   = EXCLUDED.expires_at
-  `);
-
-  res.json({ ok: true });
+  const { studentName, track, level } = req.body;
+  if (!track) { res.status(400).json({ error: "Missing track" }); return; }
+  const certId = await issueCert(
+    req.studentId,
+    (studentName as string | undefined) ?? "Student",
+    track,
+    level != null ? Number(level) : null,
+  );
+  if (!certId) { res.status(403).json({ error: "Not all labs completed" }); return; }
+  res.json({ ok: true, certId });
 });
 
-/** GET /certs/:certId — public. Returns 404 if not found, 410 if expired (row deleted). */
+/** GET /certs/mine — list the caller's earned certs. Must be before /:certId. */
+router.get("/certs/mine", requireAuth, async (req, res): Promise<void> => {
+  const rows = await db.select().from(certRecordsTable).where(eq(certRecordsTable.studentId, req.studentId));
+  res.json(rows);
+});
+
+/** GET /certs/:certId — public verification. Returns 410 + deletes if expired. */
 router.get("/certs/:certId", async (req, res): Promise<void> => {
-  const rows = await db.select().from(certRecordsTable).where(eq(certRecordsTable.certId, req.params.certId)).limit(1);
+  const rows = await db.select().from(certRecordsTable)
+    .where(eq(certRecordsTable.certId, req.params.certId)).limit(1);
   if (!rows.length) { res.status(404).json({ error: "Certificate not found" }); return; }
   const row = rows[0] as typeof certRecordsTable.$inferSelect;
   if ((row as unknown as { expiresAt: Date }).expiresAt < new Date()) {

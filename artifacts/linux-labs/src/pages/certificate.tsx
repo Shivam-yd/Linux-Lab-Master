@@ -24,12 +24,6 @@ const TRACK_SKILLS: Record<string, string> = {
   jenkins:   "CI/CD pipeline design, job configuration, build automation, and deployment",
 }
 
-async function makeCertId(studentId: string, track: string, level?: string) {
-  const key = level ? `${studentId}:${track}:level:${level}` : `${studentId}:${track}`
-  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key))
-  return Array.from(new Uint8Array(hash)).slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase()
-}
-
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
 }
@@ -60,20 +54,29 @@ export default function CertificatePage() {
   useMeta(`${tm.label} Certificate — DevLabMaster`)
 
   useEffect(() => {
-    const sid = session?.user?.id
-    if (!sid || !track || !isComplete || !lastPassedAt) return
-    makeCertId(sid, track, level).then(async id => {
-      setCertId(id)
-      const payload = JSON.stringify({ certId: id, studentName: session?.user?.name || session?.user?.email?.split("@")[0] || "Student", track, level: level ? Number(level) : undefined })
-      const save = () => fetch(`${basePath}/api/certs`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: payload })
-      const res = await save().catch(() => null)
-      if (!res?.ok) {
+    if (!session?.user?.id || !track || !isComplete || !lastPassedAt) return
+    const payload = JSON.stringify({
+      studentName: session.user.name || session.user.email?.split("@")[0] || "Student",
+      track,
+      level: level ? Number(level) : undefined,
+    })
+    const save = () => fetch(`${basePath}/api/certs`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: payload })
+    save().then(async res => {
+      if (res?.ok) {
+        const data = await res.json()
+        setCertId(data.certId)
+      } else {
         // retry once after 3 s
         await new Promise(r => setTimeout(r, 3000))
         const retry = await save().catch(() => null)
-        if (!retry?.ok) toast({ title: "Certificate not saved", description: "Your certificate was earned but couldn't be registered for public verification. Try reloading the page.", variant: "destructive" })
+        if (retry?.ok) {
+          const data = await retry.json()
+          setCertId(data.certId)
+        } else {
+          toast({ title: "Certificate not saved", description: "Earned but couldn't register for public verification. Try reloading.", variant: "destructive" })
+        }
       }
-    })
+    }).catch(() => {})
   }, [session?.user?.id, track, level, isComplete, lastPassedAt])
 
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "Student"

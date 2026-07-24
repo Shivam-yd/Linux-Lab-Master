@@ -13,6 +13,9 @@ import {
 import { getLabByIdAsync } from "../lib/labs/registry";
 import { requireAuth } from "../middleware/auth";
 import { getLabAccessError } from "../lib/plan";
+import { issueCert } from "../lib/certs";
+import { db } from "@workspace/db";
+import { sql } from "drizzle-orm";
 import {
   getSessionRow,
   startSession,
@@ -152,10 +155,23 @@ router.post("/labs/:labId/verify", async (req, res): Promise<void> => {
     const score = Math.round((passedCount / total) * 100);
     const labelById = new Map(lab.tasks.map((t) => [t.id, t.description]));
 
+    const allPassed = checks.length > 0 && passedCount === checks.length;
+
+    // Auto-issue cert when this verify completes a track level or full track.
+    if (allPassed) {
+      const nameRow = await db.execute(sql`SELECT name FROM "user" WHERE id = ${req.studentId} LIMIT 1`);
+      const studentName = (nameRow.rows[0] as { name?: string } | undefined)?.name ?? "Student";
+      // Fire both checks — issueCert returns null if not yet complete.
+      await Promise.all([
+        issueCert(req.studentId, studentName, lab.track, lab.level),
+        issueCert(req.studentId, studentName, lab.track, null),
+      ]);
+    }
+
     res.json(
       VerifyLabResponse.parse({
         labId: lab.id,
-        passed: checks.length > 0 && passedCount === checks.length,
+        passed: allPassed,
         score,
         checks: checks.map((c) => ({
           id: c.id,

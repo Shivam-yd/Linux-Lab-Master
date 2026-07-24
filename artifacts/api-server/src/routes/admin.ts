@@ -252,7 +252,8 @@ router.post("/users/:userId/suspend", async (req, res): Promise<void> => {
   }
 
   await db.execute(sql`UPDATE "user" SET banned = true  WHERE id = ${userId}`);
-  await db.execute(sql`DELETE FROM session WHERE user_id = ${userId}`);
+  await db.execute(sql`DELETE FROM session       WHERE user_id   = ${userId}`);
+  await db.execute(sql`DELETE FROM cert_records  WHERE student_id = ${userId}`);
 
   res.json({ ok: true });
 });
