@@ -3,7 +3,7 @@ import { Link } from "wouter"
 import {
   ArrowLeft, Zap, Linkedin, MapPin, Terminal,
   Layers, Server, Container, GitBranch, CheckCircle2,
-  BookOpen, ExternalLink, Award, BarChart3, RefreshCw,
+  BookOpen, ExternalLink, Heart, Award, BarChart3, RefreshCw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AccountDropdown } from "@/components/account-dropdown"
@@ -196,6 +196,12 @@ export default function About() {
             </div>
           </div>
         </section>
+
+        <p className="text-center text-xs font-mono text-muted-foreground/50 pb-4">
+          Built with{" "}
+          <Heart className="w-3 h-3 inline text-primary/60 fill-primary/20 mx-0.5" />
+          {" "}by Shivam Yadav · DevLabMaster
+        </p>
 
       </main>
 
