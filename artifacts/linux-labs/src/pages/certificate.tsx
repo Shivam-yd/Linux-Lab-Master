@@ -3,7 +3,7 @@ import { useMeta } from "@/hooks/use-meta"
 import { useParams, Link } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
-import { ArrowLeft, Printer, Award, CheckCircle2, Share2, Check } from "lucide-react"
+import { ArrowLeft, Award, CheckCircle2, Share2, Check } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 import { useToast } from "@/hooks/use-toast"
@@ -106,8 +106,8 @@ export default function CertificatePage() {
   const blurb = lm ? lm.blurb : "has successfully completed all hands-on labs in the"
 
   return (
-    <div className="min-h-screen bg-background text-foreground print:bg-white">
-      <header className="print:hidden sticky top-0 z-20 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 py-4">
         <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" /> Progress
         </Link>
@@ -118,24 +118,21 @@ export default function CertificatePage() {
               {copied ? "Copied!" : "Share"}
             </button>
           )}
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">
-            <Printer className="w-4 h-4" /> Print / Save PDF
-          </button>
           <AccountDropdown />
         </div>
       </header>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-65px)] print:block print:min-h-0 p-8 print:p-6">
-        <div className="cert-card w-full max-w-2xl border border-border/60 rounded-2xl bg-card overflow-hidden print:rounded-none print:border print:max-w-none">
+      <div className="flex items-center justify-center min-h-[calc(100vh-65px)] p-8">
+        <div className="w-full max-w-2xl border border-border/60 rounded-2xl bg-card overflow-hidden">
 
           {/* Accent top bar */}
           <div className="h-1" style={{ background: tm.accentHex }} />
 
-          <div className="px-14 py-12 print:px-10 print:py-8 flex flex-col items-center text-center gap-7">
+          <div className="px-14 py-12 flex flex-col items-center text-center gap-7">
 
             {/* Issuer */}
             <div className="flex items-center gap-2">
-              <img src="/logo.svg" className="w-7 h-7 rounded-lg print:hidden" alt="DevLabMaster" />
+              <img src="/logo.svg" className="w-7 h-7 rounded-lg" alt="DevLabMaster" />
               <span className="text-xs font-bold tracking-[0.25em] uppercase text-muted-foreground">DevLabMaster</span>
             </div>
 
@@ -182,14 +179,6 @@ export default function CertificatePage() {
         </div>
       </div>
 
-      <style>{`
-        @media print {
-          @page { margin: 0; size: A4 portrait; }
-          body { margin: 0; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .cert-card { background: white !important; color: black !important; box-shadow: none !important; }
-          .print\\:hidden { display: none !important; }
-        }
-      `}</style>
     </div>
   )
 }
