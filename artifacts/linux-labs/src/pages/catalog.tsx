@@ -12,6 +12,7 @@ import { Info, User, ChevronLeft, ShieldCheck } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationBell } from "@/components/notification-bell"
 import {
   Lock, CheckCircle2, PlayCircle,
   Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
@@ -598,6 +599,7 @@ export default function Catalog() {
 
                 {/* Account dropdown */}
                 <ThemeToggle />
+                <NotificationBell />
                 <AccountDropdown />
               </div>
 

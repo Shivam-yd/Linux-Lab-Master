@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSession } from "@/lib/auth-client"
+import { NotificationBell } from "@/components/notification-bell"
 import { usePlan, PRO_TRACKS } from "@/lib/use-plan"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
@@ -452,6 +453,7 @@ export default function Workspace() {
         </div>
 
         <div className="flex items-center space-x-3">
+          <NotificationBell />
           {sessionLoading ? (
             <div className="flex items-center text-sm font-mono text-muted-foreground">
               <RefreshCw className="w-3.5 h-3.5 mr-2 animate-spin" /> PROBING...
