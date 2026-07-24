@@ -239,8 +239,10 @@ export default function Home() {
       <footer className="relative z-10 border-t border-primary/20 py-4 bg-primary/[0.07] backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>DevLabMaster — DevOps practice range</span>
-          <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
-          <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+          <div className="flex items-center gap-6">
+            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
+            <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+          </div>
         </div>
       </footer>
     </div>
