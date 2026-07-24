@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "wouter"
 import {
   ArrowLeft, Zap, Linkedin, MapPin, Terminal,
@@ -10,6 +10,73 @@ import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
+
+const DEMO_LINES = [
+  { k: "cmd",  v: "$ useradd -m devops" },
+  { k: "cmd",  v: "$ usermod -aG sudo devops" },
+  { k: "cmd",  v: "$ id devops" },
+  { k: "out",  v: "uid=1001(devops) groups=1001(devops),27(sudo)" },
+  { k: "pass", v: "✓ User created — PASS" },
+  { k: "pass", v: "✓ Added to sudo group — PASS" },
+  { k: "done", v: "Score: 100% · Lab complete" },
+]
+
+function termClass(k: string) {
+  if (k === "pass") return "text-emerald-400"
+  if (k === "done") return "text-primary font-semibold"
+  if (k === "out")  return "text-muted-foreground"
+  return "text-foreground"
+}
+
+function TerminalDemo() {
+  const [phase, setPhase] = useState(0)
+  const [chars, setChars] = useState(0)
+
+  useEffect(() => {
+    const line = DEMO_LINES[phase]
+    if (!line) {
+      const t = setTimeout(() => { setPhase(0); setChars(0) }, 2500)
+      return () => clearTimeout(t)
+    }
+    if (line.k === "cmd") {
+      if (chars < line.v.length) {
+        const t = setTimeout(() => setChars(c => c + 1), 55)
+        return () => clearTimeout(t)
+      }
+      const t = setTimeout(() => { setPhase(p => p + 1); setChars(0) }, 380)
+      return () => clearTimeout(t)
+    }
+    const t = setTimeout(() => { setPhase(p => p + 1); setChars(0) }, 220)
+    return () => clearTimeout(t)
+  }, [phase, chars])
+
+  return (
+    <div className="mt-8 max-w-xl mx-auto rounded-xl bg-black/50 border border-border/40 overflow-hidden text-left">
+      {/* window chrome */}
+      <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border/30 bg-white/[0.03]">
+        <span className="w-2.5 h-2.5 rounded-full bg-rose-500/70" />
+        <span className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
+        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
+        <span className="ml-3 text-[10px] font-mono text-muted-foreground/50">devops@lab:~</span>
+      </div>
+      <div className="px-4 py-4 font-mono text-xs space-y-1 min-h-[140px]">
+        {DEMO_LINES.slice(0, phase).map((l, i) => (
+          <div key={i} className={termClass(l.k)}>{l.v}</div>
+        ))}
+        {DEMO_LINES[phase] && (
+          <div className={termClass(DEMO_LINES[phase].k)}>
+            {DEMO_LINES[phase].k === "cmd"
+              ? DEMO_LINES[phase].v.slice(0, chars)
+              : DEMO_LINES[phase].v}
+            {DEMO_LINES[phase].k === "cmd" && (
+              <span className="animate-pulse">▌</span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const TRACKS = [
   { label: "Linux",     icon: Terminal,  color: "#22d3ee", desc: "Filesystem, processes, networking, permissions, scripting" },
@@ -88,6 +155,8 @@ export default function About() {
             practise Linux, Terraform, Jenkins, Docker, and Git — no cloud account,
             no local setup, no multiple-choice questions.
           </p>
+
+          <TerminalDemo />
 
           {/* Stats row */}
           <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/40 rounded-2xl overflow-hidden border border-border/40">
