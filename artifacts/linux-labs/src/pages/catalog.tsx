@@ -55,6 +55,12 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
             </p>
           </div>
         )}
+        {/* About icon — right side of the row */}
+        {!collapsed && (
+          <Link href="/about" title="About" className="shrink-0 p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
+            <Info className="w-4 h-4" />
+          </Link>
+        )}
       </div>
     </div>
   )
