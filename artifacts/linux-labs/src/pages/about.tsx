@@ -3,7 +3,7 @@ import { Link } from "wouter"
 import {
   ArrowLeft, Zap, Linkedin, MapPin, Terminal,
   Layers, Server, Container, GitBranch, CheckCircle2,
-  BookOpen, ExternalLink, Heart, Award, BarChart3, RefreshCw,
+  BookOpen, ExternalLink, Award, BarChart3, RefreshCw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AccountDropdown } from "@/components/account-dropdown"
@@ -42,7 +42,7 @@ export default function About() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Top Bar ── */}
-      <header className="sticky top-0 z-20 h-14 border-b border-primary/20 bg-background/80 backdrop-blur-md flex items-center justify-between px-6 gap-4">
+      <header className="sticky top-0 z-20 h-16 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 gap-4">
         <div className="flex items-center gap-4">
           <Link
             href="/"
@@ -197,14 +197,19 @@ export default function About() {
           </div>
         </section>
 
-        {/* ── Footer ── */}
-        <footer className="text-center text-xs font-mono text-muted-foreground/50 pb-4">
-          Built with{" "}
-          <Heart className="w-3 h-3 inline text-primary/60 fill-primary/20 mx-0.5" />
-          {" "}by Shivam Yadav · DevLabMaster
-        </footer>
-
       </main>
+
+      <div className="h-32 pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(13,148,136,0.07) 0%, transparent 70%)" }} />
+
+      <footer className="relative z-10 border-t border-primary/20 py-4 bg-primary/[0.07] backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
+          <span>DevLabMaster — DevOps practice range</span>
+          <div className="flex items-center gap-6">
+            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
+            <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
