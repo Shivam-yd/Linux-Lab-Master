@@ -47,8 +47,6 @@ export function NotificationBell() {
   const notes = useHealthNotifications()
   const [open, setOpen] = useState(false)
   const [seen, setSeen] = useState(false)
-
-  if (!adminCheck?.isAdmin) return null
   const ref = useRef<HTMLDivElement>(null)
   const count = notes.length
   const hasNew = count > 0 && !seen
@@ -63,6 +61,8 @@ export function NotificationBell() {
     document.addEventListener("keydown", onKey)
     return () => { document.removeEventListener("mousedown", onMouse); document.removeEventListener("keydown", onKey) }
   }, [])
+
+  if (!adminCheck?.isAdmin) return null
 
   return (
     <div ref={ref} className="relative">
