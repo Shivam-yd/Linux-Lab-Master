@@ -9,6 +9,7 @@ A self-hosted, browser-based DevOps training platform with 78+ interactive labs 
 - **Shared libs**: `lib/db/` (Drizzle ORM + PostgreSQL), `lib/api-zod/` (Zod schemas), `lib/api-client-react/` (generated fetch client)
 - **Auth**: Better Auth (email/password + Google OAuth)
 - **Labs**: YAML definitions in `labs/`, synced from GitHub on startup
+- **Certificates**: Track completion certificates with public verification links and native-share/clipboard fallback
 
 ## Running on Replit
 

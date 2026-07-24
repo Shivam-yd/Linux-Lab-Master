@@ -16,7 +16,8 @@
 #   • Lab catalog   — browse and launch sandboxed Linux/Docker/Git/Terraform labs
 #   • Progress      — per-user progress tracker across all tracks (/progress)
 #   • Profile       — account settings and password management (/profile)
-#   • Certificates  — auto-generated on 100% track completion (/certificate/:track)
+#   • Certificates  — auto-generated on 100% track completion and shareable via
+#                     public verification links (/certificate/:track, /verify/:id)
 #   • Guest mode    — try labs without an account (progress saved by cookie)
 #   • Google OAuth  — optional; configure GOOGLE_CLIENT_ID/SECRET in .env
 #
@@ -343,7 +344,8 @@ echo -e "    http://localhost:8085/           — home / sign in"
 echo -e "    http://localhost:8085/dashboard  — lab catalog"
 echo -e "    http://localhost:8085/progress   — your progress across all tracks"
 echo -e "    http://localhost:8085/profile    — account settings & password"
-echo -e "    http://localhost:8085/certificate/:track  — completion certificate"
+echo -e "    http://localhost:8085/certificate/:track  — completion certificate and Share link"
+echo -e "    http://localhost:8085/verify/:id           — public certificate verification"
 echo ""
 echo -e "  ${CYAN}Service commands:${RESET}"
 echo -e "    ${CYAN}sudo systemctl status  ${SERVICE_NAME}${RESET}   — check status"

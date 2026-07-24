@@ -10,6 +10,11 @@ sudo bash installer/install.sh
 
 That's it. The script installs Docker, builds the images, pulls lab containers, and registers a systemd service that starts on boot. Open `http://localhost:8085` when it finishes.
 
+After completing every lab in a track, open `/certificate/<track>` to view the
+certificate. Use **Share** to open the device share dialog or copy a public
+verification link. Anyone with that link can verify the certificate at
+`/verify/<certificate-id>` without signing in.
+
 | Command | What it does |
 |---|---|
 | `sudo systemctl status linuxlabs` | Check if it's running |
@@ -30,6 +35,7 @@ The installer packages Linux Labs as a self-contained Windows application:
 - Pre-pulls the six lab container images so labs start instantly
 - Registers a Windows service (`LinuxLabs`) that starts on boot
 - Creates a desktop shortcut that opens `http://localhost:8085` in the browser
+- Provides shareable completion certificates with public verification links
 
 After installation the user never touches a terminal — the service manages everything.
 

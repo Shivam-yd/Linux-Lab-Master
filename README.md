@@ -19,6 +19,7 @@ Linux Lab Master is a self-hosted web application that provides **browser-based 
 - **Write real commands** in a real shell — not multiple choice questions
 - **Automatic verification** checks your work and tells you exactly what passed or failed
 - **Progressive curriculum** — Foundation → Intermediate → Advanced within each track
+- **Shareable certificates** — complete a track to earn a certificate with a public verification link
 - **Self-hosted** — runs entirely on your own machine or server, air-gapped friendly
 
 ---
@@ -96,6 +97,14 @@ journalctl -u linuxlabs -f         # live logs
 | `/opt/linuxlabs` | Application files |
 | `/opt/linuxlabs/.env` | Secrets (auto-generated, do not edit manually) |
 | `journalctl -u linuxlabs` | Application logs |
+
+#### Certificates and sharing
+
+When all labs in a track are complete, open `/certificate/<track>` to view the
+certificate. The **Share** button opens the device share dialog when supported;
+otherwise it copies a public verification link to the clipboard. Anyone with
+the link can verify the certificate at `/verify/<certificate-id>` without
+signing in.
 
 ---
 
@@ -180,6 +189,10 @@ The web preview runs at the root path and proxies `/api` to the API workflow.
 Live terminal sandboxes work when the Replit runtime exposes the Docker daemon;
 otherwise lab browsing, authentication, and progress tracking remain available
 but sandbox deployment is unavailable.
+
+Certificates and their public verification links work the same way on Replit.
+If direct clipboard access is blocked in an embedded preview, the Share button
+uses a compatibility fallback.
 
 ---
 

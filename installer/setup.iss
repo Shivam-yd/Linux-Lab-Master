@@ -324,6 +324,7 @@ begin
     'Open your browser and go to:' + #13#10 +
     '  http://localhost:8085' + #13#10#13#10 +
     'The first page load may take 30–60 seconds while the database' + #13#10 +
-    'initialises. After that, everything starts instantly on boot.',
+    'initialises. After that, everything starts instantly on boot.' + #13#10#13#10 +
+    'Completed tracks include shareable certificates with public verification links.',
     mbInformation, MB_OK);
 end;
