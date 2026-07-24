@@ -58,6 +58,8 @@ export default function VerifyPage() {
       </div>
     )
 
+  if (!cert) return null
+
   const tm    = TRACK_META[cert.track] ?? { ...DEFAULT_TRACK_META, label: cert.track }
   const Icon  = tm.icon
   const scope = cert.level ? `${tm.label} · ${LEVEL_NAMES[cert.level] ?? `Level ${cert.level}`}` : `${tm.label} Track`

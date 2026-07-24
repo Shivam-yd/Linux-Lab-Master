@@ -64,7 +64,7 @@ export default function CertificatePage() {
     if (!sid || !track || !isComplete || !lastPassedAt) return
     makeCertId(sid, track, level).then(async id => {
       setCertId(id)
-      const payload = JSON.stringify({ certId: id, studentName: session?.user?.name || session?.user?.email?.split("@")[0] || "Student", track, level: level ? Number(level) : undefined, earnedAt: lastPassedAt })
+      const payload = JSON.stringify({ certId: id, studentName: session?.user?.name || session?.user?.email?.split("@")[0] || "Student", track, level: level ? Number(level) : undefined })
       const save = () => fetch(`${basePath}/api/certs`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: payload })
       const res = await save().catch(() => null)
       if (!res?.ok) {
