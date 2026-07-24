@@ -3,7 +3,7 @@ import { Link } from "wouter"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
 import { Redirect } from "wouter"
-import { ArrowLeft, CreditCard, Users, TrendingDown, Zap, Shield, ShieldAlert } from "lucide-react"
+import { ArrowLeft, CreditCard, Users, TrendingDown, Zap, Shield, ShieldAlert, X } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
@@ -58,9 +58,10 @@ export default function BillingAdmin() {
   const { data: session, isPending } = useSession()
   const qc = useQueryClient()
 
-  const [overrideUser, setOverrideUser] = useState("")
-  const [overridePlan, setOverridePlan] = useState("devops-pro")
-  const [overrideExpiry, setOverrideExpiry] = useState("")
+  // Inline grant popover: tracks which row has the form open
+  const [grantOpen, setGrantOpen] = useState<string | null>(null)
+  const [grantPlan, setGrantPlan] = useState("devops-pro")
+  const [grantExpiry, setGrantExpiry] = useState("")
 
   // All hooks must be declared before any early returns (Rules of Hooks).
   const revenue = useQuery<Revenue>({
@@ -82,7 +83,7 @@ export default function BillingAdmin() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan, expiresAt: expiresAt || undefined }),
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", "subscriptions"] }); setOverrideUser("") },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", "subscriptions"] }); setGrantOpen(null) },
   })
 
   const removeOverride = useMutation({
@@ -184,51 +185,6 @@ export default function BillingAdmin() {
           ))}
         </div>
 
-        {/* Grant override */}
-        <div className="rounded-xl border border-border/60 bg-card p-5 space-y-4">
-          <div>
-            <p className="text-sm font-semibold">Grant plan override</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Manually assign a plan to any user, with optional expiry.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-            <div className="sm:col-span-2 space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">User ID</label>
-              <input
-                placeholder="user_…"
-                value={overrideUser}
-                onChange={e => setOverrideUser(e.target.value)}
-                className="w-full text-sm px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Plan</label>
-              <select
-                value={overridePlan}
-                onChange={e => setOverridePlan(e.target.value)}
-                className="w-full text-sm px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
-              >
-                <option value="linux-starter">Linux Starter</option>
-                <option value="devops-pro">DevOps Pro</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Expires (optional)</label>
-              <input
-                type="date"
-                value={overrideExpiry}
-                onChange={e => setOverrideExpiry(e.target.value)}
-                className="w-full text-sm px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
-              />
-            </div>
-          </div>
-          <button
-            disabled={!overrideUser || applyOverride.isPending}
-            onClick={() => applyOverride.mutate({ userId: overrideUser, plan: overridePlan, expiresAt: overrideExpiry || undefined })}
-            className="px-5 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 transition-opacity"
-          >
-            {applyOverride.isPending ? "Applying…" : "Apply override"}
-          </button>
-        </div>
 
         {/* Subscribers table */}
         <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
@@ -306,12 +262,48 @@ export default function BillingAdmin() {
                           : <span className="text-xs text-muted-foreground/40">—</span>}
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        {row.override_plan && (
+                        {row.override_plan ? (
                           <button
                             onClick={() => removeOverride.mutate(row.user_id)}
-                            className="text-xs text-muted-foreground hover:text-rose-400 transition-colors"
+                            disabled={removeOverride.isPending}
+                            className="text-xs text-muted-foreground hover:text-rose-400 transition-colors disabled:opacity-40"
                           >
                             Remove
+                          </button>
+                        ) : grantOpen === row.user_id ? (
+                          <div className="flex items-center gap-1.5 justify-end flex-wrap">
+                            <select
+                              value={grantPlan}
+                              onChange={e => setGrantPlan(e.target.value)}
+                              className="text-xs px-2 py-1 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/40"
+                            >
+                              <option value="devops-pro">DevOps Pro</option>
+                              <option value="linux-starter">Linux Starter</option>
+                            </select>
+                            <input
+                              type="date"
+                              value={grantExpiry}
+                              onChange={e => setGrantExpiry(e.target.value)}
+                              placeholder="No expiry"
+                              className="text-xs px-2 py-1 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/40 w-32"
+                            />
+                            <button
+                              onClick={() => applyOverride.mutate({ userId: row.user_id, plan: grantPlan, expiresAt: grantExpiry || undefined })}
+                              disabled={applyOverride.isPending}
+                              className="text-xs px-2.5 py-1 rounded-md bg-violet-500/15 text-violet-400 border border-violet-500/25 hover:bg-violet-500/25 transition-colors disabled:opacity-40 font-semibold"
+                            >
+                              {applyOverride.isPending ? "…" : "Apply"}
+                            </button>
+                            <button onClick={() => setGrantOpen(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setGrantOpen(row.user_id); setGrantPlan("devops-pro"); setGrantExpiry("") }}
+                            className="text-xs text-muted-foreground/50 hover:text-violet-400 transition-colors"
+                          >
+                            Grant
                           </button>
                         )}
                       </td>
