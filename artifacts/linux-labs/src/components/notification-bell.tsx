@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Bell, CheckCircle2, AlertCircle, ServerCrash } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { useSession } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
@@ -34,9 +36,19 @@ function useHealthNotifications(): Notification[] {
 }
 
 export function NotificationBell() {
+  const { data: session } = useSession()
+  const { data: adminCheck } = useQuery<{ isAdmin: boolean }>({
+    queryKey: ["admin", "check"],
+    queryFn: () => fetch(`${basePath}/api/admin/check`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!session?.user,
+    staleTime: 5 * 60 * 1000,
+  })
+
   const notes = useHealthNotifications()
   const [open, setOpen] = useState(false)
   const [seen, setSeen] = useState(false)
+
+  if (!adminCheck?.isAdmin) return null
   const ref = useRef<HTMLDivElement>(null)
   const count = notes.length
   const hasNew = count > 0 && !seen

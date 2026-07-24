@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationBell } from "@/components/notification-bell"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -534,6 +535,7 @@ export default function AdminPage() {
               Billing
             </Link>
             <ThemeToggle />
+            <NotificationBell />
             <AccountDropdown />
           </div>
         </div>
