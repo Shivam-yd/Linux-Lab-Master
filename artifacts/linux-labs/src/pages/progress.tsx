@@ -6,9 +6,9 @@ import { useSession } from "@/lib/auth-client"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
-  Zap, Trophy, Award, CheckCircle2,
+  Trophy, Award, CheckCircle2,
   ArrowLeft,
-  ExternalLink, Star, ScrollText, ChevronDown, Medal
+  ScrollText, ChevronDown, Medal
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
@@ -79,7 +79,14 @@ export default function ProgressPage() {
               <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            <Link
+              href={`${basePath}/my-certificates`}
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              <ScrollText className="w-3.5 h-3.5" />
+              My Certificates
+            </Link>
             <ThemeToggle />
             <AccountDropdown />
           </div>
@@ -118,42 +125,6 @@ export default function ProgressPage() {
             </div>
           </div>
         </div>
-
-        {/* My Certificates */}
-        {!loading && (() => {
-          const earned = tracks.filter(track => {
-            const trackLabs = (labs ?? []).filter(l => l.track === track)
-            return trackLabs.length > 0 && trackLabs.every(l => progressByLabId[l.id]?.status === "passed")
-          })
-          if (earned.length === 0) return null
-          return (
-            <section className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground">
-                <ScrollText className="w-3.5 h-3.5" />
-                My Certificates
-                <span className="text-border">·</span>
-                <span className="text-amber-400">{earned.length}</span>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {earned.map(track => {
-                  const tm = TRACK_META[track] ?? { ...DEFAULT_TRACK_META, label: track }
-                  const Icon = tm.icon
-                  return (
-                    <Link
-                      key={track}
-                      href={`${basePath}/certificate/${track}`}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 transition-colors shrink-0"
-                    >
-                      <Icon className={cn("w-3.5 h-3.5", tm.accentClass)} />
-                      <span className="text-sm font-semibold">{tm.label}</span>
-                      <Star className="w-3 h-3 text-amber-400 fill-amber-400/30" />
-                    </Link>
-                  )
-                })}
-              </div>
-            </section>
-          )
-        })()}
 
         {/* Per-track sections */}
         {loading ? (
@@ -196,17 +167,6 @@ export default function ProgressPage() {
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-mono text-muted-foreground">{passed}/{total}</span>
                   <Progress value={pct} className="w-24 h-1.5 bg-background border border-border/50" />
-                  {complete && (
-                    <Link
-                      href={`${basePath}/certificate/${track}`}
-                      onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
-                    >
-                      <Star className="w-3.5 h-3.5" />
-                      Certificate
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
-                  )}
                   <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
                 </div>
               </button>
@@ -245,23 +205,9 @@ export default function ProgressPage() {
                         />
                       </div>
 
-                      {/* Count + cert link */}
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-sm font-mono text-muted-foreground w-12 text-right">
-                          {lvlPassed}/{lvlTotal}
-                        </span>
-                        {lvlDone && (
-                          <Link
-                            href={`${basePath}/certificate/${track}/level/${lvl}`}
-                            onClick={e => e.stopPropagation()}
-                            className="flex items-center gap-1 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
-                          >
-                            <Award className="w-3.5 h-3.5" />
-                            Certificate
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
-                        )}
-                      </div>
+                      <span className="text-sm font-mono text-muted-foreground w-12 text-right shrink-0">
+                        {lvlPassed}/{lvlTotal}
+                      </span>
                     </div>
                   )
                 })}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Trash2, AlertTriangle, Terminal, Server, Award } from "lucide-react"
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Trash2, AlertTriangle, Terminal, Server } from "lucide-react"
 import { usePlan } from "@/lib/use-plan"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
@@ -42,13 +42,6 @@ export default function ProfilePage() {
 
   const { data: labs } = useListLabs()
   const { data: progress } = useListProgress()
-
-  const { data: certs } = useQuery<{ certId: string; track: string; level: number | null; earnedAt: string; expiresAt: string }[]>({
-    queryKey: ["certs", "mine"],
-    queryFn: () => fetch(`${basePath}/api/certs/mine`, { credentials: "include" }).then(r => r.json()),
-    enabled: !!user,
-    staleTime: 60_000,
-  })
 
   const trackStats = useMemo(() => {
     if (!labs || !progress) return []
@@ -355,42 +348,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* My Certificates */}
-        {certs && certs.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-muted-foreground" />
-              <h2 className="font-semibold">My Certificates</h2>
-            </div>
-            <div className="space-y-2">
-              {certs.map(cert => {
-                const tm = TRACK_META[cert.track] ?? { ...DEFAULT_TRACK_META, label: cert.track }
-                const Icon = tm.icon
-                const href = cert.level != null
-                  ? `${basePath}/certificate/${cert.track}/level/${cert.level}`
-                  : `${basePath}/certificate/${cert.track}`
-                return (
-                  <Link key={cert.certId} href={href} className="flex items-center gap-3 p-3 rounded-xl border border-border/60 hover:border-primary/40 hover:bg-muted/20 transition-all group">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border" style={{ background: `${tm.accentHex}15`, borderColor: `${tm.accentHex}30` }}>
-                      <Icon className="w-4 h-4" style={{ color: tm.accentHex }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold group-hover:text-primary transition-colors">
-                        {tm.label}{cert.level != null ? ` · Level ${cert.level}` : " · Full Track"}
-                      </p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {cert.certId.match(/.{1,4}/g)!.join("-")} · earned {new Date(cert.earnedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Track progress & certificates */}
+        {/* Track progress */}
         {trackStats.length > 0 && (
           <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -412,18 +370,7 @@ export default function ProfilePage() {
                         <span className="font-medium">{tm.label}</span>
                         {complete && <CheckCircle2 className="w-3 h-3 text-green-500" />}
                       </div>
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <span className="font-mono">{passed}/{total}</span>
-                        {complete && (
-                          <Link
-                            href={`${basePath}/certificate/${track}`}
-                            className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors font-semibold"
-                          >
-                            <Award className="w-3 h-3" />
-                            Certificate
-                          </Link>
-                        )}
-                      </div>
+                      <span className="font-mono text-muted-foreground">{passed}/{total}</span>
                     </div>
                     <Progress
                       value={pct}
