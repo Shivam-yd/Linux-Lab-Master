@@ -3,15 +3,12 @@ import { useMeta } from "@/hooks/use-meta"
 import { Link, useLocation } from "wouter"
 import { useSession, signOut, authClient } from "@/lib/auth-client"
 import { useQuery } from "@tanstack/react-query"
-import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
 import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Trash2, AlertTriangle, Terminal, Server } from "lucide-react"
 import { usePlan } from "@/lib/use-plan"
 import { AccountDropdown } from "@/components/account-dropdown"
-import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -39,24 +36,6 @@ export default function ProfilePage() {
 
   const user = session?.user
   const { plan, isLoading: planLoading } = usePlan()
-
-  const { data: labs } = useListLabs()
-  const { data: progress } = useListProgress()
-
-  const trackStats = useMemo(() => {
-    if (!labs || !progress) return []
-    const passedIds = new Set(progress.filter(p => p.status === "passed").map(p => p.labId))
-    const byTrack = new Map<string, { passed: number; total: number }>()
-    for (const lab of labs) {
-      const e = byTrack.get(lab.track) ?? { passed: 0, total: 0 }
-      e.total++
-      if (passedIds.has(lab.id)) e.passed++
-      byTrack.set(lab.track, e)
-    }
-    return [...byTrack.entries()].map(([track, { passed, total }]) => ({
-      track, passed, total, complete: passed === total && total > 0,
-    }))
-  }, [labs, progress])
 
   // Detect whether this user has a credential (email/password) account or is
   // OAuth-only. Better Auth exposes GET /api/auth/list-accounts for exactly this.
@@ -347,41 +326,6 @@ export default function ProfilePage() {
             </form>
           )}
         </div>
-
-        {/* Track progress */}
-        {trackStats.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Track Progress</h2>
-              <Link href={`${basePath}/progress`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                View full progress →
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {trackStats.map(({ track, passed, total, complete }) => {
-                const tm = TRACK_META[track] ?? { ...DEFAULT_TRACK_META, label: track }
-                const Icon = tm.icon
-                const pct = total > 0 ? Math.round((passed / total) * 100) : 0
-                return (
-                  <div key={track} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: tm.accentHex }} />
-                        <span className="font-medium">{tm.label}</span>
-                        {complete && <CheckCircle2 className="w-3 h-3 text-green-500" />}
-                      </div>
-                      <span className="font-mono text-muted-foreground">{passed}/{total}</span>
-                    </div>
-                    <Progress
-                      value={pct}
-                      className="h-1.5 bg-background border border-border/50"
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Danger zone */}
         <div className="rounded-2xl border border-border/50 bg-card/50 p-6 space-y-4">
