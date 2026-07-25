@@ -793,54 +793,46 @@ export default function AdminPage() {
                         </div>
 
                         {/* Column headers */}
-                        <div className="grid grid-cols-[1fr_52px_52px_130px_52px_52px_52px_120px] gap-x-3 px-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        <div className="grid grid-cols-[1fr_52px_52px_180px] gap-x-3 px-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                           <span>Lab</span>
                           <span className="text-right">Tries</span>
                           <span className="text-right">Passed</span>
-                          <span className="text-right">Pass rate</span>
-                          <span className="text-right text-green-400">Easy</span>
-                          <span className="text-right text-amber-400">OK</span>
-                          <span className="text-right text-red-400">Hard</span>
-                          <span className="text-right">Difficulty</span>
+                          <span>Pass rate / Difficulty</span>
                         </div>
 
                         {/* Lab rows */}
                         <div>
                           {rows.map(row => {
-                            const rate     = row.attempted > 0 ? Math.round((row.passed / row.attempted) * 100) : 0
-                            const barColor  = rate >= 80 ? "bg-green-400"   : rate >= 50 ? "bg-amber-400"   : "bg-red-400"
+                            const rate      = row.attempted > 0 ? Math.round((row.passed / row.attempted) * 100) : 0
+                            const barColor  = rate >= 80 ? "bg-green-400" : rate >= 50 ? "bg-amber-400" : "bg-red-400"
                             const textColor = rate >= 80 ? "text-green-400" : rate >= 50 ? "text-amber-400" : "text-red-400"
-                            const easyPct  = row.ratings > 0 ? (row.easy / row.ratings) * 100 : 0
-                            const okPct    = row.ratings > 0 ? (row.ok   / row.ratings) * 100 : 0
-                            const hardPct  = row.ratings > 0 ? (row.hard / row.ratings) * 100 : 0
+                            const easyPct   = row.ratings > 0 ? (row.easy / row.ratings) * 100 : 0
+                            const okPct     = row.ratings > 0 ? (row.ok   / row.ratings) * 100 : 0
+                            const hardPct   = row.ratings > 0 ? (row.hard / row.ratings) * 100 : 0
                             return (
                               <div
                                 key={row.lab_id}
-                                className="grid grid-cols-[1fr_52px_52px_130px_52px_52px_52px_120px] gap-x-3 items-center px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors"
+                                className="grid grid-cols-[1fr_52px_52px_180px] gap-x-3 items-center px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors"
                               >
-                                <p className="text-sm truncate text-foreground/90">
-                                  {labMeta[row.lab_id]?.title ?? row.lab_id}
-                                </p>
+                                <p className="text-sm truncate text-foreground/90">{labMeta[row.lab_id]?.title ?? row.lab_id}</p>
                                 <span className="text-sm font-mono text-right text-muted-foreground">{row.attempted}</span>
                                 <span className="text-sm font-mono text-right text-foreground">{row.passed}</span>
-                                <div className="flex items-center gap-2">
-                                  <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
-                                    <div className={cn("h-full rounded-full", barColor)} style={{ width: `${rate}%` }} />
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                                      <div className={cn("h-full rounded-full", barColor)} style={{ width: `${rate}%` }} />
+                                    </div>
+                                    <span className={cn("text-xs font-bold font-mono w-8 text-right shrink-0", textColor)}>{rate}%</span>
                                   </div>
-                                  <span className={cn("text-xs font-bold font-mono w-8 text-right shrink-0", textColor)}>{rate}%</span>
+                                  {row.ratings > 0
+                                    ? <div className="flex h-1.5 rounded-full overflow-hidden bg-muted/30">
+                                        <div className="bg-green-400/70 h-full" style={{ width: `${easyPct}%` }} />
+                                        <div className="bg-amber-400/70 h-full" style={{ width: `${okPct}%`  }} />
+                                        <div className="bg-red-400/70  h-full" style={{ width: `${hardPct}%` }} />
+                                      </div>
+                                    : <div className="h-1.5 rounded-full bg-muted/10" />
+                                  }
                                 </div>
-                                {row.ratings > 0 ? <>
-                                  <span className="text-sm font-mono text-right text-green-400">{row.easy}</span>
-                                  <span className="text-sm font-mono text-right text-amber-400">{row.ok}</span>
-                                  <span className="text-sm font-mono text-right text-red-400">{row.hard}</span>
-                                  <div className="flex h-2 rounded-full overflow-hidden bg-muted/30">
-                                    <div className="bg-green-400/70 h-full" style={{ width: `${easyPct}%` }} />
-                                    <div className="bg-amber-400/70 h-full" style={{ width: `${okPct}%`  }} />
-                                    <div className="bg-red-400/70  h-full" style={{ width: `${hardPct}%` }} />
-                                  </div>
-                                </> : <>
-                                  <span className="text-xs text-muted-foreground/40 text-right col-span-4">—</span>
-                                </>}
                               </div>
                             )
                           })}
