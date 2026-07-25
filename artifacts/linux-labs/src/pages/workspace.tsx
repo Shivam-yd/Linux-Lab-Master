@@ -644,8 +644,8 @@ export default function Workspace() {
                             "leading-snug",
                             isVerified
                               ? isPassed
-                                ? "text-green-300 font-medium"
-                                : "text-red-300 font-medium"
+                                ? "text-green-600 dark:text-green-300 font-medium"
+                                : "text-red-600 dark:text-red-300 font-medium"
                               : "text-muted-foreground"
                           )}>
                             {task.description}
