@@ -828,7 +828,7 @@ export default function Workspace() {
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-20" />
 
           {!isRunning && !isStarting && (
-            <div className="absolute inset-0 z-10 bg-[#050505]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+            <div className="absolute inset-0 z-30 bg-[#050505]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
               <div className="w-24 h-24 rounded-full bg-muted/20 border border-border flex items-center justify-center mb-6 shadow-xl">
                 <Terminal className="w-10 h-10 text-muted-foreground/60" />
               </div>
@@ -848,7 +848,7 @@ export default function Workspace() {
           )}
 
           {isStarting && (
-            <div className="absolute inset-0 z-10 bg-[#050505]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+            <div className="absolute inset-0 z-30 bg-[#050505]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
               <RefreshCw className="w-16 h-16 text-primary opacity-80 mb-8 animate-spin" />
               <h2 className="text-2xl font-bold font-mono tracking-tight mb-3 text-primary">PROVISIONING_ENVIRONMENT</h2>
               <p className="text-muted-foreground max-w-sm text-sm font-mono">
