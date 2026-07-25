@@ -47,7 +47,7 @@ app.use(cors({ credentials: true, origin: true }));
 app.set("trust proxy", 1);
 
 // Rate-limit auth endpoints to blunt brute-force attacks.
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 500, standardHeaders: true, legacyHeaders: false });
 
 // Better Auth handles /api/auth/* — must be registered before body parsers
 // so it can consume the raw request body itself.
