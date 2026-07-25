@@ -444,9 +444,9 @@ export default function Workspace() {
           </h1>
           <Badge variant="outline" className={cn(
             "ml-2 font-mono text-[10px] uppercase px-2 h-5 border",
-            lab.difficulty === "advanced" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : 
-            lab.difficulty === "intermediate" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : 
-            "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+            lab.difficulty === "advanced" ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20" : 
+            lab.difficulty === "intermediate" ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" : 
+            "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20"
           )}>
             {lab.difficulty}
           </Badge>
@@ -477,8 +477,8 @@ export default function Workspace() {
                 {/* Status Indicator */}
                 <div className={cn(
                   "px-3 py-1 text-xs font-mono font-bold rounded flex items-center gap-1.5",
-                  isRunning ? "text-[#00ff9d] bg-[#00ff9d]/10" : 
-                  isStarting ? "text-yellow-400 bg-yellow-400/10" : 
+                  isRunning ? "text-green-600 dark:text-[#00ff9d] bg-green-500/10 dark:bg-[#00ff9d]/10" : 
+                  isStarting ? "text-yellow-600 dark:text-yellow-400 bg-yellow-400/10" : 
                   "text-muted-foreground"
                 )}>
                   {isStarting ? (
