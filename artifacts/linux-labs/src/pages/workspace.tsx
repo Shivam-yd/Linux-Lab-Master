@@ -779,11 +779,11 @@ export default function Workspace() {
                           <XCircle className="w-5 h-5 text-red-500" />
                         </div>
                       )}
-                      <span className={cn("font-bold tracking-tight text-lg", verifyResult.passed ? "text-green-400" : "text-red-400")}>
+                      <span className={cn("font-bold tracking-tight text-lg", verifyResult.passed ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
                         {verifyResult.passed ? 'MISSION_ACCOMPLISHED' : 'CHECKS_FAILED'}
                       </span>
                     </div>
-                    <div className={cn("font-mono text-2xl font-black", verifyResult.passed ? "text-green-400" : "text-red-400")}>
+                    <div className={cn("font-mono text-2xl font-black", verifyResult.passed ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
                       {verifyResult.score}%
                     </div>
                   </div>
@@ -793,7 +793,7 @@ export default function Workspace() {
                   </p>
 
                   {verifyResult.passed && (
-                    <div className="mt-4 pt-3 border-t border-white/10 relative z-10">
+                    <div className="mt-4 pt-3 border-t border-border/20 relative z-10">
                       <p className="text-xs text-muted-foreground mb-2">How difficult was this lab?</p>
                       <div className="flex gap-2">
                         {(["easy", "ok", "hard"] as const).map(r => (
@@ -806,7 +806,7 @@ export default function Workspace() {
                                 ? r === "easy" ? "bg-green-500/20 border-green-500/50 text-green-400"
                                 : r === "ok"   ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
                                 :                "bg-red-500/20 border-red-500/50 text-red-400"
-                                : "border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                                : "border-border/40 text-muted-foreground hover:border-border/70 hover:text-foreground"
                             )}
                           >
                             {r === "easy" ? "Easy" : r === "ok" ? "Just right" : "Hard"}
@@ -930,25 +930,25 @@ export default function Workspace() {
       {/* ── Completion toast (bottom-right) ── */}
       {closeCountdown !== null && (
         <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-80">
-          <div className="relative rounded-xl border border-green-500/40 bg-[#0d0d0d] p-5 shadow-[0_0_40px_rgba(34,197,94,0.2)] overflow-hidden">
+          <div className="relative rounded-xl border border-green-500/40 bg-card dark:bg-[#0d0d0d] p-5 shadow-[0_0_40px_rgba(34,197,94,0.2)] overflow-hidden">
             {/* Glow blob */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 blur-[30px] -mr-6 -mt-6 rounded-full pointer-events-none" />
 
             {/* Header */}
             <div className="relative flex items-center gap-3 mb-3">
               <div className="w-9 h-9 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.25)] shrink-0">
-                <Trophy className="w-4 h-4 text-green-400" />
+                <Trophy className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-green-500/60 leading-none mb-1">Mission Complete</p>
-                <p className="font-mono font-bold text-base text-green-400 leading-none">Lab Completed!</p>
+                <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-green-700/80 dark:text-green-500/60 leading-none mb-1">Mission Complete</p>
+                <p className="font-mono font-bold text-base text-green-700 dark:text-green-400 leading-none">Lab Completed!</p>
               </div>
             </div>
 
             {/* Message */}
             <p className="relative font-mono text-xs text-muted-foreground/60 mb-4">
               Returning to lab list in{" "}
-              <span className="text-green-400 font-bold tabular-nums">{closeCountdown}</span>{" "}
+              <span className="text-green-700 dark:text-green-400 font-bold tabular-nums">{closeCountdown}</span>{" "}
               second{closeCountdown !== 1 ? "s" : ""}. Take a moment to review your work.
             </p>
 
@@ -964,7 +964,7 @@ export default function Workspace() {
             {lab?.track && (
               <Link
                 href={`${basePath}/certificate/${lab.track}`}
-                className="relative flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                className="relative flex items-center gap-2 text-xs font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors"
               >
                 <Award className="w-3.5 h-3.5 shrink-0" />
                 View track certificate
