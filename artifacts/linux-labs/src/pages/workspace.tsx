@@ -692,12 +692,12 @@ export default function Workspace() {
                         {hints!.slice(0, hintsRevealed).map((hint, i) => (
                           <div
                             key={i}
-                            className="flex gap-3 p-3.5 rounded-lg bg-black/40 border border-yellow-500/20 animate-in fade-in slide-in-from-top-2 duration-300"
+                            className="flex gap-3 p-3.5 rounded-lg bg-yellow-500/10 dark:bg-black/40 border border-yellow-500/20 animate-in fade-in slide-in-from-top-2 duration-300"
                           >
                             <span className="shrink-0 text-yellow-500/50 text-xs font-mono mt-0.5">
                               {`>_`}
                             </span>
-                            <p className="text-sm text-yellow-200/80 leading-relaxed font-mono">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200/80 leading-relaxed font-mono">
                               {hint}
                             </p>
                           </div>
