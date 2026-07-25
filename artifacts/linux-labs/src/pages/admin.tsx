@@ -589,7 +589,7 @@ export default function AdminPage() {
                     key={id}
                     onClick={() => setTabAndHash(id)}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150",
+                      "flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150",
                       tab === id
                         ? "bg-primary/10 border border-primary/25 text-primary shadow-sm"
                         : "text-muted-foreground hover:text-foreground hover:bg-primary/5",
