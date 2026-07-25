@@ -804,34 +804,28 @@ export default function AdminPage() {
                         <div>
                           {rows.map(row => {
                             const rate      = row.attempted > 0 ? Math.round((row.passed / row.attempted) * 100) : 0
-                            const barColor  = rate >= 80 ? "bg-green-400" : rate >= 50 ? "bg-amber-400" : "bg-red-400"
-                            const textColor = rate >= 80 ? "text-green-400" : rate >= 50 ? "text-amber-400" : "text-red-400"
-                            const easyPct   = row.ratings > 0 ? (row.easy / row.ratings) * 100 : 0
-                            const okPct     = row.ratings > 0 ? (row.ok   / row.ratings) * 100 : 0
-                            const hardPct   = row.ratings > 0 ? (row.hard / row.ratings) * 100 : 0
+                            const bc = rate >= 80 ? "bg-green-400" : rate >= 50 ? "bg-amber-400" : "bg-red-400"
+                            const tc = rate >= 80 ? "text-green-400" : rate >= 50 ? "text-amber-400" : "text-red-400"
+                            const r  = row.ratings
                             return (
-                              <div
-                                key={row.lab_id}
-                                className="grid grid-cols-[1fr_52px_52px_180px] gap-x-3 items-center px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors"
-                              >
+                              <div key={row.lab_id} className="grid grid-cols-[1fr_52px_52px_180px] gap-x-3 items-center px-3 py-2.5 rounded-lg hover:bg-muted/20 transition-colors">
                                 <p className="text-sm truncate text-foreground/90">{labMeta[row.lab_id]?.title ?? row.lab_id}</p>
                                 <span className="text-sm font-mono text-right text-muted-foreground">{row.attempted}</span>
                                 <span className="text-sm font-mono text-right text-foreground">{row.passed}</span>
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2">
                                     <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
-                                      <div className={cn("h-full rounded-full", barColor)} style={{ width: `${rate}%` }} />
+                                      <div className={cn("h-full rounded-full", bc)} style={{ width: `${rate}%` }} />
                                     </div>
-                                    <span className={cn("text-xs font-bold font-mono w-8 text-right shrink-0", textColor)}>{rate}%</span>
+                                    <span className={cn("text-xs font-bold font-mono w-8 text-right shrink-0", tc)}>{rate}%</span>
                                   </div>
-                                  {row.ratings > 0
-                                    ? <div className="flex h-1.5 rounded-full overflow-hidden bg-muted/30">
-                                        <div className="bg-green-400/70 h-full" style={{ width: `${easyPct}%` }} />
-                                        <div className="bg-amber-400/70 h-full" style={{ width: `${okPct}%`  }} />
-                                        <div className="bg-red-400/70  h-full" style={{ width: `${hardPct}%` }} />
-                                      </div>
-                                    : <div className="h-1.5 rounded-full bg-muted/10" />
-                                  }
+                                  {r > 0 && (
+                                    <div className="flex h-1.5 rounded-full overflow-hidden bg-muted/30">
+                                      <div className="bg-green-400/70 h-full" style={{ width: `${(row.easy / r) * 100}%` }} />
+                                      <div className="bg-amber-400/70 h-full" style={{ width: `${(row.ok   / r) * 100}%` }} />
+                                      <div className="bg-red-400/70  h-full" style={{ width: `${(row.hard / r) * 100}%` }} />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )
