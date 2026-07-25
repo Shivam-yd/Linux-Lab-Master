@@ -907,7 +907,8 @@ export default function Workspace() {
                       activeTerminal === term ? "block" : "hidden"
                     )}>
                       {isRunning && (
-                        <TerminalComponent 
+                        <TerminalComponent
+                          key={session?.createdAt ?? term}
                           labId={labId} 
                           terminalName={term} 
                           className="h-full w-full bg-transparent" 
