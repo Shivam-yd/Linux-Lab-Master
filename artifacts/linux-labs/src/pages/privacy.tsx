@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-[hsl(var(--nav-bg))] backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-6 h-14 flex items-center gap-3">
           <Link href="/">
             <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">

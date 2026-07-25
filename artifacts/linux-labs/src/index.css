@@ -52,6 +52,7 @@
 
 /* ── Light theme (default) ── */
 :root {
+  --nav-bg: 225 30% 10%;
   --background: 240 30% 96%;
   --foreground: 225 35% 10%;
 
@@ -104,6 +105,7 @@
 
 /* ── Dark theme ── */
 .dark {
+  --nav-bg: 225 25% 9%;
   --background: 225 30% 6%;
   --foreground: 210 40% 98%;
   --border: 225 20% 15%;
@@ -164,6 +166,14 @@
   @keyframes swing {
     0%, 100% { transform: rotate(-20deg); }
     50%       { transform: rotate(20deg); }
+  }
+
+  /* Light mode: solid dark nav — redefine color tokens so child text goes light automatically */
+  html:not(.dark) header,
+  html:not(.dark) footer {
+    --foreground: 210 40% 92%;
+    --muted-foreground: 210 25% 65%;
+    --border: 225 20% 18%;
   }
 
   /* Custom scrollbar for webkit */
