@@ -79,7 +79,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-20 border-b border-primary/20 bg-[hsl(var(--nav-bg))] backdrop-blur-sm">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/80 dark:bg-primary/[0.07] backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" alt="DevLabMaster" />
@@ -271,7 +271,7 @@ export default function PricingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-primary/20 py-4 bg-[hsl(var(--nav-bg))] backdrop-blur-sm">
+      <footer className="border-t border-primary/20 py-4 bg-primary/80 dark:bg-primary/[0.07] backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>DevLabMaster — DevOps practice range</span>
           <div className="flex items-center gap-4">

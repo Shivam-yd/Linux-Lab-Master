@@ -41,7 +41,7 @@ export default function MyCertificatesPage() {
     <div className="min-h-screen bg-background text-foreground">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
 
-      <header className="sticky top-0 z-20 border-b border-primary/20 bg-[hsl(var(--nav-bg))] backdrop-blur-sm">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/80 dark:bg-primary/[0.07] backdrop-blur-md">
         <div className="px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
