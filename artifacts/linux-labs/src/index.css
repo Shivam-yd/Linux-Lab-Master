@@ -168,14 +168,6 @@
     50%       { transform: rotate(20deg); }
   }
 
-  /* Light mode: solid dark nav — redefine color tokens so child text goes light automatically */
-  html:not(.dark) header,
-  html:not(.dark) footer {
-    --foreground: 210 40% 92%;
-    --muted-foreground: 210 25% 65%;
-    --border: 225 20% 18%;
-  }
-
   /* Custom scrollbar for webkit */
   ::-webkit-scrollbar {
     width: 8px;

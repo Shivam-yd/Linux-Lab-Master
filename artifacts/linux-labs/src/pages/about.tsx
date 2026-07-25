@@ -43,7 +43,7 @@ export default function About() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Top Bar ── */}
-      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/80 dark:bg-primary/[0.07] backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-primary/[0.07] backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" alt="DevLabMaster" />
@@ -206,7 +206,7 @@ export default function About() {
 
       <div className="h-8 pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(13,148,136,0.07) 0%, transparent 70%)" }} />
 
-      <footer className="relative z-10 border-t border-primary/20 py-4 bg-primary/80 dark:bg-primary/[0.07] backdrop-blur-md">
+      <footer className="relative z-10 border-t border-primary/20 py-4 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-primary/[0.07] backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>DevLabMaster — DevOps practice range</span>
           <div className="flex items-center gap-6">

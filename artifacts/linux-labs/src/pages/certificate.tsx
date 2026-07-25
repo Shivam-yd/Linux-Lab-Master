@@ -151,7 +151,7 @@ export default function CertificatePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground print:bg-white">
-      <header className="print:hidden sticky top-0 z-20 border-b border-primary/20 bg-primary/80 dark:bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 py-4">
+      <header className="print:hidden sticky top-0 z-20 border-b border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 py-4">
         <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" /> Progress
         </Link>

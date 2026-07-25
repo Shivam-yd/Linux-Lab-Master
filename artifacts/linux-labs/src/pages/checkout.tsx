@@ -151,7 +151,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/80 dark:bg-primary/[0.07] backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-primary/[0.07] backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-3">
           <img src={`${basePath}/logo.svg`} className="w-7 h-7 rounded-lg" alt="DevLabMaster" />
           <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
