@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Trash2, AlertTriangle, Terminal, Server } from "lucide-react"
+import { Zap, ArrowLeft, Loader2, CheckCircle2, User, Mail, Lock, Chrome, Trash2, AlertTriangle, Terminal, Server, CalendarDays } from "lucide-react"
 import { usePlan } from "@/lib/use-plan"
 import { AccountDropdown } from "@/components/account-dropdown"
 
@@ -162,9 +162,16 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg px-3 py-2 border border-border/50">
-            <Mail className="w-3.5 h-3.5" />
-            <span>Student ID: <span className="font-mono">{user.id.slice(0, 8)}…</span></span>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/20 rounded-lg px-3 py-2 border border-border/50">
+            <div className="flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 shrink-0" />
+              <span>Student ID: <span className="font-mono">{user.id.slice(0, 8)}…</span></span>
+            </div>
+            <span className="text-border">·</span>
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+              <span>Member since {new Date((user as any).createdAt).toLocaleDateString(undefined, { month: "long", year: "numeric" })}</span>
+            </div>
           </div>
         </div>
 
@@ -206,6 +213,31 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Connected accounts */}
+        {accounts && (
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <Chrome className="w-4 h-4 text-muted-foreground" />
+              <h2 className="font-semibold">Connected accounts</h2>
+            </div>
+            <div className="space-y-2">
+              {accounts.map(a => (
+                <div key={a.providerId} className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/10 px-4 py-3">
+                  {a.providerId === "google" ? (
+                    <Chrome className="w-4 h-4 text-blue-400 shrink-0" />
+                  ) : (
+                    <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="text-sm font-medium capitalize">
+                    {a.providerId === "credential" ? "Email & password" : a.providerId}
+                  </span>
+                  <span className="ml-auto text-xs text-green-500 font-medium">Connected</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Update name */}
         <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
