@@ -498,7 +498,7 @@ export default function AdminPage() {
       {/* Header */}
       <header className={cn(
         "sticky top-0 z-20 border-b transition-all duration-200 backdrop-blur-md",
-        "bg-gradient-to-r from-primary/40 to-secondary/30 border-primary/20",
+        "bg-primary/8 border-primary/20",
         !scrolled && "dark:border-transparent"
       )}>
         <div className="px-6 py-4 flex items-center justify-between gap-4">

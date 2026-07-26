@@ -66,7 +66,7 @@ export default function ProgressPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-primary/[0.07] backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/8 dark:bg-primary/[0.07] backdrop-blur-md">
         <div className="px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href={`${basePath}/dashboard`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">

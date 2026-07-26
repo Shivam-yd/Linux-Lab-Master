@@ -377,7 +377,7 @@ export default function Catalog() {
         collapsed ? "w-16" : "w-64"
       )}>
         {/* Brand */}
-        <div className={cn("border-b border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-none dark:border-border/50 relative overflow-hidden", collapsed ? "px-2 py-[18px]" : "px-5 py-[18px]")}>
+        <div className={cn("border-b border-primary/20 bg-primary/8 dark:bg-none dark:border-border/50 relative overflow-hidden", collapsed ? "px-2 py-[18px]" : "px-5 py-[18px]")}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10" />
           <Link href="/" className={cn("relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity", collapsed && "justify-center")}>
             <img src="/logo.svg" className="w-9 h-9 rounded-xl shrink-0" />
@@ -447,7 +447,7 @@ export default function Catalog() {
                         "w-full flex flex-col gap-2 rounded-xl text-left transition-all duration-200 group relative overflow-hidden",
                         collapsed ? "px-0 py-2 items-center justify-center" : "px-3 py-3",
                         isActive
-                          ? "bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-none dark:bg-primary/10 border border-primary/25 shadow-sm"
+                          ? "bg-primary/8 dark:bg-none dark:bg-primary/10 border border-primary/25 shadow-sm"
                           : "hover:bg-primary/5 border border-transparent"
                       )}
                     >
@@ -692,7 +692,7 @@ export default function Catalog() {
                       )}>
                         {/* Card header row */}
                         <div
-                          className="flex items-center gap-5 px-6 py-5 cursor-pointer bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-none dark:hover:bg-muted/20 transition-colors"
+                          className="flex items-center gap-5 px-6 py-5 cursor-pointer bg-primary/8 dark:bg-none dark:hover:bg-muted/20 transition-colors"
                           onClick={() => toggleCard(cardKey)}
                         >
                           {/* Level Badge */}
@@ -907,7 +907,7 @@ export default function Catalog() {
                     <div key={level} className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
                       <button
                         onClick={() => toggleCard(courseKey)}
-                        className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-none dark:hover:bg-muted/20 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-4 py-3 bg-primary/8 dark:bg-none dark:hover:bg-muted/20 transition-colors text-left"
                       >
                         <div className="w-2 h-2 rounded-full shrink-0" style={{ background: lm.accentHex }} />
                         <span className="text-sm font-bold text-foreground flex-1">
