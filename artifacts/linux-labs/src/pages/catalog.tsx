@@ -454,15 +454,15 @@ export default function Catalog() {
                       <div className={cn("flex items-center w-full relative z-10", collapsed ? "justify-center" : "gap-3")}>
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-                          isActive ? "bg-primary/10 border border-primary/20" : "bg-muted/50 group-hover:bg-muted"
+                          isActive ? "bg-white/40 border border-white/60 dark:bg-primary/10 dark:border-primary/20" : "bg-muted/50 group-hover:bg-muted"
                         )}>
-                          <Icon className={cn("w-4 h-4", isActive ? tm?.accentClass : "text-muted-foreground")} />
+                          <Icon className={cn("w-4 h-4", isActive ? "text-foreground dark:text-primary" : "text-muted-foreground")} />
                         </div>
                         {!collapsed && (
                           <>
                             <div className="flex-1 min-w-0">
                               <p className={cn("text-sm font-semibold leading-tight flex items-center gap-1.5",
-                                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground/90"
+                                isActive ? "text-foreground dark:text-primary" : "text-muted-foreground group-hover:text-foreground/90"
                               )}>
                                 {tm?.label ?? track}
                                 {trackComplete && <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
@@ -471,12 +471,12 @@ export default function Catalog() {
                                 )}
                               </p>
                               {sum && (
-                                <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                                <p className="text-[11px] text-foreground/70 dark:text-muted-foreground mt-0.5 font-mono">
                                   {sum.passed}/{sum.total} Labs
                                 </p>
                               )}
                             </div>
-                            <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", isActive ? "text-primary translate-x-1" : "text-muted-foreground/40")} />
+                            <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", isActive ? "text-foreground/70 dark:text-primary translate-x-1" : "text-muted-foreground/40")} />
                           </>
                         )}
                       </div>

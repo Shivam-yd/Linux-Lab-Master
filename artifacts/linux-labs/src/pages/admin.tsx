@@ -498,9 +498,8 @@ export default function AdminPage() {
       {/* Header */}
       <header className={cn(
         "sticky top-0 z-20 border-b transition-all duration-200 backdrop-blur-md",
-        "border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30",
-        "dark:bg-none",
-        scrolled ? "dark:bg-primary/[0.07] dark:border-primary/20" : "dark:bg-transparent dark:border-transparent"
+        "bg-gradient-to-r from-primary/40 to-secondary/30 border-primary/20",
+        !scrolled && "dark:border-transparent"
       )}>
         <div className="px-6 py-4 flex items-center justify-between gap-4">
 
@@ -521,7 +520,7 @@ export default function AdminPage() {
               <div>
                 <div className="flex items-center gap-2.5">
                   <span className="font-bold text-base tracking-tight leading-none">DevLabMaster</span>
-                  <span className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-md border border-primary/40 text-primary bg-primary/10 leading-none">
+                  <span className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-md border border-white/60 text-foreground bg-white/30 dark:border-primary/40 dark:text-primary dark:bg-primary/10 leading-none">
                     Admin
                   </span>
                 </div>

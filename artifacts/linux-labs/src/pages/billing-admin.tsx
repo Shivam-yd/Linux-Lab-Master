@@ -143,14 +143,14 @@ export default function BillingAdmin() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-20 h-14 border-b border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-none dark:bg-card/80 dark:border-border/60 backdrop-blur-md flex items-center justify-between px-6 gap-4">
+      <header className="sticky top-0 z-20 h-14 border-b border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30 backdrop-blur-md flex items-center justify-between px-6 gap-4">
         <div className="flex items-center gap-4">
           <Link href={`${basePath}/admin`} className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" /> Admin
           </Link>
           <div className="w-px h-5 bg-border/70" />
           <div className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-primary" />
+            <CreditCard className="w-4 h-4 text-foreground dark:text-primary" />
             <span className="font-bold text-sm tracking-tight">Billing</span>
           </div>
         </div>
