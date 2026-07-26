@@ -45,7 +45,11 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
 fi
 success "All required secrets present"
 
-# ── 3. Database schema push ───────────────────────────────────────────────────
+# ── 3. PostgreSQL readiness and schema push ────────────────────────────────────
+info "Checking PostgreSQL readiness..."
+pg_isready -d "$DATABASE_URL" >/dev/null
+success "PostgreSQL is accepting connections"
+
 info "Pushing database schema via Drizzle..."
 pnpm --filter @workspace/db run push
 success "Database schema up to date"
