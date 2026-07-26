@@ -377,7 +377,7 @@ export default function Catalog() {
         collapsed ? "w-16" : "w-64"
       )}>
         {/* Brand */}
-        <div className={cn("border-b border-border/50 relative overflow-hidden", collapsed ? "px-2 py-[18px]" : "px-5 py-[18px]")}>
+        <div className={cn("border-b border-primary/20 bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-none dark:border-border/50 relative overflow-hidden", collapsed ? "px-2 py-[18px]" : "px-5 py-[18px]")}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10" />
           <Link href="/" className={cn("relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity", collapsed && "justify-center")}>
             <img src="/logo.svg" className="w-9 h-9 rounded-xl shrink-0" />
@@ -541,7 +541,7 @@ export default function Catalog() {
           )}
 
           {/* Header Area */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border/40">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-primary/20 dark:border-border/40">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">
                 {meta.label} Range
