@@ -447,7 +447,7 @@ export default function Catalog() {
                         "w-full flex flex-col gap-2 rounded-xl text-left transition-all duration-200 group relative overflow-hidden",
                         collapsed ? "px-0 py-2 items-center justify-center" : "px-3 py-3",
                         isActive
-                          ? "bg-primary/10 border border-primary/25 shadow-sm"
+                          ? "bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-none dark:bg-primary/10 border border-primary/25 shadow-sm"
                           : "hover:bg-primary/5 border border-transparent"
                       )}
                     >
@@ -692,7 +692,7 @@ export default function Catalog() {
                       )}>
                         {/* Card header row */}
                         <div
-                          className="flex items-center gap-5 px-6 py-5 cursor-pointer hover:bg-muted/20 transition-colors"
+                          className="flex items-center gap-5 px-6 py-5 cursor-pointer bg-gradient-to-r from-primary/40 to-secondary/30 dark:bg-none dark:hover:bg-muted/20 transition-colors"
                           onClick={() => toggleCard(cardKey)}
                         >
                           {/* Level Badge */}
