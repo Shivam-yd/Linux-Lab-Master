@@ -454,9 +454,9 @@ export default function Catalog() {
                       <div className={cn("flex items-center w-full relative z-10", collapsed ? "justify-center" : "gap-3")}>
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-                          isActive ? "bg-white/40 border border-white/60 dark:bg-primary/10 dark:border-primary/20" : "bg-muted/50 group-hover:bg-muted"
+                          isActive ? "bg-white/80 border border-white/90 dark:bg-primary/10 dark:border-primary/20" : "bg-muted/50 group-hover:bg-muted"
                         )}>
-                          <Icon className={cn("w-4 h-4", isActive ? "text-foreground dark:text-primary" : "text-muted-foreground")} />
+                          <Icon className={cn("w-4 h-4", isActive ? tm?.accentClass : "text-muted-foreground")} />
                         </div>
                         {!collapsed && (
                           <>
