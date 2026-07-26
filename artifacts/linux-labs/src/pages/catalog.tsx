@@ -697,19 +697,19 @@ export default function Catalog() {
                         >
                           {/* Level Badge */}
                           <div
-                            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border"
-                            style={{ background: `${lm.accentHex}10`, borderColor: `${lm.accentHex}30` }}
+                            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border bg-background"
+                            style={{ borderColor: `${lm.accentHex}60` }}
                           >
                             <span className="text-lg font-black font-mono" style={{ color: lm.accentHex }}>L{level}</span>
                           </div>
 
                           {/* Title */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-lg font-bold leading-tight flex items-center gap-2">
+                            <p className="text-lg font-bold leading-tight flex items-center gap-2 text-foreground">
                               {lm.name}
                               {allPassed && <CheckCircle2 className="w-4 h-4 text-green-500" />}
                             </p>
-                            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground font-mono">
+                            <div className="flex items-center gap-3 mt-1.5 text-xs text-foreground/60 font-mono">
                               <span>{passed} / {total} Completed</span>
                               <span className="w-1 h-1 rounded-full bg-border" />
                               <span>{lvlLabs.reduce((acc, l) => acc + l.estimatedMinutes, 0)}m est.</span>
