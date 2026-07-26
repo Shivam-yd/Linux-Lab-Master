@@ -53,18 +53,18 @@
 /* ── Light theme (default) ── */
 :root {
   --nav-bg: 225 30% 10%;
-  --background: 240 30% 96%;
+  --background: 220 18% 95%;
   --foreground: 225 35% 10%;
 
   --border: 240 20% 82%;
   --input: 240 20% 86%;
   --ring: 170 75% 40%;
 
-  --card: 240 30% 99%;
+  --card: 0 0% 100%;
   --card-foreground: 225 35% 10%;
   --card-border: 240 18% 86%;
 
-  --sidebar: 240 28% 97%;
+  --sidebar: 0 0% 99%;
   --sidebar-foreground: 225 35% 10%;
   --sidebar-border: 240 18% 84%;
   --sidebar-primary: 170 75% 40%;
