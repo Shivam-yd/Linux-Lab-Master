@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "bash", "web"]
+modules = ["nodejs-20", "bash", "web", "postgresql-16"]
 
 [[ports]]
 localPort = 8080
@@ -38,7 +38,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
+args = "pnpm --filter @workspace/db run push && PORT=8080 pnpm --filter @workspace/api-server run dev"
 waitForPort = 8080
 
 [workflows.workflow.metadata]
@@ -71,7 +71,6 @@ packages = ["vim-full"]
 [userenv]
 
 [userenv.shared]
-BETTER_AUTH_URL = "https://b5b68f71-2dcb-484f-9b4e-96beff121068-00-3fkspbafce2q7.pike.replit.dev"
 ADMIN_EMAILS = "robert4host@gmail.com"
 NODE_ENV = "development"
 
