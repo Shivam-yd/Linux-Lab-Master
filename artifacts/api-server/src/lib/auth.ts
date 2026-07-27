@@ -61,7 +61,8 @@ if (process.env.TRUSTED_ORIGINS) {
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const googleConfigured = !!(googleClientId && googleClientSecret);
+// Temporarily disabled — restore by changing false back to: !!(googleClientId && googleClientSecret)
+const googleConfigured = false;
 
 export const auth = betterAuth({
   baseURL,
@@ -78,25 +79,19 @@ export const auth = betterAuth({
   databaseHooks: {
     account: {
       create: {
-        before: async (account: { providerId: string; userId: string }) => {
-          // Block email/password registration when the email is already tied to a Google account.
-          if (account.providerId === "credential") {
-            const existing = await db
-              .select({ id: accountTable.id })
-              .from(accountTable)
-              .where(
-                and(
-                  eq(accountTable.userId, account.userId),
-                  eq(accountTable.providerId, "google"),
-                ),
-              )
-              .limit(1);
-            if (existing.length > 0) {
-              throw new Error(
-                "This email is already registered via Google. Please sign in with Google instead.",
-              );
-            }
-          }
+        before: async (_account: { providerId: string; userId: string }) => {
+          // Temporarily disabled: allow credential sign-up even when a Google account exists.
+          // Restore by un-commenting the block below when Google login is re-enabled.
+          //
+          // if (_account.providerId === "credential") {
+          //   const existing = await db
+          //     .select({ id: accountTable.id })
+          //     .from(accountTable)
+          //     .where(and(eq(accountTable.userId, _account.userId), eq(accountTable.providerId, "google")))
+          //     .limit(1);
+          //   if (existing.length > 0)
+          //     throw new Error("This email is already registered via Google. Please sign in with Google instead.");
+          // }
         },
       },
     },
