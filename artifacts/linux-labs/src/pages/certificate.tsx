@@ -7,6 +7,7 @@ import { ArrowLeft, Printer, Award, CheckCircle2, Share2, Check } from "lucide-r
 import { AccountDropdown } from "@/components/account-dropdown"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 import { useToast } from "@/hooks/use-toast"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -28,9 +29,47 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
 }
 
+function CertificateLoading() {
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-20 border-b border-border/40 bg-background/80 backdrop-blur-md flex items-center justify-between px-6 py-4">
+        <Skeleton className="h-5 w-20" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-24 rounded-lg" />
+          <Skeleton className="h-9 w-28 rounded-lg" />
+        </div>
+      </header>
+      <div className="flex items-center justify-center min-h-[calc(100vh-65px)] p-8">
+        <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card">
+          <Skeleton className="h-1 w-full rounded-none" />
+          <div className="px-14 py-12 flex flex-col items-center text-center gap-7">
+            <Skeleton className="h-4 w-28" />
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-36 mx-auto" />
+              <Skeleton className="h-px w-12 mx-auto" />
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-28 mx-auto" />
+              <Skeleton className="h-10 w-56 mx-auto" />
+              <Skeleton className="h-4 w-72 max-w-full mx-auto" />
+            </div>
+            <Skeleton className="h-20 w-full max-w-md rounded-xl" />
+            <div className="w-full pt-5 border-t border-border/50 flex items-end justify-between gap-4">
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-3 w-36" />
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </div>
+          <Skeleton className="h-0.5 w-full rounded-none" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CertificatePage() {
   const { track, level } = useParams<{ track: string; level?: string }>()
-  const { data: session } = useSession()
+  const { data: session, isPending: sessionLoading } = useSession()
   const { data: labs,     isLoading: labsLoading }     = useListLabs()
   const { data: progress, isLoading: progressLoading } = useListProgress()
   const [certId, setCertId] = useState("")
@@ -55,11 +94,19 @@ export default function CertificatePage() {
   // shown even if new labs were added to the track after it was earned.
   type StoredCert = { certId: string; earnedAt: string; expiresAt: string }
   const [storedCert, setStoredCert] = useState<StoredCert | null>(null)
+  const [certLoading, setCertLoading] = useState(true)
   useEffect(() => {
-    if (!session?.user?.id || !track) return
+    if (!session?.user?.id || !track) {
+      setCertLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setCertLoading(true)
     fetch(`${basePath}/api/certs/mine`, { credentials: "include" })
       .then(r => r.ok ? r.json() : [])
       .then((certs: Array<StoredCert & { track: string; level: number | null }>) => {
+        if (cancelled) return
         const match = certs.find(c =>
           c.track === track &&
           (levelNum == null ? c.level == null : c.level === levelNum) &&
@@ -71,6 +118,13 @@ export default function CertificatePage() {
         }
       })
       .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setCertLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [session?.user?.id, track, levelNum])
 
   useMeta(`${tm.label} Certificate — DevLabMaster`)
@@ -155,8 +209,8 @@ export default function CertificatePage() {
     }
   }
 
-  if (labsLoading || progressLoading)
-    return <div className="min-h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+  if (sessionLoading || labsLoading || progressLoading || certLoading)
+    return <CertificateLoading />
 
   if (!isComplete && !storedCert)
     return (
