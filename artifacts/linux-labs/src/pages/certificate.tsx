@@ -51,8 +51,32 @@ export default function CertificatePage() {
     return { passed: done.length, total: scoped.length, lastPassedAt: dates.sort().at(-1) ?? null, isComplete: done.length === scoped.length && scoped.length > 0 }
   }, [labs, progress, track, levelNum])
 
+  // Stored cert record — fetched once on load so an already-issued cert is
+  // shown even if new labs were added to the track after it was earned.
+  type StoredCert = { certId: string; earnedAt: string; expiresAt: string }
+  const [storedCert, setStoredCert] = useState<StoredCert | null>(null)
+  useEffect(() => {
+    if (!session?.user?.id || !track) return
+    fetch(`${basePath}/api/certs/mine`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : [])
+      .then((certs: Array<StoredCert & { track: string; level: number | null }>) => {
+        const match = certs.find(c =>
+          c.track === track &&
+          (levelNum == null ? c.level == null : c.level === levelNum) &&
+          new Date(c.expiresAt) > new Date()
+        )
+        if (match) {
+          setStoredCert(match)
+          setCertId(match.certId)
+        }
+      })
+      .catch(() => {})
+  }, [session?.user?.id, track, levelNum])
+
   useMeta(`${tm.label} Certificate — DevLabMaster`)
 
+  // Register / refresh the cert on the server whenever the student has
+  // completed all labs. No-op if the cert already exists (server upserts).
   useEffect(() => {
     if (!session?.user?.id || !track || !isComplete || !lastPassedAt) return
     const payload = JSON.stringify({
@@ -134,7 +158,7 @@ export default function CertificatePage() {
   if (labsLoading || progressLoading)
     return <div className="min-h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
 
-  if (!isComplete)
+  if (!isComplete && !storedCert)
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
         <Award className="w-14 h-14 text-muted-foreground/30" />
@@ -208,7 +232,7 @@ export default function CertificatePage() {
             <div className="w-full pt-5 border-t border-border/50 flex items-end justify-between">
               <div className="text-left">
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 mb-1">Date Awarded</p>
-                <p className="text-sm font-semibold">{lastPassedAt ? fmt(lastPassedAt) : "—"}</p>
+                <p className="text-sm font-semibold">{fmt(storedCert?.earnedAt ?? lastPassedAt ?? "")}</p>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40">
                 <CheckCircle2 className="w-3 h-3 text-green-500/50" />
