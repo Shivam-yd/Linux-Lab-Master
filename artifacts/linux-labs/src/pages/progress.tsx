@@ -82,7 +82,7 @@ export default function ProgressPage() {
           <div className="flex items-center gap-2">
             <Link
               href={`${basePath}/my-certificates`}
-              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-400 hover:text-amber-300 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary/80 transition-colors"
             >
               <ScrollText className="w-3.5 h-3.5" />
               My Certificates
