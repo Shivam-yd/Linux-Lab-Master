@@ -71,6 +71,10 @@ packages = ["vim-full"]
 [userenv]
 
 [userenv.shared]
+<<<<<<< HEAD
+=======
+BETTER_AUTH_URL = "https://80ebfe4a-b13d-45a6-b85a-b4dc5dd329d8-00-113mxtk9r6m95.sisko.replit.dev"
+>>>>>>> 366ea86 (Configure PostgreSQL for Replit setup)
 ADMIN_EMAILS = "robert4host@gmail.com"
 NODE_ENV = "development"
 BETTER_AUTH_URL = "https://c443f5d9-7150-4d59-a3f4-92fed216d992-00-3nbl24o937713.sisko.replit.dev"
