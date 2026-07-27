@@ -769,14 +769,15 @@ router.delete("/subscriptions/:userId/override", async (req, res): Promise<void>
 router.get("/revenue", async (_req, res): Promise<void> => {
   const rows = await db.execute(sql`
     SELECT
-      COUNT(*) FILTER (WHERE status = 'active')::int                        AS active_total,
-      COUNT(*) FILTER (WHERE status = 'active' AND plan = 'linux-starter')::int AS starter_active,
-      COUNT(*) FILTER (WHERE status = 'active' AND plan = 'devops-pro')::int    AS pro_active,
-      COUNT(*) FILTER (WHERE status = 'active' AND plan = 'devops-pro'
-        AND provider_ref IS NOT NULL)::int AS paid_pro_active,
-      COUNT(*) FILTER (WHERE status = 'cancelled'
-        AND updated_at > NOW() - interval '30 days')::int                   AS churned_30d
-    FROM subscriptions
+      COUNT(*) FILTER (WHERE s.status = 'active')::int                           AS active_total,
+      COUNT(*) FILTER (WHERE s.status = 'active' AND s.plan = 'linux-starter')::int AS starter_active,
+      COUNT(*) FILTER (WHERE s.status = 'active' AND s.plan = 'devops-pro')::int    AS pro_active,
+      COUNT(*) FILTER (WHERE s.status = 'active' AND s.plan = 'devops-pro'
+        AND s.provider_ref IS NOT NULL)::int AS paid_pro_active,
+      COUNT(*) FILTER (WHERE s.status = 'cancelled'
+        AND s.updated_at > NOW() - interval '30 days')::int                      AS churned_30d
+    FROM subscriptions s
+    JOIN "user" u ON u.id = s.user_id
   `);
   res.json(rows.rows[0]);
 });
