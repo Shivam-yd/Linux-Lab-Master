@@ -429,8 +429,8 @@ export default function AdminPage() {
   })
 
   const labMeta = useMemo(() => {
-    if (!labs) return {} as Record<string, { title: string; track: string }>
-    return Object.fromEntries(labs.map((l: any) => [l.id, { title: l.title, track: l.track }]))
+    if (!labs) return {} as Record<string, { title: string; track: string; difficulty: string }>
+    return Object.fromEntries(labs.map((l: any) => [l.id, { title: l.title, track: l.track, difficulty: l.difficulty ?? "" }]))
   }, [labs])
 
   const trackTotals = useMemo(() => {
@@ -816,20 +816,23 @@ export default function AdminPage() {
                                 <p className="text-sm truncate text-foreground/90">{labMeta[row.lab_id]?.title ?? row.lab_id}</p>
                                 <span className="text-sm font-mono text-right text-muted-foreground">{row.attempted}</span>
                                 <span className="text-sm font-mono text-right text-foreground">{row.passed}</span>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
-                                      <div className={cn("h-full rounded-full", bc)} style={{ width: `${rate}%` }} />
-                                    </div>
-                                    <span className={cn("text-xs font-bold font-mono w-8 text-right shrink-0", tc)}>{rate}%</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                                    <div
+                                      className={cn("h-full rounded-full", (() => {
+                                        // Colour = dominant difficulty from ratings; fall back to lab difficulty field
+                                        if (r > 0) {
+                                          if (row.hard >= row.easy && row.hard >= row.ok) return "bg-red-400"
+                                          if (row.ok  >= row.easy && row.ok  >= row.hard) return "bg-amber-400"
+                                          return "bg-green-400"
+                                        }
+                                        const d = labMeta[row.lab_id]?.difficulty ?? ""
+                                        return d === "advanced" ? "bg-red-400" : d === "intermediate" ? "bg-amber-400" : "bg-green-400"
+                                      })())}
+                                      style={{ width: `${rate}%` }}
+                                    />
                                   </div>
-                                  {r > 0 && (
-                                    <div className="flex h-1.5 rounded-full overflow-hidden bg-muted/30">
-                                      <div className="bg-green-400/70 h-full" style={{ width: `${(row.easy / r) * 100}%` }} />
-                                      <div className="bg-amber-400/70 h-full" style={{ width: `${(row.ok   / r) * 100}%` }} />
-                                      <div className="bg-red-400/70  h-full" style={{ width: `${(row.hard / r) * 100}%` }} />
-                                    </div>
-                                  )}
+                                  <span className={cn("text-xs font-bold font-mono w-8 text-right shrink-0", tc)}>{rate}%</span>
                                 </div>
                               </div>
                             )
