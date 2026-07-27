@@ -116,13 +116,17 @@ router.get("/leaderboard", async (_req, res): Promise<void> => {
       COUNT(lp.id) FILTER (WHERE lp.status != 'not_started')::int  AS attempted,
       MAX(lp.last_attempt_at)                                       AS last_active,
       COALESCE((
-        SELECT SUM(EXTRACT(EPOCH FROM (
-          CASE WHEN ls.status = 'running' THEN NOW() ELSE ls.updated_at END
-          - ls.created_at
-        )))::int
+        SELECT SUM(
+          ls.total_time_seconds
+          + CASE
+              WHEN ls.status = 'running' AND ls.started_at IS NOT NULL
+                THEN GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (NOW() - ls.started_at))))::int
+              ELSE 0
+            END
+        )::int
         FROM lab_sessions ls
         WHERE ls.student_id = s.id
-          AND ls.status IN ('running', 'stopped')
+          AND ls.status NOT IN ('error')
       ), 0)                                                         AS total_time_seconds,
       COALESCE(
         json_agg(

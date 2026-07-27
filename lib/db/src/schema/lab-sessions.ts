@@ -38,6 +38,8 @@ export const labSessionsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    totalTimeSeconds: integer("total_time_seconds").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()

@@ -191,11 +191,13 @@ export async function startSession(studentId: string, labId: string): Promise<La
     if (existing) {
       const info = await existing.inspect();
       if (info.State.Running) {
+        const current = await getSessionRow(studentId, labId);
         const row = await upsertSessionRow(studentId, labId, {
           containerId: existing.id,
           containerName: name,
           status: "running",
           errorMessage: null,
+          startedAt: current?.startedAt ?? new Date(),
         });
         armTimeout(studentId, labId);
         return row;
@@ -251,11 +253,13 @@ export async function startSession(studentId: string, labId: string): Promise<La
           if (raceContainer) {
             const info = await raceContainer.inspect();
             if (info.State.Running) {
+              const current = await getSessionRow(studentId, labId);
               const row = await upsertSessionRow(studentId, labId, {
                 containerId: raceContainer.id,
                 containerName: name,
                 status: "running",
                 errorMessage: null,
+                startedAt: current?.startedAt ?? new Date(),
               });
               armTimeout(studentId, labId);
               return row;
@@ -282,6 +286,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
         containerName: name,
         status: "running",
         errorMessage: null,
+        startedAt: new Date(),
       });
       armTimeout(studentId, labId);
       return row;
@@ -291,6 +296,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
         status: "error",
         containerId: null,
         errorMessage: message,
+        startedAt: null,
       });
     }
   } finally {
@@ -305,7 +311,35 @@ export async function stopSession(studentId: string, labId: string): Promise<voi
   if (existing) {
     await existing.remove({ force: true }).catch(() => undefined);
   }
-  await upsertSessionRow(studentId, labId, { status: "stopped", containerId: null });
+  await db
+    .insert(labSessionsTable)
+    .values({
+      studentId,
+      labId,
+      status: "stopped",
+      containerId: null,
+      startedAt: null,
+      totalTimeSeconds: 0,
+    })
+    .onConflictDoUpdate({
+      target: [labSessionsTable.studentId, labSessionsTable.labId],
+      set: {
+        status: "stopped",
+        containerId: null,
+        startedAt: null,
+        totalTimeSeconds: sql`
+          ${labSessionsTable.totalTimeSeconds}
+          + CASE
+              WHEN ${labSessionsTable.startedAt} IS NULL THEN 0
+              ELSE GREATEST(
+                0,
+                FLOOR(EXTRACT(EPOCH FROM (NOW() - ${labSessionsTable.startedAt})))
+              )::int
+            END
+        `,
+        updatedAt: new Date(),
+      },
+    });
 }
 
 /** Called by the cleanup job on startup to stop any sessions that survived a server restart
