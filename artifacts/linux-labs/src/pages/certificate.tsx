@@ -160,13 +160,20 @@ export default function CertificatePage() {
 
   if (!isComplete && !storedCert)
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
-        <Award className="w-14 h-14 text-muted-foreground/30" />
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Certificate not yet earned</h1>
-          <p className="text-muted-foreground mt-2 text-sm">Complete all {tm.label}{lm ? ` ${lm.tier}` : ""} labs to unlock this. {passed} of {total} passed so far.</p>
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <header className="sticky top-0 z-20 border-b border-border/40 bg-background/80 backdrop-blur-md flex items-center px-6 py-4">
+          <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Progress
+          </Link>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6">
+          <Award className="w-14 h-14 text-muted-foreground/30" />
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Certificate not yet earned</h1>
+            <p className="text-muted-foreground mt-2 text-sm">Complete all {tm.label}{lm ? ` ${lm.tier}` : ""} labs to unlock this. {passed} of {total} passed so far.</p>
+          </div>
+          <Link href={`${basePath}/dashboard?track=${track}`} className="text-sm text-primary hover:underline">Continue labs →</Link>
         </div>
-        <Link href={`${basePath}/dashboard?track=${track}`} className="text-sm text-primary hover:underline">Continue labs →</Link>
       </div>
     )
 
