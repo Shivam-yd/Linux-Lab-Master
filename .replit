@@ -38,7 +38,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm --filter @workspace/db run push && PORT=8080 pnpm --filter @workspace/api-server run dev"
+args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
 waitForPort = 8080
 
 [workflows.workflow.metadata]
@@ -71,10 +71,7 @@ packages = ["vim-full"]
 [userenv]
 
 [userenv.shared]
-<<<<<<< HEAD
-=======
-BETTER_AUTH_URL = "https://80ebfe4a-b13d-45a6-b85a-b4dc5dd329d8-00-113mxtk9r6m95.sisko.replit.dev"
->>>>>>> 366ea86 (Configure PostgreSQL for Replit setup)
+BETTER_AUTH_URL = "https://6c15d9be-8376-42db-91c9-65d9348efcc5-00-zwal37txg84n.pike.replit.dev"
 ADMIN_EMAILS = "robert4host@gmail.com"
 NODE_ENV = "development"
 BETTER_AUTH_URL = "https://c443f5d9-7150-4d59-a3f4-92fed216d992-00-3nbl24o937713.sisko.replit.dev"
