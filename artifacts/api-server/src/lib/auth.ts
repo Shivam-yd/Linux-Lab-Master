@@ -76,6 +76,30 @@ export const auth = betterAuth({
     },
   }),
   databaseHooks: {
+    account: {
+      create: {
+        before: async (account: { providerId: string; userId: string }) => {
+          // Block email/password registration when the email is already tied to a Google account.
+          if (account.providerId === "credential") {
+            const existing = await db
+              .select({ id: accountTable.id })
+              .from(accountTable)
+              .where(
+                and(
+                  eq(accountTable.userId, account.userId),
+                  eq(accountTable.providerId, "google"),
+                ),
+              )
+              .limit(1);
+            if (existing.length > 0) {
+              throw new Error(
+                "This email is already registered via Google. Please sign in with Google instead.",
+              );
+            }
+          }
+        },
+      },
+    },
     session: {
       create: {
         before: async (session: { userId: string }) => {
