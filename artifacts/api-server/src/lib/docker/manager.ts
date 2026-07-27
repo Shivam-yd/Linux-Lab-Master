@@ -349,7 +349,7 @@ export async function stopExpiredSessions(): Promise<void> {
   const expired = await db
     .select({ studentId: labSessionsTable.studentId, labId: labSessionsTable.labId })
     .from(labSessionsTable)
-    .where(and(eq(labSessionsTable.status, "running"), lt(labSessionsTable.updatedAt, cutoff)));
+    .where(and(eq(labSessionsTable.status, "running"), lt(labSessionsTable.startedAt, cutoff)));
   for (const { studentId, labId } of expired) {
     logger.info({ studentId, labId }, "cleanup: stopping expired session");
     await stopSession(studentId, labId).catch(() => {});
