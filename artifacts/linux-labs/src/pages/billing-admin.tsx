@@ -6,6 +6,7 @@ import { Redirect } from "wouter"
 import { ArrowLeft, CreditCard, Users, TrendingDown, Zap, Shield, ShieldAlert, X } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationBell } from "@/components/notification-bell"
 import { cn } from "@/lib/utils"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
@@ -162,6 +163,7 @@ export default function BillingAdmin() {
             <Shield className="w-4 h-4" />
             Admin
           </Link>
+          <NotificationBell />
           <ThemeToggle />
           <AccountDropdown />
         </div>
