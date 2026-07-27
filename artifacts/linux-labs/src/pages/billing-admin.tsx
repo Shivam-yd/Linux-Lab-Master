@@ -163,8 +163,8 @@ export default function BillingAdmin() {
             <Shield className="w-4 h-4" />
             Admin
           </Link>
-          <NotificationBell />
           <ThemeToggle />
+          <NotificationBell />
           <AccountDropdown />
         </div>
       </header>
