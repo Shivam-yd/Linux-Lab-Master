@@ -405,7 +405,8 @@ export async function recordProgress(
     .onConflictDoUpdate({
       target: [labProgressTable.studentId, labProgressTable.labId],
       set: {
-        status,
+        // Never regress a 'passed' status — once earned it stays earned
+        status: sql`CASE WHEN ${labProgressTable.status} = 'passed' THEN 'passed' ELSE ${status} END`,
         bestScore: sql`GREATEST(${labProgressTable.bestScore}, EXCLUDED.best_score)`,
         lastAttemptAt: now,
         lastResults: checks,
