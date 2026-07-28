@@ -22,9 +22,9 @@ instructions: |
   **Your task:** read the cluster files, write the worker node count and system namespace to output files, and create the Pod manifest for `web-probe`.
 
   **What You'll Deliver**
-  - `/root/ready-nodes.txt` — number of worker nodes in Ready state
-  - `/root/system-namespace.txt` — namespace where Kubernetes system components run
-  - `/root/web-probe.yaml` — Pod manifest with `name: web-probe`, image `nginx:alpine`, and label `env: staging`
+  - `/root/ready-nodes.txt` containing the count of Ready worker nodes
+  - `/root/system-namespace.txt` containing the name of the namespace where system components run
+  - `/root/web-probe.yaml` written as a Pod manifest named `web-probe`, image `nginx:alpine`, label `env: staging`
 
   ## Steps
 
