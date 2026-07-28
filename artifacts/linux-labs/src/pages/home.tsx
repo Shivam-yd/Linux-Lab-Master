@@ -1,10 +1,11 @@
 import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { Redirect } from "wouter"
+import { Terminal, ArrowRight, ScanLine, TrendingUp } from "lucide-react"
 import {
-  Terminal, Layers, Server, Container, GitBranch,
-  ArrowRight, ScanLine, TrendingUp, ShipWheel, Bot,
-} from "lucide-react"
+  LinuxLogo, TerraformLogo, JenkinsLogo, DockerLogo,
+  GitLogo, KubernetesLogo, AnsibleLogo,
+} from "@/components/track-logos"
 import { motion, type Variants } from "framer-motion"
 import { useListLabs } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
@@ -15,13 +16,13 @@ import { NotificationBell } from "@/components/notification-bell"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 const TRACKS = [
-  { label: "Linux",      icon: Terminal,  color: "#22d3ee", iconClass: "group-hover:[animation:flicker_0.6s_ease-in-out_infinite]" },
-  { label: "Terraform",  icon: Layers,    color: "#c084fc", iconClass: "group-hover:animate-bounce" },
-  { label: "Jenkins",    icon: Server,    color: "#f97316", iconClass: "group-hover:animate-pulse group-hover:[animation-duration:0.7s]" },
-  { label: "Docker",     icon: Container, color: "#38bdf8", iconClass: "group-hover:[animation:breathe_1s_ease-in-out_infinite]" },
-  { label: "Git",        icon: GitBranch, color: "#f87171", iconClass: "group-hover:[animation:swing_0.8s_ease-in-out_infinite]" },
-  { label: "Kubernetes", icon: ShipWheel, color: "#60a5fa", comingSoon: true },
-  { label: "Ansible",    icon: Bot,       color: "#34d399", comingSoon: true },
+  { label: "Linux",      icon: LinuxLogo,      color: "#22d3ee" },
+  { label: "Terraform",  icon: TerraformLogo,  color: "#c084fc" },
+  { label: "Jenkins",    icon: JenkinsLogo,    color: "#f97316" },
+  { label: "Docker",     icon: DockerLogo,     color: "#38bdf8" },
+  { label: "Git",        icon: GitLogo,        color: "#f87171" },
+  { label: "Kubernetes", icon: KubernetesLogo, color: "#60a5fa" },
+  { label: "Ansible",    icon: AnsibleLogo,    color: "#34d399" },
 ]
 
 const FEATURES = [

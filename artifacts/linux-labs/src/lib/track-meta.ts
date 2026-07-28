@@ -1,10 +1,16 @@
-import { Terminal, Layers, Server, Container, GitBranch, Cpu, ShipWheel, Bot } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import { Cpu } from "lucide-react"
+import type { SVGProps, ReactElement } from "react"
+import {
+  LinuxLogo, TerraformLogo, JenkinsLogo, DockerLogo,
+  GitLogo, KubernetesLogo, AnsibleLogo,
+} from "@/components/track-logos"
+
+type TrackIcon = (props: SVGProps<SVGSVGElement> & { className?: string }) => ReactElement
 
 export type TrackMeta = {
   label: string
   description: string
-  icon: LucideIcon
+  icon: TrackIcon
   accentClass: string
   accentHex: string
   bgClass: string
@@ -16,7 +22,7 @@ export const TRACK_META: Record<string, TrackMeta> = {
   linux: {
     label: "Linux",
     description: "Master the command line, permissions, users, scripting, and automation.",
-    icon: Terminal,
+    icon: LinuxLogo,
     accentClass: "text-cyan-400",
     accentHex: "#22d3ee",
     bgClass: "bg-cyan-400/10",
@@ -25,7 +31,7 @@ export const TRACK_META: Record<string, TrackMeta> = {
   terraform: {
     label: "Terraform",
     description: "Learn Infrastructure as Code — write, plan, and apply real configs.",
-    icon: Layers,
+    icon: TerraformLogo,
     accentClass: "text-purple-400",
     accentHex: "#c084fc",
     bgClass: "bg-purple-400/10",
@@ -34,7 +40,7 @@ export const TRACK_META: Record<string, TrackMeta> = {
   jenkins: {
     label: "Jenkins",
     description: "Master CI/CD pipelines — install, configure, and manage Jenkins automation.",
-    icon: Server,
+    icon: JenkinsLogo,
     accentClass: "text-orange-400",
     accentHex: "#f97316",
     bgClass: "bg-orange-400/10",
@@ -43,7 +49,7 @@ export const TRACK_META: Record<string, TrackMeta> = {
   docker: {
     label: "Docker",
     description: "Learn containers from the ground up — images, running containers, Dockerfiles, and volumes.",
-    icon: Container,
+    icon: DockerLogo,
     accentClass: "text-sky-400",
     accentHex: "#38bdf8",
     bgClass: "bg-sky-400/10",
@@ -52,7 +58,7 @@ export const TRACK_META: Record<string, TrackMeta> = {
   git: {
     label: "Git",
     description: "Master version control — commits, branches, merges, remotes, and undoing mistakes.",
-    icon: GitBranch,
+    icon: GitLogo,
     accentClass: "text-red-400",
     accentHex: "#f87171",
     bgClass: "bg-red-400/10",
@@ -61,7 +67,7 @@ export const TRACK_META: Record<string, TrackMeta> = {
   kubernetes: {
     label: "Kubernetes",
     description: "Coming soon — orchestrate containers with pods, services, deployments, and Helm.",
-    icon: ShipWheel,
+    icon: KubernetesLogo,
     accentClass: "text-blue-400",
     accentHex: "#60a5fa",
     bgClass: "bg-blue-400/10",
@@ -71,7 +77,7 @@ export const TRACK_META: Record<string, TrackMeta> = {
   ansible: {
     label: "Ansible",
     description: "Coming soon — automate configuration, provisioning, and deployment at scale.",
-    icon: Bot,
+    icon: AnsibleLogo,
     accentClass: "text-emerald-400",
     accentHex: "#34d399",
     bgClass: "bg-emerald-400/10",
