@@ -403,49 +403,47 @@ export default function Home() {
           From zero to verified in minutes
         </h2>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-start gap-0">
-          {[
-            { num: 1, icon: Layers,     title: "Pick a track",        desc: "Choose from Linux, Docker, Terraform, Git, Jenkins, and more. Each track is broken into progressive labs." },
-            { num: 2, icon: Terminal,   title: "Open a real terminal", desc: "Every lab spins up an isolated Docker container. You get a live shell — no VMs, no local installs." },
-            { num: 3, icon: CheckCheck, title: "Verify your work",     desc: "Hit Verify and the platform runs check scripts inside your container, telling you exactly what passed." },
-          ].map(({ num, icon: Icon, title, desc }, i) => (
-            <div key={num} className="flex sm:flex-col flex-row flex-1 min-w-0">
-              {/* step + arrow row */}
-              <div className="flex sm:flex-row flex-col items-center sm:items-center shrink-0 mr-4 sm:mr-0 sm:mb-5">
-                {/* circle */}
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(13,148,136,0.25) 0%, rgba(13,148,136,0.10) 100%)",
-                    border: "1.5px solid rgba(13,148,136,0.5)",
-                    boxShadow: "0 0 24px rgba(13,148,136,0.15)",
-                  }}
-                >
-                  <Icon className="w-6 h-6" style={{ color: "#2dd4bf" }} />
-                </div>
-                {/* arrow between steps */}
-                {i < 2 && (
-                  <div className="hidden sm:flex flex-1 items-center px-2 mt-0 mx-2">
-                    <div className="flex-1 h-px bg-gradient-to-r from-primary/40 to-primary/10" />
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0 -ml-1" style={{ color: "rgba(13,148,136,0.4)" }} />
+        {(() => {
+          const steps = [
+            { num: 1, icon: Layers,     title: "Pick a track",         desc: "Choose from Linux, Docker, Terraform, Git, Jenkins, and more. Each track is broken into progressive labs." },
+            { num: 2, icon: Terminal,   title: "Open a real terminal",  desc: "Every lab spins up an isolated Docker container. You get a live shell — no VMs, no local installs." },
+            { num: 3, icon: CheckCheck, title: "Verify your work",      desc: "Hit Verify and the platform runs check scripts inside your container, telling you exactly what passed." },
+          ]
+          return (
+            <div className="flex items-start">
+              {steps.map(({ num, icon: Icon, title, desc }, i) => (
+                <>
+                  {/* step column */}
+                  <div key={num} className="flex-1 flex flex-col items-center text-center px-3">
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center mb-5 shrink-0"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(13,148,136,0.22) 0%, rgba(13,148,136,0.08) 100%)",
+                        border: "1.5px solid rgba(13,148,136,0.45)",
+                        boxShadow: "0 0 20px rgba(13,148,136,0.12)",
+                      }}
+                    >
+                      <Icon className="w-6 h-6" style={{ color: "#2dd4bf" }} />
+                    </div>
+                    <span className="text-[10px] font-black tracking-widest uppercase mb-1.5" style={{ color: "rgba(13,148,136,0.55)" }}>
+                      Step {num}
+                    </span>
+                    <h3 className="font-bold text-[15px] mb-2">{title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
                   </div>
-                )}
-              </div>
 
-              {/* text */}
-              <div className="flex flex-col sm:pr-6 pb-8 sm:pb-0">
-                <span
-                  className="text-[10px] font-black tracking-widest uppercase mb-1.5"
-                  style={{ color: "rgba(13,148,136,0.55)" }}
-                >
-                  Step {num}
-                </span>
-                <h3 className="font-bold text-[15px] mb-1.5">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
-              </div>
+                  {/* arrow between steps */}
+                  {i < 2 && (
+                    <div className="flex items-center shrink-0 mt-[20px]">
+                      <div className="w-8 h-px" style={{ background: "rgba(13,148,136,0.3)" }} />
+                      <ArrowRight className="w-3.5 h-3.5 -ml-0.5" style={{ color: "rgba(13,148,136,0.35)" }} />
+                    </div>
+                  )}
+                </>
+              ))}
             </div>
-          ))}
-        </div>
+          )
+        })()}
       </section>
 
       {/* ── Track marquee ── */}
