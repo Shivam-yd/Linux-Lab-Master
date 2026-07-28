@@ -281,9 +281,7 @@ export default function Home() {
           <motion.p variants={heroItem} className="mt-7 text-foreground/80 text-xl max-w-2xl mx-auto leading-relaxed">
             Hands-on Linux, Terraform, Jenkins, Docker, and Git labs —<br className="hidden sm:block" /> each one a real terminal, automatically verified.
           </motion.p>
-          <motion.p variants={heroItem} className="mt-3 text-muted-foreground text-sm max-w-md mx-auto">
-            Free account to save progress and earn certificates.
-          </motion.p>
+
 
           {/* CTAs */}
           <motion.div variants={heroItem} className="mt-10 flex flex-col items-center gap-4">
