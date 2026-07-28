@@ -8,7 +8,7 @@ import {
   GitLogo, KubernetesLogo, AnsibleLogo,
 } from "@/components/track-logos"
 import { motion, type Variants } from "framer-motion"
-import { useListLabs } from "@workspace/api-client-react"
+import { useQuery } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -292,9 +292,13 @@ function Orb({ className, color, xRange, yRange, duration }: {
 export default function Home() {
   useMeta("DevLabMaster — Master DevOps. One lab at a time.", "Hands-on DevOps labs for Linux, Terraform, Docker, Kubernetes and more. No VM setup required.")
   const { data: session, isPending } = useSession()
-  const { data: labs } = useListLabs()
-  const labCount   = labs?.length ?? null
-  const trackCount = labs ? new Set(labs.map(l => l.track)).size : null
+  const { data: stats } = useQuery<{ labs: number; tracks: number }>({
+    queryKey: ["stats"],
+    queryFn: () => fetch("/api/stats").then(r => r.json()),
+    staleTime: 60_000,
+  })
+  const labCount   = stats?.labs   ?? null
+  const trackCount = stats?.tracks ?? null
 
   if (!isPending && session?.user) return <Redirect to="/dashboard" />
 
