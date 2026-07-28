@@ -360,6 +360,7 @@ export default function Workspace() {
   const { plan, hasSubscription, isLoading: planLoading } = usePlan()
 
   if (!authPending && !authSession?.user) return <Redirect to="/sign-in" />
+  if (!authPending && !planLoading && authSession?.user && !hasSubscription) return <Redirect to="/choose-plan" />
 
   if (labLoading) {
     return (
