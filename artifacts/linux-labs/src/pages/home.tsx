@@ -2,7 +2,7 @@ import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { Redirect } from "wouter"
 import { useState, useEffect } from "react"
-import { Terminal, ArrowRight, ScanLine, TrendingUp, CheckCircle2, Circle } from "lucide-react"
+import { Terminal, ArrowRight, ScanLine, TrendingUp, CheckCircle2, Circle, Layers, CheckCheck } from "lucide-react"
 import {
   LinuxLogo, TerraformLogo, JenkinsLogo, DockerLogo,
   GitLogo, KubernetesLogo, AnsibleLogo,
@@ -399,18 +399,33 @@ export default function Home() {
         <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-3">
           How it works
         </p>
-        <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight mb-10">
+        <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight mb-12">
           From zero to verified in minutes
         </h2>
-        <div className="grid sm:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-3 gap-4 relative">
+          {/* connector line (desktop only) */}
+          <div className="hidden sm:block absolute top-9 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-px bg-gradient-to-r from-primary/30 via-primary/50 to-primary/30 pointer-events-none" />
+
           {[
-            { step: "01", title: "Pick a track", desc: "Choose from Linux, Docker, Terraform, Git, Jenkins, and more. Each track is broken into progressive labs." },
-            { step: "02", title: "Open a real terminal", desc: "Every lab spins up an isolated Docker container. You get a live shell — no VMs, no local installs." },
-            { step: "03", title: "Verify your work", desc: "When you're done, hit Verify. The platform runs check scripts inside your container and tells you exactly what passed." },
-          ].map(({ step, title, desc }) => (
-            <div key={step} className="relative rounded-2xl border border-border bg-card/60 p-6">
-              <span className="text-4xl font-black text-primary/15 leading-none select-none">{step}</span>
-              <h3 className="font-bold mt-2 mb-2">{title}</h3>
+            { num: 1, icon: Layers,     title: "Pick a track",        desc: "Choose from Linux, Docker, Terraform, Git, Jenkins, and more. Each track is broken into progressive labs." },
+            { num: 2, icon: Terminal,   title: "Open a real terminal", desc: "Every lab spins up an isolated Docker container. You get a live shell — no VMs, no local installs." },
+            { num: 3, icon: CheckCheck, title: "Verify your work",     desc: "Hit Verify and the platform runs check scripts inside your container, telling you exactly what passed." },
+          ].map(({ num, icon: Icon, title, desc }) => (
+            <div key={num} className="relative flex flex-col items-center text-center rounded-2xl border border-border bg-card/60 p-6 pt-8 hover:border-primary/30 transition-colors">
+              {/* step badge */}
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center mb-4 shrink-0 relative z-10"
+                style={{ background: "rgba(13,148,136,0.15)", border: "1.5px solid rgba(13,148,136,0.35)" }}
+              >
+                <Icon className="w-5 h-5" style={{ color: "#0d9488" }} />
+              </div>
+              <span
+                className="absolute top-3 right-4 text-[10px] font-bold tabular-nums"
+                style={{ color: "rgba(13,148,136,0.45)" }}
+              >
+                {String(num).padStart(2, "0")}
+              </span>
+              <h3 className="font-bold mb-2">{title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
             </div>
           ))}
