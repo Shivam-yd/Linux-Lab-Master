@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import { Bell, CheckCircle2, AlertCircle, ServerCrash } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
@@ -99,7 +100,7 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           style={{ top: pos.top, right: pos.right }}
           className="fixed w-80 rounded-xl border border-border/80 bg-card shadow-2xl shadow-black/30 overflow-hidden z-[9999] animate-in fade-in slide-in-from-top-1 duration-150"
@@ -137,7 +138,8 @@ export function NotificationBell() {
           <div className="px-4 py-2.5 border-t border-border/50 bg-muted/10">
             <p className="text-[10px] text-muted-foreground/50 font-mono">Checks every 60 s · GET /api/health</p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
