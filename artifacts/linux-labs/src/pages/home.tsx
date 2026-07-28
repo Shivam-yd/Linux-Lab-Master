@@ -358,8 +358,8 @@ export default function Home() {
           </motion.h1>
 
           {/* Subtitle */}
-          <motion.p variants={heroItem} className="mt-7 text-foreground/80 text-xl max-w-xl mx-auto leading-relaxed">
-            Real terminal labs across 7 DevOps tracks — automatically verified.
+          <motion.p variants={heroItem} className="mt-7 text-foreground/80 text-xl max-w-2xl mx-auto leading-relaxed">
+            Hands-on Linux, Terraform, Jenkins, Docker, and Git labs —<br className="hidden sm:block" /> each one a real terminal, automatically verified.
           </motion.p>
 
 
@@ -383,33 +383,6 @@ export default function Home() {
           </motion.div>
         </motion.div>
       </section>
-
-      {/* ── Stats bar ── */}
-      <motion.div
-        className="relative z-10 flex items-center justify-center pb-10"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.7 }}
-      >
-        <div
-          className="flex items-center gap-0 rounded-2xl px-2 py-1"
-          style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)" }}
-        >
-          {[
-            { value: `${labCount ?? "78"}+`, label: "Labs" },
-            { value: "7",                    label: "Tracks" },
-            { value: "0",                    label: "Local Setup" },
-          ].map(({ value, label }, i) => (
-            <>
-              {i > 0 && <div key={`sep-${i}`} className="w-px h-6 mx-1" style={{ background: "rgba(255,255,255,0.08)" }} />}
-              <div key={label} className="flex items-baseline gap-1.5 px-4 py-2">
-                <span className="text-lg font-black tracking-tight" style={{ color: "#2dd4bf" }}>{value}</span>
-                <span className="text-xs text-muted-foreground font-medium">{label}</span>
-              </div>
-            </>
-          ))}
-        </div>
-      </motion.div>
 
       {/* ── Product preview ── */}
       <motion.section
