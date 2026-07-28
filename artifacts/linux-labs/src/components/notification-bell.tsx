@@ -47,6 +47,8 @@ export function NotificationBell() {
   const notes = useHealthNotifications()
   const [open, setOpen] = useState(false)
   const [seen, setSeen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, right: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
   const ref = useRef<HTMLDivElement>(null)
   const count = notes.length
   const hasNew = count > 0 && !seen
@@ -62,12 +64,22 @@ export function NotificationBell() {
     return () => { document.removeEventListener("mousedown", onMouse); document.removeEventListener("keydown", onKey) }
   }, [])
 
+  function handleOpen() {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 8, right: window.innerWidth - r.right })
+    }
+    setOpen(o => !o)
+    setSeen(true)
+  }
+
   if (!adminCheck?.isAdmin) return null
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref}>
       <button
-        onClick={() => { setOpen(o => !o); setSeen(true) }}
+        ref={btnRef}
+        onClick={handleOpen}
         aria-label={`Notifications${count > 0 ? ` (${count})` : ""}`}
         className={cn(
           "relative w-9 h-9 rounded-lg border flex items-center justify-center transition-all duration-200",
@@ -88,7 +100,10 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] w-80 rounded-xl border border-border/80 bg-card shadow-2xl shadow-black/30 overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div
+          style={{ top: pos.top, right: pos.right }}
+          className="fixed w-80 rounded-xl border border-border/80 bg-card shadow-2xl shadow-black/30 overflow-hidden z-[9999] animate-in fade-in slide-in-from-top-1 duration-150"
+        >
           {/* Header */}
           <div className="px-4 py-3 border-b border-border/50 bg-muted/20 flex items-center justify-between">
             <span className="text-sm font-semibold">Notifications</span>
