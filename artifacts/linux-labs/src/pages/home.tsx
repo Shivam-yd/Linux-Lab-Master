@@ -359,7 +359,7 @@ export default function Home() {
 
           {/* Subtitle */}
           <motion.p variants={heroItem} className="mt-7 text-foreground/80 text-xl max-w-2xl mx-auto leading-relaxed">
-            Hands-on Linux, Terraform, Jenkins, Docker, and Git labs —<br className="hidden sm:block" /> each one a real terminal, automatically verified.
+            Hands-on Linux, Terraform, Jenkins, Docker, Git, and more —<br className="hidden sm:block" /> each one a real terminal, automatically verified.
           </motion.p>
 
 
