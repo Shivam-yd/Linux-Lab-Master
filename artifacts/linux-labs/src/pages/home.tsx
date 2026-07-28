@@ -177,17 +177,18 @@ export default function Home() {
       </section>
 
       {/* ── Track marquee ── */}
-      <section className="relative z-10 w-full overflow-hidden border-y border-border/50 bg-card/30 backdrop-blur-sm py-5 mb-12">
+      <section className="relative z-10 w-full overflow-hidden bg-transparent py-5 mb-12">
         {/* fade edges */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 z-10" style={{ background: "linear-gradient(to right, var(--background) 0%, transparent 100%)" }} />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 z-10" style={{ background: "linear-gradient(to left, var(--background) 0%, transparent 100%)" }} />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-32 z-10" style={{ background: "linear-gradient(to right, var(--background) 0%, transparent 100%)" }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-32 z-10" style={{ background: "linear-gradient(to left, var(--background) 0%, transparent 100%)" }} />
 
-        <div className="flex" style={{ animation: "marquee-rtl 28s linear infinite" }}>
-          {/* two copies for a seamless loop */}
+        <div className="flex" style={{ animation: "marquee-rtl 20s linear infinite" }}>
+          {/* two copies — each set is exactly 100vw so only one copy of each track is visible */}
           {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 px-10 shrink-0 select-none"
+              className="flex items-center justify-center gap-3 shrink-0 select-none"
+              style={{ width: "20vw" }}
             >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
