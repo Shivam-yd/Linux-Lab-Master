@@ -364,9 +364,6 @@ export default function Catalog() {
   }, [filteredCards]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: authSession, isPending: authPending } = useSession()
-  if (!authPending && !planLoading && authSession?.user && !hasSubscription) {
-    return <Redirect to="/choose-plan" />
-  }
 
   return (
     <div className="relative flex h-screen bg-background text-foreground overflow-hidden">
