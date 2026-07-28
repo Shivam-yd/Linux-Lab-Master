@@ -634,7 +634,7 @@ export default function Catalog() {
               <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
                 <Lock className="w-7 h-7 text-primary" />
               </div>
-              {isNoPlan && !PRO_TRACKS.has(resolvedTrack) ? (
+              {isNoPlan && resolvedTrack === "linux" ? (
                 <>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Plan Required</p>
@@ -1015,7 +1015,7 @@ export default function Catalog() {
           <DialogHeader>
             <DialogTitle>{isNoPlan ? "Choose a plan to access labs" : "Upgrade to DevOps Pro to access this lab"}</DialogTitle>
             <DialogDescription>
-              {isNoPlan && !PRO_TRACKS.has(resolvedTrack)
+              {isNoPlan && resolvedTrack === "linux"
                 ? "Linux labs are included in both plans — choose Linux Starter for free access, or DevOps Pro to unlock all tracks."
                 : isNoPlan
                 ? `${lockedLab} is part of the DevOps Pro plan. Choose a plan to get started.`
