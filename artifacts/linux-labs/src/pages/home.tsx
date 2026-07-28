@@ -395,33 +395,37 @@ export default function Home() {
       </motion.section>
 
       {/* ── Track marquee ── */}
-      <section
-        className="relative z-10 w-full overflow-hidden py-5 mb-12"
-        style={{
-          maskImage: "linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)",
-        }}
-      >
+      <section className="relative z-10 w-full mb-12">
+        <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-5">
+          Tracks
+        </p>
         <div
-          className="flex"
-          style={{ animation: "marquee-rtl 20s linear infinite", willChange: "transform" }}
+          className="overflow-hidden"
+          style={{
+            maskImage: "linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)",
+          }}
         >
-          {/* two copies — one set = 100vw, so we shift exactly -100vw for a seamless loop */}
-          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-center gap-3 shrink-0 select-none"
-              style={{ width: "calc(100vw / 7)" }}
-            >
+          <div
+            className="flex"
+            style={{ animation: "marquee-rtl 20s linear infinite", willChange: "transform" }}
+          >
+            {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
+                key={i}
+                className="flex items-center justify-center gap-3 shrink-0 select-none py-3"
+                style={{ width: "calc(100vw / 7)" }}
               >
-                <Icon className="w-4 h-4" style={{ color }} />
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
+                >
+                  <Icon className="w-6 h-6" style={{ color }} />
+                </div>
+                <span className="text-base font-semibold tracking-tight text-foreground/70 whitespace-nowrap">{label}</span>
               </div>
-              <span className="text-sm font-semibold tracking-tight text-foreground/70 whitespace-nowrap">{label}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <style>{`
