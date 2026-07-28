@@ -436,8 +436,37 @@ export default function Home() {
         `}</style>
       </section>
 
+      {/* ── How it works ── */}
+      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-16">
+        <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-3">
+          How it works
+        </p>
+        <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight mb-10">
+          From zero to verified in minutes
+        </h2>
+        <div className="grid sm:grid-cols-3 gap-6">
+          {[
+            { step: "01", title: "Pick a track", desc: "Choose from Linux, Docker, Terraform, Git, Jenkins, and more. Each track is broken into progressive labs." },
+            { step: "02", title: "Open a real terminal", desc: "Every lab spins up an isolated Docker container. You get a live shell — no VMs, no local installs." },
+            { step: "03", title: "Verify your work", desc: "When you're done, hit Verify. The platform runs check scripts inside your container and tells you exactly what passed." },
+          ].map(({ step, title, desc }) => (
+            <div key={step} className="relative rounded-2xl border border-border bg-card/60 p-6">
+              <span className="text-4xl font-black text-primary/15 leading-none select-none">{step}</span>
+              <h3 className="font-bold mt-2 mb-2">{title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── Features ── */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 pb-24">
+        <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-3">
+          Why it works
+        </p>
+        <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight mb-10">
+          Built for real learning
+        </h2>
         <motion.div
           className="grid sm:grid-cols-3 gap-6"
           variants={featureContainer}
