@@ -405,9 +405,9 @@ export default function Home() {
 
         {(() => {
           const steps = [
-            { num: 1, icon: Layers,     title: "Pick a track",         desc: "Choose from Linux, Docker, Terraform, Git, Jenkins, and more. Each track is broken into progressive labs." },
-            { num: 2, icon: Terminal,   title: "Open a real terminal",  desc: "Every lab spins up an isolated Docker container. You get a live shell — no VMs, no local installs." },
-            { num: 3, icon: CheckCheck, title: "Verify your work",      desc: "Hit Verify and the platform runs check scripts inside your container, telling you exactly what passed." },
+            { num: 1, icon: Layers,     title: "Pick a track",        desc: "Linux, Docker, Terraform, Git, Jenkins, and more — each broken into progressive labs." },
+            { num: 2, icon: Terminal,   title: "Open a real terminal", desc: "A live shell in an isolated Docker container. No VMs, no local setup." },
+            { num: 3, icon: CheckCheck, title: "Verify your work",     desc: "Hit Verify. Check scripts run inside your container and tell you exactly what passed." },
           ]
           return (
             <div className="flex items-start">
