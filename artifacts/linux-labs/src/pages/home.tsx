@@ -66,49 +66,51 @@ const featureContainer = {
 const DEMO_CMDS = [
   "docker pull nginx:alpine",
   "docker run -d -p 80:80 --name webapp nginx:alpine",
+  "docker ps",
+  "curl -s -o /dev/null -w '%{http_code}' localhost:80",
 ]
 
 // ── Terminal preview mockup (animated) ───────────────────────────
 function TerminalMockup() {
-  // phase: -1=waiting, 0=typing cmd0, 1=typing cmd1, 2=idle cursor,
-  //        3=verifying (ticking off one by one), 4=all done pause, then reset
-  const [phase, setPhase]           = useState(-1)
-  const [typed, setTyped]           = useState(0)
-  const [clicking, setClicking]     = useState(false)   // simulated button press
-  const [verifying, setVerifying]   = useState(false)
-  const [checkedCount, setCheckedCount] = useState(0)   // 0-4, only grows during verify
+  // phases: -1=waiting, 0–3=typing cmds, 4=idle cursor,
+  //         5=verifying (checkedCount ticks 0→4), 6=all done pause, then reset
+  const [phase, setPhase]               = useState(-1)
+  const [typed, setTyped]               = useState(0)
+  const [clicking, setClicking]         = useState(false)
+  const [verifying, setVerifying]       = useState(false)
+  const [checkedCount, setCheckedCount] = useState(0)  // grows only during verify
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>
     if (phase === -1) {
       t = setTimeout(() => setPhase(0), 900)
-    } else if (phase === 0 || phase === 1) {
+    } else if (phase >= 0 && phase <= 3) {
+      // typing one of the 4 commands
       const cmd = DEMO_CMDS[phase]
       if (typed < cmd.length) {
         t = setTimeout(() => setTyped(n => n + 1), 38)
       } else {
-        t = setTimeout(() => { setPhase(phase + 1); setTyped(0) }, 520)
+        t = setTimeout(() => { setPhase(phase + 1); setTyped(0) }, 480)
       }
-    } else if (phase === 2 && !clicking) {
-      // pause with blinking cursor, then simulate a button click
-      t = setTimeout(() => setClicking(true), 1400)
-    } else if (phase === 2 && clicking) {
-      // brief "pressed" state, then start verifying
-      t = setTimeout(() => { setClicking(false); setVerifying(true); setPhase(3) }, 170)
-    } else if (phase === 3) {
+    } else if (phase === 4 && !clicking) {
+      // idle cursor — wait, then simulate button click
+      t = setTimeout(() => setClicking(true), 1200)
+    } else if (phase === 4 && clicking) {
+      // brief press visual, then start verifying
+      t = setTimeout(() => { setClicking(false); setVerifying(true); setPhase(5) }, 170)
+    } else if (phase === 5) {
       if (checkedCount < 4) {
-        // tick objectives off one by one, 220ms apart
         t = setTimeout(() => setCheckedCount(n => n + 1), 220)
       } else {
-        t = setTimeout(() => { setVerifying(false); setPhase(4) }, 400)
+        t = setTimeout(() => { setVerifying(false); setPhase(6) }, 400)
       }
-    } else if (phase === 4) {
+    } else if (phase === 6) {
       t = setTimeout(() => { setPhase(-1); setTyped(0); setClicking(false); setCheckedCount(0) }, 2600)
     }
     return () => clearTimeout(t)
   }, [phase, typed, clicking, checkedCount])
 
-  // ALL objectives only check off during VERIFY — none fire from typing commands
+  // objectives only check off during VERIFY, never from typing
   const objectives = [
     { label: "Pull nginx:alpine image",        done: checkedCount > 0 },
     { label: "Start container on port 80",     done: checkedCount > 1 },
@@ -185,7 +187,7 @@ function TerminalMockup() {
                     className="text-[10.5px] leading-snug transition-all duration-300"
                     style={{
                       color: done ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.5)",
-                      textDecoration: done ? "line-through" : "none",
+                      textDecorationLine: done ? "line-through" : "none",
                       textDecorationColor: "rgba(255,255,255,0.18)",
                     }}
                   >{label}</span>
@@ -229,16 +231,16 @@ function TerminalMockup() {
           </div>
 
           {/* Output */}
-          <div className="flex-1 p-3.5 font-mono text-[11px] leading-[1.75] overflow-hidden" style={{ background: "#080b10", color: "rgba(255,255,255,0.5)" }}>
+          <div className="flex-1 p-3.5 font-mono text-[11px] leading-[1.65] overflow-hidden" style={{ background: "#080b10", color: "rgba(255,255,255,0.5)" }}>
             <div style={{ color: "#22c55e" }}>Connected to devops-sandbox. Container ready.</div>
 
-            {phase >= 0 && (
-              <div>
-                <P /><span style={{ color: "rgba(255,255,255,0.85)" }}>{phase === 0 ? DEMO_CMDS[0].slice(0, typed) : DEMO_CMDS[0]}</span>
-                {phase === 0 && <Cursor />}
-              </div>
-            )}
+            {/* CMD 0 */}
+            {phase >= 0 && <div>
+              <P /><span style={{ color: "rgba(255,255,255,0.85)" }}>{phase === 0 ? DEMO_CMDS[0].slice(0, typed) : DEMO_CMDS[0]}</span>
+              {phase === 0 && <Cursor />}
+            </div>}
 
+            {/* Output 0 + CMD 1 */}
             {phase >= 1 && <>
               <div><span style={{ color: "#60a5fa" }}>Pulling from library/nginx</span></div>
               <div>Status: <span style={{ color: "#22c55e" }}>Downloaded</span> newer image for nginx:alpine</div>
@@ -248,9 +250,29 @@ function TerminalMockup() {
               </div>
             </>}
 
+            {/* Output 1 + CMD 2 */}
             {phase >= 2 && <>
-              <div style={{ color: "rgba(255,255,255,0.38)" }}>3f8c2a1b9e47d6f2a8c3e1b4</div>
-              {(phase === 2 || phase >= 5) && <div><P /><Cursor /></div>}
+              <div style={{ color: "rgba(255,255,255,0.38)" }}>3f8c2a1b9e47</div>
+              <div>
+                <P /><span style={{ color: "rgba(255,255,255,0.85)" }}>{phase === 2 ? DEMO_CMDS[2].slice(0, typed) : DEMO_CMDS[2]}</span>
+                {phase === 2 && <Cursor />}
+              </div>
+            </>}
+
+            {/* Output 2 + CMD 3 */}
+            {phase >= 3 && <>
+              <div style={{ color: "rgba(255,255,255,0.32)", fontSize: "10.5px" }}>CONTAINER ID   IMAGE          STATUS       PORTS</div>
+              <div style={{ fontSize: "10.5px" }}>3f8c2a1b9e47   <span style={{ color: "#60a5fa" }}>nginx:alpine</span>   Up 3s   <span style={{ color: "#34d399" }}>0.0.0.0:80→80/tcp</span></div>
+              <div>
+                <P /><span style={{ color: "rgba(255,255,255,0.85)" }}>{phase === 3 ? DEMO_CMDS[3].slice(0, typed) : DEMO_CMDS[3]}</span>
+                {phase === 3 && <Cursor />}
+              </div>
+            </>}
+
+            {/* Output 3 + idle cursor */}
+            {phase >= 4 && <>
+              <div><span style={{ color: "#22c55e" }}>200</span></div>
+              {(phase === 4 || phase >= 6) && <div><P /><Cursor /></div>}
             </>}
           </div>
         </div>
