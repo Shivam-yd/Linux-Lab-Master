@@ -1,7 +1,7 @@
 import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { Redirect } from "wouter"
-import { Terminal, ArrowRight, ScanLine, TrendingUp } from "lucide-react"
+import { Terminal, ArrowRight, ScanLine, TrendingUp, CheckCircle2, Circle } from "lucide-react"
 import {
   LinuxLogo, TerraformLogo, JenkinsLogo, DockerLogo,
   GitLogo, KubernetesLogo, AnsibleLogo,
@@ -11,7 +11,6 @@ import { useListLabs } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { NotificationBell } from "@/components/notification-bell"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -62,6 +61,95 @@ const featureContainer = {
   show: { transition: { staggerChildren: 0.1 } },
 }
 
+// ── Terminal preview mockup ───────────────────────────────────────
+function TerminalMockup() {
+  return (
+    <div className="rounded-2xl border border-border/60 overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.45)] text-left select-none" style={{ background: "#0d1117" }}>
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.07]" style={{ background: "#161b22" }}>
+        <div className="flex items-center gap-1.5 text-xs text-white/50 font-medium">
+          <ArrowRight className="w-3 h-3 rotate-180" />
+          <span>BACK</span>
+        </div>
+        <div className="flex items-center gap-2 ml-2">
+          <Terminal className="w-3.5 h-3.5 text-primary" />
+          <span className="text-xs font-semibold text-white/90">Navigating the Filesystem</span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border" style={{ color: "#22d3ee", borderColor: "#22d3ee44", background: "#22d3ee11" }}>BEGINNER</span>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5" style={{ background: "#22d3ee22", color: "#22d3ee", border: "1px solid #22d3ee44" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" /> ACTIVE
+          </span>
+          <span className="text-[10px] font-medium px-2.5 py-1 rounded-md text-white/50 border border-white/10">STOP</span>
+          <span className="text-[10px] font-medium px-2.5 py-1 rounded-md text-white/50 border border-white/10">RESET</span>
+          <div className="ml-2 flex items-center gap-1.5 text-[10px] text-white/40">
+            <span>CONNECTED</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex h-72">
+        {/* Left: scenario */}
+        <div className="w-64 shrink-0 border-r border-white/[0.07] overflow-hidden flex flex-col" style={{ background: "#0d1117" }}>
+          <div className="flex-1 p-4 overflow-hidden space-y-3">
+            <p className="text-xs font-bold text-white/90">Scenario</p>
+            <p className="text-[11px] text-white/55 leading-relaxed">
+              Your task: explore the filesystem hierarchy and locate key configuration files using
+              standard shell navigation commands.
+            </p>
+            <div className="space-y-1.5 pt-1">
+              {[
+                { done: true,  label: "Navigate to /etc and list contents" },
+                { done: true,  label: "Find the hostname config file" },
+                { done: false, label: "Print working directory path" },
+                { done: false, label: "List hidden files in home dir" },
+              ].map(({ done, label }) => (
+                <div key={label} className="flex items-start gap-2">
+                  {done
+                    ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-px" />
+                    : <Circle       className="w-3.5 h-3.5 text-white/20 shrink-0 mt-px" />}
+                  <span className={cn("text-[11px] leading-tight", done ? "text-white/70 line-through decoration-white/30" : "text-white/50")}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Verify button */}
+          <div className="p-3 border-t border-white/[0.07]">
+            <div className="w-full py-2 rounded-lg text-center text-xs font-bold flex items-center justify-center gap-2" style={{ background: "#22d3ee", color: "#0d1117" }}>
+              <ScanLine className="w-3.5 h-3.5" /> VERIFY_OBJECTIVES
+            </div>
+          </div>
+        </div>
+
+        {/* Right: terminal */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Tab strip */}
+          <div className="flex items-center gap-0 border-b border-white/[0.07] px-2 pt-1" style={{ background: "#161b22" }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-t-md text-[11px] font-medium text-white/90 border border-b-0 border-white/10" style={{ background: "#0d1117" }}>
+              <Terminal className="w-3 h-3 text-primary" /> server1 <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block ml-0.5" />
+            </div>
+          </div>
+          {/* Terminal body */}
+          <div className="flex-1 p-3 font-mono text-[11px] leading-relaxed overflow-hidden" style={{ background: "#0d1117" }}>
+            <div className="px-2 py-1 rounded mb-2 text-white/80 font-semibold text-[11px]" style={{ background: "#a855f733" }}>⬡ server1</div>
+            <div className="text-white/40">--- Connected to server1. ---</div>
+            <div><span style={{ color: "#22d3ee" }}>student1@a3f92b1c:~$</span> <span className="text-white/80">cd /etc && ls -la | head</span></div>
+            <div className="text-white/50 pl-2">total 1.4M</div>
+            <div className="text-white/50 pl-2">drwxr-xr-x  1 root root  4096 Jul 28 09:12 <span className="text-blue-400">.</span></div>
+            <div className="text-white/50 pl-2">-rw-r--r--  1 root root    13 Jul 28 09:12 <span className="text-white/70">hostname</span></div>
+            <div className="text-white/50 pl-2">-rw-r--r--  1 root root   174 Jul 28 09:12 <span className="text-white/70">hosts</span></div>
+            <div><span style={{ color: "#22d3ee" }}>student1@a3f92b1c:/etc$</span> <span className="text-white/80">cat hostname</span></div>
+            <div className="text-white/50 pl-2">a3f92b1c</div>
+            <div><span style={{ color: "#22d3ee" }}>student1@a3f92b1c:/etc$</span> <span className="text-white/80 animate-pulse">▌</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Floating orb ─────────────────────────────────────────────────
 function Orb({ className, color, xRange, yRange, duration }: {
   className: string
@@ -91,7 +179,7 @@ export default function Home() {
   if (!isPending && session?.user) return <Redirect to="/dashboard" />
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="bg-background text-foreground">
 
       {/* ── Background orbs ── */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -150,9 +238,11 @@ export default function Home() {
           </motion.h1>
 
           {/* Subtitle */}
-          <motion.p variants={heroItem} className="mt-7 text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
-            Hands-on Linux, Terraform, Jenkins, Docker, and Git labs — each one a real terminal,
-            automatically verified. Create a free account to track your progress.
+          <motion.p variants={heroItem} className="mt-7 text-foreground/80 text-xl max-w-2xl mx-auto leading-relaxed">
+            Hands-on Linux, Terraform, Jenkins, Docker, and Git labs —<br className="hidden sm:block" /> each one a real terminal, automatically verified.
+          </motion.p>
+          <motion.p variants={heroItem} className="mt-3 text-muted-foreground text-sm max-w-md mx-auto">
+            Free account to save progress and earn certificates.
           </motion.p>
 
           {/* CTAs */}
@@ -179,12 +269,22 @@ export default function Home() {
         </motion.div>
       </section>
 
+      {/* ── Product preview ── */}
+      <motion.section
+        className="relative z-10 max-w-5xl mx-auto px-6 pb-16"
+        initial={{ opacity: 0, y: 32 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
+      >
+        <TerminalMockup />
+      </motion.section>
+
       {/* ── Track marquee ── */}
       <section
         className="relative z-10 w-full overflow-hidden py-5 mb-12"
         style={{
-          maskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
+          maskImage: "linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)",
         }}
       >
         <div
