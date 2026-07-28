@@ -177,13 +177,18 @@ export default function Home() {
       </section>
 
       {/* ── Track marquee ── */}
-      <section className="relative z-10 w-full overflow-hidden bg-transparent py-5 mb-12">
-        {/* fade edges */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-48 z-10" style={{ background: "linear-gradient(to right, var(--background) 30%, transparent 100%)" }} />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-48 z-10" style={{ background: "linear-gradient(to left, var(--background) 30%, transparent 100%)" }} />
-
-        <div className="flex" style={{ animation: "marquee-rtl 20s linear infinite" }}>
-          {/* two copies — each set is exactly 100vw so only one copy of each track is visible */}
+      <section
+        className="relative z-10 w-full overflow-hidden py-5 mb-12"
+        style={{
+          maskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
+        }}
+      >
+        <div
+          className="flex"
+          style={{ animation: "marquee-rtl 20s linear infinite", willChange: "transform" }}
+        >
+          {/* two copies — one set = 100vw, so we shift exactly -100vw for a seamless loop */}
           {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
             <div
               key={i}
@@ -204,7 +209,7 @@ export default function Home() {
         <style>{`
           @keyframes marquee-rtl {
             0%   { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+            100% { transform: translateX(-100vw); }
           }
         `}</style>
       </section>
