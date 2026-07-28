@@ -1,6 +1,7 @@
 import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { Redirect } from "wouter"
+import { useState, useEffect } from "react"
 import { Terminal, ArrowRight, ScanLine, TrendingUp, CheckCircle2, Circle } from "lucide-react"
 import {
   LinuxLogo, TerraformLogo, JenkinsLogo, DockerLogo,
@@ -61,128 +62,185 @@ const featureContainer = {
   show: { transition: { staggerChildren: 0.1 } },
 }
 
-// ── Terminal preview mockup ───────────────────────────────────────
+// ── Demo data ─────────────────────────────────────────────────────
+const DEMO_CMDS = [
+  "docker pull nginx:alpine",
+  "docker run -d -p 80:80 --name webapp nginx:alpine",
+]
+
+// ── Terminal preview mockup (animated) ───────────────────────────
 function TerminalMockup() {
-  const prompt = <span style={{ color: "#22c55e" }}>student1@af25b9:~$</span>
-  const promptEtc = <span style={{ color: "#22c55e" }}>student1@af25b9:/etc$</span>
+  // phase: -1=waiting, 0=typing cmd0, 1=typing cmd1, 2=idle cursor,
+  //        3=verifying, 4=obj2 done, 5=obj3 done+pause, then reset
+  const [phase, setPhase]       = useState(-1)
+  const [typed, setTyped]       = useState(0)
+  const [verifying, setVerifying] = useState(false)
+  const [extraDone, setExtraDone] = useState<number[]>([])
+
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>
+    if (phase === -1) {
+      t = setTimeout(() => setPhase(0), 900)
+    } else if (phase === 0 || phase === 1) {
+      const cmd = DEMO_CMDS[phase]
+      if (typed < cmd.length) {
+        t = setTimeout(() => setTyped(n => n + 1), 38)
+      } else {
+        t = setTimeout(() => { setPhase(phase + 1); setTyped(0) }, 520)
+      }
+    } else if (phase === 2) {
+      t = setTimeout(() => setPhase(3), 1400)
+    } else if (phase === 3) {
+      setVerifying(true)
+      t = setTimeout(() => { setVerifying(false); setExtraDone([2]); setPhase(4) }, 850)
+    } else if (phase === 4) {
+      t = setTimeout(() => { setExtraDone([2, 3]); setPhase(5) }, 550)
+    } else if (phase === 5) {
+      t = setTimeout(() => { setPhase(-1); setTyped(0); setExtraDone([]) }, 2600)
+    }
+    return () => clearTimeout(t)
+  }, [phase, typed])
+
+  const objectives = [
+    { label: "Pull nginx:alpine image",        done: phase >= 1 },
+    { label: "Start container on port 80",     done: phase >= 2 },
+    { label: "Verify container is healthy",    done: extraDone.includes(2) },
+    { label: "Check HTTP response on port 80", done: extraDone.includes(3) },
+  ]
+
+  const Cursor = () => (
+    <span
+      className="inline-block w-[7px] h-[13px] ml-px align-middle rounded-sm animate-pulse"
+      style={{ background: "#22c55e", opacity: 0.85 }}
+    />
+  )
+  const P = () => <span style={{ color: "#22c55e" }}>$ </span>
+
+  const btnReady = phase >= 2 && !verifying
+
   return (
     <div
       className="rounded-xl overflow-hidden text-left select-none w-full"
-      style={{
-        boxShadow: "0 0 0 1px rgba(34,211,238,0.12), 0 40px 100px rgba(0,0,0,0.7), 0 0 80px rgba(124,58,237,0.07)",
-      }}
+      style={{ boxShadow: "0 0 0 1px rgba(34,211,238,0.10), 0 20px 60px rgba(0,0,0,0.55), 0 0 50px rgba(124,58,237,0.06)" }}
     >
-      {/* ── Browser chrome ── */}
-      <div className="flex items-center gap-2 px-4 h-10 shrink-0" style={{ background: "#1c1f26", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full inline-block" style={{ background: "#ff5f57" }} />
-          <span className="w-3 h-3 rounded-full inline-block" style={{ background: "#febc2e" }} />
-          <span className="w-3 h-3 rounded-full inline-block" style={{ background: "#28c840" }} />
-        </div>
-        <div className="flex-1 mx-4">
-          <div className="max-w-xs mx-auto h-6 rounded-md flex items-center justify-center gap-1.5 px-3 text-[11px]" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.3)" }}>
-            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#22c55e", opacity: 0.8 }} />
-            devlabmaster.io/labs/linux-l1-navigation
+      {/* Browser chrome */}
+      <div className="flex items-center gap-2 px-4 h-9 shrink-0" style={{ background: "#1a1d24", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#ff5f57" }} />
+        <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#febc2e" }} />
+        <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#28c840" }} />
+        <div className="flex-1 mx-3">
+          <div className="max-w-[280px] mx-auto h-[22px] rounded flex items-center justify-center gap-1.5 text-[10px]" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.28)" }}>
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#22c55e" }} />
+            devlabmaster.io/labs/docker-d2-deploy
           </div>
         </div>
       </div>
 
-      {/* ── Workspace top bar ── */}
-      <div className="flex items-center gap-3 px-5 h-12 shrink-0" style={{ background: "#0f1117", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <button className="flex items-center gap-1.5 text-[11px] font-semibold text-white/40 hover:text-white/70 transition-colors">
-          <ArrowRight className="w-3.5 h-3.5 rotate-180" /> BACK
-        </button>
-        <div className="w-px h-4 bg-white/10" />
-        <div className="flex items-center gap-2">
-          <Terminal className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
-          <span className="text-[13px] font-semibold text-white/90">Navigating the Filesystem</span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#22d3ee15", color: "#22d3ee", border: "1px solid #22d3ee30" }}>BEGINNER</span>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg" style={{ background: "#22d3ee18", color: "#22d3ee", border: "1px solid #22d3ee35" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" /> ACTIVE
+      {/* Workspace top bar */}
+      <div className="flex items-center gap-2.5 px-4 h-11 shrink-0" style={{ background: "#0f1117", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <span className="flex items-center gap-1 text-[10px] font-semibold text-white/25">
+          <ArrowRight className="w-3 h-3 rotate-180" /> BACK
+        </span>
+        <div className="w-px h-3.5 bg-white/[0.07]" />
+        <Terminal className="w-3 h-3 shrink-0" style={{ color: "#22d3ee" }} />
+        <span className="text-[11.5px] font-semibold text-white/85">Deploy a Web Service</span>
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.22)" }}>INTERMEDIATE</span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-[3px] rounded" style={{ background: "rgba(34,211,238,0.09)", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.2)" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" /> ACTIVE
           </span>
-          <span className="text-[11px] font-semibold px-3 py-1.5 rounded-lg text-white/35 border border-white/[0.08]">STOP</span>
-          <span className="text-[11px] font-semibold px-3 py-1.5 rounded-lg text-white/35 border border-white/[0.08]">RESET</span>
-          <div className="ml-1 flex items-center gap-1.5 text-[11px] text-white/30 font-medium">
-            CONNECTED <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+          <span className="text-[10px] px-2 py-[3px] rounded text-white/22 border border-white/[0.06]">STOP</span>
+          <span className="text-[10px] px-2 py-[3px] rounded text-white/22 border border-white/[0.06]">RESET</span>
+          <div className="flex items-center gap-1 text-[10px] text-white/18 ml-0.5">
+            CONNECTED <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
           </div>
         </div>
       </div>
 
-      {/* ── Body ── */}
-      <div className="flex" style={{ height: 420 }}>
+      {/* Body */}
+      <div className="flex" style={{ height: 296 }}>
 
         {/* Left panel */}
-        <div className="w-72 shrink-0 flex flex-col overflow-hidden" style={{ background: "#0b0e14", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex-1 p-6 overflow-hidden space-y-4">
-            <h3 className="text-[15px] font-bold text-white">Scenario</h3>
-            <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
-              Your team needs to audit server configuration. Explore the filesystem hierarchy and
-              locate key files using standard shell navigation commands.
+        <div className="w-52 shrink-0 flex flex-col" style={{ background: "#0b0e14", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex-1 p-4 space-y-3 overflow-hidden">
+            <h3 className="text-[12.5px] font-bold text-white">Scenario</h3>
+            <p className="text-[10.5px] leading-relaxed" style={{ color: "rgba(255,255,255,0.42)" }}>
+              Deploy a containerised nginx server and verify it serves traffic on port&nbsp;80.
             </p>
-            <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
-              Your task: navigate to <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: "rgba(34,211,238,0.12)", color: "#22d3ee" }}>/etc</code>,
-              find the <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: "rgba(34,211,238,0.12)", color: "#22d3ee" }}>hostname</code> file,
-              and confirm the server identity.
-            </p>
-            <div className="pt-1 space-y-2.5">
-              {[
-                { done: true,  label: "Navigate to /etc and list contents" },
-                { done: true,  label: "Locate the hostname config file" },
-                { done: false, label: "Print current working directory" },
-                { done: false, label: "List hidden files in home directory" },
-              ].map(({ done, label }) => (
-                <div key={label} className="flex items-center gap-2.5">
+            <div className="space-y-2 pt-0.5">
+              {objectives.map(({ done, label }) => (
+                <div key={label} className="flex items-start gap-2">
                   {done
-                    ? <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: "#22c55e" }} />
-                    : <Circle       className="w-4 h-4 shrink-0" style={{ color: "rgba(255,255,255,0.15)" }} />}
-                  <span className="text-[12px]" style={{ color: done ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.4)", textDecoration: done ? "line-through" : "none", textDecorationColor: "rgba(255,255,255,0.2)" }}>{label}</span>
+                    ? <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 shrink-0 transition-colors duration-300" style={{ color: "#22c55e" }} />
+                    : <Circle       className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: "rgba(255,255,255,0.15)" }} />}
+                  <span
+                    className="text-[10.5px] leading-snug transition-all duration-300"
+                    style={{
+                      color: done ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.5)",
+                      textDecoration: done ? "line-through" : "none",
+                      textDecorationColor: "rgba(255,255,255,0.18)",
+                    }}
+                  >{label}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Verify button */}
-          <div className="p-4 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2 text-[12px] font-bold cursor-pointer" style={{ background: "#22d3ee", color: "#0a0e14" }}>
-              <ScanLine className="w-4 h-4" /> VERIFY_OBJECTIVES
+          <div className="p-3 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <div
+              className="w-full py-2.5 rounded-lg flex items-center justify-center gap-1.5 text-[10.5px] font-bold transition-all duration-200"
+              style={{
+                background: verifying ? "rgba(34,211,238,0.75)" : btnReady ? "#22d3ee" : "rgba(34,211,238,0.22)",
+                color: "#0a0e14",
+              }}
+            >
+              <ScanLine className={cn("w-3 h-3", verifying && "animate-spin")} />
+              {verifying ? "VERIFYING..." : "VERIFY_OBJECTIVES"}
             </div>
           </div>
         </div>
 
-        {/* Right: terminal */}
+        {/* Terminal */}
         <div className="flex-1 flex flex-col min-w-0" style={{ background: "#080b10" }}>
           {/* Tab strip */}
-          <div className="flex items-center gap-1 px-3 pt-2 shrink-0" style={{ background: "#0d1018", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-t-lg" style={{ background: "#080b10", color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid #080b10", marginBottom: -1 }}>
-              <Terminal className="w-3 h-3" style={{ color: "#22d3ee" }} />
-              server1
-              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: "#22d3ee" }} />
+          <div className="flex items-center px-3 pt-1.5 shrink-0" style={{ background: "#0d1018", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="flex items-center gap-1.5 px-2.5 py-[5px] text-[11px] font-medium rounded-t" style={{ background: "#080b10", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid #080b10", marginBottom: -1 }}>
+              <Terminal className="w-2.5 h-2.5" style={{ color: "#22d3ee" }} />
+              devops-sandbox
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#22d3ee" }} />
             </div>
           </div>
 
-          {/* Purple server banner */}
-          <div className="px-4 py-2 shrink-0 flex items-center gap-2 text-[12px] font-semibold text-white/90" style={{ background: "rgba(139,92,246,0.35)" }}>
-            <span style={{ color: "#c4b5fd" }}>⬡</span> server1
+          {/* Server banner */}
+          <div className="px-3.5 py-1.5 shrink-0 text-[11px] font-semibold" style={{ background: "rgba(139,92,246,0.28)", color: "#c4b5fd" }}>
+            ⬡ devops-sandbox
           </div>
 
-          {/* Terminal output */}
-          <div className="flex-1 p-4 overflow-hidden font-mono text-[12.5px] leading-6 space-y-0" style={{ background: "#080b10", color: "rgba(255,255,255,0.55)" }}>
-            <div style={{ color: "#22c55e" }}>--- Connected to server1. ---</div>
-            <div className="h-2" />
-            <div>{prompt} <span style={{ color: "rgba(255,255,255,0.85)" }}>cd /etc && ls -la | head -6</span></div>
-            <div>total 1468</div>
-            <div>drwxr-xr-x 1 root root  4096 Jul 28 09:12 <span style={{ color: "#60a5fa" }}>.</span></div>
-            <div>drwxr-xr-x 1 root root  4096 Jul 28 09:12 <span style={{ color: "#60a5fa" }}>..</span></div>
-            <div>-rw-r--r-- 1 root root    13 Jul 28 09:12 <span style={{ color: "rgba(255,255,255,0.85)" }}>hostname</span></div>
-            <div>-rw-r--r-- 1 root root   174 Jul 28 09:12 <span style={{ color: "rgba(255,255,255,0.85)" }}>hosts</span></div>
-            <div>-rw-r--r-- 1 root root   191 Jul 28 09:12 <span style={{ color: "rgba(255,255,255,0.85)" }}>resolv.conf</span></div>
-            <div className="h-1" />
-            <div>{promptEtc} <span style={{ color: "rgba(255,255,255,0.85)" }}>cat hostname</span></div>
-            <div>af25b946401e</div>
-            <div className="h-1" />
-            <div className="flex items-center gap-0">{promptEtc} <span className="w-2 h-4 ml-1 inline-block rounded-sm animate-pulse" style={{ background: "#22c55e", opacity: 0.7 }} /></div>
+          {/* Output */}
+          <div className="flex-1 p-3.5 font-mono text-[11px] leading-[1.75] overflow-hidden" style={{ background: "#080b10", color: "rgba(255,255,255,0.5)" }}>
+            <div style={{ color: "#22c55e" }}>Connected to devops-sandbox. Container ready.</div>
+
+            {phase >= 0 && (
+              <div>
+                <P /><span style={{ color: "rgba(255,255,255,0.85)" }}>{phase === 0 ? DEMO_CMDS[0].slice(0, typed) : DEMO_CMDS[0]}</span>
+                {phase === 0 && <Cursor />}
+              </div>
+            )}
+
+            {phase >= 1 && <>
+              <div><span style={{ color: "#60a5fa" }}>Pulling from library/nginx</span></div>
+              <div>Status: <span style={{ color: "#22c55e" }}>Downloaded</span> newer image for nginx:alpine</div>
+              <div>
+                <P /><span style={{ color: "rgba(255,255,255,0.85)" }}>{phase === 1 ? DEMO_CMDS[1].slice(0, typed) : DEMO_CMDS[1]}</span>
+                {phase === 1 && <Cursor />}
+              </div>
+            </>}
+
+            {phase >= 2 && <>
+              <div style={{ color: "rgba(255,255,255,0.38)" }}>3f8c2a1b9e47d6f2a8c3e1b4</div>
+              {(phase === 2 || phase >= 5) && <div><P /><Cursor /></div>}
+            </>}
           </div>
         </div>
       </div>
@@ -309,7 +367,7 @@ export default function Home() {
 
       {/* ── Product preview ── */}
       <motion.section
-        className="relative z-10 max-w-5xl mx-auto px-6 pb-16"
+        className="relative z-10 max-w-4xl mx-auto px-6 pb-16"
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
