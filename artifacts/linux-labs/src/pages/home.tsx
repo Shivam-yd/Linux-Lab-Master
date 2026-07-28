@@ -71,12 +71,12 @@ const DEMO_CMDS = [
 // ── Terminal preview mockup (animated) ───────────────────────────
 function TerminalMockup() {
   // phase: -1=waiting, 0=typing cmd0, 1=typing cmd1, 2=idle cursor,
-  //        3=verifying, 4=obj2 done, 5=obj3 done+pause, then reset
-  const [phase, setPhase]         = useState(-1)
-  const [typed, setTyped]         = useState(0)
-  const [clicking, setClicking]   = useState(false)  // simulated button press
-  const [verifying, setVerifying] = useState(false)
-  const [extraDone, setExtraDone] = useState<number[]>([])
+  //        3=verifying (ticking off one by one), 4=all done pause, then reset
+  const [phase, setPhase]           = useState(-1)
+  const [typed, setTyped]           = useState(0)
+  const [clicking, setClicking]     = useState(false)   // simulated button press
+  const [verifying, setVerifying]   = useState(false)
+  const [checkedCount, setCheckedCount] = useState(0)   // 0-4, only grows during verify
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>
@@ -96,20 +96,24 @@ function TerminalMockup() {
       // brief "pressed" state, then start verifying
       t = setTimeout(() => { setClicking(false); setVerifying(true); setPhase(3) }, 170)
     } else if (phase === 3) {
-      t = setTimeout(() => { setVerifying(false); setExtraDone([2]); setPhase(4) }, 850)
+      if (checkedCount < 4) {
+        // tick objectives off one by one, 220ms apart
+        t = setTimeout(() => setCheckedCount(n => n + 1), 220)
+      } else {
+        t = setTimeout(() => { setVerifying(false); setPhase(4) }, 400)
+      }
     } else if (phase === 4) {
-      t = setTimeout(() => { setExtraDone([2, 3]); setPhase(5) }, 550)
-    } else if (phase === 5) {
-      t = setTimeout(() => { setPhase(-1); setTyped(0); setClicking(false); setExtraDone([]) }, 2600)
+      t = setTimeout(() => { setPhase(-1); setTyped(0); setClicking(false); setCheckedCount(0) }, 2600)
     }
     return () => clearTimeout(t)
-  }, [phase, typed, clicking])
+  }, [phase, typed, clicking, checkedCount])
 
+  // ALL objectives only check off during VERIFY — none fire from typing commands
   const objectives = [
-    { label: "Pull nginx:alpine image",        done: phase >= 1 },
-    { label: "Start container on port 80",     done: phase >= 2 },
-    { label: "Verify container is healthy",    done: extraDone.includes(2) },
-    { label: "Check HTTP response on port 80", done: extraDone.includes(3) },
+    { label: "Pull nginx:alpine image",        done: checkedCount > 0 },
+    { label: "Start container on port 80",     done: checkedCount > 1 },
+    { label: "Verify container is healthy",    done: checkedCount > 2 },
+    { label: "Check HTTP response on port 80", done: checkedCount > 3 },
   ]
 
   const Cursor = () => (
