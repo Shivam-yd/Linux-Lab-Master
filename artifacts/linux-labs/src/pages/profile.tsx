@@ -35,7 +35,7 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const user = session?.user
-  const { plan, isLoading: planLoading } = usePlan()
+  const { plan, hasSubscription, isLoading: planLoading } = usePlan()
 
   // Detect whether this user has a credential (email/password) account or is
   // OAuth-only. Better Auth exposes GET /api/auth/list-accounts for exactly this.
@@ -183,6 +183,21 @@ export default function ProfilePage() {
           </div>
           {planLoading ? (
             <div className="h-10 rounded-lg bg-muted/30 animate-pulse" />
+          ) : !hasSubscription ? (
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">No plan selected</p>
+                  <p className="text-xs text-muted-foreground">Choose a plan to start labs</p>
+                </div>
+              </div>
+              <Link href={`${basePath}/choose-plan`} className="text-xs font-semibold text-amber-400 hover:underline shrink-0">
+                Choose plan →
+              </Link>
+            </div>
           ) : plan === "devops-pro" ? (
             <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
               <div className="flex items-center gap-3">
