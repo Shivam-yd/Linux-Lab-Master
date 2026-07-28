@@ -395,38 +395,54 @@ export default function Home() {
       </motion.section>
 
       {/* ── How it works ── */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-16">
+      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
         <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-3">
           How it works
         </p>
-        <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight mb-12">
+        <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight mb-14">
           From zero to verified in minutes
         </h2>
-        <div className="grid sm:grid-cols-3 gap-4 relative">
-          {/* connector line (desktop only) */}
-          <div className="hidden sm:block absolute top-9 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-px bg-gradient-to-r from-primary/30 via-primary/50 to-primary/30 pointer-events-none" />
 
+        <div className="flex flex-col sm:flex-row items-start sm:items-start gap-0">
           {[
             { num: 1, icon: Layers,     title: "Pick a track",        desc: "Choose from Linux, Docker, Terraform, Git, Jenkins, and more. Each track is broken into progressive labs." },
             { num: 2, icon: Terminal,   title: "Open a real terminal", desc: "Every lab spins up an isolated Docker container. You get a live shell — no VMs, no local installs." },
             { num: 3, icon: CheckCheck, title: "Verify your work",     desc: "Hit Verify and the platform runs check scripts inside your container, telling you exactly what passed." },
-          ].map(({ num, icon: Icon, title, desc }) => (
-            <div key={num} className="relative flex flex-col items-center text-center rounded-2xl border border-border bg-card/60 p-6 pt-8 hover:border-primary/30 transition-colors">
-              {/* step badge */}
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center mb-4 shrink-0 relative z-10"
-                style={{ background: "rgba(13,148,136,0.15)", border: "1.5px solid rgba(13,148,136,0.35)" }}
-              >
-                <Icon className="w-5 h-5" style={{ color: "#0d9488" }} />
+          ].map(({ num, icon: Icon, title, desc }, i) => (
+            <div key={num} className="flex sm:flex-col flex-row flex-1 min-w-0">
+              {/* step + arrow row */}
+              <div className="flex sm:flex-row flex-col items-center sm:items-center shrink-0 mr-4 sm:mr-0 sm:mb-5">
+                {/* circle */}
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(13,148,136,0.25) 0%, rgba(13,148,136,0.10) 100%)",
+                    border: "1.5px solid rgba(13,148,136,0.5)",
+                    boxShadow: "0 0 24px rgba(13,148,136,0.15)",
+                  }}
+                >
+                  <Icon className="w-6 h-6" style={{ color: "#2dd4bf" }} />
+                </div>
+                {/* arrow between steps */}
+                {i < 2 && (
+                  <div className="hidden sm:flex flex-1 items-center px-2 mt-0 mx-2">
+                    <div className="flex-1 h-px bg-gradient-to-r from-primary/40 to-primary/10" />
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0 -ml-1" style={{ color: "rgba(13,148,136,0.4)" }} />
+                  </div>
+                )}
               </div>
-              <span
-                className="absolute top-3 right-4 text-[10px] font-bold tabular-nums"
-                style={{ color: "rgba(13,148,136,0.45)" }}
-              >
-                {String(num).padStart(2, "0")}
-              </span>
-              <h3 className="font-bold mb-2">{title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+
+              {/* text */}
+              <div className="flex flex-col sm:pr-6 pb-8 sm:pb-0">
+                <span
+                  className="text-[10px] font-black tracking-widest uppercase mb-1.5"
+                  style={{ color: "rgba(13,148,136,0.55)" }}
+                >
+                  Step {num}
+                </span>
+                <h3 className="font-bold text-[15px] mb-1.5">{title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+              </div>
             </div>
           ))}
         </div>
