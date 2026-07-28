@@ -184,14 +184,19 @@ export default function Home() {
 
         <div className="flex" style={{ animation: "marquee-rtl 20s linear infinite" }}>
           {/* two copies — each set is exactly 100vw so only one copy of each track is visible */}
-          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon }, i) => (
+          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
             <div
               key={i}
-              className="flex items-center justify-center gap-2.5 shrink-0 select-none"
+              className="flex items-center justify-center gap-3 shrink-0 select-none"
               style={{ width: "20vw" }}
             >
-              <Icon className="w-4 h-4 text-muted-foreground/50" />
-              <span className="text-sm font-semibold tracking-tight text-muted-foreground/50 whitespace-nowrap">{label}</span>
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
+              >
+                <Icon className="w-4 h-4" style={{ color }} />
+              </div>
+              <span className="text-sm font-semibold tracking-tight text-foreground/70 whitespace-nowrap">{label}</span>
             </div>
           ))}
         </div>
