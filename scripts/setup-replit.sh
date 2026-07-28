@@ -38,11 +38,18 @@ info "Checking required secrets..."
 MISSING=()
 [[ -z "${SESSION_SECRET:-}" ]] && MISSING+=("SESSION_SECRET")
 [[ -z "${DATABASE_URL:-}"   ]] && MISSING+=("DATABASE_URL")
-[[ -z "${BETTER_AUTH_URL:-}" ]] && MISSING+=("BETTER_AUTH_URL")
 
 if [[ ${#MISSING[@]} -gt 0 ]]; then
   die "Missing required environment variables: ${MISSING[*]}"
 fi
+
+# BETTER_AUTH_URL is optional on Replit — the server derives it from
+# REPLIT_DEV_DOMAIN at runtime.  Warn if neither is set so auth will fall
+# back to localhost (fine for local dev, broken for OAuth redirects).
+if [[ -z "${BETTER_AUTH_URL:-}" && -z "${REPLIT_DEV_DOMAIN:-}" ]]; then
+  warn "Neither BETTER_AUTH_URL nor REPLIT_DEV_DOMAIN is set — auth will use localhost fallback"
+fi
+
 success "All required secrets present"
 
 # ── 3. Database schema push ───────────────────────────────────────────────────
