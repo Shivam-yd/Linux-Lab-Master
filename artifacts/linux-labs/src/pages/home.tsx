@@ -67,13 +67,12 @@ const DEMO_CMDS = [
   "docker pull nginx:alpine",
   "docker run -d -p 80:80 --name webapp nginx:alpine",
   "docker ps",
-  "curl -s -o /dev/null -w '%{http_code}' localhost:80",
 ]
 
 // ── Terminal preview mockup (animated) ───────────────────────────
 function TerminalMockup() {
-  // phases: -1=waiting, 0–3=typing cmds, 4=idle cursor,
-  //         5=verifying (checkedCount ticks 0→4), 6=all done pause, then reset
+  // phases: -1=waiting, 0–2=typing cmds, 3=idle cursor,
+  //         4=verifying (checkedCount ticks 0→3), 5=all done pause, then reset
   const [phase, setPhase]               = useState(-1)
   const [typed, setTyped]               = useState(0)
   const [clicking, setClicking]         = useState(false)
@@ -84,27 +83,27 @@ function TerminalMockup() {
     let t: ReturnType<typeof setTimeout>
     if (phase === -1) {
       t = setTimeout(() => setPhase(0), 900)
-    } else if (phase >= 0 && phase <= 3) {
-      // typing one of the 4 commands
+    } else if (phase >= 0 && phase <= 2) {
+      // typing one of the 3 commands
       const cmd = DEMO_CMDS[phase]
       if (typed < cmd.length) {
         t = setTimeout(() => setTyped(n => n + 1), 38)
       } else {
         t = setTimeout(() => { setPhase(phase + 1); setTyped(0) }, 480)
       }
-    } else if (phase === 4 && !clicking) {
+    } else if (phase === 3 && !clicking) {
       // idle cursor — wait, then simulate button click
       t = setTimeout(() => setClicking(true), 1200)
-    } else if (phase === 4 && clicking) {
+    } else if (phase === 3 && clicking) {
       // brief press visual, then start verifying
-      t = setTimeout(() => { setClicking(false); setVerifying(true); setPhase(5) }, 170)
-    } else if (phase === 5) {
-      if (checkedCount < 4) {
+      t = setTimeout(() => { setClicking(false); setVerifying(true); setPhase(4) }, 170)
+    } else if (phase === 4) {
+      if (checkedCount < 3) {
         t = setTimeout(() => setCheckedCount(n => n + 1), 220)
       } else {
-        t = setTimeout(() => { setVerifying(false); setPhase(6) }, 400)
+        t = setTimeout(() => { setVerifying(false); setPhase(5) }, 400)
       }
-    } else if (phase === 6) {
+    } else if (phase === 5) {
       t = setTimeout(() => { setPhase(-1); setTyped(0); setClicking(false); setCheckedCount(0) }, 2600)
     }
     return () => clearTimeout(t)
@@ -112,10 +111,9 @@ function TerminalMockup() {
 
   // objectives only check off during VERIFY, never from typing
   const objectives = [
-    { label: "Pull nginx:alpine image",        done: checkedCount > 0 },
-    { label: "Start container on port 80",     done: checkedCount > 1 },
-    { label: "Verify container is healthy",    done: checkedCount > 2 },
-    { label: "Check HTTP response on port 80", done: checkedCount > 3 },
+    { label: "Pull nginx:alpine image",     done: checkedCount > 0 },
+    { label: "Start container on port 80",  done: checkedCount > 1 },
+    { label: "Verify container is healthy", done: checkedCount > 2 },
   ]
 
   const Cursor = () => (
@@ -126,7 +124,7 @@ function TerminalMockup() {
   )
   const P = () => <span style={{ color: "#22c55e" }}>$ </span>
 
-  const btnReady = phase >= 2 && !verifying
+  const btnReady = phase >= 3 && !verifying
 
   return (
     <div
@@ -259,20 +257,11 @@ function TerminalMockup() {
               </div>
             </>}
 
-            {/* Output 2 + CMD 3 */}
+            {/* Output 2 + idle cursor */}
             {phase >= 3 && <>
               <div style={{ color: "rgba(255,255,255,0.32)", fontSize: "10.5px" }}>CONTAINER ID   IMAGE          STATUS       PORTS</div>
               <div style={{ fontSize: "10.5px" }}>3f8c2a1b9e47   <span style={{ color: "#60a5fa" }}>nginx:alpine</span>   Up 3s   <span style={{ color: "#34d399" }}>0.0.0.0:80→80/tcp</span></div>
-              <div>
-                <P /><span style={{ color: "rgba(255,255,255,0.85)" }}>{phase === 3 ? DEMO_CMDS[3].slice(0, typed) : DEMO_CMDS[3]}</span>
-                {phase === 3 && <Cursor />}
-              </div>
-            </>}
-
-            {/* Output 3 + idle cursor */}
-            {phase >= 4 && <>
-              <div><span style={{ color: "#22c55e" }}>200</span></div>
-              {(phase === 4 || phase >= 6) && <div><P /><Cursor /></div>}
+              {(phase === 3 || phase >= 5) && <div><P /><Cursor /></div>}
             </>}
           </div>
         </div>
