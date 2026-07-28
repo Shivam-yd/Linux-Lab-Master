@@ -72,8 +72,9 @@ const DEMO_CMDS = [
 function TerminalMockup() {
   // phase: -1=waiting, 0=typing cmd0, 1=typing cmd1, 2=idle cursor,
   //        3=verifying, 4=obj2 done, 5=obj3 done+pause, then reset
-  const [phase, setPhase]       = useState(-1)
-  const [typed, setTyped]       = useState(0)
+  const [phase, setPhase]         = useState(-1)
+  const [typed, setTyped]         = useState(0)
+  const [clicking, setClicking]   = useState(false)  // simulated button press
   const [verifying, setVerifying] = useState(false)
   const [extraDone, setExtraDone] = useState<number[]>([])
 
@@ -88,18 +89,21 @@ function TerminalMockup() {
       } else {
         t = setTimeout(() => { setPhase(phase + 1); setTyped(0) }, 520)
       }
-    } else if (phase === 2) {
-      t = setTimeout(() => setPhase(3), 1400)
+    } else if (phase === 2 && !clicking) {
+      // pause with blinking cursor, then simulate a button click
+      t = setTimeout(() => setClicking(true), 1400)
+    } else if (phase === 2 && clicking) {
+      // brief "pressed" state, then start verifying
+      t = setTimeout(() => { setClicking(false); setVerifying(true); setPhase(3) }, 170)
     } else if (phase === 3) {
-      setVerifying(true)
       t = setTimeout(() => { setVerifying(false); setExtraDone([2]); setPhase(4) }, 850)
     } else if (phase === 4) {
       t = setTimeout(() => { setExtraDone([2, 3]); setPhase(5) }, 550)
     } else if (phase === 5) {
-      t = setTimeout(() => { setPhase(-1); setTyped(0); setExtraDone([]) }, 2600)
+      t = setTimeout(() => { setPhase(-1); setTyped(0); setClicking(false); setExtraDone([]) }, 2600)
     }
     return () => clearTimeout(t)
-  }, [phase, typed])
+  }, [phase, typed, clicking])
 
   const objectives = [
     { label: "Pull nginx:alpine image",        done: phase >= 1 },
@@ -189,10 +193,13 @@ function TerminalMockup() {
           {/* Verify button */}
           <div className="p-3 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <div
-              className="w-full py-2.5 rounded-lg flex items-center justify-center gap-1.5 text-[10.5px] font-bold transition-all duration-200"
+              className="w-full py-2.5 rounded-lg flex items-center justify-center gap-1.5 text-[10.5px] font-bold"
               style={{
                 background: verifying ? "rgba(34,211,238,0.75)" : btnReady ? "#22d3ee" : "rgba(34,211,238,0.22)",
                 color: "#0a0e14",
+                transform: clicking ? "scale(0.96)" : "scale(1)",
+                opacity: clicking ? 0.8 : 1,
+                transition: "transform 80ms ease, opacity 80ms ease, background 200ms ease",
               }}
             >
               <ScanLine className={cn("w-3 h-3", verifying && "animate-spin")} />
