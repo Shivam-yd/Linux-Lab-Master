@@ -176,31 +176,36 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* ── Tracks ── */}
-      <section className="relative z-10 max-w-7xl mx-auto px-6 pb-20">
-        <motion.div
-          className="grid grid-cols-2 sm:grid-cols-5 gap-5"
-          variants={trackContainer}
-          initial="hidden"
-          animate="show"
-        >
-          {TRACKS.map(({ label, icon: Icon, color, iconClass }) => (
-            <motion.div
-              key={label}
-              variants={trackCard}
-              whileHover={{ y: -3, scale: 1.03, transition: { duration: 0.18 } }}
-              className="rounded-2xl border border-border bg-card/60 p-7 flex flex-col items-center gap-4 text-center hover:border-primary/30 transition-colors group cursor-default"
+      {/* ── Track marquee ── */}
+      <section className="relative z-10 w-full overflow-hidden border-y border-border/50 bg-card/30 backdrop-blur-sm py-5 mb-12">
+        {/* fade edges */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 z-10" style={{ background: "linear-gradient(to right, var(--background) 0%, transparent 100%)" }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 z-10" style={{ background: "linear-gradient(to left, var(--background) 0%, transparent 100%)" }} />
+
+        <div className="flex" style={{ animation: "marquee-rtl 28s linear infinite" }}>
+          {/* two copies for a seamless loop */}
+          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 px-10 shrink-0 select-none"
             >
               <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
               >
-                <Icon className={cn("w-6 h-6", iconClass)} style={{ color }} />
+                <Icon className="w-4 h-4" style={{ color }} />
               </div>
-              <span className="text-base font-semibold">{label}</span>
-            </motion.div>
+              <span className="text-sm font-semibold tracking-tight text-foreground/70 whitespace-nowrap">{label}</span>
+            </div>
           ))}
-        </motion.div>
+        </div>
+
+        <style>{`
+          @keyframes marquee-rtl {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+        `}</style>
       </section>
 
       {/* ── Features ── */}
