@@ -526,7 +526,7 @@ export default function Workspace() {
             
             {/* Scenario Header */}
             <div className="mb-6 pb-4 border-b border-border/40">
-              <div className="prose prose-sm max-w-none prose-p:text-muted-foreground prose-headings:text-foreground prose-a:text-primary prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded">
+              <div className="prose prose-sm max-w-none prose-p:text-foreground/80 prose-headings:text-foreground prose-strong:text-foreground prose-li:text-foreground/80 prose-a:text-primary prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-ul:my-2 prose-li:my-0.5">
                 <ReactMarkdown>{mainInstructions || "No instructions provided."}</ReactMarkdown>
               </div>
             </div>
