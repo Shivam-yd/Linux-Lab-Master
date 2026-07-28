@@ -124,7 +124,7 @@ function TerminalMockup() {
   )
   const P = () => <span style={{ color: "#22c55e" }}>$ </span>
 
-  const btnReady = phase >= 3 && !verifying
+  const btnReady = !verifying
 
   return (
     <div
