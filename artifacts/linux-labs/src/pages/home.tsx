@@ -179,24 +179,19 @@ export default function Home() {
       {/* ── Track marquee ── */}
       <section className="relative z-10 w-full overflow-hidden bg-transparent py-5 mb-12">
         {/* fade edges */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-32 z-10" style={{ background: "linear-gradient(to right, var(--background) 0%, transparent 100%)" }} />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-32 z-10" style={{ background: "linear-gradient(to left, var(--background) 0%, transparent 100%)" }} />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-48 z-10" style={{ background: "linear-gradient(to right, var(--background) 30%, transparent 100%)" }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-48 z-10" style={{ background: "linear-gradient(to left, var(--background) 30%, transparent 100%)" }} />
 
         <div className="flex" style={{ animation: "marquee-rtl 20s linear infinite" }}>
           {/* two copies — each set is exactly 100vw so only one copy of each track is visible */}
-          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
+          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon }, i) => (
             <div
               key={i}
-              className="flex items-center justify-center gap-3 shrink-0 select-none"
+              className="flex items-center justify-center gap-2.5 shrink-0 select-none"
               style={{ width: "20vw" }}
             >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
-              >
-                <Icon className="w-4 h-4" style={{ color }} />
-              </div>
-              <span className="text-sm font-semibold tracking-tight text-foreground/70 whitespace-nowrap">{label}</span>
+              <Icon className="w-4 h-4 text-muted-foreground/50" />
+              <span className="text-sm font-semibold tracking-tight text-muted-foreground/50 whitespace-nowrap">{label}</span>
             </div>
           ))}
         </div>
