@@ -277,6 +277,9 @@ components:
         createdAt:
           type: ["string", "null"]
           format: date-time
+        startedAt:
+          type: ["string", "null"]
+          format: date-time
         errorMessage:
           type: ["string", "null"]
 

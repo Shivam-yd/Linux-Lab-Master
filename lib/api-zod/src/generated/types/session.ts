@@ -14,5 +14,7 @@ export interface Session {
   /** @nullable */
   createdAt?: Date | null;
   /** @nullable */
+  startedAt?: Date | null;
+  /** @nullable */
   errorMessage?: string | null;
 }

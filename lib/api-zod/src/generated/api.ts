@@ -101,6 +101,7 @@ export const GetLabSessionResponse = zod.object({
   "status": zod.enum(['none', 'starting', 'running', 'stopped', 'error']),
   "terminals": zod.array(zod.string()),
   "createdAt": zod.coerce.date().nullish(),
+  "startedAt": zod.coerce.date().nullish(),
   "errorMessage": zod.string().nullish()
 })
 
@@ -117,6 +118,7 @@ export const StartLabSessionResponse = zod.object({
   "status": zod.enum(['none', 'starting', 'running', 'stopped', 'error']),
   "terminals": zod.array(zod.string()),
   "createdAt": zod.coerce.date().nullish(),
+  "startedAt": zod.coerce.date().nullish(),
   "errorMessage": zod.string().nullish()
 })
 
@@ -143,6 +145,7 @@ export const ResetLabSessionResponse = zod.object({
   "status": zod.enum(['none', 'starting', 'running', 'stopped', 'error']),
   "terminals": zod.array(zod.string()),
   "createdAt": zod.coerce.date().nullish(),
+  "startedAt": zod.coerce.date().nullish(),
   "errorMessage": zod.string().nullish()
 })
 

@@ -42,6 +42,7 @@ function toSessionResponse(labId: string, terminals: string[], row: Awaited<Retu
     status: row?.status ?? "none",
     terminals: row?.status === "running" ? terminals : [],
     createdAt: row?.createdAt ?? null,
+    startedAt: row?.startedAt ?? null,
     errorMessage: row?.errorMessage ?? null,
   };
 }

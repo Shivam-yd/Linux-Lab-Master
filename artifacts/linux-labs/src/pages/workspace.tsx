@@ -908,7 +908,7 @@ export default function Workspace() {
                     )}>
                       {isRunning && (
                         <TerminalComponent
-                          key={session?.createdAt ?? term}
+                          key={session?.startedAt ?? session?.createdAt ?? term}
                           labId={labId} 
                           terminalName={term} 
                           className="h-full w-full bg-transparent" 

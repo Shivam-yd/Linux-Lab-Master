@@ -64,6 +64,8 @@ export interface Session {
   /** @nullable */
   createdAt?: string | null;
   /** @nullable */
+  startedAt?: string | null;
+  /** @nullable */
   errorMessage?: string | null;
 }
 
