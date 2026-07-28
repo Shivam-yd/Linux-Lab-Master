@@ -1,0 +1,185 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Kubernetes Lab: What is Kubernetes? (Level 1 - Foundation)
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "kubernetes-what-is-k8s"
+title: "What is Kubernetes?"
+track: "kubernetes"
+level: 1
+category: "Kubernetes Fundamentals"
+difficulty: "beginner"
+summary: "Explore Kubernetes architecture, learn its core components, and write your first Pod manifest."
+estimatedMinutes: 20
+order: 100
+
+objectives:
+  - "Understand what Kubernetes is and why it exists"
+  - "Identify the four main control plane components"
+  - "Write a valid Pod manifest with required fields"
+
+instructions: |
+  ## What is Kubernetes?
+
+  **Scenario**
+  Your team is moving from running containers manually with Docker on a single server to a system that can manage hundreds of containers across many machines automatically. You've been asked to get familiar with Kubernetes — the industry-standard container orchestration platform — before the migration begins.
+
+  **Your task:** explore the pre-loaded cluster overview files, identify the component responsible for scheduling pods onto nodes, and write your first Pod manifest.
+
+  **Reference — Kubernetes architecture**
+
+  A Kubernetes cluster has two kinds of machines:
+
+  - **Control Plane** — the brain of the cluster. It runs four key components:
+    - `kube-apiserver` — the front door; everything talks to the API server
+    - `etcd` — the cluster's key-value store; holds all state
+    - `kube-scheduler` — watches for new Pods and picks which node to run them on
+    - `kube-controller-manager` — runs control loops that keep the cluster in the desired state
+
+  - **Worker Nodes** — where your containers actually run. Each node runs:
+    - `kubelet` — talks to the API server and manages containers on that node
+    - `kube-proxy` — handles network routing for Services
+
+  The smallest deployable unit in Kubernetes is a **Pod** — a wrapper around one or more containers that share a network and storage.
+
+  A Pod manifest always has four top-level fields:
+
+  ```yaml
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: my-pod
+  spec:
+    containers:
+      - name: my-container
+        image: nginx:alpine
+  ```
+
+  **What You'll Deliver**
+  - `/root/scheduler.txt` containing the name of the control plane component that assigns pods to nodes
+  - `/root/namespace.txt` containing the name of the default namespace for user workloads
+  - `/root/my-first-pod.yaml` — a valid Pod manifest with `apiVersion`, `kind`, `metadata.name`, and `containers`
+
+  ## Steps
+
+  1. Read the cluster overview: `cat /root/cluster-overview/architecture.txt`
+  2. Look at a real Pod manifest for reference: `cat /root/cluster-overview/example-pod.yaml`
+  3. Write the scheduler name: `echo "kube-scheduler" > /root/scheduler.txt`
+  4. Write the default namespace: `echo "default" > /root/namespace.txt`
+  5. Create your Pod manifest:
+     ```
+     cat > /root/my-first-pod.yaml <<'EOF'
+     apiVersion: v1
+     kind: Pod
+     metadata:
+       name: my-first-pod
+     spec:
+       containers:
+         - name: web
+           image: nginx:alpine
+     EOF
+     ```
+  6. Verify it looks right: `cat /root/my-first-pod.yaml`
+
+tasks:
+  - id: "identify-scheduler"
+    description: "Write the name of the control plane component that schedules pods onto nodes to /root/scheduler.txt"
+  - id: "identify-namespace"
+    description: "Write the name of the default namespace for user workloads to /root/namespace.txt"
+  - id: "write-pod-manifest"
+    description: "Create /root/my-first-pod.yaml — a valid Pod manifest with apiVersion, kind: Pod, a name, and a containers section"
+
+image: "alpine:latest"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /root/cluster-overview
+
+  cat > /root/cluster-overview/architecture.txt <<'EOF'
+  ── Kubernetes Cluster Architecture ──────────────────────────────
+
+  CONTROL PLANE (runs the cluster itself)
+  ┌─────────────────────────────────────────────────────────────┐
+  │  kube-apiserver        — the API gateway; all clients       │
+  │                          (kubectl, nodes) talk through it   │
+  │  etcd                  — distributed key-value store;       │
+  │                          all cluster state lives here       │
+  │  kube-scheduler        — watches for unscheduled Pods and   │
+  │                          assigns them to a suitable Node    │
+  │  kube-controller-mgr   — runs reconciliation loops          │
+  │                          (node controller, job controller…) │
+  └─────────────────────────────────────────────────────────────┘
+
+  WORKER NODES (run your application containers)
+  ┌─────────────────────────────────────────────────────────────┐
+  │  kubelet        — agent on each node; talks to apiserver    │
+  │                   and manages the Pods on that node         │
+  │  kube-proxy     — maintains iptables rules for Services     │
+  │  container rt   — containerd / CRI-O — actually runs ctrs  │
+  └─────────────────────────────────────────────────────────────┘
+
+  NAMESPACES — logical partitions inside one cluster
+    default       ← where your workloads go by default
+    kube-system   ← where Kubernetes' own components run
+    kube-public   ← readable by everyone; used for cluster info
+  EOF
+
+  cat > /root/cluster-overview/example-pod.yaml <<'EOF'
+  # The smallest deployable unit in Kubernetes.
+  # This Pod runs a single nginx container.
+
+  apiVersion: v1          # API group + version for this object
+  kind: Pod               # the type of Kubernetes object
+  metadata:
+    name: example-pod     # unique name inside the namespace
+    labels:
+      app: web            # optional labels — used by Services to find Pods
+  spec:
+    containers:
+      - name: web         # name of the container inside the Pod
+        image: nginx:alpine
+        ports:
+          - containerPort: 80
+  EOF
+
+  cat > /root/cluster-overview/nodes.txt <<'EOF'
+  NAME              STATUS   ROLES           AGE   VERSION
+  control-plane-1   Ready    control-plane   30d   v1.30.0
+  worker-node-1     Ready    <none>          30d   v1.30.0
+  worker-node-2     Ready    <none>          30d   v1.30.0
+  EOF
+
+verifyScript: |
+  # CHECK: identify-scheduler
+  if [ -f /root/scheduler.txt ] && grep -qi "kube-scheduler" /root/scheduler.txt; then
+    echo "CHECK:identify-scheduler:PASS:Correct — kube-scheduler is the component that assigns Pods to Nodes"
+  else
+    echo "CHECK:identify-scheduler:FAIL:/root/scheduler.txt missing or does not contain 'kube-scheduler' — check /root/cluster-overview/architecture.txt"
+  fi
+
+  # CHECK: identify-namespace
+  if [ -f /root/namespace.txt ] && grep -qi "default" /root/namespace.txt; then
+    echo "CHECK:identify-namespace:PASS:Correct — 'default' is the namespace for user workloads"
+  else
+    echo "CHECK:identify-namespace:FAIL:/root/namespace.txt missing or does not contain 'default'"
+  fi
+
+  # CHECK: write-pod-manifest
+  if [ -f /root/my-first-pod.yaml ] \
+    && grep -q "apiVersion" /root/my-first-pod.yaml \
+    && grep -q "kind: Pod" /root/my-first-pod.yaml \
+    && grep -q "containers" /root/my-first-pod.yaml \
+    && grep -qE "name: .+" /root/my-first-pod.yaml; then
+    echo "CHECK:write-pod-manifest:PASS:Valid Pod manifest — apiVersion, kind, metadata.name, and containers all present"
+  else
+    echo "CHECK:write-pod-manifest:FAIL:/root/my-first-pod.yaml missing or incomplete — must have apiVersion, kind: Pod, metadata.name, and containers"
+  fi
+
+hints:
+  - "Read `cat /root/cluster-overview/architecture.txt` — the four control plane components are listed there."
+  - "The component that *schedules* pods is called `kube-scheduler`. Write it with: `echo \"kube-scheduler\" > /root/scheduler.txt`"
+  - "The default namespace is `default`. Write it with: `echo \"default\" > /root/namespace.txt`"
+  - "For the Pod manifest, copy the structure from `cat /root/cluster-overview/example-pod.yaml` — you need apiVersion, kind, metadata.name, and spec.containers."
