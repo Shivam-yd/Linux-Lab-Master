@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query"
 import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import {
@@ -28,16 +29,19 @@ const FEATURES = [
   { icon: RefreshCw,     title: "Instant Sandbox Reset",   desc: "Blown up your container? Hit Reset and a fresh environment is spun up in seconds — no penalty, just keep going." },
 ]
 
-const STATS = [
-  { value: "78+", label: "Hands-on labs" },
-  { value: "5",   label: "DevOps tracks" },
-  { value: "0",   label: "Cloud accounts needed" },
+const STATIC_STATS = [
+  { value: "0",    label: "Cloud accounts needed" },
   { value: "100%", label: "Terminal-based" },
 ]
 
 export default function About() {
   useMeta("About — DevLabMaster", "The team and mission behind DevLabMaster, the hands-on DevOps training platform.")
   const { data: session, isPending } = useSession()
+  const { data: stats } = useQuery<{ labs: number; tracks: number }>({
+    queryKey: ["stats"],
+    queryFn: () => fetch(`${basePath}/api/stats`).then(r => r.json()),
+    staleTime: 5 * 60 * 1000,
+  })
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -70,9 +74,9 @@ export default function About() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/[0.06] rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative max-w-4xl mx-auto px-6 pt-16 pb-14 text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-mono font-semibold tracking-widest uppercase mb-6">
-            <Zap className="w-3 h-3 fill-primary/30" />
-            DevOps Practice Range
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-card/60 border border-border text-foreground text-[13px] font-bold tracking-tight mb-6">
+            <img src={`${basePath}/logo.svg`} className="w-5 h-5 rounded-md" alt="DevLabMaster" />
+            DevLabMaster
           </div>
 
           <h1 className="text-4xl md:text-[3.25rem] font-black tracking-tight leading-[1.12] mb-5">
@@ -90,7 +94,15 @@ export default function About() {
 
           {/* Stats row */}
           <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/40 rounded-2xl overflow-hidden border border-border/40">
-            {STATS.map(({ value, label }) => (
+            <div className="bg-card/60 px-6 py-5 text-center">
+              <p className="text-2xl font-black text-foreground tabular-nums">{stats ? `${stats.labs}+` : "—"}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-tight">Hands-on labs</p>
+            </div>
+            <div className="bg-card/60 px-6 py-5 text-center">
+              <p className="text-2xl font-black text-foreground tabular-nums">{stats ? stats.tracks : "—"}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-tight">DevOps tracks</p>
+            </div>
+            {STATIC_STATS.map(({ value, label }) => (
               <div key={label} className="bg-card/60 px-6 py-5 text-center">
                 <p className="text-2xl font-black text-foreground tabular-nums">{value}</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-tight">{label}</p>
@@ -149,48 +161,43 @@ export default function About() {
         <section className="space-y-8">
           <SectionHeading>Author</SectionHeading>
 
-          <div className="rounded-2xl bg-card border border-border/60 overflow-hidden">
-            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-cyan-400 to-blue-500" />
-            <div className="p-8 flex flex-col sm:flex-row gap-8 items-start">
-              <div className="shrink-0">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/30 to-cyan-500/20 border border-primary/20 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary),0.15)]">
-                  <span className="text-4xl font-black text-primary select-none">S</span>
-                </div>
+          <div className="rounded-2xl bg-card border border-border/60 p-8">
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+
+              {/* Avatar */}
+              <div className="shrink-0 w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <span className="text-xl font-black text-primary select-none">SY</span>
               </div>
 
-              <div className="flex-1 space-y-4">
-                <div>
-                  <h3 className="text-2xl font-black tracking-tight">Shivam Yadav</h3>
-                  <div className="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground">
-                    <MapPin className="w-3.5 h-3.5 shrink-0" />
-                    <span>India</span>
+              {/* Content */}
+              <div className="flex-1 min-w-0 space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h3 className="text-xl font-bold tracking-tight">Shivam Yadav</h3>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                    Builder
+                  </span>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    India
                   </div>
                 </div>
 
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-                  DevOps engineer focused on building practical tools for
-                  infrastructure and cloud learning. I created DevLabMaster to give engineers
-                  a hands-on environment for mastering the full DevOps toolchain — Linux, Terraform,
-                  Docker, Kubernetes, and more — without configuring VMs or cloud accounts.
-                  Just open a lab and start solving real-world tasks.
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  DevOps engineer focused on building practical tools for infrastructure and cloud learning.
+                  Created DevLabMaster to give engineers a hands-on environment for mastering the full
+                  DevOps toolchain — without configuring VMs or cloud accounts.
                 </p>
 
-                <div className="flex flex-wrap gap-3 pt-1">
-                  <a
-                    href="https://www.linkedin.com/in/shivamyd"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold",
-                      "bg-[#0077B5]/10 border border-[#0077B5]/30 hover:bg-[#0077B5]/20 hover:border-[#0077B5]/50",
-                      "text-[#38bdf8] transition-all duration-200"
-                    )}
-                  >
-                    <Linkedin className="w-4 h-4" />
-                    LinkedIn
-                    <ExternalLink className="w-3 h-3 opacity-60" />
-                  </a>
-                </div>
+                <a
+                  href="https://www.linkedin.com/in/shivamyd"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Linkedin className="w-4 h-4" />
+                  linkedin.com/in/shivamyd
+                  <ExternalLink className="w-3 h-3 opacity-50" />
+                </a>
               </div>
             </div>
           </div>
