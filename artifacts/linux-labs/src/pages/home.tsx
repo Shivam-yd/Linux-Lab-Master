@@ -380,9 +380,6 @@ export default function Home() {
                 Sign In
               </Link>
             </div>
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4">
-              Continue as Guest
-            </Link>
           </motion.div>
         </motion.div>
       </section>

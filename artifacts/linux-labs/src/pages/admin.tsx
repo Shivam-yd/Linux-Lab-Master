@@ -68,7 +68,7 @@ type LabInsightRow = {
 function displayName(s: StudentRow) {
   if (s.name) return s.name
   if (s.email) return s.email.split("@")[0]
-  return `Guest ${s.id.slice(0, 8)}`
+  return s.id.slice(0, 8)
 }
 
 function displaySub(s: StudentRow) {
@@ -874,7 +874,7 @@ export default function AdminPage() {
                     {sessions.data.map((s: SessionRow) => {
                       const labTitle = labMeta[s.lab_id]?.title ?? s.lab_id
                       const trackMeta = labMeta[s.lab_id] ? TRACK_META[labMeta[s.lab_id].track] : null
-                      const studentLabel = s.name ?? s.email?.split("@")[0] ?? `Guest ${s.student_id.slice(0, 8)}`
+                      const studentLabel = s.name ?? s.email?.split("@")[0] ?? s.student_id.slice(0, 8)
                       const isKilling = killSession.isPending && (killSession.variables as any)?.studentId === s.student_id && (killSession.variables as any)?.labId === s.lab_id
                       return (
                         <div key={`${s.student_id}:${s.lab_id}`} className="rounded-xl border border-border/50 bg-card/60 px-5 py-4 grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-center">

@@ -32,7 +32,7 @@ export function AccountDropdown() {
   }, [])
 
   const user = session?.user
-  const name = user?.name || user?.email || "Guest"
+  const name = user?.name || user?.email || ""
   const email = user?.email || ""
   const initial = name.charAt(0).toUpperCase()
 
@@ -85,11 +85,8 @@ export function AccountDropdown() {
                 {user ? initial : <User className="w-4 h-4" />}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{user ? name : "Guest"}</p>
-                {user && email
-                  ? <p className="text-xs text-muted-foreground truncate">{email}</p>
-                  : !user && <p className="text-xs text-muted-foreground">Progress saved by cookie</p>
-                }
+                <p className="text-sm font-semibold text-foreground truncate">{name}</p>
+                {email && <p className="text-xs text-muted-foreground truncate">{email}</p>}
               </div>
             </div>
           </div>

@@ -102,7 +102,7 @@ router.get("/summary", async (_req, res): Promise<void> => {
 /**
  * GET /admin/leaderboard
  * All students ranked by passed lab count.
- * Includes name/email for Better Auth users, null for guests.
+ * Includes name/email for all registered users.
  */
 router.get("/leaderboard", async (_req, res): Promise<void> => {
   const result = await db.execute(sql`

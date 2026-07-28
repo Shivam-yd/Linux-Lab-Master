@@ -29,7 +29,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const { data: session } = useSession()
   const user = session?.user
-  const name  = user?.name  || user?.email || "Guest"
+  const name  = user?.name  || user?.email || ""
   const email = user?.email || ""
   const initial = name.charAt(0).toUpperCase()
 
@@ -49,11 +49,13 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-muted-foreground truncate leading-tight">
-              {user ? name : "Guest"}
+              {name}
             </p>
-            <p className="text-[10px] text-muted-foreground/45 truncate leading-none mt-0.5">
-              {user ? email : "Progress saved by cookie"}
-            </p>
+            {email && (
+              <p className="text-[10px] text-muted-foreground/45 truncate leading-none mt-0.5">
+                {email}
+              </p>
+            )}
           </div>
         )}
         {/* About icon — right side of the row */}
@@ -128,20 +130,6 @@ export default function Catalog() {
 
   useEffect(() => {
     fetchSyncStatus().then(setSyncStatus).catch(() => {})
-  }, [])
-
-  // Guest progress claim toast — cookie set by requireAuth middleware when migration happened
-  const { toast } = useToast()
-  useEffect(() => {
-    const match = document.cookie.match(/(?:^|;\s*)_guest_claimed=(\d+)/)
-    if (match) {
-      const count = parseInt(match[1], 10)
-      toast({
-        title: "Progress saved to your account",
-        description: `${count} lab${count !== 1 ? "s" : ""} from your guest session have been linked to your account.`,
-      })
-      document.cookie = "_guest_claimed=; Max-Age=0; path=/"
-    }
   }, [])
 
   const handleFetchLabs = useCallback(async () => {

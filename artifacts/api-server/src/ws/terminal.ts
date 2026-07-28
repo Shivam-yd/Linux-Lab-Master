@@ -1,5 +1,4 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
 import type { Duplex } from "node:stream";
 import { fromNodeHeaders } from "better-auth/node";
@@ -9,62 +8,13 @@ import { getLabAccessError } from "../lib/plan";
 import { getRunningContainer, stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
 
-// ── Cookie helpers ─────────────────────────────────────────────────────────────
-
-/** Parse a raw Cookie header into a name → raw-value map. */
-function parseCookieHeader(header: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const pair of header.split(";")) {
-    const idx = pair.indexOf("=");
-    if (idx < 0) continue;
-    const key = pair.slice(0, idx).trim();
-    const val = pair.slice(idx + 1).trim();
-    try { out[key] = decodeURIComponent(val); } catch { out[key] = val; }
-  }
-  return out;
-}
-
-/**
- * Verify an express cookie-parser signed cookie value (format: `s:value.hmac`).
- * Returns the original value on success, null if the signature is invalid or
- * the format is unrecognised.
- */
-function unsignCookie(raw: string, secret: string): string | null {
-  if (!raw.startsWith("s:")) return null;
-  const withoutPrefix = raw.slice(2);
-  const dotIdx = withoutPrefix.lastIndexOf(".");
-  if (dotIdx < 0) return null;
-  const val = withoutPrefix.slice(0, dotIdx);
-  const mac = withoutPrefix.slice(dotIdx + 1);
-  // cookie-signature strips trailing '=' from the base64 MAC when signing,
-  // so we must strip them from the expected value before comparing or
-  // timingSafeEqual will always fail (the two buffers have different lengths).
-  const expected = createHmac("sha256", secret).update(val).digest("base64").replace(/=+$/, "");
-  try {
-    // Use constant-time comparison to prevent timing attacks.
-    const macBuf = Buffer.from(mac);
-    const expBuf = Buffer.from(expected);
-    if (macBuf.length !== expBuf.length) return null;
-    return timingSafeEqual(macBuf, expBuf) ? val : null;
-  } catch {
-    return null;
-  }
-}
-
 // ── Auth ───────────────────────────────────────────────────────────────────────
 
-const GUEST_COOKIE = "_sid";
-
 /**
- * Resolves a studentId from a WebSocket upgrade request using the same two-tier
- * strategy as the HTTP `requireAuth` middleware:
- *   1. Better Auth session cookie  →  authenticated user ID
- *   2. Signed guest `_sid` cookie  →  anonymous student ID
- *
- * Returns null only when neither credential is present or valid.
+ * Resolves a studentId from a WebSocket upgrade request.
+ * Requires a valid Better Auth session; returns null otherwise.
  */
 async function studentIdFromUpgradeRequest(req: IncomingMessage): Promise<string | null> {
-  // ── Tier 1: Better Auth authenticated session ──────────────────────────────
   try {
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
@@ -73,19 +23,6 @@ async function studentIdFromUpgradeRequest(req: IncomingMessage): Promise<string
   } catch (err) {
     logger.warn({ err }, "terminal WS: Better Auth session check failed");
   }
-
-  // ── Tier 2: Signed guest cookie (mirrors HTTP requireAuth) ─────────────────
-  const cookieHeader = req.headers.cookie ?? "";
-  if (cookieHeader) {
-    const cookies = parseCookieHeader(cookieHeader);
-    const raw = cookies[GUEST_COOKIE];
-    if (raw) {
-      const secret = process.env["SESSION_SECRET"] ?? "changeme-set-SESSION_SECRET-in-production";
-      const guestId = unsignCookie(raw, secret);
-      if (guestId) return guestId;
-    }
-  }
-
   return null;
 }
 
