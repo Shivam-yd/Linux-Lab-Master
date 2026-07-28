@@ -191,7 +191,7 @@ export default function Home() {
           style={{ animation: "marquee-rtl 20s linear infinite", willChange: "transform" }}
         >
           {/* two copies — one set = 100vw, so we shift exactly -100vw for a seamless loop */}
-          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color, comingSoon }, i) => (
+          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
             <div
               key={i}
               className="flex items-center justify-center gap-3 shrink-0 select-none"
@@ -199,17 +199,11 @@ export default function Home() {
             >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{
-                  background: `${color}${comingSoon ? "0e" : "18"}`,
-                  border: `1.5px solid ${color}${comingSoon ? "22" : "35"}`,
-                }}
+                style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
               >
-                <Icon className="w-4 h-4" style={{ color, opacity: comingSoon ? 0.4 : 1 }} />
+                <Icon className="w-4 h-4" style={{ color }} />
               </div>
-              <div className="flex flex-col leading-tight">
-                <span className={cn("text-sm font-semibold tracking-tight whitespace-nowrap", comingSoon ? "text-foreground/30" : "text-foreground/70")}>{label}</span>
-                {comingSoon && <span className="text-[10px] font-medium text-foreground/25 whitespace-nowrap">Coming soon</span>}
-              </div>
+              <span className="text-sm font-semibold tracking-tight text-foreground/70 whitespace-nowrap">{label}</span>
             </div>
           ))}
         </div>
