@@ -5,7 +5,7 @@ import { auth } from "../lib/auth";
 import { db } from "@workspace/db";
 import { stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
-import { getEffectivePlan, hasPlanAccess } from "../lib/plan";
+import { getPlanInfo } from "../lib/plan";
 
 const router = Router();
 
@@ -69,21 +69,8 @@ router.delete("/account", async (req, res): Promise<void> => {
 router.get("/account/plan", async (req, res): Promise<void> => {
   const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
   if (!session?.user?.id) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const [plan, hasSubscription] = await Promise.all([
-    getEffectivePlan(session.user.id),
-    hasPlanAccess(session.user.id),
-  ]);
-  const trial = await db.execute(sql`
-    SELECT trial_ends_at
-    FROM subscriptions
-    WHERE user_id = ${session.user.id}
-    LIMIT 1
-  `);
-  res.json({
-    plan,
-    hasSubscription,
-    trialEndsAt: (trial.rows[0] as { trial_ends_at: Date | null } | undefined)?.trial_ends_at ?? null,
-  });
+  const { plan, hasSubscription, trialEndsAt } = await getPlanInfo(session.user.id);
+  res.json({ plan, hasSubscription, trialEndsAt });
 });
 
 /** POST /account/plan — choose a free plan (creates subscription row) */
