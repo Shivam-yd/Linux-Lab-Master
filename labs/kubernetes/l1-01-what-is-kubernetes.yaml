@@ -17,9 +17,9 @@ instructions: |
   ## What is Kubernetes?
 
   **Scenario**
-  Before a maintenance window your team exported a snapshot of the production cluster. The files are under `/root/cluster/`. Your lead needs three things before the window opens: how many worker nodes are currently Ready, the name of the namespace where Kubernetes' own system components live, and a Pod manifest for the new health-check probe the team wants to deploy after maintenance.
+  A maintenance window starts in 30 minutes. Your lead has dropped three files into `/root/cluster/` — a node list and a pod list pulled straight from the production cluster — and needs answers fast: how many worker nodes are Ready, which namespace the cluster's own system components live in, and a Pod manifest ready to apply the moment the window closes. You're on it.
 
-  **Your task:** explore the cluster snapshot files, record the count of Ready worker nodes and the system namespace, then write a Pod manifest named `web-probe` using `nginx:alpine` with the label `env: staging`.
+  **Your task:** read the cluster files, write the worker node count and system namespace to output files, and create the Pod manifest for `web-probe`.
 
   **What You'll Deliver**
   - `/root/ready-nodes.txt` — number of worker nodes in Ready state
@@ -28,12 +28,11 @@ instructions: |
 
   ## Steps
 
-  1. `cat /root/cluster/nodes.txt` — read the node list; count workers (role `<none>`) with status `Ready`
-  2. Write the count: `echo "2" > /root/ready-nodes.txt`
-  3. `cat /root/cluster/system-pods.txt` — find which namespace the system pods live in
-  4. Write the namespace: `echo "kube-system" > /root/system-namespace.txt`
-  5. Create the Pod manifest:
-     ```
+  1. `cat /root/cluster/nodes.txt`
+  2. `echo "2" > /root/ready-nodes.txt`
+  3. `cat /root/cluster/system-pods.txt`
+  4. `echo "kube-system" > /root/system-namespace.txt`
+  5. ```
      cat > /root/web-probe.yaml <<'EOF'
      apiVersion: v1
      kind: Pod
@@ -47,7 +46,7 @@ instructions: |
            image: nginx:alpine
      EOF
      ```
-  6. Confirm it looks right: `cat /root/web-probe.yaml`
+  6. `cat /root/web-probe.yaml`
 
 tasks:
   - id: "ready-worker-nodes"
