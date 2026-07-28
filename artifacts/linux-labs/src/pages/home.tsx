@@ -63,86 +63,126 @@ const featureContainer = {
 
 // ── Terminal preview mockup ───────────────────────────────────────
 function TerminalMockup() {
+  const prompt = <span style={{ color: "#22c55e" }}>student1@af25b9:~$</span>
+  const promptEtc = <span style={{ color: "#22c55e" }}>student1@af25b9:/etc$</span>
   return (
-    <div className="rounded-2xl border border-border/60 overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.45)] text-left select-none" style={{ background: "#0d1117" }}>
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.07]" style={{ background: "#161b22" }}>
-        <div className="flex items-center gap-1.5 text-xs text-white/50 font-medium">
-          <ArrowRight className="w-3 h-3 rotate-180" />
-          <span>BACK</span>
+    <div
+      className="rounded-xl overflow-hidden text-left select-none w-full"
+      style={{
+        boxShadow: "0 0 0 1px rgba(34,211,238,0.12), 0 40px 100px rgba(0,0,0,0.7), 0 0 80px rgba(124,58,237,0.07)",
+      }}
+    >
+      {/* ── Browser chrome ── */}
+      <div className="flex items-center gap-2 px-4 h-10 shrink-0" style={{ background: "#1c1f26", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full inline-block" style={{ background: "#ff5f57" }} />
+          <span className="w-3 h-3 rounded-full inline-block" style={{ background: "#febc2e" }} />
+          <span className="w-3 h-3 rounded-full inline-block" style={{ background: "#28c840" }} />
         </div>
-        <div className="flex items-center gap-2 ml-2">
-          <Terminal className="w-3.5 h-3.5 text-primary" />
-          <span className="text-xs font-semibold text-white/90">Navigating the Filesystem</span>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border" style={{ color: "#22d3ee", borderColor: "#22d3ee44", background: "#22d3ee11" }}>BEGINNER</span>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5" style={{ background: "#22d3ee22", color: "#22d3ee", border: "1px solid #22d3ee44" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" /> ACTIVE
-          </span>
-          <span className="text-[10px] font-medium px-2.5 py-1 rounded-md text-white/50 border border-white/10">STOP</span>
-          <span className="text-[10px] font-medium px-2.5 py-1 rounded-md text-white/50 border border-white/10">RESET</span>
-          <div className="ml-2 flex items-center gap-1.5 text-[10px] text-white/40">
-            <span>CONNECTED</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+        <div className="flex-1 mx-4">
+          <div className="max-w-xs mx-auto h-6 rounded-md flex items-center justify-center gap-1.5 px-3 text-[11px]" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.3)" }}>
+            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#22c55e", opacity: 0.8 }} />
+            devlabmaster.io/labs/linux-l1-navigation
           </div>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex h-72">
-        {/* Left: scenario */}
-        <div className="w-64 shrink-0 border-r border-white/[0.07] overflow-hidden flex flex-col" style={{ background: "#0d1117" }}>
-          <div className="flex-1 p-4 overflow-hidden space-y-3">
-            <p className="text-xs font-bold text-white/90">Scenario</p>
-            <p className="text-[11px] text-white/55 leading-relaxed">
-              Your task: explore the filesystem hierarchy and locate key configuration files using
-              standard shell navigation commands.
+      {/* ── Workspace top bar ── */}
+      <div className="flex items-center gap-3 px-5 h-12 shrink-0" style={{ background: "#0f1117", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <button className="flex items-center gap-1.5 text-[11px] font-semibold text-white/40 hover:text-white/70 transition-colors">
+          <ArrowRight className="w-3.5 h-3.5 rotate-180" /> BACK
+        </button>
+        <div className="w-px h-4 bg-white/10" />
+        <div className="flex items-center gap-2">
+          <Terminal className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+          <span className="text-[13px] font-semibold text-white/90">Navigating the Filesystem</span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#22d3ee15", color: "#22d3ee", border: "1px solid #22d3ee30" }}>BEGINNER</span>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg" style={{ background: "#22d3ee18", color: "#22d3ee", border: "1px solid #22d3ee35" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" /> ACTIVE
+          </span>
+          <span className="text-[11px] font-semibold px-3 py-1.5 rounded-lg text-white/35 border border-white/[0.08]">STOP</span>
+          <span className="text-[11px] font-semibold px-3 py-1.5 rounded-lg text-white/35 border border-white/[0.08]">RESET</span>
+          <div className="ml-1 flex items-center gap-1.5 text-[11px] text-white/30 font-medium">
+            CONNECTED <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Body ── */}
+      <div className="flex" style={{ height: 420 }}>
+
+        {/* Left panel */}
+        <div className="w-72 shrink-0 flex flex-col overflow-hidden" style={{ background: "#0b0e14", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex-1 p-6 overflow-hidden space-y-4">
+            <h3 className="text-[15px] font-bold text-white">Scenario</h3>
+            <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+              Your team needs to audit server configuration. Explore the filesystem hierarchy and
+              locate key files using standard shell navigation commands.
             </p>
-            <div className="space-y-1.5 pt-1">
+            <p className="text-[12.5px] leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+              Your task: navigate to <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: "rgba(34,211,238,0.12)", color: "#22d3ee" }}>/etc</code>,
+              find the <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: "rgba(34,211,238,0.12)", color: "#22d3ee" }}>hostname</code> file,
+              and confirm the server identity.
+            </p>
+            <div className="pt-1 space-y-2.5">
               {[
                 { done: true,  label: "Navigate to /etc and list contents" },
-                { done: true,  label: "Find the hostname config file" },
-                { done: false, label: "Print working directory path" },
-                { done: false, label: "List hidden files in home dir" },
+                { done: true,  label: "Locate the hostname config file" },
+                { done: false, label: "Print current working directory" },
+                { done: false, label: "List hidden files in home directory" },
               ].map(({ done, label }) => (
-                <div key={label} className="flex items-start gap-2">
+                <div key={label} className="flex items-center gap-2.5">
                   {done
-                    ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-px" />
-                    : <Circle       className="w-3.5 h-3.5 text-white/20 shrink-0 mt-px" />}
-                  <span className={cn("text-[11px] leading-tight", done ? "text-white/70 line-through decoration-white/30" : "text-white/50")}>{label}</span>
+                    ? <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: "#22c55e" }} />
+                    : <Circle       className="w-4 h-4 shrink-0" style={{ color: "rgba(255,255,255,0.15)" }} />}
+                  <span className="text-[12px]" style={{ color: done ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.4)", textDecoration: done ? "line-through" : "none", textDecorationColor: "rgba(255,255,255,0.2)" }}>{label}</span>
                 </div>
               ))}
             </div>
           </div>
+
           {/* Verify button */}
-          <div className="p-3 border-t border-white/[0.07]">
-            <div className="w-full py-2 rounded-lg text-center text-xs font-bold flex items-center justify-center gap-2" style={{ background: "#22d3ee", color: "#0d1117" }}>
-              <ScanLine className="w-3.5 h-3.5" /> VERIFY_OBJECTIVES
+          <div className="p-4 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2 text-[12px] font-bold cursor-pointer" style={{ background: "#22d3ee", color: "#0a0e14" }}>
+              <ScanLine className="w-4 h-4" /> VERIFY_OBJECTIVES
             </div>
           </div>
         </div>
 
         {/* Right: terminal */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0" style={{ background: "#080b10" }}>
           {/* Tab strip */}
-          <div className="flex items-center gap-0 border-b border-white/[0.07] px-2 pt-1" style={{ background: "#161b22" }}>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-t-md text-[11px] font-medium text-white/90 border border-b-0 border-white/10" style={{ background: "#0d1117" }}>
-              <Terminal className="w-3 h-3 text-primary" /> server1 <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block ml-0.5" />
+          <div className="flex items-center gap-1 px-3 pt-2 shrink-0" style={{ background: "#0d1018", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-t-lg" style={{ background: "#080b10", color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid #080b10", marginBottom: -1 }}>
+              <Terminal className="w-3 h-3" style={{ color: "#22d3ee" }} />
+              server1
+              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: "#22d3ee" }} />
             </div>
           </div>
-          {/* Terminal body */}
-          <div className="flex-1 p-3 font-mono text-[11px] leading-relaxed overflow-hidden" style={{ background: "#0d1117" }}>
-            <div className="px-2 py-1 rounded mb-2 text-white/80 font-semibold text-[11px]" style={{ background: "#a855f733" }}>⬡ server1</div>
-            <div className="text-white/40">--- Connected to server1. ---</div>
-            <div><span style={{ color: "#22d3ee" }}>student1@a3f92b1c:~$</span> <span className="text-white/80">cd /etc && ls -la | head</span></div>
-            <div className="text-white/50 pl-2">total 1.4M</div>
-            <div className="text-white/50 pl-2">drwxr-xr-x  1 root root  4096 Jul 28 09:12 <span className="text-blue-400">.</span></div>
-            <div className="text-white/50 pl-2">-rw-r--r--  1 root root    13 Jul 28 09:12 <span className="text-white/70">hostname</span></div>
-            <div className="text-white/50 pl-2">-rw-r--r--  1 root root   174 Jul 28 09:12 <span className="text-white/70">hosts</span></div>
-            <div><span style={{ color: "#22d3ee" }}>student1@a3f92b1c:/etc$</span> <span className="text-white/80">cat hostname</span></div>
-            <div className="text-white/50 pl-2">a3f92b1c</div>
-            <div><span style={{ color: "#22d3ee" }}>student1@a3f92b1c:/etc$</span> <span className="text-white/80 animate-pulse">▌</span></div>
+
+          {/* Purple server banner */}
+          <div className="px-4 py-2 shrink-0 flex items-center gap-2 text-[12px] font-semibold text-white/90" style={{ background: "rgba(139,92,246,0.35)" }}>
+            <span style={{ color: "#c4b5fd" }}>⬡</span> server1
+          </div>
+
+          {/* Terminal output */}
+          <div className="flex-1 p-4 overflow-hidden font-mono text-[12.5px] leading-6 space-y-0" style={{ background: "#080b10", color: "rgba(255,255,255,0.55)" }}>
+            <div style={{ color: "#22c55e" }}>--- Connected to server1. ---</div>
+            <div className="h-2" />
+            <div>{prompt} <span style={{ color: "rgba(255,255,255,0.85)" }}>cd /etc && ls -la | head -6</span></div>
+            <div>total 1468</div>
+            <div>drwxr-xr-x 1 root root  4096 Jul 28 09:12 <span style={{ color: "#60a5fa" }}>.</span></div>
+            <div>drwxr-xr-x 1 root root  4096 Jul 28 09:12 <span style={{ color: "#60a5fa" }}>..</span></div>
+            <div>-rw-r--r-- 1 root root    13 Jul 28 09:12 <span style={{ color: "rgba(255,255,255,0.85)" }}>hostname</span></div>
+            <div>-rw-r--r-- 1 root root   174 Jul 28 09:12 <span style={{ color: "rgba(255,255,255,0.85)" }}>hosts</span></div>
+            <div>-rw-r--r-- 1 root root   191 Jul 28 09:12 <span style={{ color: "rgba(255,255,255,0.85)" }}>resolv.conf</span></div>
+            <div className="h-1" />
+            <div>{promptEtc} <span style={{ color: "rgba(255,255,255,0.85)" }}>cat hostname</span></div>
+            <div>af25b946401e</div>
+            <div className="h-1" />
+            <div className="flex items-center gap-0">{promptEtc} <span className="w-2 h-4 ml-1 inline-block rounded-sm animate-pulse" style={{ background: "#22c55e", opacity: 0.7 }} /></div>
           </div>
         </div>
       </div>
