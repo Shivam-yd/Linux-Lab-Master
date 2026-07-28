@@ -3,7 +3,7 @@ import { Link } from "wouter"
 import { Redirect } from "wouter"
 import {
   Terminal, Layers, Server, Container, GitBranch,
-  ArrowRight, ScanLine, TrendingUp,
+  ArrowRight, ScanLine, TrendingUp, ShipWheel, Bot,
 } from "lucide-react"
 import { motion, type Variants } from "framer-motion"
 import { useListLabs } from "@workspace/api-client-react"
@@ -15,11 +15,13 @@ import { NotificationBell } from "@/components/notification-bell"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 const TRACKS = [
-  { label: "Linux",     icon: Terminal,  color: "#22d3ee", iconClass: "group-hover:[animation:flicker_0.6s_ease-in-out_infinite]" },
-  { label: "Terraform", icon: Layers,    color: "#c084fc", iconClass: "group-hover:animate-bounce" },
-  { label: "Jenkins",   icon: Server,    color: "#f97316", iconClass: "group-hover:animate-pulse group-hover:[animation-duration:0.7s]" },
-  { label: "Docker",    icon: Container, color: "#38bdf8", iconClass: "group-hover:[animation:breathe_1s_ease-in-out_infinite]" },
-  { label: "Git",       icon: GitBranch, color: "#f87171", iconClass: "group-hover:[animation:swing_0.8s_ease-in-out_infinite]" },
+  { label: "Linux",      icon: Terminal,  color: "#22d3ee", iconClass: "group-hover:[animation:flicker_0.6s_ease-in-out_infinite]" },
+  { label: "Terraform",  icon: Layers,    color: "#c084fc", iconClass: "group-hover:animate-bounce" },
+  { label: "Jenkins",    icon: Server,    color: "#f97316", iconClass: "group-hover:animate-pulse group-hover:[animation-duration:0.7s]" },
+  { label: "Docker",     icon: Container, color: "#38bdf8", iconClass: "group-hover:[animation:breathe_1s_ease-in-out_infinite]" },
+  { label: "Git",        icon: GitBranch, color: "#f87171", iconClass: "group-hover:[animation:swing_0.8s_ease-in-out_infinite]" },
+  { label: "Kubernetes", icon: ShipWheel, color: "#60a5fa", comingSoon: true },
+  { label: "Ansible",    icon: Bot,       color: "#34d399", comingSoon: true },
 ]
 
 const FEATURES = [
@@ -189,19 +191,25 @@ export default function Home() {
           style={{ animation: "marquee-rtl 20s linear infinite", willChange: "transform" }}
         >
           {/* two copies — one set = 100vw, so we shift exactly -100vw for a seamless loop */}
-          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color }, i) => (
+          {[...TRACKS, ...TRACKS].map(({ label, icon: Icon, color, comingSoon }, i) => (
             <div
               key={i}
               className="flex items-center justify-center gap-3 shrink-0 select-none"
-              style={{ width: "20vw" }}
+              style={{ width: "calc(100vw / 7)" }}
             >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
+                style={{
+                  background: `${color}${comingSoon ? "0e" : "18"}`,
+                  border: `1.5px solid ${color}${comingSoon ? "22" : "35"}`,
+                }}
               >
-                <Icon className="w-4 h-4" style={{ color }} />
+                <Icon className="w-4 h-4" style={{ color, opacity: comingSoon ? 0.4 : 1 }} />
               </div>
-              <span className="text-sm font-semibold tracking-tight text-foreground/70 whitespace-nowrap">{label}</span>
+              <div className="flex flex-col leading-tight">
+                <span className={cn("text-sm font-semibold tracking-tight whitespace-nowrap", comingSoon ? "text-foreground/30" : "text-foreground/70")}>{label}</span>
+                {comingSoon && <span className="text-[10px] font-medium text-foreground/25 whitespace-nowrap">Coming soon</span>}
+              </div>
             </div>
           ))}
         </div>
