@@ -32,7 +32,9 @@ instructions: |
   2. `echo "2" > /root/ready-nodes.txt`
   3. `cat /root/cluster/system-pods.txt`
   4. `echo "kube-system" > /root/system-namespace.txt`
-  5. ```
+  5. Create the Pod manifest:
+
+     ```
      cat > /root/web-probe.yaml <<'EOF'
      apiVersion: v1
      kind: Pod
