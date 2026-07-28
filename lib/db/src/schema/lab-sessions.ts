@@ -13,7 +13,7 @@ import { userTable } from "./auth";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-// One row per anonymous browser (identified via a long-lived cookie).
+// One row per authenticated user — JIT-provisioned on first API request.
 export const studentsTable = pgTable("students", {
   id: text("id").primaryKey(),
   createdAt: timestamp("created_at", { withTimezone: true })
