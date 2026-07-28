@@ -101,12 +101,9 @@ export default function CertificatePage() {
       return
     }
 
-    let cancelled = false
-    setCertLoading(true)
     fetch(`${basePath}/api/certs/mine`, { credentials: "include" })
       .then(r => r.ok ? r.json() : [])
       .then((certs: Array<StoredCert & { track: string; level: number | null }>) => {
-        if (cancelled) return
         const match = certs.find(c =>
           c.track === track &&
           (levelNum == null ? c.level == null : c.level === levelNum) &&
@@ -118,13 +115,7 @@ export default function CertificatePage() {
         }
       })
       .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setCertLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
+      .finally(() => setCertLoading(false))
   }, [session?.user?.id, track, levelNum])
 
   useMeta(`${tm.label} Certificate — DevLabMaster`)
