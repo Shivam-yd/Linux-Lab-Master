@@ -4,22 +4,22 @@ track: "kubernetes"
 level: 1
 category: "Kubernetes Fundamentals"
 difficulty: "beginner"
-summary: "Explore a cluster state snapshot, identify ready worker nodes and system components, and write your first Pod manifest."
+summary: "Query a live-simulated cluster with real kubectl commands, identify ready worker nodes and system components, and write your first Pod manifest."
 estimatedMinutes: 20
 order: 100
 
 objectives:
-  - "Read kubectl-style output to identify node roles and status"
-  - "Locate the namespace where Kubernetes' own components run"
+  - "Run kubectl get nodes and read node roles and status"
+  - "Run kubectl get pods to locate the namespace where Kubernetes' own components run"
   - "Write a valid Pod manifest with required fields and a label"
 
 instructions: |
   ## What is Kubernetes?
 
   **Scenario**
-  A maintenance window starts in 30 minutes. Your lead has dropped three files into `/root/cluster/` — a node list and a pod list pulled straight from the production cluster — and needs answers fast: how many worker nodes are Ready, which namespace the cluster's own system components live in, and a Pod manifest ready to apply the moment the window closes. You're on it.
+  A maintenance window starts in 30 minutes. You have `kubectl` access to a production cluster. Your lead needs three things fast: how many worker nodes are Ready, which namespace Kubernetes' own system components live in, and a Pod manifest ready to apply the moment the window opens.
 
-  **Your task:** read the cluster files, write the worker node count and system namespace to output files, and create the Pod manifest for `web-probe`.
+  **Your task:** query the cluster with `kubectl`, write the worker node count and system namespace to output files, and create the Pod manifest for `web-probe`.
 
   **What You'll Deliver**
   - `/root/ready-nodes.txt` containing the count of Ready worker nodes
@@ -28,9 +28,9 @@ instructions: |
 
   ## Steps
 
-  1. `cat /root/cluster/nodes.txt`
+  1. `kubectl get nodes`
   2. `echo "2" > /root/ready-nodes.txt`
-  3. `cat /root/cluster/system-pods.txt`
+  3. `kubectl get pods -A`
   4. `echo "kube-system" > /root/system-namespace.txt`
   5. Create the Pod manifest:
 
@@ -48,7 +48,7 @@ instructions: |
            image: nginx:alpine
      EOF
      ```
-  6. `cat /root/web-probe.yaml`
+  6. `kubectl apply -f /root/web-probe.yaml`
 
 tasks:
   - id: "ready-worker-nodes"
@@ -66,40 +66,79 @@ terminals:
     cwd: "/root"
 
 setupScript: |
-  mkdir -p /root/cluster
-
-  cat > /root/cluster/nodes.txt <<'EOF'
-  NAME                STATUS   ROLES           AGE   VERSION
-  control-plane-1     Ready    control-plane   42d   v1.30.2
-  worker-node-1       Ready    <none>          42d   v1.30.2
-  worker-node-2       Ready    <none>          42d   v1.30.2
-  EOF
-
-  cat > /root/cluster/system-pods.txt <<'EOF'
-  NAMESPACE     NAME                                    READY   STATUS    RESTARTS
-  kube-system   coredns-7db6d8ff4d-4xk9z                1/1     Running   0
-  kube-system   coredns-7db6d8ff4d-mwt8p                1/1     Running   0
-  kube-system   etcd-control-plane-1                    1/1     Running   0
-  kube-system   kube-apiserver-control-plane-1          1/1     Running   0
-  kube-system   kube-controller-manager-control-plane-1 1/1     Running   0
-  kube-system   kube-proxy-2fhgq                        1/1     Running   0
-  kube-system   kube-proxy-9xbkr                        1/1     Running   0
-  kube-system   kube-scheduler-control-plane-1          1/1     Running   0
-  EOF
+  # Install kubectl mock that behaves like real kubectl for this cluster
+  cat > /usr/local/bin/kubectl <<'KUBECTLEOF'
+  #!/bin/sh
+  CMD="$*"
+  case "$CMD" in
+    "get nodes"|"get nodes -o wide")
+      printf "NAME                STATUS   ROLES           AGE   VERSION\n"
+      printf "control-plane-1     Ready    control-plane   42d   v1.30.2\n"
+      printf "worker-node-1       Ready    <none>          42d   v1.30.2\n"
+      printf "worker-node-2       Ready    <none>          42d   v1.30.2\n"
+      ;;
+    "get pods -A"|"get pods --all-namespaces")
+      printf "NAMESPACE     NAME                                     READY   STATUS    RESTARTS\n"
+      printf "kube-system   coredns-7db6d8ff4d-4xk9z                1/1     Running   0\n"
+      printf "kube-system   coredns-7db6d8ff4d-mwt8p                1/1     Running   0\n"
+      printf "kube-system   etcd-control-plane-1                    1/1     Running   0\n"
+      printf "kube-system   kube-apiserver-control-plane-1          1/1     Running   0\n"
+      printf "kube-system   kube-controller-manager-control-plane-1 1/1     Running   0\n"
+      printf "kube-system   kube-proxy-2fhgq                        1/1     Running   0\n"
+      printf "kube-system   kube-proxy-9xbkr                        1/1     Running   0\n"
+      printf "kube-system   kube-scheduler-control-plane-1          1/1     Running   0\n"
+      ;;
+    "get pods -n kube-system"|"get pods --namespace kube-system")
+      printf "NAME                                     READY   STATUS    RESTARTS\n"
+      printf "coredns-7db6d8ff4d-4xk9z                1/1     Running   0\n"
+      printf "coredns-7db6d8ff4d-mwt8p                1/1     Running   0\n"
+      printf "etcd-control-plane-1                    1/1     Running   0\n"
+      printf "kube-apiserver-control-plane-1          1/1     Running   0\n"
+      printf "kube-controller-manager-control-plane-1 1/1     Running   0\n"
+      printf "kube-proxy-2fhgq                        1/1     Running   0\n"
+      printf "kube-proxy-9xbkr                        1/1     Running   0\n"
+      printf "kube-scheduler-control-plane-1          1/1     Running   0\n"
+      ;;
+    "cluster-info")
+      echo "Kubernetes control plane is running at https://192.168.1.100:6443"
+      echo "CoreDNS is running at https://192.168.1.100:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy"
+      ;;
+    "version"|"version --client")
+      echo "Client Version: v1.30.2"
+      echo "Server Version: v1.30.2"
+      ;;
+    apply*)
+      FILE=$(echo "$CMD" | sed 's/apply -f //')
+      if [ -f "$FILE" ]; then
+        NAME=$(grep "name:" "$FILE" | head -1 | awk '{print $2}')
+        echo "pod/${NAME} created"
+      else
+        echo "Error: stat \"$FILE\": no such file or directory" >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "error: unknown command \"$1\"" >&2
+      echo "Run 'kubectl --help' for usage." >&2
+      exit 1
+      ;;
+  esac
+  KUBECTLEOF
+  chmod +x /usr/local/bin/kubectl
 
 verifyScript: |
   # CHECK: ready-worker-nodes
   if [ -f /root/ready-nodes.txt ] && grep -q "2" /root/ready-nodes.txt; then
     echo "CHECK:ready-worker-nodes:PASS:Correct — 2 worker nodes are in Ready state"
   else
-    echo "CHECK:ready-worker-nodes:FAIL:/root/ready-nodes.txt missing or incorrect — check /root/cluster/nodes.txt and count the Ready workers (role <none>)"
+    echo "CHECK:ready-worker-nodes:FAIL:/root/ready-nodes.txt missing or incorrect — run kubectl get nodes and count rows where ROLES is <none> and STATUS is Ready"
   fi
 
   # CHECK: system-namespace
   if [ -f /root/system-namespace.txt ] && grep -qi "kube-system" /root/system-namespace.txt; then
     echo "CHECK:system-namespace:PASS:Correct — kube-system is where Kubernetes' own components run"
   else
-    echo "CHECK:system-namespace:FAIL:/root/system-namespace.txt missing or incorrect — check /root/cluster/system-pods.txt for the NAMESPACE column"
+    echo "CHECK:system-namespace:FAIL:/root/system-namespace.txt missing or incorrect — run kubectl get pods -A and look at the NAMESPACE column"
   fi
 
   # CHECK: write-pod-manifest
@@ -114,7 +153,7 @@ verifyScript: |
   fi
 
 hints:
-  - "Start with `cat /root/cluster/nodes.txt` — the ROLES column tells you which is the control plane and which are workers."
-  - "Count the rows where ROLES is `<none>` and STATUS is `Ready` — that's your worker count."
-  - "Run `cat /root/cluster/system-pods.txt` and look at the NAMESPACE column — all system component pods share one namespace."
+  - "Run `kubectl get nodes` — the ROLES column tells you which is the control plane and which are workers."
+  - "Count the rows where ROLES is `<none>` and STATUS is `Ready` — those are your worker nodes."
+  - "Run `kubectl get pods -A` and look at the NAMESPACE column — all system component pods share one namespace."
   - "A Pod manifest needs four things at minimum: `apiVersion: v1`, `kind: Pod`, `metadata.name`, and `spec.containers`. Add your label under `metadata.labels`."
