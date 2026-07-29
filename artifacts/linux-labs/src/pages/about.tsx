@@ -4,7 +4,7 @@ import { Link } from "wouter"
 import {
   Zap, Linkedin, MapPin, Terminal,
   Layers, Server, Container, GitBranch, CheckCircle2,
-  BookOpen, ExternalLink, Heart, Award, BarChart3, RefreshCw,
+  BookOpen, ExternalLink, Heart, Award, BarChart3, RefreshCw, Box,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -13,11 +13,12 @@ import { useSession } from "@/lib/auth-client"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 const TRACKS = [
-  { label: "Linux",     icon: Terminal,  color: "#22d3ee", desc: "Filesystem, processes, networking, permissions, scripting" },
-  { label: "Terraform", icon: Layers,    color: "#c084fc", desc: "Infrastructure as Code — variables, modules, state, workspaces" },
-  { label: "Jenkins",   icon: Server,    color: "#f97316", desc: "CI/CD fundamentals — pipelines, plugins, jobs, access control" },
-  { label: "Docker",    icon: Container, color: "#38bdf8", desc: "Images, containers, Dockerfiles, volumes — via realistic simulator" },
-  { label: "Git",       icon: GitBranch, color: "#f87171", desc: "Commits, branches, merges, remotes, stash & reset" },
+  { label: "Linux",      icon: Terminal,  color: "#22d3ee", desc: "Filesystem, processes, networking, permissions, scripting" },
+  { label: "Terraform",  icon: Layers,    color: "#c084fc", desc: "Infrastructure as Code — variables, modules, state, workspaces" },
+  { label: "Jenkins",    icon: Server,    color: "#f97316", desc: "CI/CD fundamentals — pipelines, plugins, jobs, access control" },
+  { label: "Docker",     icon: Container, color: "#38bdf8", desc: "Images, containers, Dockerfiles, volumes — via realistic simulator" },
+  { label: "Git",        icon: GitBranch, color: "#f87171", desc: "Commits, branches, merges, remotes, stash & reset" },
+  { label: "Kubernetes", icon: Box,       color: "#60a5fa", desc: "Pods, services, deployments — orchestrate containers with kubectl" },
 ]
 
 const FEATURES = [
@@ -88,8 +89,8 @@ export default function About() {
 
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
             A self-hosted platform that drops you into real terminal environments to
-            practise Linux, Terraform, Jenkins, Docker, and Git — no cloud account,
-            no local setup, no multiple-choice questions.
+            practise Linux, Terraform, Jenkins, Docker, Git, and Kubernetes — no cloud
+            account, no local setup, no multiple-choice questions.
           </p>
 
           {/* Stats row */}
