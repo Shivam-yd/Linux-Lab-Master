@@ -1,0 +1,286 @@
+id: "kubernetes-pods-concepts"
+title: "Kubernetes Pods: Create, Inspect, and Delete"
+track: "kubernetes"
+level: 1
+category: "Kubernetes Fundamentals"
+difficulty: "beginner"
+summary: "Write Pod manifests, apply them to a simulated cluster, inspect a running Pod's IP, build a multi-container sidecar Pod, then delete a Pod — covering the full Pod lifecycle."
+estimatedMinutes: 25
+order: 200
+
+objectives:
+  - "Write a valid Pod manifest with apiVersion, kind, metadata labels, and spec containers"
+  - "Apply a manifest with kubectl apply -f and confirm the Pod is Running"
+  - "Use kubectl describe pod to read a running Pod's cluster IP address"
+  - "Create a multi-container Pod to understand the sidecar pattern"
+  - "Delete a Pod with kubectl delete pod"
+
+instructions: |
+  ## Kubernetes Pods: Create, Inspect, and Delete
+
+  **Scenario**
+  Your team is validating a new microservice image before wiring up a full Deployment.
+  You need to drop it into the cluster as a bare Pod, inspect its runtime state, show a
+  colleague how the sidecar logging pattern works, then clean up.
+
+  **What You'll Deliver**
+  - `web-server` Pod applied to the cluster (nginx:alpine, label `app: web`)
+  - `/root/pod-ip.txt` — the cluster IP of the `web-server` Pod
+  - `logger-pod` running with two containers: `main` (nginx:alpine) + `sidecar` (busybox)
+  - `web-server` deleted from the cluster
+
+  ## Steps
+
+  ### 1. Write and apply the web-server Pod manifest
+
+  A Pod manifest has four required sections: `apiVersion`, `kind`, `metadata` (with a name),
+  and `spec` (with at least one container).
+
+  ```
+  cat > /root/web-server.yaml <<'EOF'
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: web-server
+    labels:
+      app: web
+  spec:
+    containers:
+      - name: web
+        image: nginx:alpine
+  EOF
+
+  kubectl apply -f /root/web-server.yaml
+  kubectl get pods
+  ```
+
+  ### 2. Inspect the Pod and save its IP
+
+  `kubectl describe pod` shows the full runtime state: IP, node, status, and per-container
+  details. Pipe it through grep and awk to extract just the IP field.
+
+  ```
+  kubectl describe pod web-server
+  kubectl describe pod web-server | grep "^IP:" | awk '{print $2}' > /root/pod-ip.txt
+  cat /root/pod-ip.txt
+  ```
+
+  ### 3. Create a multi-container Pod
+
+  All containers inside a Pod share the same network namespace — they reach each other
+  on localhost. This is the foundation of the sidecar pattern.
+
+  ```
+  cat > /root/logger-pod.yaml <<'EOF'
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: logger-pod
+    labels:
+      app: logger
+  spec:
+    containers:
+      - name: main
+        image: nginx:alpine
+      - name: sidecar
+        image: busybox
+        command: ["sh", "-c", "while true; do echo logging; sleep 5; done"]
+  EOF
+
+  kubectl apply -f /root/logger-pod.yaml
+  kubectl get pods
+  ```
+
+  ### 4. Delete the web-server Pod
+
+  Bare Pods are not restarted automatically when deleted. To get self-healing behaviour
+  you need a Deployment — that comes in the next lab.
+
+  ```
+  kubectl delete pod web-server
+  kubectl get pods
+  ```
+
+tasks:
+  - id: "create-web-pod"
+    description: "Apply a Pod manifest for web-server — image nginx:alpine, label app: web"
+  - id: "save-pod-ip"
+    description: "Save the web-server Pod's cluster IP address to /root/pod-ip.txt"
+  - id: "create-multi-container-pod"
+    description: "Apply logger-pod — a Pod with two containers: main (nginx:alpine) and sidecar (busybox)"
+  - id: "delete-web-pod"
+    description: "Delete the web-server Pod from the cluster with kubectl delete pod"
+
+image: "alpine/k8s:1.30.2"
+shell: "sh"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /tmp/k8s/pods /tmp/k8s/applied
+  cat > /usr/local/bin/kubectl <<'KUBECTLEOF'
+  #!/bin/sh
+  # Teaching-mode kubectl interceptor.
+  # Tracks pods in /tmp/k8s/pods/ (live) and /tmp/k8s/applied/ (permanent archive).
+  # Unrecognised sub-commands fall through to the real kubectl at /usr/bin/kubectl.
+  POD_DIR=/tmp/k8s/pods
+  APPLIED=/tmp/k8s/applied
+  mkdir -p "$POD_DIR" "$APPLIED"
+
+  case "$1" in
+
+    # ── get ──────────────────────────────────────────────────────────────────
+    get)
+      shift
+      case "$1" in
+        pods|pod)
+          printf "%-32s %-8s %-10s %-10s\n" "NAME" "READY" "STATUS" "RESTARTS"
+          found=0
+          for f in "$POD_DIR"/*.yaml; do
+            [ -f "$f" ] || continue
+            found=1
+            n=$(awk '/^metadata:/{m=1} m && /^  name:/{print $2; exit}' "$f")
+            c=$(grep -c "image:" "$f" 2>/dev/null || echo 1)
+            printf "%-32s %-8s %-10s %-10s\n" "$n" "$c/$c" "Running" "0"
+          done
+          [ "$found" = "0" ] && echo "No resources found in default namespace."
+          ;;
+        nodes|node)
+          printf "%-22s %-10s %-16s %-6s %-10s\n" "NAME" "STATUS" "ROLES" "AGE" "VERSION"
+          printf "%-22s %-10s %-16s %-6s %-10s\n" "control-plane-1" "Ready" "control-plane" "42d" "v1.30.2"
+          printf "%-22s %-10s %-16s %-6s %-10s\n" "worker-node-1"   "Ready" "<none>"        "42d" "v1.30.2"
+          printf "%-22s %-10s %-16s %-6s %-10s\n" "worker-node-2"   "Ready" "<none>"        "42d" "v1.30.2"
+          ;;
+        *)
+          printf "error: unknown resource type '%s'\n" "$1" >&2; exit 1 ;;
+      esac
+      ;;
+
+    # ── describe ─────────────────────────────────────────────────────────────
+    describe)
+      shift
+      RESOURCE="$1"; NAME="$2"
+      case "$RESOURCE" in
+        pod|pods)
+          f="$POD_DIR/$NAME.yaml"
+          if [ ! -f "$f" ]; then
+            printf 'Error from server (NotFound): pods "%s" not found\n' "$NAME" >&2
+            exit 1
+          fi
+          # Deterministic IP derived from pod name so it is stable across calls
+          octet=$(printf "%s" "$NAME" | cksum | awk '{print ($1 % 200) + 10}')
+          printf "Name:         %s\n" "$NAME"
+          printf "Namespace:    default\n"
+          printf "Node:         worker-node-1/192.168.1.11\n"
+          printf "IP:           10.244.1.%s\n" "$octet"
+          printf "Status:       Running\n"
+          printf "Containers:\n"
+          while IFS= read -r line; do
+            case "$line" in
+              *"- name: "*) printf "  %s:\n"      "${line##*- name: }" ;;
+              *"image: "*)  printf "    Image:  %s\n" "${line##*image: }" ;;
+            esac
+          done < "$f"
+          ;;
+        *)
+          printf "error: unknown resource '%s'\n" "$RESOURCE" >&2; exit 1 ;;
+      esac
+      ;;
+
+    # ── apply ────────────────────────────────────────────────────────────────
+    apply)
+      shift
+      FILE=""
+      PREV=""
+      for arg in "$@"; do
+        if [ "$PREV" = "-f" ] || [ "$PREV" = "--filename" ]; then FILE="$arg"; fi
+        PREV="$arg"
+      done
+      if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
+        printf "error: the path \"%s\" does not exist\n" "$FILE" >&2; exit 1
+      fi
+      KIND=$(grep "^kind:" "$FILE" | awk '{print tolower($2)}')
+      NAME=$(awk '/^metadata:/{m=1} m && /^  name:/{print $2; exit}' "$FILE")
+      if [ -z "$NAME" ]; then
+        printf "error: manifest is missing metadata.name\n" >&2; exit 1
+      fi
+      cp "$FILE" "$POD_DIR/$NAME.yaml"
+      cp "$FILE" "$APPLIED/$NAME.yaml"   # permanent record for verification
+      printf "%s/%s created\n" "$KIND" "$NAME"
+      ;;
+
+    # ── delete ───────────────────────────────────────────────────────────────
+    delete)
+      shift
+      RESOURCE="$1"; NAME="$2"
+      f="$POD_DIR/$NAME.yaml"
+      if [ -f "$f" ]; then
+        rm "$f"
+        printf "pod \"%s\" deleted\n" "$NAME"
+      else
+        printf 'Error from server (NotFound): pods "%s" not found\n' "$NAME" >&2
+        exit 1
+      fi
+      ;;
+
+    # ── misc ─────────────────────────────────────────────────────────────────
+    version|"version --client")
+      printf "Client Version: v1.30.2\nKustomize Version: v5.0.4\n" ;;
+    cluster-info)
+      printf "Kubernetes control plane is running at https://192.168.1.100:6443\n" ;;
+    *)
+      exec /usr/bin/kubectl "$@" ;;
+  esac
+  KUBECTLEOF
+  chmod +x /usr/local/bin/kubectl
+
+verifyScript: |
+  POD_DIR=/tmp/k8s/pods
+  APPLIED=/tmp/k8s/applied
+
+  # CHECK: create-web-pod
+  # Uses the permanent applied/ archive so this passes even after the pod is deleted.
+  if [ -f "$APPLIED/web-server.yaml" ] \
+    && grep -q "kind: Pod"         "$APPLIED/web-server.yaml" \
+    && grep -q "name: web-server"  "$APPLIED/web-server.yaml" \
+    && grep -q "nginx:alpine"      "$APPLIED/web-server.yaml" \
+    && grep -q "app: web"          "$APPLIED/web-server.yaml"; then
+    echo "CHECK:create-web-pod:PASS:web-server Pod applied — nginx:alpine image and app:web label verified"
+  else
+    echo "CHECK:create-web-pod:FAIL:web-server not applied or incomplete — need kind:Pod, name:web-server, image:nginx:alpine, label app:web"
+  fi
+
+  # CHECK: save-pod-ip
+  if [ -f /root/pod-ip.txt ] && grep -qE "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" /root/pod-ip.txt; then
+    echo "CHECK:save-pod-ip:PASS:Pod IP address saved to /root/pod-ip.txt"
+  else
+    echo "CHECK:save-pod-ip:FAIL:/root/pod-ip.txt missing or not an IP — run: kubectl describe pod web-server | grep '^IP:' | awk '{print \$2}' > /root/pod-ip.txt"
+  fi
+
+  # CHECK: create-multi-container-pod
+  if [ -f "$APPLIED/logger-pod.yaml" ] \
+    && grep -q "kind: Pod"        "$APPLIED/logger-pod.yaml" \
+    && grep -q "nginx:alpine"     "$APPLIED/logger-pod.yaml" \
+    && grep -q "busybox"          "$APPLIED/logger-pod.yaml" \
+    && [ "$(grep -c "image:" "$APPLIED/logger-pod.yaml")" -ge 2 ]; then
+    echo "CHECK:create-multi-container-pod:PASS:logger-pod has 2 containers — nginx:alpine and busybox confirmed"
+  else
+    echo "CHECK:create-multi-container-pod:FAIL:logger-pod missing or incomplete — need 2 containers: one nginx:alpine, one busybox"
+  fi
+
+  # CHECK: delete-web-pod
+  if [ ! -f "$POD_DIR/web-server.yaml" ]; then
+    echo "CHECK:delete-web-pod:PASS:web-server Pod deleted from the cluster"
+  else
+    echo "CHECK:delete-web-pod:FAIL:web-server is still running — run: kubectl delete pod web-server"
+  fi
+
+hints:
+  - "Every Pod manifest needs apiVersion: v1, kind: Pod, metadata.name, and spec.containers with at least a name and image."
+  - "kubectl apply -f <file> creates or updates the resource — run it every time you change the manifest."
+  - "kubectl describe pod <name> shows the full runtime state including IP, Status, and each container's image."
+  - "To extract just the IP: kubectl describe pod web-server | grep '^IP:' | awk '{print $2}'"
+  - "A multi-container Pod lists two or more items under spec.containers. All containers share localhost and the same volumes."
+  - "Bare Pods deleted with kubectl delete pod are gone for good. A Deployment would restart them automatically."
