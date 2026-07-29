@@ -26,82 +26,64 @@ instructions: |
   **Your task:** apply a bare Pod, inspect and record its IP, add a sidecar container to a second Pod, then delete the first Pod — covering the full Pod lifecycle.
 
   **What You'll Deliver**
-  - `web-server` Pod applied to the cluster (nginx:alpine, label `app: web`)
+  - `/root/web-server.yaml` — Pod manifest for `web-server` (nginx:alpine, label `app: web`), applied to the cluster
   - `/root/pod-ip.txt` — the cluster IP of the `web-server` Pod
-  - `logger-pod` running with two containers: `main` (nginx:alpine) + `sidecar` (busybox)
+  - `/root/logger-pod.yaml` — Pod manifest for `logger-pod` with two containers: `main` (nginx:alpine) + `sidecar` (busybox), applied to the cluster
   - `web-server` deleted from the cluster
 
   ## Steps
 
-  ### 1. Write and apply the web-server Pod manifest
+  1. Write the web-server manifest — a Pod has four required sections: `apiVersion`, `kind`, `metadata` (with a name), and `spec` (with at least one container):
 
-  A Pod manifest has four required sections: `apiVersion`, `kind`, `metadata` (with a name),
-  and `spec` (with at least one container).
+     ```
+     cat > /root/web-server.yaml <<'EOF'
+     apiVersion: v1
+     kind: Pod
+     metadata:
+       name: web-server
+       labels:
+         app: web
+     spec:
+       containers:
+         - name: web
+           image: nginx:alpine
+     EOF
+     ```
 
-  ```
-  cat > /root/web-server.yaml <<'EOF'
-  apiVersion: v1
-  kind: Pod
-  metadata:
-    name: web-server
-    labels:
-      app: web
-  spec:
-    containers:
-      - name: web
-        image: nginx:alpine
-  EOF
+  2. Apply the manifest and confirm the Pod is Running:
+     `kubectl apply -f /root/web-server.yaml && kubectl get pods`
 
-  kubectl apply -f /root/web-server.yaml
-  kubectl get pods
-  ```
+  3. Inspect the Pod's runtime state:
+     `kubectl describe pod web-server`
 
-  ### 2. Inspect the Pod and save its IP
+  4. Extract and save the cluster IP — `kubectl describe pod` shows IP, node, and per-container details:
+     `kubectl describe pod web-server | grep "^IP:" | awk '{print $2}' > /root/pod-ip.txt && cat /root/pod-ip.txt`
 
-  `kubectl describe pod` shows the full runtime state: IP, node, status, and per-container
-  details. Pipe it through grep and awk to extract just the IP field.
+  5. Write the multi-container manifest — all containers in a Pod share the same network namespace (localhost), which is the foundation of the sidecar pattern:
 
-  ```
-  kubectl describe pod web-server
-  kubectl describe pod web-server | grep "^IP:" | awk '{print $2}' > /root/pod-ip.txt
-  cat /root/pod-ip.txt
-  ```
+     ```
+     cat > /root/logger-pod.yaml <<'EOF'
+     apiVersion: v1
+     kind: Pod
+     metadata:
+       name: logger-pod
+       labels:
+         app: logger
+     spec:
+       containers:
+         - name: main
+           image: nginx:alpine
+         - name: sidecar
+           image: busybox
+           command: ["sh", "-c", "while true; do echo logging; sleep 5; done"]
+     EOF
+     ```
 
-  ### 3. Create a multi-container Pod
+  6. Apply the multi-container Pod and confirm both containers are listed:
+     `kubectl apply -f /root/logger-pod.yaml && kubectl get pods`
 
-  All containers inside a Pod share the same network namespace — they reach each other
-  on localhost. This is the foundation of the sidecar pattern.
-
-  ```
-  cat > /root/logger-pod.yaml <<'EOF'
-  apiVersion: v1
-  kind: Pod
-  metadata:
-    name: logger-pod
-    labels:
-      app: logger
-  spec:
-    containers:
-      - name: main
-        image: nginx:alpine
-      - name: sidecar
-        image: busybox
-        command: ["sh", "-c", "while true; do echo logging; sleep 5; done"]
-  EOF
-
-  kubectl apply -f /root/logger-pod.yaml
-  kubectl get pods
-  ```
-
-  ### 4. Delete the web-server Pod
-
-  Bare Pods are not restarted automatically when deleted. To get self-healing behaviour
-  you need a Deployment — that comes in the next lab.
-
-  ```
-  kubectl delete pod web-server
-  kubectl get pods
-  ```
+  7. Delete the web-server Pod — bare Pods are not restarted automatically; a Deployment handles that:
+     `kubectl delete pod web-server && kubectl get pods`
 
 tasks:
   - id: "create-web-pod"
