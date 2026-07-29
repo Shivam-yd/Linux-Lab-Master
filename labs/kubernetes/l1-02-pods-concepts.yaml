@@ -23,6 +23,8 @@ instructions: |
   You need to drop it into the cluster as a bare Pod, inspect its runtime state, show a
   colleague how the sidecar logging pattern works, then clean up.
 
+  **Your task:** apply a bare Pod, inspect and record its IP, add a sidecar container to a second Pod, then delete the first Pod — covering the full Pod lifecycle.
+
   **What You'll Deliver**
   - `web-server` Pod applied to the cluster (nginx:alpine, label `app: web`)
   - `/root/pod-ip.txt` — the cluster IP of the `web-server` Pod
@@ -120,120 +122,12 @@ terminals:
 
 setupScript: |
   mkdir -p /tmp/k8s/pods /tmp/k8s/applied
-  cat > /usr/local/bin/kubectl <<'KUBECTLEOF'
-  #!/bin/sh
-  # Teaching-mode kubectl interceptor.
-  # Tracks pods in /tmp/k8s/pods/ (live) and /tmp/k8s/applied/ (permanent archive).
-  # Unrecognised sub-commands fall through to the real kubectl at /usr/bin/kubectl.
-  POD_DIR=/tmp/k8s/pods
-  APPLIED=/tmp/k8s/applied
-  mkdir -p "$POD_DIR" "$APPLIED"
-
-  case "$1" in
-
-    # ── get ──────────────────────────────────────────────────────────────────
-    get)
-      shift
-      case "$1" in
-        pods|pod)
-          printf "%-32s %-8s %-10s %-10s\n" "NAME" "READY" "STATUS" "RESTARTS"
-          found=0
-          for f in "$POD_DIR"/*.yaml; do
-            [ -f "$f" ] || continue
-            found=1
-            n=$(awk '/^metadata:/{m=1} m && /^  name:/{print $2; exit}' "$f")
-            c=$(grep -c "image:" "$f" 2>/dev/null || echo 1)
-            printf "%-32s %-8s %-10s %-10s\n" "$n" "$c/$c" "Running" "0"
-          done
-          [ "$found" = "0" ] && echo "No resources found in default namespace."
-          ;;
-        nodes|node)
-          printf "%-22s %-10s %-16s %-6s %-10s\n" "NAME" "STATUS" "ROLES" "AGE" "VERSION"
-          printf "%-22s %-10s %-16s %-6s %-10s\n" "control-plane-1" "Ready" "control-plane" "42d" "v1.30.2"
-          printf "%-22s %-10s %-16s %-6s %-10s\n" "worker-node-1"   "Ready" "<none>"        "42d" "v1.30.2"
-          printf "%-22s %-10s %-16s %-6s %-10s\n" "worker-node-2"   "Ready" "<none>"        "42d" "v1.30.2"
-          ;;
-        *)
-          printf "error: unknown resource type '%s'\n" "$1" >&2; exit 1 ;;
-      esac
-      ;;
-
-    # ── describe ─────────────────────────────────────────────────────────────
-    describe)
-      shift
-      RESOURCE="$1"; NAME="$2"
-      case "$RESOURCE" in
-        pod|pods)
-          f="$POD_DIR/$NAME.yaml"
-          if [ ! -f "$f" ]; then
-            printf 'Error from server (NotFound): pods "%s" not found\n' "$NAME" >&2
-            exit 1
-          fi
-          # Deterministic IP derived from pod name so it is stable across calls
-          octet=$(printf "%s" "$NAME" | cksum | awk '{print ($1 % 200) + 10}')
-          printf "Name:         %s\n" "$NAME"
-          printf "Namespace:    default\n"
-          printf "Node:         worker-node-1/192.168.1.11\n"
-          printf "IP:           10.244.1.%s\n" "$octet"
-          printf "Status:       Running\n"
-          printf "Containers:\n"
-          while IFS= read -r line; do
-            case "$line" in
-              *"- name: "*) printf "  %s:\n"      "${line##*- name: }" ;;
-              *"image: "*)  printf "    Image:  %s\n" "${line##*image: }" ;;
-            esac
-          done < "$f"
-          ;;
-        *)
-          printf "error: unknown resource '%s'\n" "$RESOURCE" >&2; exit 1 ;;
-      esac
-      ;;
-
-    # ── apply ────────────────────────────────────────────────────────────────
-    apply)
-      shift
-      FILE=""
-      PREV=""
-      for arg in "$@"; do
-        if [ "$PREV" = "-f" ] || [ "$PREV" = "--filename" ]; then FILE="$arg"; fi
-        PREV="$arg"
-      done
-      if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
-        printf "error: the path \"%s\" does not exist\n" "$FILE" >&2; exit 1
-      fi
-      KIND=$(grep "^kind:" "$FILE" | awk '{print tolower($2)}')
-      NAME=$(awk '/^metadata:/{m=1} m && /^  name:/{print $2; exit}' "$FILE")
-      if [ -z "$NAME" ]; then
-        printf "error: manifest is missing metadata.name\n" >&2; exit 1
-      fi
-      cp "$FILE" "$POD_DIR/$NAME.yaml"
-      cp "$FILE" "$APPLIED/$NAME.yaml"   # permanent record for verification
-      printf "%s/%s created\n" "$KIND" "$NAME"
-      ;;
-
-    # ── delete ───────────────────────────────────────────────────────────────
-    delete)
-      shift
-      RESOURCE="$1"; NAME="$2"
-      f="$POD_DIR/$NAME.yaml"
-      if [ -f "$f" ]; then
-        rm "$f"
-        printf "pod \"%s\" deleted\n" "$NAME"
-      else
-        printf 'Error from server (NotFound): pods "%s" not found\n' "$NAME" >&2
-        exit 1
-      fi
-      ;;
-
-    # ── misc ─────────────────────────────────────────────────────────────────
-    version|"version --client")
-      printf "Client Version: v1.30.2\nKustomize Version: v5.0.4\n" ;;
-    cluster-info)
-      printf "Kubernetes control plane is running at https://192.168.1.100:6443\n" ;;
-    *)
-      exec /usr/bin/kubectl "$@" ;;
-  esac
-  KUBECTLEOF
+  # Seed web-server in the live pods dir so the delete-web-pod check starts as
+  # FAIL on a fresh container — students must actually apply then delete it.
+  printf 'kind: Pod\nmetadata:\n  name: web-server\n' > /tmp/k8s/pods/web-server.yaml
+  # Install the kubectl shim (base64-encoded to survive sh -lc invocation).
+  # It intercepts get/describe/apply/delete so the lab works without a live API server.
+  echo "IyEvYmluL3NoCiMgVGVhY2hpbmctbW9kZSBrdWJlY3RsIGludGVyY2VwdG9yLgojIFRyYWNrcyBwb2RzIGluIC90bXAvazhzL3BvZHMvIChsaXZlKSBhbmQgL3RtcC9rOHMvYXBwbGllZC8gKHBlcm1hbmVudCBhcmNoaXZlKS4KIyBVbnJlY29nbmlzZWQgc3ViLWNvbW1hbmRzIGZhbGwgdGhyb3VnaCB0byB0aGUgcmVhbCBrdWJlY3RsIGF0IC91c3IvYmluL2t1YmVjdGwuClBPRF9ESVI9L3RtcC9rOHMvcG9kcwpBUFBMSUVEPS90bXAvazhzL2FwcGxpZWQKbWtkaXIgLXAgIiRQT0RfRElSIiAiJEFQUExJRUQiCgpjYXNlICIkMSIgaW4KCiAgIyDilIDilIAgZ2V0IOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAogIGdldCkKICAgIHNoaWZ0CiAgICBjYXNlICIkMSIgaW4KICAgICAgcG9kc3xwb2QpCiAgICAgICAgcHJpbnRmICIlLTMycyAlLThzICUtMTBzICUtMTBzXG4iICJOQU1FIiAiUkVBRFkiICJTVEFUVVMiICJSRVNUQVJUUyIKICAgICAgICBmb3VuZD0wCiAgICAgICAgZm9yIGYgaW4gIiRQT0RfRElSIi8qLnlhbWw7IGRvCiAgICAgICAgICBbIC1mICIkZiIgXSB8fCBjb250aW51ZQogICAgICAgICAgZm91bmQ9MQogICAgICAgICAgbj0kKGF3ayAnL15tZXRhZGF0YTove209MX0gbSAmJiAvXiAgbmFtZTove3ByaW50ICQyOyBleGl0fScgIiRmIikKICAgICAgICAgIGM9JChncmVwIC1jICJpbWFnZToiICIkZiIgMj4vZGV2L251bGwgfHwgZWNobyAxKQogICAgICAgICAgcHJpbnRmICIlLTMycyAlLThzICUtMTBzICUtMTBzXG4iICIkbiIgIiRjLyRjIiAiUnVubmluZyIgIjAiCiAgICAgICAgZG9uZQogICAgICAgIFsgIiRmb3VuZCIgPSAiMCIgXSAmJiBlY2hvICJObyByZXNvdXJjZXMgZm91bmQgaW4gZGVmYXVsdCBuYW1lc3BhY2UuIgogICAgICAgIDs7CiAgICAgIG5vZGVzfG5vZGUpCiAgICAgICAgcHJpbnRmICIlLTIycyAlLTEwcyAlLTE2cyAlLTZzICUtMTBzXG4iICJOQU1FIiAiU1RBVFVTIiAiUk9MRVMiICJBR0UiICJWRVJTSU9OIgogICAgICAgIHByaW50ZiAiJS0yMnMgJS0xMHMgJS0xNnMgJS02cyAlLTEwc1xuIiAiY29udHJvbC1wbGFuZS0xIiAiUmVhZHkiICJjb250cm9sLXBsYW5lIiAiNDJkIiAidjEuMzAuMiIKICAgICAgICBwcmludGYgIiUtMjJzICUtMTBzICUtMTZzICUtNnMgJS0xMHNcbiIgIndvcmtlci1ub2RlLTEiICAgIlJlYWR5IiAiPG5vbmU+IiAgICAgICAgIjQyZCIgInYxLjMwLjIiCiAgICAgICAgcHJpbnRmICIlLTIycyAlLTEwcyAlLTE2cyAlLTZzICUtMTBzXG4iICJ3b3JrZXItbm9kZS0yIiAgICJSZWFkeSIgIjxub25lPiIgICAgICAgICI0MmQiICJ2MS4zMC4yIgogICAgICAgIDs7CiAgICAgICopCiAgICAgICAgcHJpbnRmICJlcnJvcjogdW5rbm93biByZXNvdXJjZSB0eXBlICclcydcbiIgIiQxIiA+JjI7IGV4aXQgMSA7OwogICAgZXNhYwogICAgOzsKCiAgIyDilIDilIAgZGVzY3JpYmUg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACiAgZGVzY3JpYmUpCiAgICBzaGlmdAogICAgUkVTT1VSQ0U9IiQxIjsgTkFNRT0iJDIiCiAgICBjYXNlICIkUkVTT1VSQ0UiIGluCiAgICAgIHBvZHxwb2RzKQogICAgICAgIGY9IiRQT0RfRElSLyROQU1FLnlhbWwiCiAgICAgICAgaWYgWyAhIC1mICIkZiIgXTsgdGhlbgogICAgICAgICAgcHJpbnRmICdFcnJvciBmcm9tIHNlcnZlciAoTm90Rm91bmQpOiBwb2RzICIlcyIgbm90IGZvdW5kXG4nICIkTkFNRSIgPiYyCiAgICAgICAgICBleGl0IDEKICAgICAgICBmaQogICAgICAgICMgRGV0ZXJtaW5pc3RpYyBJUCBkZXJpdmVkIGZyb20gcG9kIG5hbWUgc28gaXQgaXMgc3RhYmxlIGFjcm9zcyBjYWxscwogICAgICAgIG9jdGV0PSQocHJpbnRmICIlcyIgIiROQU1FIiB8IGNrc3VtIHwgYXdrICd7cHJpbnQgKCQxICUgMjAwKSArIDEwfScpCiAgICAgICAgcHJpbnRmICJOYW1lOiAgICAgICAgICVzXG4iICIkTkFNRSIKICAgICAgICBwcmludGYgIk5hbWVzcGFjZTogICAgZGVmYXVsdFxuIgogICAgICAgIHByaW50ZiAiTm9kZTogICAgICAgICB3b3JrZXItbm9kZS0xLzE5Mi4xNjguMS4xMVxuIgogICAgICAgIHByaW50ZiAiSVA6ICAgICAgICAgICAxMC4yNDQuMS4lc1xuIiAiJG9jdGV0IgogICAgICAgIHByaW50ZiAiU3RhdHVzOiAgICAgICBSdW5uaW5nXG4iCiAgICAgICAgcHJpbnRmICJDb250YWluZXJzOlxuIgogICAgICAgIHdoaWxlIElGUz0gcmVhZCAtciBsaW5lOyBkbwogICAgICAgICAgY2FzZSAiJGxpbmUiIGluCiAgICAgICAgICAgICoiLSBuYW1lOiAiKikgcHJpbnRmICIgICVzOlxuIiAgICAgICIke2xpbmUjIyotIG5hbWU6IH0iIDs7CiAgICAgICAgICAgICoiaW1hZ2U6ICIqKSAgcHJpbnRmICIgICAgSW1hZ2U6ICAlc1xuIiAiJHtsaW5lIyMqaW1hZ2U6IH0iIDs7CiAgICAgICAgICBlc2FjCiAgICAgICAgZG9uZSA8ICIkZiIKICAgICAgICA7OwogICAgICAqKQogICAgICAgIHByaW50ZiAiZXJyb3I6IHVua25vd24gcmVzb3VyY2UgJyVzJ1xuIiAiJFJFU09VUkNFIiA+JjI7IGV4aXQgMSA7OwogICAgZXNhYwogICAgOzsKCiAgIyDilIDilIAgYXBwbHkg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACiAgYXBwbHkpCiAgICBzaGlmdAogICAgRklMRT0iIgogICAgUFJFVj0iIgogICAgZm9yIGFyZyBpbiAiJEAiOyBkbwogICAgICBpZiBbICIkUFJFViIgPSAiLWYiIF0gfHwgWyAiJFBSRVYiID0gIi0tZmlsZW5hbWUiIF07IHRoZW4gRklMRT0iJGFyZyI7IGZpCiAgICAgIFBSRVY9IiRhcmciCiAgICBkb25lCiAgICBpZiBbIC16ICIkRklMRSIgXSB8fCBbICEgLWYgIiRGSUxFIiBdOyB0aGVuCiAgICAgIHByaW50ZiAiZXJyb3I6IHRoZSBwYXRoIFwiJXNcIiBkb2VzIG5vdCBleGlzdFxuIiAiJEZJTEUiID4mMjsgZXhpdCAxCiAgICBmaQogICAgS0lORD0kKGdyZXAgIl5raW5kOiIgIiRGSUxFIiB8IGF3ayAne3ByaW50IHRvbG93ZXIoJDIpfScpCiAgICBOQU1FPSQoYXdrICcvXm1ldGFkYXRhOi97bT0xfSBtICYmIC9eICBuYW1lOi97cHJpbnQgJDI7IGV4aXR9JyAiJEZJTEUiKQogICAgaWYgWyAteiAiJE5BTUUiIF07IHRoZW4KICAgICAgcHJpbnRmICJlcnJvcjogbWFuaWZlc3QgaXMgbWlzc2luZyBtZXRhZGF0YS5uYW1lXG4iID4mMjsgZXhpdCAxCiAgICBmaQogICAgY3AgIiRGSUxFIiAiJFBPRF9ESVIvJE5BTUUueWFtbCIKICAgIGNwICIkRklMRSIgIiRBUFBMSUVELyROQU1FLnlhbWwiCiAgICBwcmludGYgIiVzLyVzIGNyZWF0ZWRcbiIgIiRLSU5EIiAiJE5BTUUiCiAgICA7OwoKICAjIOKUgOKUgCBkZWxldGUg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACiAgZGVsZXRlKQogICAgc2hpZnQKICAgIFJFU09VUkNFPSIkMSI7IE5BTUU9IiQyIgogICAgZj0iJFBPRF9ESVIvJE5BTUUueWFtbCIKICAgIGlmIFsgLWYgIiRmIiBdOyB0aGVuCiAgICAgIHJtICIkZiIKICAgICAgcHJpbnRmICJwb2QgXCIlc1wiIGRlbGV0ZWRcbiIgIiROQU1FIgogICAgZWxzZQogICAgICBwcmludGYgJ0Vycm9yIGZyb20gc2VydmVyIChOb3RGb3VuZCk6IHBvZHMgIiVzIiBub3QgZm91bmRcbicgIiROQU1FIiA+JjIKICAgICAgZXhpdCAxCiAgICBmaQogICAgOzsKCiAgIyDilIDilIAgbWlzYyDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKICB2ZXJzaW9ufCJ2ZXJzaW9uIC0tY2xpZW50IikKICAgIHByaW50ZiAiQ2xpZW50IFZlcnNpb246IHYxLjMwLjJcbkt1c3RvbWl6ZSBWZXJzaW9uOiB2NS4wLjRcbiIgOzsKICBjbHVzdGVyLWluZm8pCiAgICBwcmludGYgIkt1YmVybmV0ZXMgY29udHJvbCBwbGFuZSBpcyBydW5uaW5nIGF0IGh0dHBzOi8vMTkyLjE2OC4xLjEwMDo2NDQzXG4iIDs7CiAgKikKICAgIGV4ZWMgL3Vzci9iaW4va3ViZWN0bCAiJEAiIDs7CmVzYWMK" | base64 -d > /usr/local/bin/kubectl
   chmod +x /usr/local/bin/kubectl
 
 verifyScript: |
