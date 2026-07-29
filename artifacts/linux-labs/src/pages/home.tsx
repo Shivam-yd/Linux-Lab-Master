@@ -271,24 +271,6 @@ function TerminalMockup() {
   )
 }
 
-// ── Floating orb ─────────────────────────────────────────────────
-function Orb({ className, color, xRange, yRange, duration }: {
-  className: string
-  color: string
-  xRange: [number, number]
-  yRange: [number, number]
-  duration: number
-}) {
-  return (
-    <motion.div
-      className={cn("absolute rounded-full pointer-events-none", className)}
-      style={{ background: `radial-gradient(circle, ${color} 0%, transparent 70%)` }}
-      animate={{ x: [0, xRange[0], xRange[1], 0], y: [0, yRange[0], yRange[1], 0] }}
-      transition={{ duration, repeat: Infinity, ease: "easeInOut", repeatType: "loop" }}
-    />
-  )
-}
-
 // ─────────────────────────────────────────────────────────────────
 export default function Home() {
   useMeta("DevLabMaster — Master DevOps. One lab at a time.", "Hands-on DevOps labs for Linux, Terraform, Docker, Kubernetes and more. No VM setup required.")
