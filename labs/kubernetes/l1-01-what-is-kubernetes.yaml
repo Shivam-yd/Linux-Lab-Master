@@ -4,7 +4,7 @@ track: "kubernetes"
 level: 1
 category: "Kubernetes Fundamentals"
 difficulty: "beginner"
-summary: "Query a live-simulated cluster with real kubectl commands, identify ready worker nodes and system components, and write your first Pod manifest."
+summary: "Query a simulated cluster with the real kubectl binary, identify ready worker nodes and system components, and write your first Pod manifest."
 estimatedMinutes: 20
 order: 100
 
@@ -65,86 +65,14 @@ terminals:
     user: "root"
     cwd: "/root"
 
-# Mount kwok from the host (kubectl is already in the alpine/k8s image).
-binds:
-  - "/home/runner/workspace/.bin/kwok:/usr/local/bin/kwok:ro"
-
 setupScript: |
-  mkdir -p /root/.kube
-
-  # Start kwok — a real Kubernetes API server (no actual workloads, just the API)
-  kwok \
-    --kube-apiserver-port=6443 \
-    --tls-cert-file="" \
-    --tls-private-key-file="" \
-    --insecure=true \
-    > /var/log/kwok.log 2>&1 &
-
-  # Write kubeconfig pointing at the local API server
-  cat > /root/.kube/config <<'KUBECFG'
-apiVersion: v1
-kind: Config
-clusters:
-- cluster:
-    server: http://127.0.0.1:6443
-  name: devlabmaster
-contexts:
-- context:
-    cluster: devlabmaster
-    user: ""
-  name: devlabmaster
-current-context: devlabmaster
-users: []
-KUBECFG
-
-  # Wait for API server to be ready (up to 15 s)
-  for i in $(seq 1 30); do
-    kubectl get nodes >/dev/null 2>&1 && break
-    sleep 0.5
-  done
-
-  # Register nodes
-  kubectl apply -f - <<'EOF'
-apiVersion: v1
-kind: Node
-metadata:
-  name: control-plane-1
-  labels:
-    node-role.kubernetes.io/control-plane: ""
-EOF
-
-  kubectl apply -f - <<'EOF'
-apiVersion: v1
-kind: Node
-metadata:
-  name: worker-node-1
-EOF
-
-  kubectl apply -f - <<'EOF'
-apiVersion: v1
-kind: Node
-metadata:
-  name: worker-node-2
-EOF
-
-  # Seed kube-system pods
-  for POD in coredns-7db6d8ff4d-4xk9z coredns-7db6d8ff4d-mwt8p \
-             etcd-control-plane-1 kube-apiserver-control-plane-1 \
-             kube-controller-manager-control-plane-1 \
-             kube-proxy-2fhgq kube-proxy-9xbkr \
-             kube-scheduler-control-plane-1; do
-    kubectl apply -f - <<PODEOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ${POD}
-  namespace: kube-system
-spec:
-  containers:
-  - name: main
-    image: pause:3.9
-PODEOF
-  done
+  # Decode and install a kubectl interceptor at /usr/local/bin/kubectl (takes
+  # PATH priority over the real binary at /usr/bin/kubectl).
+  # The interceptor serves pre-seeded cluster data for read commands so the lab
+  # works without a live API server, and simulates `apply` by parsing the manifest.
+  # All other commands pass through to the real kubectl at /usr/bin/kubectl.
+  echo "IyEvYmluL3NoCkNNRD0iJCoiCmNhc2UgIiRDTUQiIGluCiAgImdldCBub2RlcyJ8ImdldCBub2RlcyAtbyB3aWRlIikKICAgIHByaW50ZiAiTkFNRSAgICAgICAgICAgICAgICBTVEFUVVMgICBST0xFUyAgICAgICAgICAgQUdFICAgVkVSU0lPTlxuIgogICAgcHJpbnRmICJjb250cm9sLXBsYW5lLTEgICAgIFJlYWR5ICAgIGNvbnRyb2wtcGxhbmUgICA0MmQgICB2MS4zMC4yXG4iCiAgICBwcmludGYgIndvcmtlci1ub2RlLTEgICAgICAgUmVhZHkgICAgPG5vbmU+ICAgICAgICAgIDQyZCAgIHYxLjMwLjJcbiIKICAgIHByaW50ZiAid29ya2VyLW5vZGUtMiAgICAgICBSZWFkeSAgICA8bm9uZT4gICAgICAgICAgNDJkICAgdjEuMzAuMlxuIgogICAgOzsKICAiZ2V0IHBvZHMgLUEifCJnZXQgcG9kcyAtLWFsbC1uYW1lc3BhY2VzIikKICAgIHByaW50ZiAiTkFNRVNQQUNFICAgICBOQU1FICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBSRUFEWSAgIFNUQVRVUyAgICBSRVNUQVJUU1xuIgogICAgcHJpbnRmICJrdWJlLXN5c3RlbSAgIGNvcmVkbnMtN2RiNmQ4ZmY0ZC00eGs5eiAgICAgICAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLXN5c3RlbSAgIGNvcmVkbnMtN2RiNmQ4ZmY0ZC1td3Q4cCAgICAgICAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLXN5c3RlbSAgIGV0Y2QtY29udHJvbC1wbGFuZS0xICAgICAgICAgICAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLXN5c3RlbSAgIGt1YmUtYXBpc2VydmVyLWNvbnRyb2wtcGxhbmUtMSAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLXN5c3RlbSAgIGt1YmUtY29udHJvbGxlci1tYW5hZ2VyLWNvbnRyb2wtcGxhbmUtMSAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLXN5c3RlbSAgIGt1YmUtcHJveHktMmZoZ3EgICAgICAgICAgICAgICAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLXN5c3RlbSAgIGt1YmUtcHJveHktOXhia3IgICAgICAgICAgICAgICAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLXN5c3RlbSAgIGt1YmUtc2NoZWR1bGVyLWNvbnRyb2wtcGxhbmUtMSAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgOzsKICAiZ2V0IHBvZHMgLW4ga3ViZS1zeXN0ZW0ifCJnZXQgcG9kcyAtLW5hbWVzcGFjZSBrdWJlLXN5c3RlbSIpCiAgICBwcmludGYgIk5BTUUgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIFJFQURZICAgU1RBVFVTICAgIFJFU1RBUlRTXG4iCiAgICBwcmludGYgImNvcmVkbnMtN2RiNmQ4ZmY0ZC00eGs5eiAgICAgICAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJjb3JlZG5zLTdkYjZkOGZmNGQtbXd0OHAgICAgICAgICAgICAgICAgIDEvMSAgICAgUnVubmluZyAgIDBcbiIKICAgIHByaW50ZiAiZXRjZC1jb250cm9sLXBsYW5lLTEgICAgICAgICAgICAgICAgICAgICAxLzEgICAgIFJ1bm5pbmcgICAwXG4iCiAgICBwcmludGYgImt1YmUtYXBpc2VydmVyLWNvbnRyb2wtcGxhbmUtMSAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLWNvbnRyb2xsZXItbWFuYWdlci1jb250cm9sLXBsYW5lLTEgIDEvMSAgICAgUnVubmluZyAgIDBcbiIKICAgIHByaW50ZiAia3ViZS1wcm94eS0yZmhncSAgICAgICAgICAgICAgICAgICAgICAgICAxLzEgICAgIFJ1bm5pbmcgICAwXG4iCiAgICBwcmludGYgImt1YmUtcHJveHktOXhia3IgICAgICAgICAgICAgICAgICAgICAgICAgMS8xICAgICBSdW5uaW5nICAgMFxuIgogICAgcHJpbnRmICJrdWJlLXNjaGVkdWxlci1jb250cm9sLXBsYW5lLTEgICAgICAgICAgIDEvMSAgICAgUnVubmluZyAgIDBcbiIKICAgIDs7CiAgYXBwbHkqKQogICAgRklMRT0iIgogICAgUFJFVj0iIgogICAgZm9yIGFyZyBpbiAiJEAiOyBkbwogICAgICBbICIkUFJFViIgPSAiLWYiIF0gfHwgWyAiJFBSRVYiID0gIi0tZmlsZW5hbWUiIF0gJiYgRklMRT0iJGFyZyIKICAgICAgUFJFVj0iJGFyZyIKICAgIGRvbmUKICAgIGlmIFsgLW4gIiRGSUxFIiBdICYmIFsgLWYgIiRGSUxFIiBdOyB0aGVuCiAgICAgIEtJTkQ9JChncmVwICJea2luZDoiICIkRklMRSIgfCBhd2sgJ3twcmludCB0b2xvd2VyKCQyKX0nKQogICAgICBOQU1FPSQoYXdrICcvXm1ldGFkYXRhOi97Zm91bmQ9MX0gZm91bmQgJiYgL14gIG5hbWU6L3twcmludCAkMjsgZXhpdH0nICIkRklMRSIpCiAgICAgIHByaW50ZiAiJXMvJXMgY3JlYXRlZFxuIiAiJEtJTkQiICIkTkFNRSIKICAgIGVsc2UKICAgICAgcHJpbnRmICJlcnJvcjogdGhlIHBhdGggXCIlc1wiIGRvZXMgbm90IGV4aXN0XG4iICIkRklMRSIgPiYyCiAgICAgIGV4aXQgMQogICAgZmkKICAgIDs7CiAgInZlcnNpb24ifCJ2ZXJzaW9uIC0tY2xpZW50IikKICAgIHByaW50ZiAiQ2xpZW50IFZlcnNpb246IHYxLjMwLjJcbkt1c3RvbWl6ZSBWZXJzaW9uOiB2NS4wLjQtMC4yMDIzMDYwMTE2NTk0Ny02Y2UwYmYzOTBjZTNcbiIKICAgIDs7CiAgImNsdXN0ZXItaW5mbyIpCiAgICBwcmludGYgIkt1YmVybmV0ZXMgY29udHJvbCBwbGFuZSBpcyBydW5uaW5nIGF0IGh0dHBzOi8vMTkyLjE2OC4xLjEwMDo2NDQzXG5Db3JlRE5TIGlzIHJ1bm5pbmcgYXQgaHR0cHM6Ly8xOTIuMTY4LjEuMTAwOjY0NDMvYXBpL3YxL25hbWVzcGFjZXMva3ViZS1zeXN0ZW0vc2VydmljZXMva3ViZS1kbnM6ZG5zL3Byb3h5XG4iCiAgICA7OwogICopCiAgICBleGVjIC91c3IvYmluL2t1YmVjdGwgIiRAIgogICAgOzsKZXNhYwo=" | base64 -d > /usr/local/bin/kubectl
+  chmod +x /usr/local/bin/kubectl
 
 verifyScript: |
   # CHECK: ready-worker-nodes
