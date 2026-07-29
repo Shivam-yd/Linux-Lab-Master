@@ -399,7 +399,13 @@ export default function Home() {
       </motion.section>
 
       {/* ── How it works ── */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
+      <motion.section
+        className="relative z-10 max-w-4xl mx-auto px-6 pb-20"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+      >
         <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-3">
           How it works
         </p>
@@ -418,7 +424,14 @@ export default function Home() {
               {steps.map(({ num, icon: Icon, title, desc }, i) => (
                 <>
                   {/* step column */}
-                  <div key={num} className="flex-1 flex flex-col items-center text-center px-3">
+                  <motion.div
+                    key={num}
+                    className="flex-1 flex flex-col items-center text-center px-3"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.12, ease: [0.25, 0.1, 0.25, 1] }}
+                  >
                     <div
                       className="w-14 h-14 rounded-full flex items-center justify-center mb-5 shrink-0"
                       style={{
@@ -434,7 +447,7 @@ export default function Home() {
                     </span>
                     <h3 className="font-bold text-[15px] mb-2">{title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
-                  </div>
+                  </motion.div>
 
                   {/* arrow between steps */}
                   {i < 2 && (
@@ -448,13 +461,19 @@ export default function Home() {
             </div>
           )
         })()}
-      </section>
+      </motion.section>
 
       {/* ── Track marquee ── */}
       <section className="relative z-10 w-full mb-12">
-        <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-5">
+        <motion.p
+          className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-5"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        >
           Tracks
-        </p>
+        </motion.p>
         <div
           className="overflow-hidden"
           style={{
@@ -531,7 +550,13 @@ export default function Home() {
       <div className="h-32 pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(13,148,136,0.07) 0%, transparent 70%)" }} />
 
       {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-primary/20 py-4 bg-primary/8 dark:bg-primary/[0.07] backdrop-blur-md">
+      <motion.footer
+        className="relative z-10 border-t border-primary/20 py-4 bg-primary/8 dark:bg-primary/[0.07] backdrop-blur-md"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>DevLabMaster — DevOps practice range</span>
           <div className="flex items-center gap-6">
@@ -539,7 +564,7 @@ export default function Home() {
             <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
           </div>
         </div>
-      </footer>
+      </motion.footer>
     </div>
   )
 }
