@@ -193,11 +193,10 @@ export default function About() {
                   href="https://www.linkedin.com/in/shivamyd"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-lg bg-[#0A66C2]/10 border border-[#0A66C2]/20 text-[#0A66C2] hover:bg-[#0A66C2]/20 transition-colors"
                 >
                   <Linkedin className="w-4 h-4" />
-                  linkedin.com/in/shivamyd
-                  <ExternalLink className="w-3 h-3 opacity-50" />
+                  LinkedIn
                 </a>
               </div>
             </div>
