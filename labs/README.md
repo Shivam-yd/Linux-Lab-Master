@@ -344,6 +344,10 @@ instructions: |
 - **What You'll Deliver** — bullet list that mirrors the `tasks[]` entries.
   One bullet per task, written as a deliverable ("X created", "Y configured"),
   not as an action ("Create X", "Configure Y").
+  **Every specific value the `verifyScript` checks must be named here** — exact
+  file paths, exact resource names, exact image tags, exact label keys and values.
+  A student should be able to pass all checks using only this section, without
+  reading the Steps.
 - **## Steps** — numbered list of exact commands. Be specific: show the
   full command the student should run, not a paraphrase. This section is
   only revealed on request, so it can be as detailed as needed without
