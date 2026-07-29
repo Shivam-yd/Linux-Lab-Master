@@ -14,6 +14,22 @@ import { requireAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
+// Public — social proof, no auth needed
+router.get("/leaderboard", async (_req, res): Promise<void> => {
+  const result = await db.execute(sql`
+    SELECT u.name,
+           COUNT(*) FILTER (WHERE p.status = 'passed')::int AS passed
+    FROM students s
+    JOIN "user" u ON u.id = s.id
+    LEFT JOIN lab_progress p ON p.student_id = s.id
+    GROUP BY u.id, u.name
+    HAVING COUNT(*) FILTER (WHERE p.status = 'passed') > 0
+    ORDER BY passed DESC
+    LIMIT 20
+  `);
+  res.json(result.rows);
+});
+
 router.use(requireAuth);
 
 // ── Lab listing ───────────────────────────────────────────────────────────────
@@ -109,21 +125,6 @@ router.get("/progress", async (req, res): Promise<void> => {
     };
   });
   res.json(ListProgressResponse.parse(progress));
-});
-
-router.get("/leaderboard", async (_req, res): Promise<void> => {
-  const result = await db.execute(sql`
-    SELECT u.name,
-           COUNT(*) FILTER (WHERE p.status = 'passed')::int AS passed
-    FROM students s
-    JOIN "user" u ON u.id = s.id
-    LEFT JOIN lab_progress p ON p.student_id = s.id
-    GROUP BY u.id, u.name
-    HAVING COUNT(*) FILTER (WHERE p.status = 'passed') > 0
-    ORDER BY passed DESC
-    LIMIT 20
-  `);
-  res.json(result.rows);
 });
 
 router.get("/rank", async (req, res): Promise<void> => {

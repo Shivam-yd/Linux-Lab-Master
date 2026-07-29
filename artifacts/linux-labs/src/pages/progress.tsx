@@ -81,6 +81,13 @@ export default function ProgressPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link
+              href={`${basePath}/leaderboard`}
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-border/50 bg-transparent hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              Leaderboard
+            </Link>
+            <Link
               href={`${basePath}/my-certificates`}
               className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary/80 transition-colors"
             >
