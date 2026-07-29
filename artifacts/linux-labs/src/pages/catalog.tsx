@@ -8,7 +8,7 @@ import { usePlan, PRO_TRACKS } from "@/lib/use-plan"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Info, User, ChevronLeft, ShieldCheck, BarChart2 } from "lucide-react"
+import { Info, User, ChevronLeft, ShieldCheck } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -62,7 +62,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
         {!collapsed ? (
           <div className="flex items-center gap-0.5 shrink-0">
             <Link href="/leaderboard" title="Leaderboard" className="p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
-              <BarChart2 className="w-4 h-4" />
+              <Trophy className="w-4 h-4" />
             </Link>
             <Link href="/about" title="About" className="p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
               <Info className="w-4 h-4" />
@@ -71,7 +71,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
         ) : (
           <div className="flex flex-col items-center gap-0.5 mt-1.5">
             <Link href="/leaderboard" title="Leaderboard" className="p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
-              <BarChart2 className="w-4 h-4" />
+              <Trophy className="w-4 h-4" />
             </Link>
             <Link href="/about" title="About" className="p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
               <Info className="w-4 h-4" />
