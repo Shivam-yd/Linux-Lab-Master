@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { BackgroundOrbs } from "@/components/background-orbs"
 import { useSession } from "@/lib/auth-client"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
@@ -46,6 +47,7 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <BackgroundOrbs />
 
       {/* ── Top Bar ── */}
       <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/8 dark:bg-primary/[0.07] backdrop-blur-md">

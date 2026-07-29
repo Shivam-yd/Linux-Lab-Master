@@ -8,6 +8,7 @@ import {
   GitLogo, KubernetesLogo, AnsibleLogo,
 } from "@/components/track-logos"
 import { motion, type Variants } from "framer-motion"
+import { BackgroundOrbs } from "@/components/background-orbs"
 import { useQuery } from "@tanstack/react-query"
 import { useSession } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
@@ -306,14 +307,7 @@ export default function Home() {
     <div className="bg-background text-foreground">
 
       {/* ── Background orbs ── */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <Orb className="w-[560px] h-[560px] -top-28 -left-20"
-          color="rgba(13,148,136,0.13)" xRange={[28, -14]} yRange={[-18, 10]} duration={14} />
-        <Orb className="w-[440px] h-[440px] top-[18%] -right-20"
-          color="rgba(124,58,237,0.10)" xRange={[-22, 12]} yRange={[26, -10]} duration={17} />
-        <Orb className="w-[360px] h-[360px] bottom-[12%] left-[35%]"
-          color="rgba(5,150,105,0.09)"  xRange={[18, -10]} yRange={[14, -20]} duration={20} />
-      </div>
+      <BackgroundOrbs />
 
       {/* ── Top Bar ── */}
       <motion.header
