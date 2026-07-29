@@ -241,6 +241,7 @@ header "Step 5/6 — Pull lab images"
 #   ubuntu:24.04              /bin/sh = dash   — [[ ]] NOT supported; use shell: "bash"
 #   alpine:latest             /bin/sh = ash    — [[ ]] NOT supported; use shell: "sh"
 #   alpine/git:latest         /bin/sh = ash    — [[ ]] NOT supported; use shell: "sh"
+#   alpine/k8s:1.30.2         /bin/sh = ash    — [[ ]] NOT supported; use shell: "sh"
 #   hashicorp/terraform:1.9   /bin/sh = ash    — [[ ]] NOT supported; use shell: "sh"
 #   rastasheep/ubuntu-sshd    /bin/sh = dash   — [[ ]] NOT supported; use shell: "bash"
 #   localstack/localstack     /bin/sh = bash   — [[ ]] supported; use shell: "bash"
@@ -248,6 +249,7 @@ info "Pulling lab sandbox images so labs start instantly..."
 docker pull ubuntu:24.04
 docker pull alpine:latest
 docker pull alpine/git:latest
+docker pull alpine/k8s:1.30.2
 docker pull hashicorp/terraform:1.9
 docker pull rastasheep/ubuntu-sshd:18.04
 docker pull localstack/localstack:latest
