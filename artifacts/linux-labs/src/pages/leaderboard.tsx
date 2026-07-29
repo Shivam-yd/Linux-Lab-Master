@@ -26,8 +26,13 @@ export default function LeaderboardPage() {
   const { data: rankData, isLoading: rankLoading } = useGetMyRank()
   const { data: board, isLoading: boardLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ["leaderboard"],
-    queryFn: () => fetch(`${basePath}/api/leaderboard`).then(r => r.json()),
+    queryFn: async () => {
+      const r = await fetch(`${basePath}/api/leaderboard`)
+      if (!r.ok) throw new Error(`leaderboard fetch failed: ${r.status}`)
+      return r.json()
+    },
     staleTime: 60_000,
+    gcTime: 5 * 60_000,
   })
 
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "You"
