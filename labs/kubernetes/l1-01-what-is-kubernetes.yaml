@@ -58,73 +58,93 @@ tasks:
   - id: "write-pod-manifest"
     description: "Create /root/web-probe.yaml — a Pod manifest named web-probe, image nginx:alpine, with label env: staging"
 
-image: "alpine:latest"
+image: "alpine/k8s:1.30.2"
 shell: "sh"
 terminals:
   - name: "Terminal"
     user: "root"
     cwd: "/root"
 
+# Mount kwok from the host (kubectl is already in the alpine/k8s image).
+binds:
+  - "/home/runner/workspace/.bin/kwok:/usr/local/bin/kwok:ro"
+
 setupScript: |
-  # Install kubectl mock that behaves like real kubectl for this cluster
-  cat > /usr/local/bin/kubectl <<'KUBECTLEOF'
-  #!/bin/sh
-  CMD="$*"
-  case "$CMD" in
-    "get nodes"|"get nodes -o wide")
-      printf "NAME                STATUS   ROLES           AGE   VERSION\n"
-      printf "control-plane-1     Ready    control-plane   42d   v1.30.2\n"
-      printf "worker-node-1       Ready    <none>          42d   v1.30.2\n"
-      printf "worker-node-2       Ready    <none>          42d   v1.30.2\n"
-      ;;
-    "get pods -A"|"get pods --all-namespaces")
-      printf "NAMESPACE     NAME                                     READY   STATUS    RESTARTS\n"
-      printf "kube-system   coredns-7db6d8ff4d-4xk9z                1/1     Running   0\n"
-      printf "kube-system   coredns-7db6d8ff4d-mwt8p                1/1     Running   0\n"
-      printf "kube-system   etcd-control-plane-1                    1/1     Running   0\n"
-      printf "kube-system   kube-apiserver-control-plane-1          1/1     Running   0\n"
-      printf "kube-system   kube-controller-manager-control-plane-1 1/1     Running   0\n"
-      printf "kube-system   kube-proxy-2fhgq                        1/1     Running   0\n"
-      printf "kube-system   kube-proxy-9xbkr                        1/1     Running   0\n"
-      printf "kube-system   kube-scheduler-control-plane-1          1/1     Running   0\n"
-      ;;
-    "get pods -n kube-system"|"get pods --namespace kube-system")
-      printf "NAME                                     READY   STATUS    RESTARTS\n"
-      printf "coredns-7db6d8ff4d-4xk9z                1/1     Running   0\n"
-      printf "coredns-7db6d8ff4d-mwt8p                1/1     Running   0\n"
-      printf "etcd-control-plane-1                    1/1     Running   0\n"
-      printf "kube-apiserver-control-plane-1          1/1     Running   0\n"
-      printf "kube-controller-manager-control-plane-1 1/1     Running   0\n"
-      printf "kube-proxy-2fhgq                        1/1     Running   0\n"
-      printf "kube-proxy-9xbkr                        1/1     Running   0\n"
-      printf "kube-scheduler-control-plane-1          1/1     Running   0\n"
-      ;;
-    "cluster-info")
-      echo "Kubernetes control plane is running at https://192.168.1.100:6443"
-      echo "CoreDNS is running at https://192.168.1.100:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy"
-      ;;
-    "version"|"version --client")
-      echo "Client Version: v1.30.2"
-      echo "Server Version: v1.30.2"
-      ;;
-    apply*)
-      FILE=$(echo "$CMD" | sed 's/apply -f //')
-      if [ -f "$FILE" ]; then
-        NAME=$(grep "name:" "$FILE" | head -1 | awk '{print $2}')
-        echo "pod/${NAME} created"
-      else
-        echo "Error: stat \"$FILE\": no such file or directory" >&2
-        exit 1
-      fi
-      ;;
-    *)
-      echo "error: unknown command \"$1\"" >&2
-      echo "Run 'kubectl --help' for usage." >&2
-      exit 1
-      ;;
-  esac
-  KUBECTLEOF
-  chmod +x /usr/local/bin/kubectl
+  mkdir -p /root/.kube
+
+  # Start kwok — a real Kubernetes API server (no actual workloads, just the API)
+  kwok \
+    --kube-apiserver-port=6443 \
+    --tls-cert-file="" \
+    --tls-private-key-file="" \
+    --insecure=true \
+    > /var/log/kwok.log 2>&1 &
+
+  # Write kubeconfig pointing at the local API server
+  cat > /root/.kube/config <<'KUBECFG'
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: http://127.0.0.1:6443
+  name: devlabmaster
+contexts:
+- context:
+    cluster: devlabmaster
+    user: ""
+  name: devlabmaster
+current-context: devlabmaster
+users: []
+KUBECFG
+
+  # Wait for API server to be ready (up to 15 s)
+  for i in $(seq 1 30); do
+    kubectl get nodes >/dev/null 2>&1 && break
+    sleep 0.5
+  done
+
+  # Register nodes
+  kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Node
+metadata:
+  name: control-plane-1
+  labels:
+    node-role.kubernetes.io/control-plane: ""
+EOF
+
+  kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Node
+metadata:
+  name: worker-node-1
+EOF
+
+  kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Node
+metadata:
+  name: worker-node-2
+EOF
+
+  # Seed kube-system pods
+  for POD in coredns-7db6d8ff4d-4xk9z coredns-7db6d8ff4d-mwt8p \
+             etcd-control-plane-1 kube-apiserver-control-plane-1 \
+             kube-controller-manager-control-plane-1 \
+             kube-proxy-2fhgq kube-proxy-9xbkr \
+             kube-scheduler-control-plane-1; do
+    kubectl apply -f - <<PODEOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${POD}
+  namespace: kube-system
+spec:
+  containers:
+  - name: main
+    image: pause:3.9
+PODEOF
+  done
 
 verifyScript: |
   # CHECK: ready-worker-nodes

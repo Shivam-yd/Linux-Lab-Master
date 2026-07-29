@@ -45,4 +45,10 @@ export interface LabDefinition {
    * Each string is a short markdown hint shown in order.
    */
   hints?: string[];
+  /**
+   * Host→container bind mounts in Docker format: "hostPath:containerPath[:options]"
+   * e.g. ["/opt/tools/kubectl:/usr/local/bin/kubectl:ro"]
+   * Use to inject pre-built binaries that are not available in the container image.
+   */
+  binds?: string[];
 }

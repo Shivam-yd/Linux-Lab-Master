@@ -75,6 +75,7 @@ const RemoteLabSchema = z.object({
   setupScript:      z.string(),
   verifyScript:     z.string(),
   hints:            z.string().array().optional(),
+  binds:            z.string().array().optional(),
 });
 
 type ValidatedLab = z.infer<typeof RemoteLabSchema>;
