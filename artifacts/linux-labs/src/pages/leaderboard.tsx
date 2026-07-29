@@ -118,7 +118,7 @@ export default function LeaderboardPage() {
                   const isMe = entry.name === (session?.user?.name || "")
                   return (
                     <div
-                      key={i}
+                      key={entry.name}
                       className={cn(
                         "flex items-center gap-4 px-5 py-3.5 border-b border-border/40 last:border-0 transition-colors",
                         isMe ? "bg-primary/5" : "hover:bg-muted/30"
