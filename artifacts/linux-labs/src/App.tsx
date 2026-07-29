@@ -40,6 +40,7 @@ import ChoosePlan from '@/pages/choose-plan';
 import CheckoutPage from '@/pages/checkout';
 import PrivacyPage from '@/pages/privacy';
 import MyCertificatesPage from '@/pages/my-certificates';
+import LeaderboardPage from '@/pages/leaderboard';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -84,6 +85,7 @@ function App() {
               <Route path="/terms" component={TermsPage} />
               <Route path="/privacy" component={PrivacyPage} />
               <Route path="/my-certificates" component={MyCertificatesPage} />
+              <Route path="/leaderboard" component={LeaderboardPage} />
               <Route component={NotFound} />
             </Switch>
             <Toaster />
