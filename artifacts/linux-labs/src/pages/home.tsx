@@ -1,7 +1,7 @@
 import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { Redirect } from "wouter"
-import { useState, useEffect } from "react"
+import { Fragment, useState, useEffect } from "react"
 import { Terminal, ArrowRight, ScanLine, TrendingUp, CheckCircle2, Circle, Layers, CheckCheck } from "lucide-react"
 import {
   LinuxLogo, TerraformLogo, JenkinsLogo, DockerLogo,
@@ -398,10 +398,9 @@ export default function Home() {
           return (
             <div className="flex items-start">
               {steps.map(({ num, icon: Icon, title, desc }, i) => (
-                <>
+                <Fragment key={num}>
                   {/* step column */}
                   <motion.div
-                    key={num}
                     className="flex-1 flex flex-col items-center text-center px-3"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -432,7 +431,7 @@ export default function Home() {
                       <ArrowRight className="w-3.5 h-3.5 -ml-0.5" style={{ color: "rgba(13,148,136,0.35)" }} />
                     </div>
                   )}
-                </>
+                </Fragment>
               ))}
             </div>
           )
