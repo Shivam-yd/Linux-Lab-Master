@@ -230,15 +230,20 @@ export async function startSession(studentId: string, labId: string): Promise<La
           Labels: { [CONTAINER_LABEL]: "true", labId, studentId },
           HostConfig: {
             AutoRemove: false,
-            Memory: 384 * 1024 * 1024,
+            // Docker-in-Docker labs need more headroom: dockerd + inner containers
+            // consume significantly more memory and processes than a plain sandbox.
+            Memory: lab.privileged ? 1024 * 1024 * 1024 : 384 * 1024 * 1024,
             NanoCpus: 1_000_000_000,
-            PidsLimit: 256,
+            PidsLimit: lab.privileged ? 1024 : 256,
             // Run a real init (tini) as PID 1 so killed background processes are
             // reaped instead of piling up as zombies. Without this, `pkill`/`kill`
             // inside a lab leaves a defunct process that tools like `pgrep -f`
             // can still match (via /proc/pid/comm), causing verify scripts to
             // report a process as "still running" after it was actually killed.
             Init: true,
+            // Required for Docker-in-Docker labs that run a real dockerd inside
+            // the sandbox. Only set when the lab explicitly requests it.
+            Privileged: lab.privileged ?? false,
           },
         });
       } catch (createErr: unknown) {

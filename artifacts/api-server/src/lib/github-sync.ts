@@ -70,6 +70,7 @@ const RemoteLabSchema = z.object({
   tasks:            z.object({ id: z.string().min(1), description: z.string().min(1) }).array().min(1),
   image:            z.string().min(1),
   entrypoint:       z.string().array().optional(),
+  privileged:       z.boolean().optional(),
   shell:            z.enum(["bash", "sh"]).optional(),
   terminals:        LabTerminalSchema.array().min(1),
   setupScript:      z.string(),

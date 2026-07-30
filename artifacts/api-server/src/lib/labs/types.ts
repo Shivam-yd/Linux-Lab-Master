@@ -44,5 +44,10 @@ export interface LabDefinition {
    * Progressive hints revealed one at a time when the student is stuck.
    * Each string is a short markdown hint shown in order.
    */
+  /**
+   * When true, the sandbox container is started with Privileged: true.
+   * Required for Docker-in-Docker labs that run a real dockerd inside the sandbox.
+   */
+  privileged?: boolean;
   hints?: string[];
 }
