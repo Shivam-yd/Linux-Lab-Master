@@ -57,22 +57,26 @@ instructions: |
   3. `cat /root/work/ping-output.txt`
   4. `ansible webservers -m copy -a "content='APP_ENV=production' dest=/opt/webapp/.env"`
   5. `cat /opt/webapp/.env`
-  6. `cat > /root/work/provision.yml << 'EOF'`
-     `---`
-     `- name: Provision webapp server`
-     `  hosts: webservers`
-     `  gather_facts: false`
-     `  tasks:`
-     `    - name: Ensure webapp directory exists`
-     `      file:`
-     `        path: /opt/webapp`
-     `        state: directory`
-     `        mode: "0755"`
-     `    - name: Deploy application config`
-     `      copy:`
-     `        content: "debug: false"`
-     `        dest: /opt/webapp/config.yml`
-     `EOF`
+  6. Write the provisioning playbook:
+
+     ```
+     cat > /root/work/provision.yml << 'EOF'
+     ---
+     - name: Provision webapp server
+       hosts: webservers
+       gather_facts: false
+       tasks:
+         - name: Ensure webapp directory exists
+           file:
+             path: /opt/webapp
+             state: directory
+             mode: "0755"
+         - name: Deploy application config
+           copy:
+             content: "debug: false"
+             dest: /opt/webapp/config.yml
+     EOF
+     ```
   7. `ansible-playbook /root/work/provision.yml`
   8. `cat /opt/webapp/config.yml`
 
@@ -93,7 +97,7 @@ terminals:
     cwd: "/root/work"
 
 setupScript: |
-  mkdir -p /root/work /opt/webapp
+  mkdir -p /root/work
 
   # Inventory — 'webservers' group with localhost using a local connection.
   # In a real environment this file would list actual server IPs or hostnames.
