@@ -28,10 +28,38 @@ RUN PORT=3000 BASE_PATH=/ pnpm --filter @workspace/devlabmaster run build
 # Stage 2: migrate — runs drizzle-kit push once at startup, then exits
 # Reuses the builder image so drizzle-kit and the db package are already there
 # ─────────────────────────────────────────────────────────────────────────────
-FROM builder AS migrate
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2: migrate — lean image with only the db package and drizzle-kit.
+# Kept separate from the builder so the image is ~200 MB instead of ~2-3 GB,
+# making cold pulls from the local registry much faster.
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-slim AS migrate
 
-# Wait for postgres TCP port, then push schema non-interactively.
-# Uses built-in net module (no extra deps) and pipes yes to suppress any drizzle-kit prompts.
+RUN npm install -g pnpm@10.26.1
+
+WORKDIR /app
+
+# Workspace root config needed for pnpm to resolve the lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+
+# Full source for the db package (schema + config)
+COPY lib/db ./lib/db
+
+# pnpm requires every workspace member referenced in pnpm-workspace.yaml to
+# exist on disk. Copy only the package.json stubs — no source needed.
+COPY scripts/package.json                 ./scripts/
+COPY lib/api-client-react/package.json   ./lib/api-client-react/
+COPY lib/api-spec/package.json           ./lib/api-spec/
+COPY lib/api-zod/package.json            ./lib/api-zod/
+COPY artifacts/api-server/package.json   ./artifacts/api-server/
+COPY artifacts/linux-labs/package.json   ./artifacts/linux-labs/
+COPY artifacts/mockup-sandbox/package.json ./artifacts/mockup-sandbox/
+
+# Install ONLY @workspace/db and its declared deps (drizzle-kit, drizzle-orm, pg, zod)
+RUN pnpm install --filter @workspace/db --frozen-lockfile
+
+# Wait for postgres TCP, then push schema non-interactively.
+# `yes` pipes "y" to any drizzle-kit confirmation prompts so it never hangs.
 CMD ["sh", "-c", "\
   until node -e \"require('net').createConnection(5432,'postgres').on('connect',function(){process.exit(0)}).on('error',function(){process.exit(1)})\"; \
   do echo 'Waiting for postgres...'; sleep 2; done && \

@@ -265,9 +265,7 @@ success "Lab images ready"
 info "Running database migration..."
 kubectl delete job migrate -n devlabmaster --ignore-not-found=true
 
-# Pre-pull the migrate image into k3s containerd so the job pod starts immediately
-# (k3s uses its own containerd — images pushed to the Docker registry still need
-# to be pulled separately before the pod can run them without delay)
+# Pre-pull into k3s containerd so the pod starts immediately without a cold pull
 info "Pre-pulling migrate image into k3s containerd..."
 k3s crictl pull "localhost:5000/devlabmaster-migrate:${IMAGE_TAG}" \
   || warn "crictl pre-pull failed — job will pull at runtime (may be slower)"
@@ -275,17 +273,34 @@ k3s crictl pull "localhost:5000/devlabmaster-migrate:${IMAGE_TAG}" \
 export IMAGE_TAG
 envsubst '${IMAGE_TAG}' < "${INSTALL_DIR}/k8s/migrate.yaml" | kubectl apply -f -
 
-# Wait up to 5 min; also detect a hard failure so we don't just say "timed out"
-if ! kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=300s; then
-  echo ""
-  warn "Migration did not complete within 5 minutes."
-  warn "Pod status:"
+# Stream pod logs in real-time so progress is visible while we wait
+info "Waiting for migrate pod to start..."
+LOG_PID=""
+for _i in $(seq 1 30); do
+  MIGRATE_POD=$(kubectl get pods -n devlabmaster \
+    -l "batch.kubernetes.io/job-name=migrate" \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+  if [[ -n "${MIGRATE_POD}" ]]; then
+    kubectl wait pod/"${MIGRATE_POD}" -n devlabmaster \
+      --for=condition=Ready --timeout=30s 2>/dev/null || true
+    kubectl logs -n devlabmaster "${MIGRATE_POD}" -f 2>/dev/null &
+    LOG_PID=$!
+    break
+  fi
+  sleep 2
+done
+
+if kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=120s 2>/dev/null; then
+  [[ -n "${LOG_PID}" ]] && kill "${LOG_PID}" 2>/dev/null || true
+  success "Migration complete"
+else
+  [[ -n "${LOG_PID}" ]] && kill "${LOG_PID}" 2>/dev/null || true
+  warn "Migration status:"
   kubectl get pods -n devlabmaster -l "batch.kubernetes.io/job-name=migrate" 2>/dev/null || true
   warn "Pod logs:"
-  kubectl logs -n devlabmaster job/migrate --tail=80 2>/dev/null || true
+  kubectl logs -n devlabmaster job/migrate --tail=100 2>/dev/null || true
   die "Database migration failed — see logs above."
 fi
-success "Migration complete"
 
 info "Deploying api and web..."
 envsubst '${IMAGE_TAG}' < "${INSTALL_DIR}/k8s/app.yaml" | kubectl apply -f -
