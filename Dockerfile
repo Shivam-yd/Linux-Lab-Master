@@ -30,11 +30,12 @@ RUN PORT=3000 BASE_PATH=/ pnpm --filter @workspace/devlabmaster run build
 # ─────────────────────────────────────────────────────────────────────────────
 FROM builder AS migrate
 
-# Wait for postgres to accept connections, then push schema (yes handles any interactive prompts)
+# Wait for postgres TCP port, then push schema non-interactively.
+# Uses built-in net module (no extra deps) and pipes yes to suppress any drizzle-kit prompts.
 CMD ["sh", "-c", "\
-  until node -e \"const {Client}=require('pg');const c=new Client({connectionString:process.env.DATABASE_URL});c.connect().then(()=>c.end()).catch(e=>{process.exit(1)})\"; \
+  until node -e \"require('net').createConnection(5432,'postgres').on('connect',function(){process.exit(0)}).on('error',function(){process.exit(1)})\"; \
   do echo 'Waiting for postgres...'; sleep 2; done && \
-  echo 'Postgres ready, pushing schema...' && \
+  echo 'Postgres ready. Pushing schema...' && \
   yes | pnpm --filter @workspace/db run push-force \
 "]
 

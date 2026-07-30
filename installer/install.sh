@@ -280,9 +280,9 @@ if ! kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout
   echo ""
   warn "Migration did not complete within 5 minutes."
   warn "Pod status:"
-  kubectl get pods -n devlabmaster -l job-name=migrate 2>/dev/null || true
+  kubectl get pods -n devlabmaster -l "batch.kubernetes.io/job-name=migrate" 2>/dev/null || true
   warn "Pod logs:"
-  kubectl logs -n devlabmaster -l job-name=migrate --tail=80 2>/dev/null || true
+  kubectl logs -n devlabmaster job/migrate --tail=80 2>/dev/null || true
   die "Database migration failed — see logs above."
 fi
 success "Migration complete"
