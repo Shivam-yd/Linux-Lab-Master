@@ -58,18 +58,9 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
             )}
           </div>
         )}
-        {/* Icon links — right side when expanded, below avatar when collapsed */}
-        {!collapsed ? (
+        {/* Icon links — only shown when expanded */}
+        {!collapsed && (
           <div className="flex items-center gap-0.5 shrink-0">
-            <Link href="/leaderboard" title="Leaderboard" className="p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
-              <Trophy className="w-4 h-4" />
-            </Link>
-            <Link href="/about" title="About" className="p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
-              <Info className="w-4 h-4" />
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-0.5 mt-1.5">
             <Link href="/leaderboard" title="Leaderboard" className="p-1 rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors">
               <Trophy className="w-4 h-4" />
             </Link>
