@@ -1,6 +1,6 @@
 # Linux Lab Master (DevLabMaster)
 
-A self-hosted, browser-based DevOps training platform with 78+ interactive labs across Linux, Docker, Terraform, Jenkins, and Git tracks. Students get real terminal sandboxes with automatic verification.
+A self-hosted, browser-based DevOps training platform with 92+ interactive labs across Linux, Docker, Terraform, Jenkins, Git, Kubernetes, and Ansible tracks. Students get real terminal sandboxes with automatic verification.
 
 ## Stack
 

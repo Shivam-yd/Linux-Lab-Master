@@ -11,18 +11,34 @@ jobs:
 
     steps:
       - name: Remove old repository
-        run: |
-          sudo rm -rf /opt/Linux-Lab-Master
+        run: sudo rm -rf /opt/Linux-Lab-Master
 
       - name: Clone latest repository
-        run: |
-          sudo git clone https://github.com/Shivam-yd/Linux-Lab-Master.git /opt/Linux-Lab-Master
+        run: sudo git clone https://github.com/Shivam-yd/Linux-Lab-Master.git /opt/Linux-Lab-Master
 
       - name: Fix permissions
-        run: |
-          sudo chown -R github-runner:github-runner /opt/Linux-Lab-Master
+        run: sudo chown -R github-runner:github-runner /opt/Linux-Lab-Master
 
-      - name: Run installer
+      - name: Build and push images
         run: |
           cd /opt/Linux-Lab-Master
-          sudo bash installer/install.sh
+          docker build --target migrate -t localhost:5000/devlabmaster-migrate:${{ github.sha }} .
+          docker build --target api    -t localhost:5000/devlabmaster-api:${{ github.sha }} .
+          docker build --target web    -t localhost:5000/devlabmaster-web:${{ github.sha }} .
+          docker push localhost:5000/devlabmaster-migrate:${{ github.sha }}
+          docker push localhost:5000/devlabmaster-api:${{ github.sha }}
+          docker push localhost:5000/devlabmaster-web:${{ github.sha }}
+
+      - name: Run migration
+        run: |
+          export IMAGE_TAG=${{ github.sha }}
+          kubectl delete job migrate -n devlabmaster --ignore-not-found=true
+          envsubst '${IMAGE_TAG}' < /opt/Linux-Lab-Master/k8s/migrate.yaml | kubectl apply -f -
+          kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=120s
+
+      - name: Rolling deploy
+        run: |
+          export IMAGE_TAG=${{ github.sha }}
+          envsubst '${IMAGE_TAG}' < /opt/Linux-Lab-Master/k8s/app.yaml | kubectl apply -f -
+          kubectl rollout status deployment/api -n devlabmaster --timeout=120s
+          kubectl rollout status deployment/web -n devlabmaster --timeout=120s

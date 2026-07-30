@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: devlabmaster
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: devlabmaster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: localhost:5000/devlabmaster-api:${IMAGE_TAG}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: NODE_ENV
+              value: production
+          envFrom:
+            - secretRef:
+                name: devlabmaster-env
+          volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+          readinessProbe:
+            httpGet:
+              path: /api/stats
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: devlabmaster
+spec:
+  type: LoadBalancer
+  selector:
+    app: web
+  ports:
+    - port: 8085
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: devlabmaster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: localhost:5000/devlabmaster-web:${IMAGE_TAG}
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5

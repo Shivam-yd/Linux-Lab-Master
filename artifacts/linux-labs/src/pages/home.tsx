@@ -23,7 +23,7 @@ const TRACKS = [
   { label: "Docker",     icon: DockerLogo,     color: "#38bdf8" },
   { label: "Git",        icon: GitLogo,        color: "#f87171" },
   { label: "Kubernetes", icon: KubernetesLogo, color: "#60a5fa" },
-  { label: "Ansible",    icon: AnsibleLogo,    color: "#34d399" },
+  { label: "Ansible",    icon: AnsibleLogo,    color: "#EE0000" },
 ]
 
 const FEATURES = [

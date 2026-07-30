@@ -4,8 +4,8 @@
 
 **A self-hosted, hands-on DevOps lab platform — spin up real sandboxes and learn by doing.**
 
-[![Tracks](https://img.shields.io/badge/Tracks-Linux%20·%20Terraform%20·%20Jenkins%20·%20Docker%20·%20Git-22d3ee?style=flat-square)](#-lab-tracks)
-[![Labs](https://img.shields.io/badge/Labs-78%2B-10b981?style=flat-square)](#-lab-tracks)
+[![Tracks](https://img.shields.io/badge/Tracks-Linux%20·%20Terraform%20·%20Jenkins%20·%20Docker%20·%20Git%20·%20Kubernetes%20·%20Ansible-22d3ee?style=flat-square)](#-lab-tracks)
+[![Labs](https://img.shields.io/badge/Labs-92%2B-10b981?style=flat-square)](#-lab-tracks)
 [![Platform](https://img.shields.io/badge/Platform-Ubuntu%20·%20Windows-6366f1?style=flat-square)](#-installation)
 
 </div>
@@ -33,6 +33,8 @@ Linux Lab Master is a self-hosted web application that provides **browser-based 
 | **Jenkins** | L1 | 9 | CI/CD fundamentals — server setup, plugins, user access, jobs, folders |
 | **Docker** | L1 | 11 | Images, containers, exec/logs, Dockerfiles, volumes — all taught via a realistic in-sandbox simulator |
 | **Git** | L1 | 10 | Init, commits, branching, remotes, stash & reset |
+| **Kubernetes** | L1 | 2+ | Pods, services, deployments — orchestrate containers with kubectl |
+| **Ansible** | L1 | 2+ | Automate configuration, provisioning, and deployment at scale |
 
 > Labs are fetched directly from this repository. Click **Fetch Labs** inside the app at any time to pull the latest content without restarting.
 
@@ -67,12 +69,13 @@ sudo bash installer/install.sh
 ```
 
 The installer will:
-1. Install Docker Engine + Compose plugin (if not already installed)
-2. Copy the project to `/opt/linuxlabs`
-3. Generate random secrets and write them to `/opt/linuxlabs/.env`
-4. Build Docker images (~3–5 minutes on first run)
-5. Pre-pull all lab sandbox images so labs start instantly
-6. Install and start a **systemd service** that auto-starts on boot
+1. Install Docker Engine and k3s (single-node Kubernetes)
+2. Start a local image registry on `localhost:5000`
+3. Copy the project to `/opt/linuxlabs`
+4. Ask interactively for your URL, optional Google OAuth, admin email, and GitHub token
+5. Build Docker images and push them to the local registry (~3–5 minutes on first run)
+6. Pre-pull all lab sandbox images so labs start instantly
+7. Deploy everything to k3s — zero-downtime rolling updates on every subsequent push
 
 **3. Open the app**
 
@@ -80,14 +83,16 @@ The installer will:
 http://localhost:8085 or http://ServerIP:8085
 ```
 
-#### Managing the service
+**4. All future deploys are automatic** — push to `main` → GitHub Actions builds new images and does a rolling update. No manual steps needed.
+
+#### Managing the deployment
 
 ```bash
-sudo systemctl status  linuxlabs   # check status
-sudo systemctl stop    linuxlabs   # stop
-sudo systemctl start   linuxlabs   # start
-sudo systemctl restart linuxlabs   # restart
-journalctl -u linuxlabs -f         # live logs
+kubectl get pods -n devlabmaster                         # check pod status
+kubectl logs -n devlabmaster deploy/api                  # api logs
+kubectl logs -n devlabmaster deploy/web                  # web logs
+kubectl rollout undo deployment/api -n devlabmaster      # rollback api
+kubectl rollout undo deployment/web -n devlabmaster      # rollback web
 ```
 
 #### Files and config
@@ -96,7 +101,7 @@ journalctl -u linuxlabs -f         # live logs
 |------|---------|
 | `/opt/linuxlabs` | Application files |
 | `/opt/linuxlabs/.env` | Secrets (auto-generated, do not edit manually) |
-| `journalctl -u linuxlabs` | Application logs |
+| `k8s/` | Kubernetes manifests |
 
 #### Certificates and sharing
 
@@ -216,7 +221,7 @@ Browser
 PostgreSQL :5432   — stores labs, progress, session data
 ```
 
-All components run as Docker containers managed by `docker compose`. Lab sandboxes are additional containers spawned on demand by the API when a student clicks **Deploy Sandbox**.
+All components run as Kubernetes pods managed by k3s (single-node). Lab sandboxes are additional Docker containers spawned on demand by the API when a student clicks **Deploy Sandbox** — the API pod mounts the host Docker socket for this purpose.
 
 ---
 
@@ -232,10 +237,13 @@ All components run as Docker containers managed by `docker compose`. Lab sandbox
 │   ├── api-server/     ← Node.js/Express backend
 │   └── linux-labs/     ← React frontend
 ├── installer/
-│   ├── install.sh      ← Ubuntu one-shot installer
+│   ├── install.sh      ← Ubuntu one-shot installer (k3s + first deploy)
 │   ├── setup.iss       ← Inno Setup script (Windows installer source)
 │   └── nginx.conf      ← nginx config bundled into the web Docker image
-└── docker-compose.yml  ← Production service definitions
+└── k8s/
+    ├── postgres.yaml   ← Namespace + PostgreSQL StatefulSet
+    ├── app.yaml        ← API and web Deployments + Services
+    └── migrate.yaml    ← DB migration Job (applied each deploy)
 ```
 
 ---

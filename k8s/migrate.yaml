@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: devlabmaster
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: localhost:5000/devlabmaster-migrate:${IMAGE_TAG}
+          envFrom:
+            - secretRef:
+                name: devlabmaster-env
