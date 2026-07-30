@@ -36,10 +36,11 @@ function clearTimeout_(studentId: string, labId: string): void {
   if (t) { clearTimeout(t); _containerTimeouts.delete(key); }
 }
 
-// Safety limits for exec (both setup scripts and verify scripts share these).
-// Verify scripts should finish in seconds; 30 s is generous while still
-// preventing a hung script from blocking an API worker indefinitely.
-const EXEC_TIMEOUT_MS  = 30_000;        // 30 s max wall-clock time
+// Safety limits for exec.
+// Verify scripts must be fast; setup scripts may pull Docker images inside DinD
+// containers which can take 60-120 s on a cold VPS.
+const EXEC_TIMEOUT_MS  = 30_000;         // 30 s for verify scripts
+const SETUP_TIMEOUT_MS = 120_000;        // 2 min for setup scripts (image pulls etc.)
 const MAX_OUTPUT_BYTES = 2 * 1024 * 1024; // 2 MB — prevent OOM from chatty scripts
 
 function containerName(studentId: string, labId: string): string {
@@ -276,7 +277,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
 
       try {
         await container.start();
-        const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], { user: "root" });
+        const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], { user: "root", timeoutMs: SETUP_TIMEOUT_MS });
         if (setup.exitCode !== 0) {
           logger.error({ labId, studentId, output: setup.output }, "Lab setup script failed");
           throw new Error(`Setup script failed (exit ${setup.exitCode}): ${setup.output.slice(-500)}`);

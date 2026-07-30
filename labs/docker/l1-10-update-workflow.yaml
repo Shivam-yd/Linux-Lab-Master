@@ -80,6 +80,7 @@ terminals:
 setupScript: |
   dockerd &>/tmp/dockerd.log &
   timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 0.5; done'
+  mkdir -p /var/log
   docker events --format '{{.Type}}:{{.Action}}:{{.Actor.Attributes.name}}' > /var/log/docker-events.log &
   mkdir -p /root/work/app
   docker pull busybox >/dev/null 2>&1
