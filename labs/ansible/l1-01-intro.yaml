@@ -1,81 +1,88 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# Ansible Lab: Ad-hoc Commands & Your First Playbook
+# Ansible Lab: Provision a Web Application Server
 # ──────────────────────────────────────────────────────────────────────────────
 
 id: "ansible-intro"
-title: "Ansible Basics: Ad-hoc Commands & Your First Playbook"
+title: "Ansible Basics: Provision a Web Application Server"
 track: "ansible"
 level: 1
 category: "Ansible Fundamentals"
 difficulty: "beginner"
-summary: "Learn the core Ansible workflow — write an inventory, run ad-hoc module commands, then author and execute your first playbook."
-estimatedMinutes: 20
+summary: "Play the role of a new DevOps engineer on your first day. Verify server connectivity, deploy a production environment file, then write a provisioning playbook that sets up the application directory structure."
+estimatedMinutes: 25
 order: 100
 
 objectives:
-  - "Understand what an inventory file is and why Ansible needs one"
-  - "Run ad-hoc commands against a host using the ping and copy modules"
-  - "Write a YAML playbook with a name, hosts, and tasks block"
-  - "Execute a playbook with ansible-playbook and verify its output"
+  - "Verify managed-host connectivity before running any automation"
+  - "Use an ad-hoc Ansible command to deploy a config file to a remote path"
+  - "Write and run a playbook that creates a directory and drops in a config file"
 
 instructions: |
-  ## Ansible Basics: Ad-hoc Commands & Your First Playbook
+  ## Provision a Web Application Server
 
   **Scenario**
-  Your team is adopting Ansible to automate repetitive configuration tasks
-  across servers. Before you can automate anything, you need to understand
-  Ansible's three building blocks: the **inventory** (which hosts to manage),
-  **ad-hoc commands** (one-off tasks run directly from the CLI), and
-  **playbooks** (reusable automation written in YAML). This lab walks through
-  all three in sequence using your local container as the managed host.
+  It's your first week as a DevOps engineer. Your team uses Ansible to manage
+  server configuration. The lead engineer has given you three tasks before you
+  can deploy the new web application to the `webservers` group:
 
-  **Your task:** configure an inventory for `localhost`, use ad-hoc commands
-  to verify connectivity and create a file, then write a playbook at
-  `/root/work/site.yml` that creates `/root/work/playbook-output.txt`
-  containing the text `hello-from-playbook` — and run it.
+  1. **Verify connectivity** — always ping the inventory before running any
+     automation. It catches misconfigured hosts before a real rollout fails
+     halfway through.
 
-  The inventory and `ansible.cfg` are already created for you in `/root/work/`.
-  All three tasks use `ansible_connection=local` so Ansible manages the
-  container itself — no SSH or remote hosts required.
+  2. **Deploy the environment file** — the application reads its runtime
+     settings from `/opt/webapp/.env`. Use an ad-hoc command to push
+     `APP_ENV=production` to that path now, before the playbook run.
+
+  3. **Write the provisioning playbook** — the application expects
+     `/opt/webapp/` to exist and `/opt/webapp/config.yml` to be present
+     containing `debug: false`. Write `provision.yml` and run it.
+
+  The inventory and `ansible.cfg` are already in `/root/work/`.
+  `ansible_connection=local` is set so Ansible manages this container
+  directly — no SSH or external network is needed.
 
   **What You'll Deliver**
-  - `/root/work/ping-output.txt` created by running `ansible local -m ping`,
-    containing `"pong"` in the output
-  - `/root/work/managed.txt` created by an ad-hoc `copy` module command,
-    containing the exact text `managed-by-ansible`
-  - `/root/work/site.yml` with `hosts:` and `tasks:` blocks, run with
-    `ansible-playbook`, producing `/root/work/playbook-output.txt` containing
-    the exact text `hello-from-playbook`
+  - `/root/work/ping-output.txt` — output of `ansible webservers -m ping`,
+    containing `"pong"`
+  - `/opt/webapp/.env` — created by an ad-hoc `copy` command,
+    containing the exact text `APP_ENV=production`
+  - `/root/work/provision.yml` — a playbook with `hosts:` and `tasks:` blocks
+  - `/opt/webapp/config.yml` — created by running `provision.yml`,
+    containing the exact text `debug: false`
 
   ## Steps
 
   1. `cat /root/work/inventory.ini`
-  2. `cat /root/work/ansible.cfg`
-  3. `ansible local -m ping > /root/work/ping-output.txt`
-  4. `cat /root/work/ping-output.txt`
-  5. `ansible local -m copy -a "content='managed-by-ansible' dest=/root/work/managed.txt"`
-  6. `cat /root/work/managed.txt`
-  7. `cat > /root/work/site.yml << 'EOF'`
+  2. `ansible webservers -m ping > /root/work/ping-output.txt`
+  3. `cat /root/work/ping-output.txt`
+  4. `ansible webservers -m copy -a "content='APP_ENV=production' dest=/opt/webapp/.env"`
+  5. `cat /opt/webapp/.env`
+  6. `cat > /root/work/provision.yml << 'EOF'`
      `---`
-     `- name: My First Playbook`
-     `  hosts: local`
+     `- name: Provision webapp server`
+     `  hosts: webservers`
      `  gather_facts: false`
      `  tasks:`
-     `    - name: Create output file`
+     `    - name: Ensure webapp directory exists`
+     `      file:`
+     `        path: /opt/webapp`
+     `        state: directory`
+     `        mode: "0755"`
+     `    - name: Deploy application config`
      `      copy:`
-     `        content: "hello-from-playbook"`
-     `        dest: /root/work/playbook-output.txt`
+     `        content: "debug: false"`
+     `        dest: /opt/webapp/config.yml`
      `EOF`
-  8. `ansible-playbook /root/work/site.yml`
-  9. `cat /root/work/playbook-output.txt`
+  7. `ansible-playbook /root/work/provision.yml`
+  8. `cat /opt/webapp/config.yml`
 
 tasks:
-  - id: "ping_localhost"
-    description: "Run ansible -m ping against the local group and save the output to /root/work/ping-output.txt"
-  - id: "copy_module"
-    description: "Use the ad-hoc copy module to create /root/work/managed.txt containing the text managed-by-ansible"
-  - id: "first_playbook"
-    description: "Write /root/work/site.yml with hosts: and tasks: blocks, run it with ansible-playbook, producing /root/work/playbook-output.txt containing hello-from-playbook"
+  - id: "verify_connectivity"
+    description: "Run ansible webservers -m ping and save the output to /root/work/ping-output.txt"
+  - id: "deploy_env_file"
+    description: "Use an ad-hoc copy command to create /opt/webapp/.env containing APP_ENV=production"
+  - id: "provision_webapp"
+    description: "Write /root/work/provision.yml with hosts: and tasks: blocks, run it, producing /opt/webapp/config.yml containing debug: false"
 
 image: "cytopia/ansible:latest"
 entrypoint: ["sleep", "infinity"]
@@ -86,66 +93,69 @@ terminals:
     cwd: "/root/work"
 
 setupScript: |
-  mkdir -p /root/work
+  mkdir -p /root/work /opt/webapp
 
-  # Inventory — one group called 'local' containing localhost with a local connection.
-  # ansible_connection=local means Ansible runs tasks directly in this container;
-  # no SSH daemon or network is required.
+  # Inventory — 'webservers' group with localhost using a local connection.
+  # In a real environment this file would list actual server IPs or hostnames.
+  # ansible_connection=local makes Ansible run tasks directly in this container.
   cat > /root/work/inventory.ini << 'EOF'
-  [local]
+  [webservers]
   localhost ansible_connection=local
   EOF
 
-  # ansible.cfg in the working directory is picked up automatically.
-  # Setting inventory here means students don't need to pass -i on every command.
+  # ansible.cfg sets the default inventory path so students don't need -i.
   cat > /root/work/ansible.cfg << 'EOF'
   [defaults]
-  inventory     = /root/work/inventory.ini
+  inventory            = /root/work/inventory.ini
   host_key_checking    = False
   deprecation_warnings = False
   retry_files_enabled  = False
   EOF
 
 verifyScript: |
-  # CHECK: ping_localhost
+  # CHECK: verify_connectivity
   if [ -f /root/work/ping-output.txt ] && grep -q '"pong"' /root/work/ping-output.txt; then
-    echo "CHECK:ping_localhost:PASS:ping-output.txt exists and contains pong — ad-hoc ping succeeded"
+    echo "CHECK:verify_connectivity:PASS:ping-output.txt exists and webservers responded with pong"
   else
-    echo "CHECK:ping_localhost:FAIL:Run: ansible local -m ping > /root/work/ping-output.txt"
+    echo "CHECK:verify_connectivity:FAIL:Run: ansible webservers -m ping > /root/work/ping-output.txt"
   fi
 
-  # CHECK: copy_module
-  if [ -f /root/work/managed.txt ] && grep -q 'managed-by-ansible' /root/work/managed.txt; then
-    echo "CHECK:copy_module:PASS:/root/work/managed.txt exists with content managed-by-ansible"
+  # CHECK: deploy_env_file
+  if [ -f /opt/webapp/.env ] && grep -q 'APP_ENV=production' /opt/webapp/.env; then
+    echo "CHECK:deploy_env_file:PASS:/opt/webapp/.env contains APP_ENV=production"
   else
-    echo "CHECK:copy_module:FAIL:Run: ansible local -m copy -a \"content='managed-by-ansible' dest=/root/work/managed.txt\""
+    echo "CHECK:deploy_env_file:FAIL:Run: ansible webservers -m copy -a \"content='APP_ENV=production' dest=/opt/webapp/.env\""
   fi
 
-  # CHECK: first_playbook
-  if [ -f /root/work/site.yml ] \
-     && grep -q 'hosts:' /root/work/site.yml \
-     && grep -q 'tasks:' /root/work/site.yml \
-     && [ -f /root/work/playbook-output.txt ] \
-     && grep -q 'hello-from-playbook' /root/work/playbook-output.txt; then
-    echo "CHECK:first_playbook:PASS:site.yml written and executed — playbook-output.txt contains hello-from-playbook"
+  # CHECK: provision_webapp
+  if [ -f /root/work/provision.yml ] \
+     && grep -q 'hosts:' /root/work/provision.yml \
+     && grep -q 'tasks:' /root/work/provision.yml \
+     && [ -f /opt/webapp/config.yml ] \
+     && grep -q 'debug: false' /opt/webapp/config.yml; then
+    echo "CHECK:provision_webapp:PASS:provision.yml written and executed — /opt/webapp/config.yml contains debug: false"
   else
-    echo "CHECK:first_playbook:FAIL:Write /root/work/site.yml with hosts: and tasks:, then: ansible-playbook /root/work/site.yml"
+    echo "CHECK:provision_webapp:FAIL:Write /root/work/provision.yml with hosts: and tasks:, then: ansible-playbook /root/work/provision.yml"
   fi
 
 hints:
-  - "The inventory is already at /root/work/inventory.ini with a [local] group. Run: ansible local -m ping to test it."
-  - "Ansible ad-hoc syntax: ansible <group> -m <module> -a \"<arguments>\". The copy module takes content= and dest=."
-  - "Redirect the ping output: ansible local -m ping > /root/work/ping-output.txt"
-  - "A minimal playbook needs three keys: hosts: (which group), gather_facts: false (skip slow fact collection), and tasks: (list of modules to run)."
-  - "Run your playbook with: ansible-playbook /root/work/site.yml"
+  - "Always verify connectivity before automating: ansible webservers -m ping"
+  - "Ad-hoc copy syntax: ansible webservers -m copy -a \"content='VALUE' dest=/path/to/file\""
+  - "The /opt/webapp/ directory is pre-created for you so the copy command works without needing the file module first."
+  - "A playbook must have at minimum: a name, hosts: (which group), and tasks: (list of modules). gather_facts: false skips slow fact collection."
+  - "The file module manages directories: state: directory creates the path if it does not exist."
   - |
-    Full playbook:
+    Minimal provision.yml:
     ---
-    - name: My First Playbook
-      hosts: local
+    - name: Provision webapp server
+      hosts: webservers
       gather_facts: false
       tasks:
-        - name: Create output file
+        - name: Ensure webapp directory exists
+          file:
+            path: /opt/webapp
+            state: directory
+        - name: Deploy application config
           copy:
-            content: "hello-from-playbook"
-            dest: /root/work/playbook-output.txt
+            content: "debug: false"
+            dest: /opt/webapp/config.yml
