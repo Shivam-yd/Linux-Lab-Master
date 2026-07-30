@@ -264,9 +264,27 @@ success "Lab images ready"
 
 info "Running database migration..."
 kubectl delete job migrate -n devlabmaster --ignore-not-found=true
+
+# Pre-pull the migrate image into k3s containerd so the job pod starts immediately
+# (k3s uses its own containerd — images pushed to the Docker registry still need
+# to be pulled separately before the pod can run them without delay)
+info "Pre-pulling migrate image into k3s containerd..."
+k3s crictl pull "localhost:5000/devlabmaster-migrate:${IMAGE_TAG}" \
+  || warn "crictl pre-pull failed — job will pull at runtime (may be slower)"
+
 export IMAGE_TAG
 envsubst '${IMAGE_TAG}' < "${INSTALL_DIR}/k8s/migrate.yaml" | kubectl apply -f -
-kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=120s
+
+# Wait up to 5 min; also detect a hard failure so we don't just say "timed out"
+if ! kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=300s; then
+  echo ""
+  warn "Migration did not complete within 5 minutes."
+  warn "Pod status:"
+  kubectl get pods -n devlabmaster -l job-name=migrate 2>/dev/null || true
+  warn "Pod logs:"
+  kubectl logs -n devlabmaster -l job-name=migrate --tail=80 2>/dev/null || true
+  die "Database migration failed — see logs above."
+fi
 success "Migration complete"
 
 info "Deploying api and web..."
