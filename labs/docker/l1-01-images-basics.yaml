@@ -34,9 +34,9 @@ instructions: |
   would on any Linux host.
 
   **What You'll Deliver**
-  - `busybox` pulled into the local image cache
-  - `nginx` pulled and still present in the cache
-  - `busybox` removed with `docker rmi`, leaving only `nginx`
+  - `busybox:latest` pulled into the local image cache
+  - `nginx:latest` pulled and still present in the cache
+  - `busybox:latest` removed with `docker rmi`, leaving only `nginx:latest`
 
   ## Steps
 
@@ -45,7 +45,7 @@ instructions: |
   3. List the cache to see both images: `docker images`
   4. Inspect nginx to see its metadata: `docker inspect nginx`
   5. Remove busybox: `docker rmi busybox`
-  6. Confirm the cleanup: `docker images` — only `nginx` should remain
+  6. `docker images`
 
 tasks:
   - id: "pulled_busybox"
@@ -58,7 +58,7 @@ tasks:
 image: "docker:dind"
 privileged: true
 entrypoint: ["sleep", "infinity"]
-shell: "sh"
+shell: "bash"
 terminals:
   - name: "Terminal"
     user: "root"

@@ -58,7 +58,7 @@ instructions: |
      EOF
      ```
   5. Build v2: `docker build -t webapp:v2 /root/work/app`
-  6. Confirm both tags exist: `docker images` — you should see `webapp:v1` and `webapp:v2`
+  6. `docker images`
 
 tasks:
   - id: "v1_built"
@@ -71,7 +71,7 @@ tasks:
 image: "docker:dind"
 privileged: true
 entrypoint: ["sleep", "infinity"]
-shell: "sh"
+shell: "bash"
 terminals:
   - name: "Terminal"
     user: "root"

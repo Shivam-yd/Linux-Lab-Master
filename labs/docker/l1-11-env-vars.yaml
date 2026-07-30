@@ -43,9 +43,8 @@ instructions: |
   1. Start the container in detached mode with the env var:
      `docker run -d --name web -e APP_ENV=production nginx`
   2. Confirm it is running: `docker ps`
-  3. Inspect the container to verify the environment variable was set:
-     `docker inspect web`
-  4. Look for `"APP_ENV=production"` in the `Env` section of the output.
+  3. `docker inspect web`
+  4. `docker inspect web --format '{{json .Config.Env}}'`
 
 tasks:
   - id: "web_running"
@@ -56,7 +55,7 @@ tasks:
 image: "docker:dind"
 privileged: true
 entrypoint: ["sleep", "infinity"]
-shell: "sh"
+shell: "bash"
 terminals:
   - name: "Terminal"
     user: "root"

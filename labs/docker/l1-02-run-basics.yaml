@@ -49,7 +49,7 @@ instructions: |
   6. Run temp and let it exit:
      `docker run --name temp busybox echo "temp done"`
   7. Remove temp: `docker rm temp`
-  8. Confirm temp is gone: `docker ps -a` should not show it
+  8. `docker ps -a`
 
 tasks:
   - id: "app1_running"
@@ -62,7 +62,7 @@ tasks:
 image: "docker:dind"
 privileged: true
 entrypoint: ["sleep", "infinity"]
-shell: "sh"
+shell: "bash"
 terminals:
   - name: "Terminal"
     user: "root"

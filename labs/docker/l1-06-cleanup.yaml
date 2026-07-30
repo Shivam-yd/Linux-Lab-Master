@@ -41,13 +41,14 @@ instructions: |
 
   ## Steps
 
-  1. Survey the damage: `docker ps -a` and `docker images` and `docker volume ls`
-  2. Remove the stopped containers:
-     `docker rm app-old && docker rm cache-stale && docker rm worker-done`
-  3. Now that no container references `old-webapp:v1`, remove it:
-     `docker rmi old-webapp:v1`
-  4. Remove the orphaned volume: `docker volume rm orphan-data`
-  5. Verify everything is clean: `docker ps -a` then `docker images` then `docker volume ls`
+  1. `docker ps -a`
+  2. `docker images`
+  3. `docker volume ls`
+  4. `docker rm app-old`
+  5. `docker rm cache-stale`
+  6. `docker rm worker-done`
+  7. `docker rmi old-webapp:v1`
+  8. `docker volume rm orphan-data`
 
 tasks:
   - id: "containers_cleared"
@@ -60,7 +61,7 @@ tasks:
 image: "docker:dind"
 privileged: true
 entrypoint: ["sleep", "infinity"]
-shell: "sh"
+shell: "bash"
 terminals:
   - name: "Terminal"
     user: "root"

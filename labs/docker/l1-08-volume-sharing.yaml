@@ -39,7 +39,7 @@ instructions: |
 
   **What You'll Deliver**
   - Named volume `report-data` created
-  - `writer` container created `/data/report.txt` on the volume
+  - `writer` container created `/data/report.txt` on the volume containing the exact lines `monthly-report-2024` and `status: complete`
   - `reader` container produced `/root/work/read-confirm.txt` by reading from the same volume
 
   ## Steps
@@ -64,7 +64,7 @@ tasks:
 image: "docker:dind"
 privileged: true
 entrypoint: ["sleep", "infinity"]
-shell: "sh"
+shell: "bash"
 terminals:
   - name: "Terminal"
     user: "root"

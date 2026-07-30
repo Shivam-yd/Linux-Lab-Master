@@ -42,7 +42,7 @@ instructions: |
 
   1. Start logger in the background:
      `docker run -d --name logger busybox sh -c 'while true; do echo tick; sleep 1; done'`
-  2. Read its output: `docker logs logger` — you should see one or more `tick` lines
+  2. `docker logs logger`
   3. While logger is still running, create the proof file inside it:
      `docker exec logger sh -c 'echo reached-via-exec > /exec-proof.txt'`
   4. Confirm logger is still running: `docker ps`
@@ -58,7 +58,7 @@ tasks:
 image: "docker:dind"
 privileged: true
 entrypoint: ["sleep", "infinity"]
-shell: "sh"
+shell: "bash"
 terminals:
   - name: "Terminal"
     user: "root"
