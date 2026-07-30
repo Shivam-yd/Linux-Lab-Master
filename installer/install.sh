@@ -253,6 +253,7 @@ docker pull alpine/k8s:1.30.2
 docker pull hashicorp/terraform:1.9
 docker pull rastasheep/ubuntu-sshd:18.04
 docker pull localstack/localstack:latest
+docker pull docker:dind
 success "Lab images ready"
 
 # ── Step 6: Install systemd service ───────────────────────────────────────────
@@ -344,7 +345,8 @@ echo ""
 echo -e "  ${CYAN}Pages:${RESET}"
 echo -e "    http://localhost:8085/           — home / sign in"
 echo -e "    http://localhost:8085/dashboard  — lab catalog"
-echo -e "    http://localhost:8085/progress   — your progress across all tracks"
+echo -e "    http://localhost:8085/progress     — your progress across all tracks
+    http://localhost:8085/leaderboard  — top learners across all tracks"
 echo -e "    http://localhost:8085/profile    — account settings & password"
 echo -e "    http://localhost:8085/certificate/:track  — completion certificate and Share link"
 echo -e "    http://localhost:8085/verify/:id           — public certificate verification"
