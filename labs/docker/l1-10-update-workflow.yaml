@@ -83,13 +83,7 @@ setupScript: |
   docker events --format '{{.Type}}:{{.Action}}:{{.Actor.Attributes.name}}' > /var/log/docker-events.log &
   mkdir -p /root/work/app
   docker pull busybox >/dev/null 2>&1
-  cat > /root/work/app/Dockerfile <<'EOF'
-FROM busybox
-LABEL version="1.0"
-RUN echo "building v1"
-COPY . /app
-CMD ["echo", "webapp v1 starting"]
-EOF
+  printf '%s\n' 'FROM busybox' 'LABEL version="1.0"' 'RUN echo "building v1"' 'COPY . /app' 'CMD ["echo", "webapp v1 starting"]' > /root/work/app/Dockerfile
   docker build -t webapp:v1 /root/work/app >/dev/null 2>&1
   docker run -d --name app-v1 webapp:v1 sh -c "while true; do echo 'v1 running'; sleep 2; done" >/dev/null
 
