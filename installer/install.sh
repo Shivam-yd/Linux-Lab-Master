@@ -125,8 +125,15 @@ success "k3s running"
 if id github-runner &>/dev/null; then
   install -D -m 600 /etc/rancher/k3s/k3s.yaml /home/github-runner/.kube/config
   chown github-runner:github-runner /home/github-runner/.kube/config
+
+  # docker group membership only takes effect after re-login/service restart,
+  # so also grant passwordless sudo for docker so CI works immediately.
   usermod -aG docker github-runner
-  success "github-runner added to docker group"
+  cat > /etc/sudoers.d/github-runner-docker <<'EOF'
+github-runner ALL=(ALL) NOPASSWD: /usr/bin/docker
+EOF
+  chmod 440 /etc/sudoers.d/github-runner-docker
+  success "github-runner granted docker access (group + sudo)"
 fi
 
 # ── Step 3: Local registry ────────────────────────────────────────────────────
