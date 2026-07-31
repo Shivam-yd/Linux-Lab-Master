@@ -153,17 +153,17 @@ export const auth = betterAuth({
       }
     },
   },
-  ...(googleConfigured && {
+  ...(googleConfigured ? {
     socialProviders: {
       google: {
-        clientId: googleClientId,
-        clientSecret: googleClientSecret,
+        clientId: googleClientId!,
+        clientSecret: googleClientSecret!,
         // Always show the Google account picker so users are never silently
         // signed in via a cached session — especially on shared machines.
         prompt: "select_account",
       },
     },
-  }),
+  } : {}),
   secret: process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production",
   trustedOrigins,
   advanced: {

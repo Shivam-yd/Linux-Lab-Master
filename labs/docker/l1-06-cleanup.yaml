@@ -61,7 +61,7 @@ tasks:
 image: "docker:dind"
 privileged: true
 entrypoint: ["sleep", "infinity"]
-shell: "bash"
+shell: "sh"
 terminals:
   - name: "Terminal"
     user: "root"
