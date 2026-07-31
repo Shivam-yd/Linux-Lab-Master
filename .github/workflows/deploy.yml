@@ -44,19 +44,42 @@ jobs:
           sudo kubectl get secrets -n devlabmaster
           sudo kubectl delete job migrate -n devlabmaster --ignore-not-found=true
           envsubst '${IMAGE_TAG}' < /opt/Linux-Lab-Master/k8s/migrate.yaml | sudo kubectl apply -f -
-          sleep 10
+
+          # Stream pod logs in the background as soon as a pod appears
+          (
+            for i in $(seq 1 45); do
+              POD=$(sudo kubectl get pods -n devlabmaster -l job-name=migrate -o name 2>/dev/null | head -1)
+              if [ -n "$POD" ]; then
+                echo "--- streaming logs from $POD ---"
+                sudo kubectl logs -n devlabmaster -f "$POD" 2>&1 || true
+                break
+              fi
+              sleep 2
+            done
+          ) &
+          LOG_PID=$!
+
+          sleep 5
           echo "--- all pods in namespace ---"
           sudo kubectl get pods -n devlabmaster
           echo "--- job description ---"
           sudo kubectl describe job/migrate -n devlabmaster
+
           if ! sudo kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=180s; then
+            sleep 2
+            kill $LOG_PID 2>/dev/null || true
             echo "--- namespace events ---"
             sudo kubectl get events -n devlabmaster --sort-by=.metadata.creationTimestamp | tail -30
-            echo "--- pod logs ---"
-            POD=$(sudo kubectl get pods -n devlabmaster -o name | grep migrate | head -1)
-            [ -n "$POD" ] && sudo kubectl logs -n devlabmaster "$POD" --tail=100 || echo "no migrate pod found"
+            echo "--- pod logs (all migrate pods, including previous) ---"
+            for POD in $(sudo kubectl get pods -n devlabmaster -l job-name=migrate -o name 2>/dev/null); do
+              echo "=== $POD ==="
+              sudo kubectl logs -n devlabmaster "$POD" --tail=100 2>/dev/null \
+                || sudo kubectl logs -n devlabmaster "$POD" --previous --tail=100 2>/dev/null \
+                || echo "no logs available for $POD"
+            done
             exit 1
           fi
+          kill $LOG_PID 2>/dev/null || true
 
       - name: Rolling deploy
         run: |
