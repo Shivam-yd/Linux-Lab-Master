@@ -72,32 +72,54 @@ docker run -d \
   --name "${RECOVER_CTR}" \
   -v "${OLD_VOLUME}:/var/lib/postgresql/data" \
   postgres:16-alpine
-trap 'docker rm -f "${RECOVER_CTR}" 2>/dev/null || true' EXIT
 
-# Wait for postgres to accept connections (up to 30s)
+# Always clean up the recovery container on exit
+cleanup() { docker rm -f "${RECOVER_CTR}" 2>/dev/null || true; }
+trap cleanup EXIT
+
+# Wait for postgres to accept connections (up to 60s)
 info "Waiting for recovery postgres to start..."
-for _i in $(seq 1 15); do
-  if docker exec "${RECOVER_CTR}" pg_isready -U linuxlabs -d linuxlabs -q 2>/dev/null; then
-    break
+ready=false
+for _i in $(seq 1 30); do
+  if docker exec "${RECOVER_CTR}" pg_isready -U linuxlabs -q 2>/dev/null; then
+    ready=true; break
   fi
   sleep 2
 done
-docker exec "${RECOVER_CTR}" pg_isready -U linuxlabs -d linuxlabs -q \
-  || die "Recovery postgres did not start. The old data directory may be corrupt."
 
-# Try the current .env password first, then the compose default "linuxlabs"
+if ! ${ready}; then
+  echo ""
+  warn "Recovery postgres failed to start. Container logs:"
+  docker logs "${RECOVER_CTR}" 2>&1 | tail -20
+  die "Cannot start postgres from the old volume. See logs above."
+fi
+
+# Dump via Unix socket (no -h flag) — postgres always trusts local socket
+# connections, so no password is needed regardless of pg_hba.conf.
 dump_ok=false
-for PG_PASS in "${POSTGRES_PASSWORD}" "linuxlabs"; do
-  if docker exec -e PGPASSWORD="${PG_PASS}" "${RECOVER_CTR}" \
-      pg_dump -U linuxlabs -d linuxlabs --no-owner --no-acl \
-      > "${DUMP_FILE}" 2>/dev/null; then
-    dump_ok=true
-    break
-  fi
-done
+if docker exec "${RECOVER_CTR}" \
+    pg_dump -U linuxlabs -d linuxlabs --no-owner --no-acl \
+    > "${DUMP_FILE}" 2>/tmp/pgdump-err.txt; then
+  dump_ok=true
+else
+  # Fallback: try with password via TCP (some pg_hba.conf configs require it)
+  for PG_PASS in "${POSTGRES_PASSWORD}" "linuxlabs"; do
+    if docker exec -e PGPASSWORD="${PG_PASS}" "${RECOVER_CTR}" \
+        pg_dump -h 127.0.0.1 -U linuxlabs -d linuxlabs --no-owner --no-acl \
+        > "${DUMP_FILE}" 2>/dev/null; then
+      dump_ok=true; break
+    fi
+  done
+fi
 
-${dump_ok} || die "pg_dump failed. Check the recovery container logs:
-  docker logs ${RECOVER_CTR}"
+if ! ${dump_ok}; then
+  echo ""
+  warn "pg_dump error output:"
+  cat /tmp/pgdump-err.txt 2>/dev/null || true
+  warn "Container logs:"
+  docker logs "${RECOVER_CTR}" 2>&1 | tail -20
+  die "pg_dump failed — see details above."
+fi
 
 DUMP_SIZE=$(du -sh "${DUMP_FILE}" | cut -f1)
 success "Dump complete: ${DUMP_FILE} (${DUMP_SIZE})"
