@@ -285,6 +285,31 @@ pull_image localstack/localstack:latest
 pull_image docker:dind
 success "Lab image pre-pull complete"
 
+# ── Backup existing data before migration ─────────────────────────────────────
+# If postgres is already running (reinstall / upgrade), dump the database to
+# /opt/linuxlabs/backups/ before applying any schema changes.
+# The dump is a plain-SQL file you can restore with:
+#   kubectl exec -n devlabmaster statefulset/postgres -- \
+#     psql -U linuxlabs linuxlabs < /opt/linuxlabs/backups/<file>
+BACKUP_DIR="${INSTALL_DIR}/backups"
+mkdir -p "${BACKUP_DIR}"
+
+POSTGRES_POD=$(kubectl get pods -n devlabmaster -l app=postgres \
+  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+if [[ -n "${POSTGRES_POD}" ]]; then
+  BACKUP_FILE="${BACKUP_DIR}/linuxlabs-$(date +%Y%m%d-%H%M%S).sql"
+  info "Existing database detected — backing up to ${BACKUP_FILE} ..."
+  if kubectl exec -n devlabmaster "${POSTGRES_POD}" -- \
+      pg_dump -U linuxlabs linuxlabs > "${BACKUP_FILE}" 2>/dev/null; then
+    success "Backup saved: ${BACKUP_FILE}"
+  else
+    warn "Backup failed — continuing anyway. Check pg_dump logs if data is missing."
+    rm -f "${BACKUP_FILE}"
+  fi
+else
+  info "Fresh install — no existing database to back up"
+fi
+
 info "Running database migration..."
 kubectl delete job migrate -n devlabmaster --ignore-not-found=true
 
