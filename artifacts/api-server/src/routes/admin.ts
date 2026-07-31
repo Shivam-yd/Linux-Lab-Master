@@ -679,16 +679,19 @@ router.post("/certs/backfill", async (req, res): Promise<void> => {
   `);
 
   type Row = { student_id: string; track: string; level: number | null; earned_at: Date; student_name: string };
-  // expiresAt is required by the schema; certs don't expire so use a far-future date.
-  const certExpiresAt = new Date("2099-12-31T00:00:00Z");
-  const records = (rows.rows as Row[]).map(r => ({
-    certId: makeCertId(r.student_id, r.track, r.level),
-    studentName: r.student_name,
-    track: r.track,
-    level: r.level,
-    earnedAt: new Date(r.earned_at),
-    expiresAt: certExpiresAt,
-  }));
+  const records = (rows.rows as Row[]).map(r => {
+    const earnedAt = new Date(r.earned_at);
+    const expiresAt = new Date(earnedAt);
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    return {
+      certId: makeCertId(r.student_id, r.track, r.level),
+      studentName: r.student_name,
+      track: r.track,
+      level: r.level,
+      earnedAt,
+      expiresAt,
+    };
+  });
 
   if (records.length === 0) { res.json({ upserted: 0, dryRun }); return; }
 

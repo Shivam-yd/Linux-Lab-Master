@@ -97,7 +97,7 @@ terminals:
     cwd: "/root/work"
 
 setupScript: |
-  mkdir -p /root/work
+  mkdir -p /root/work /opt/webapp
 
   # Inventory — 'webservers' group with localhost using a local connection.
   # In a real environment this file would list actual server IPs or hostnames.

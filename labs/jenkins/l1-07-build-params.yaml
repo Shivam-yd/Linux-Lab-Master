@@ -96,7 +96,7 @@ terminals:
     cwd: "/var/lib/jenkins/jobs/deploy-app"
 
 setupScript: |
-  apt-get install -y -qq libxml2-utils >/dev/null 2>&1 || true
+  apt-get update -qq >/dev/null 2>&1 && apt-get install -y -qq libxml2-utils >/dev/null 2>&1 || true
   mkdir -p /var/lib/jenkins/jobs/deploy-app
   cat > /var/lib/jenkins/jobs/deploy-app/config.xml <<'EOF'
   <?xml version='1.1' encoding='UTF-8'?>

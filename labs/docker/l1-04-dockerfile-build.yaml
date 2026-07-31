@@ -74,7 +74,7 @@ terminals:
     cwd: "/root/work"
 
 setupScript: |
-  dockerd &>/tmp/dockerd.log &
+  dockerd >/tmp/dockerd.log 2>&1 &
   timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 0.5; done'
   mkdir -p /var/log /root/work/app
   docker events --format '{{.Type}}:{{.Action}}:{{.Actor.Attributes.name}}' > /var/log/docker-events.log &
