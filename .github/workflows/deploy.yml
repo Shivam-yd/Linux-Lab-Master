@@ -31,6 +31,7 @@ jobs:
 
       - name: Run migration
         run: |
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
           export IMAGE_TAG=${{ github.sha }}
           kubectl delete job migrate -n devlabmaster --ignore-not-found=true
           envsubst '${IMAGE_TAG}' < /opt/Linux-Lab-Master/k8s/migrate.yaml | kubectl apply -f -
@@ -38,6 +39,7 @@ jobs:
 
       - name: Rolling deploy
         run: |
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
           export IMAGE_TAG=${{ github.sha }}
           envsubst '${IMAGE_TAG}' < /opt/Linux-Lab-Master/k8s/app.yaml | kubectl apply -f -
           kubectl rollout status deployment/api -n devlabmaster --timeout=120s

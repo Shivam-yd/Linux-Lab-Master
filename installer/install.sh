@@ -91,13 +91,19 @@ fi
 # ── Step 2: k3s ───────────────────────────────────────────────────────────────
 header "Step 2/7 — k3s"
 
-# Tell k3s to trust the local registry before it starts
+# Tell k3s to trust the local registry and write kubeconfig world-readable
 mkdir -p /etc/rancher/k3s
 cat > /etc/rancher/k3s/registries.yaml <<'EOF'
 mirrors:
   "localhost:5000":
     endpoint:
       - "http://localhost:5000"
+EOF
+
+# write-kubeconfig-mode 644 lets non-root users (e.g. github-runner) run kubectl
+# without needing sudo or a copied kubeconfig.
+cat > /etc/rancher/k3s/config.yaml <<'EOF'
+write-kubeconfig-mode: "0644"
 EOF
 
 if command -v k3s &>/dev/null; then
