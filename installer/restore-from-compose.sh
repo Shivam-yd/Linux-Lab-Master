@@ -94,18 +94,21 @@ if ! ${ready}; then
   die "Cannot start postgres from the old volume. See logs above."
 fi
 
-# Dump via Unix socket (no -h flag) — postgres always trusts local socket
-# connections, so no password is needed regardless of pg_hba.conf.
+# Dump data only with INSERT ... ON CONFLICT DO NOTHING so existing k3s rows
+# are never deleted — missing rows are added, duplicates are silently skipped.
+# --disable-triggers bypasses FK ordering so tables load in any order.
 dump_ok=false
 if docker exec "${RECOVER_CTR}" \
-    pg_dump -U linuxlabs -d linuxlabs --no-owner --no-acl \
+    pg_dump -U linuxlabs -d linuxlabs \
+      --data-only --inserts --on-conflict-do-nothing --disable-triggers \
     > "${DUMP_FILE}" 2>/tmp/pgdump-err.txt; then
   dump_ok=true
 else
-  # Fallback: try with password via TCP (some pg_hba.conf configs require it)
+  # Fallback: try with password via TCP
   for PG_PASS in "${POSTGRES_PASSWORD}" "linuxlabs"; do
     if docker exec -e PGPASSWORD="${PG_PASS}" "${RECOVER_CTR}" \
-        pg_dump -h 127.0.0.1 -U linuxlabs -d linuxlabs --no-owner --no-acl \
+        pg_dump -h 127.0.0.1 -U linuxlabs -d linuxlabs \
+          --data-only --inserts --on-conflict-do-nothing --disable-triggers \
         > "${DUMP_FILE}" 2>/dev/null; then
       dump_ok=true; break
     fi
