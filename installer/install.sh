@@ -133,13 +133,14 @@ if id github-runner &>/dev/null; then
   chown github-runner:github-runner /home/github-runner/.kube/config
 
   # docker group membership only takes effect after re-login/service restart,
-  # so also grant passwordless sudo for docker so CI works immediately.
+  # so also grant passwordless sudo for docker and kubectl so CI works immediately.
   usermod -aG docker github-runner
-  cat > /etc/sudoers.d/github-runner-docker <<'EOF'
+  cat > /etc/sudoers.d/github-runner-devlabmaster <<'EOF'
 github-runner ALL=(ALL) NOPASSWD: /usr/bin/docker
+github-runner ALL=(ALL) NOPASSWD: /usr/local/bin/kubectl
 EOF
-  chmod 440 /etc/sudoers.d/github-runner-docker
-  success "github-runner granted docker access (group + sudo)"
+  chmod 440 /etc/sudoers.d/github-runner-devlabmaster
+  success "github-runner granted docker + kubectl access (group + sudo)"
 fi
 
 # ── Step 3: Local registry ────────────────────────────────────────────────────
