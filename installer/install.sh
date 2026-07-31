@@ -111,9 +111,14 @@ fi
 systemctl enable k3s
 # Restart so any registries.yaml change is picked up (restart is a no-op if not yet running)
 systemctl restart k3s
-# Give k3s a moment to write its kubeconfig
-sleep 5
+# Wait until the k3s API server is actually accepting requests
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+info "Waiting for k3s API server..."
+for _i in $(seq 1 30); do
+  kubectl get nodes &>/dev/null && break
+  sleep 3
+done
+kubectl get nodes &>/dev/null || die "k3s API server did not become ready in 90 s"
 success "k3s running"
 
 # Give the GitHub Actions runner (if present) kubectl access
@@ -251,16 +256,22 @@ docker push "localhost:5000/devlabmaster-api:${IMAGE_TAG}"
 docker push "localhost:5000/devlabmaster-web:${IMAGE_TAG}"
 success "Images pushed to local registry"
 
-info "Pulling lab sandbox images so labs start instantly..."
-docker pull ubuntu:24.04
-docker pull alpine:latest
-docker pull alpine/git:latest
-docker pull alpine/k8s:1.30.2
-docker pull hashicorp/terraform:1.9
-docker pull rastasheep/ubuntu-sshd:18.04
-docker pull localstack/localstack:latest
-docker pull docker:dind
-success "Lab images ready"
+info "Pre-pulling lab sandbox images so labs start instantly..."
+info "(failures are non-fatal — images will be pulled lazily on first lab start)"
+pull_image() {
+  local img="$1"
+  docker pull "${img}" && return 0
+  warn "Could not pre-pull ${img} — lab will pull it on first use"
+}
+pull_image ubuntu:24.04
+pull_image alpine:latest
+pull_image alpine/git:latest
+pull_image alpine/k8s:1.30.2
+pull_image hashicorp/terraform:1.9
+pull_image rastasheep/ubuntu-sshd:18.04
+pull_image localstack/localstack:latest
+pull_image docker:dind
+success "Lab image pre-pull complete"
 
 info "Running database migration..."
 kubectl delete job migrate -n devlabmaster --ignore-not-found=true

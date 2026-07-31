@@ -11,6 +11,7 @@ spec:
       containers:
         - name: migrate
           image: localhost:5000/devlabmaster-migrate:${IMAGE_TAG}
+          imagePullPolicy: Always
           envFrom:
             - secretRef:
                 name: devlabmaster-env
