@@ -63,32 +63,41 @@ success "Found old volume: ${OLD_VOLUME}"
 DUMP_FILE="${BACKUP_DIR}/compose-migration-$(date +%Y%m%d-%H%M%S).sql"
 info "Dumping old database from ${OLD_VOLUME} → ${DUMP_FILE} ..."
 
-# Spin up a temporary postgres container that mounts the old volume read-only,
-# then pg_dump from it.  The old password defaults to "linuxlabs" if it was
-# the default compose value; try the current .env password first, then fall back.
+# Start a named recovery container with the old volume mounted read-write.
+# (postgres must be able to write lock files — read-only mounts don't work.)
+RECOVER_CTR="devlabmaster-pg-recover"
+docker rm -f "${RECOVER_CTR}" 2>/dev/null || true
+
+docker run -d \
+  --name "${RECOVER_CTR}" \
+  -v "${OLD_VOLUME}:/var/lib/postgresql/data" \
+  postgres:16-alpine
+trap 'docker rm -f "${RECOVER_CTR}" 2>/dev/null || true' EXIT
+
+# Wait for postgres to accept connections (up to 30s)
+info "Waiting for recovery postgres to start..."
+for _i in $(seq 1 15); do
+  if docker exec "${RECOVER_CTR}" pg_isready -U linuxlabs -d linuxlabs -q 2>/dev/null; then
+    break
+  fi
+  sleep 2
+done
+docker exec "${RECOVER_CTR}" pg_isready -U linuxlabs -d linuxlabs -q \
+  || die "Recovery postgres did not start. The old data directory may be corrupt."
+
+# Try the current .env password first, then the compose default "linuxlabs"
 dump_ok=false
 for PG_PASS in "${POSTGRES_PASSWORD}" "linuxlabs"; do
-  if docker run --rm \
-      -v "${OLD_VOLUME}:/var/lib/postgresql/data:ro" \
-      -e PGPASSWORD="${PG_PASS}" \
-      postgres:16-alpine \
-      sh -c "
-        # Start a temporary postgres server pointing at the old data dir
-        su-exec postgres postgres -D /var/lib/postgresql/data &
-        PG_PID=\$!
-        sleep 3
-        pg_dump -h 127.0.0.1 -U linuxlabs -d linuxlabs --no-owner --no-acl -f /tmp/dump.sql 2>/dev/null
-        RESULT=\$?
-        kill \$PG_PID 2>/dev/null || true
-        cat /tmp/dump.sql
-        exit \$RESULT
-      " > "${DUMP_FILE}" 2>/dev/null; then
+  if docker exec -e PGPASSWORD="${PG_PASS}" "${RECOVER_CTR}" \
+      pg_dump -U linuxlabs -d linuxlabs --no-owner --no-acl \
+      > "${DUMP_FILE}" 2>/dev/null; then
     dump_ok=true
     break
   fi
 done
 
-${dump_ok} || die "pg_dump failed. The old postgres data may be corrupt or use a different user/db name."
+${dump_ok} || die "pg_dump failed. Check the recovery container logs:
+  docker logs ${RECOVER_CTR}"
 
 DUMP_SIZE=$(du -sh "${DUMP_FILE}" | cut -f1)
 success "Dump complete: ${DUMP_FILE} (${DUMP_SIZE})"
