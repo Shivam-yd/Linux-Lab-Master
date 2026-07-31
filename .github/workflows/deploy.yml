@@ -22,12 +22,14 @@ jobs:
       - name: Build and push images
         run: |
           cd /opt/Linux-Lab-Master
-          docker build --target migrate -t localhost:5000/devlabmaster-migrate:${{ github.sha }} .
-          docker build --target api    -t localhost:5000/devlabmaster-api:${{ github.sha }} .
-          docker build --target web    -t localhost:5000/devlabmaster-web:${{ github.sha }} .
-          docker push localhost:5000/devlabmaster-migrate:${{ github.sha }}
-          docker push localhost:5000/devlabmaster-api:${{ github.sha }}
-          docker push localhost:5000/devlabmaster-web:${{ github.sha }}
+          sg docker -c "
+            docker build --target migrate -t localhost:5000/devlabmaster-migrate:${{ github.sha }} . &&
+            docker build --target api    -t localhost:5000/devlabmaster-api:${{ github.sha }}     . &&
+            docker build --target web    -t localhost:5000/devlabmaster-web:${{ github.sha }}     . &&
+            docker push localhost:5000/devlabmaster-migrate:${{ github.sha }} &&
+            docker push localhost:5000/devlabmaster-api:${{ github.sha }}     &&
+            docker push localhost:5000/devlabmaster-web:${{ github.sha }}
+          "
 
       - name: Run migration
         run: |
