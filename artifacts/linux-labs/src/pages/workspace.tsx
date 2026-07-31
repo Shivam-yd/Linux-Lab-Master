@@ -801,7 +801,7 @@ export default function Workspace() {
                             key={r}
                             onClick={() => submitRating(r)}
                             className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all",
+                              "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                               myRating === r
                                 ? r === "easy" ? "bg-green-500/20 border-green-500/50 text-green-400"
                                 : r === "ok"   ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
