@@ -54,7 +54,7 @@ export default function About() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" alt="DevLabMaster" />
-            <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
+            <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/pricing" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>

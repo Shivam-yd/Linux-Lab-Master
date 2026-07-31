@@ -260,7 +260,7 @@ export default function CertificatePage() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: tm.accentHex }}>Certificate of Achievement</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: tm.accentHex }}>Certificate of Achievement</p>
               <div className="w-12 h-px mx-auto" style={{ background: tm.accentHex }} />
             </div>
 
@@ -283,15 +283,15 @@ export default function CertificatePage() {
             {/* Footer */}
             <div className="w-full pt-5 border-t border-border/50 flex items-end justify-between">
               <div className="text-left">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-1">Date Awarded</p>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground/60 mb-1">Date Awarded</p>
                 <p className="text-sm font-semibold">{fmt(storedCert?.earnedAt ?? lastPassedAt ?? "")}</p>
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground/40">
                 <CheckCircle2 className="w-3 h-3 text-green-500/50" />
                 Verified by automated lab testing
               </div>
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-1">Certificate ID</p>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground/60 mb-1">Certificate ID</p>
                 <p className="text-xs font-mono">{certId ? certId.match(/.{1,4}/g)!.join("-") : "—"}</p>
               </div>
             </div>

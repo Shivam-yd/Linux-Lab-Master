@@ -209,7 +209,7 @@ export default function ProfilePage() {
                   <p className="text-xs text-muted-foreground">All tracks — Linux, Docker, Terraform, Jenkins, Git</p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/30 bg-primary/10 rounded-full px-2 py-0.5 shrink-0">Active</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-primary border border-primary/30 bg-primary/10 rounded-full px-2 py-0.5 shrink-0">Active</span>
             </div>
           ) : (
             <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/10 px-4 py-3">

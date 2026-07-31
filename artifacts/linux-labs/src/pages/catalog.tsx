@@ -52,7 +52,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
               {name}
             </p>
             {email && (
-              <p className="text-[10px] text-muted-foreground/60 truncate leading-none mt-0.5">
+              <p className="text-xs text-muted-foreground/60 truncate leading-none mt-0.5">
                 {email}
               </p>
             )}
@@ -374,7 +374,7 @@ export default function Catalog() {
             <img src="/logo.svg" className="w-9 h-9 rounded-xl shrink-0" />
             {!collapsed && (
               <div>
-                <p className="text-[15px] font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">DevLabMaster</p>
+                <p className="text-sm font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">DevLabMaster</p>
               </div>
             )}
           </Link>
@@ -462,7 +462,7 @@ export default function Catalog() {
                                 )}
                               </p>
                               {sum && (
-                                <p className="text-[11px] text-foreground/70 dark:text-muted-foreground mt-0.5 font-mono">
+                                <p className="text-xs text-foreground/70 dark:text-muted-foreground mt-0.5 font-mono">
                                   {sum.passed}/{sum.total} Labs
                                 </p>
                               )}
@@ -595,7 +595,7 @@ export default function Catalog() {
               </div>
 
               {/* Status line */}
-              <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/70">
+              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/70">
                 {syncMessage ? (
                   <span className={syncMessage.startsWith("✓") ? "text-green-400" : syncMessage.startsWith("✗") ? "text-rose-400" : ""}>
                     {syncMessage}
@@ -912,7 +912,7 @@ export default function Catalog() {
                       return (
                         <div key={level} className="absolute flex flex-col items-center -translate-x-1/2 -top-0.5" style={{ left: `${pos}%` }}>
                           <div className="w-2.5 h-2.5 rounded-full border-2 border-background transition-all" style={{ background: isComplete ? lm.accentHex : "#334155" }} />
-                          <span className="absolute top-4 text-[10px] font-mono text-muted-foreground/60 whitespace-nowrap">{lm.name}</span>
+                          <span className="absolute top-4 text-xs font-mono text-muted-foreground/60 whitespace-nowrap">{lm.name}</span>
                         </div>
                       )
                     })}

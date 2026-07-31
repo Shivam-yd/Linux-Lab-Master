@@ -92,7 +92,7 @@ export function NotificationBell() {
         <Bell className="w-4 h-4" />
         {count > 0 && (
           <span className={cn(
-            "absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full text-[10px] font-bold flex items-center justify-center bg-rose-500 text-white",
+            "absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full text-xs font-bold flex items-center justify-center bg-rose-500 text-white",
             hasNew && "animate-bounce"
           )}>
             {count}
@@ -136,7 +136,7 @@ export function NotificationBell() {
 
           {/* Footer */}
           <div className="px-4 py-2.5 border-t border-border/50 bg-muted/10">
-            <p className="text-[10px] text-muted-foreground/60 font-mono">Checks every 60 s · GET /api/health</p>
+            <p className="text-xs text-muted-foreground/60 font-mono">Checks every 60 s · GET /api/health</p>
           </div>
         </div>,
         document.body

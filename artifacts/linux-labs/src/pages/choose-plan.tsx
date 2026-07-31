@@ -56,7 +56,7 @@ export default function ChoosePlan() {
         </div>
 
         <div className="text-center">
-          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary tracking-widest uppercase">Currently Free</span>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary tracking-widest uppercase">Currently Free</span>
           <h1 className="text-2xl font-bold mt-4 mb-2">Choose your learning path</h1>
           <p className="text-sm text-muted-foreground">Pick a plan to unlock your labs. You can change it anytime.</p>
         </div>
@@ -76,7 +76,7 @@ export default function ChoosePlan() {
                 </div>
                 <div>
                   <p className="font-semibold text-sm">{name}</p>
-                  {pro && <span className="text-[10px] text-primary font-medium">Full access</span>}
+                  {pro && <span className="text-xs text-primary font-medium">Full access</span>}
                 </div>
               </div>
 
@@ -91,7 +91,7 @@ export default function ChoosePlan() {
                 ))}
               </ul>
 
-              <p className="text-[11px] text-muted-foreground/60 font-mono">
+              <p className="text-xs text-muted-foreground/60 font-mono">
                 Tracks: {tracks.join(" · ")}
               </p>
 

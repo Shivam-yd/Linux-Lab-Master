@@ -138,7 +138,7 @@ function TerminalMockup() {
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#febc2e" }} />
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#28c840" }} />
         <div className="flex-1 mx-3">
-          <div className="max-w-[280px] mx-auto h-[22px] rounded flex items-center justify-center gap-1.5 text-[10px]" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.28)" }}>
+          <div className="max-w-[280px] mx-auto h-[22px] rounded flex items-center justify-center gap-1.5 text-xs" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.28)" }}>
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#22c55e" }} />
             devlabmaster.io/labs/docker-d2-deploy
           </div>
@@ -147,7 +147,7 @@ function TerminalMockup() {
 
       {/* Workspace top bar */}
       <div className="flex items-center gap-2.5 px-4 h-11 shrink-0" style={{ background: "#0f1117", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <span className="flex items-center gap-1 text-[10px] font-semibold text-white/25">
+        <span className="flex items-center gap-1 text-xs font-semibold text-white/25">
           <ArrowRight className="w-3 h-3 rotate-180" /> BACK
         </span>
         <div className="w-px h-3.5 bg-white/[0.07]" />
@@ -155,12 +155,12 @@ function TerminalMockup() {
         <span className="text-[11.5px] font-semibold text-white/85">Deploy a Web Service</span>
         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.22)" }}>INTERMEDIATE</span>
         <div className="ml-auto flex items-center gap-1.5">
-          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-[3px] rounded" style={{ background: "rgba(34,211,238,0.09)", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.2)" }}>
+          <span className="flex items-center gap-1 text-xs font-bold px-2 py-[3px] rounded" style={{ background: "rgba(34,211,238,0.09)", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.2)" }}>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" /> ACTIVE
           </span>
-          <span className="text-[10px] px-2 py-[3px] rounded text-white/22 border border-white/[0.06]">STOP</span>
-          <span className="text-[10px] px-2 py-[3px] rounded text-white/22 border border-white/[0.06]">RESET</span>
-          <div className="flex items-center gap-1 text-[10px] text-white/18 ml-0.5">
+          <span className="text-xs px-2 py-[3px] rounded text-white/22 border border-white/[0.06]">STOP</span>
+          <span className="text-xs px-2 py-[3px] rounded text-white/22 border border-white/[0.06]">RESET</span>
+          <div className="flex items-center gap-1 text-xs text-white/18 ml-0.5">
             CONNECTED <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
           </div>
         </div>
@@ -217,7 +217,7 @@ function TerminalMockup() {
         <div className="flex-1 flex flex-col min-w-0" style={{ background: "#080b10" }}>
           {/* Tab strip */}
           <div className="flex items-center px-3 pt-1.5 shrink-0" style={{ background: "#0d1018", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-            <div className="flex items-center gap-1.5 px-2.5 py-[5px] text-[11px] font-medium rounded-t" style={{ background: "#080b10", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid #080b10", marginBottom: -1 }}>
+            <div className="flex items-center gap-1.5 px-2.5 py-[5px] text-xs font-medium rounded-t" style={{ background: "#080b10", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid #080b10", marginBottom: -1 }}>
               <Terminal className="w-2.5 h-2.5" style={{ color: "#22d3ee" }} />
               devops-sandbox
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#22d3ee" }} />
@@ -225,12 +225,12 @@ function TerminalMockup() {
           </div>
 
           {/* Server banner */}
-          <div className="px-3.5 py-1.5 shrink-0 text-[11px] font-semibold" style={{ background: "rgba(139,92,246,0.28)", color: "#c4b5fd" }}>
+          <div className="px-3.5 py-1.5 shrink-0 text-xs font-semibold" style={{ background: "rgba(139,92,246,0.28)", color: "#c4b5fd" }}>
             ⬡ devops-sandbox
           </div>
 
           {/* Output */}
-          <div className="flex-1 p-3.5 font-mono text-[11px] leading-[1.65] overflow-hidden" style={{ background: "#080b10", color: "rgba(255,255,255,0.5)" }}>
+          <div className="flex-1 p-3.5 font-mono text-xs leading-[1.65] overflow-hidden" style={{ background: "#080b10", color: "rgba(255,255,255,0.5)" }}>
             <div style={{ color: "#22c55e" }}>Connected to devops-sandbox. Container ready.</div>
 
             {/* CMD 0 */}
@@ -301,7 +301,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" />
-            <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
+            <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/pricing" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
@@ -417,10 +417,10 @@ export default function Home() {
                     >
                       <Icon className="w-6 h-6" style={{ color: "#2dd4bf" }} />
                     </div>
-                    <span className="text-[10px] font-black tracking-widest uppercase mb-1.5" style={{ color: "rgba(13,148,136,0.55)" }}>
+                    <span className="text-xs font-black tracking-widest uppercase mb-1.5" style={{ color: "rgba(13,148,136,0.55)" }}>
                       Step {num}
                     </span>
-                    <h3 className="font-bold text-[15px] mb-2">{title}</h3>
+                    <h3 className="font-bold text-sm mb-2">{title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
                   </motion.div>
 

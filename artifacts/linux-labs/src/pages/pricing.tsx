@@ -83,7 +83,7 @@ export default function PricingPage() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" alt="DevLabMaster" />
-            <span className="font-bold text-[15px] tracking-tight">DevLabMaster</span>
+            <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
           </Link>
           <div className="flex items-center gap-3">
             <ThemeToggle />
@@ -145,7 +145,7 @@ export default function PricingPage() {
             >
               {plan.popular && (
                 <div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold tracking-wide uppercase"
                   style={{ background: plan.accentHex + "22", border: `1px solid ${plan.accentHex}55`, color: plan.accentHex }}
                 >
                   Most Popular

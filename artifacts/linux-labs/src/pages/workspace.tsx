@@ -438,12 +438,12 @@ export default function Workspace() {
             BACK
           </Link>
           <div className="w-px h-5 bg-border/80" />
-          <h1 className="font-bold flex items-center text-[15px] tracking-tight text-foreground">
+          <h1 className="font-bold flex items-center text-sm tracking-tight text-foreground">
             <Server className="w-4 h-4 mr-2 text-primary" />
             {lab.title}
           </h1>
           <Badge variant="outline" className={cn(
-            "ml-2 font-mono text-[10px] uppercase px-2 h-5 border",
+            "ml-2 font-mono text-xs uppercase px-2 h-5 border",
             lab.difficulty === "advanced" ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20" : 
             lab.difficulty === "intermediate" ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" : 
             "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20"
@@ -477,7 +477,7 @@ export default function Workspace() {
                 {/* Status Indicator */}
                 <div className={cn(
                   "px-3 py-1 text-xs font-mono font-bold rounded flex items-center gap-1.5",
-                  isRunning ? "text-green-600 dark:text-[#00ff9d] bg-green-500/10 dark:bg-[#00ff9d]/10" : 
+                  isRunning ? "text-green-600 dark:text-primary bg-green-500/10 dark:bg-primary/10" : 
                   isStarting ? "text-yellow-600 dark:text-yellow-400 bg-yellow-400/10" : 
                   "text-muted-foreground"
                 )}>
@@ -822,13 +822,13 @@ export default function Workspace() {
         </div>
 
         {/* ── Right Panel: Terminal ── */}
-        <div className="flex-1 bg-[#050505] flex flex-col relative">
+        <div className="flex-1 bg-terminal-bg flex flex-col relative">
           
           {/* Grid background effect for the terminal area */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-20" />
 
           {!isRunning && !isStarting && (
-            <div className="absolute inset-0 z-30 bg-[#050505]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+            <div className="absolute inset-0 z-30 bg-terminal-bg/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
               <div className="w-24 h-24 rounded-full bg-muted/20 border border-border flex items-center justify-center mb-6 shadow-xl">
                 <Terminal className="w-10 h-10 text-muted-foreground/60" />
               </div>
@@ -848,7 +848,7 @@ export default function Workspace() {
           )}
 
           {isStarting && (
-            <div className="absolute inset-0 z-30 bg-[#050505]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+            <div className="absolute inset-0 z-30 bg-terminal-bg/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
               <RefreshCw className="w-16 h-16 text-primary opacity-80 mb-8 animate-spin" />
               <h2 className="text-2xl font-bold font-mono tracking-tight mb-3 text-primary">PROVISIONING_ENVIRONMENT</h2>
               <p className="text-muted-foreground max-w-sm text-sm font-mono">
@@ -857,7 +857,7 @@ export default function Workspace() {
               <div className="w-72 h-1.5 bg-muted rounded-full mt-8 overflow-hidden relative">
                 <div className="absolute top-0 left-0 h-full bg-primary animate-[shimmer_2s_infinite] w-1/2 rounded-full" />
               </div>
-              <p className="text-[10px] text-muted-foreground/60 font-mono mt-4">Estimated time: 10-30s</p>
+              <p className="text-xs text-muted-foreground/60 font-mono mt-4">Estimated time: 10-30s</p>
             </div>
           )}
 
@@ -868,13 +868,13 @@ export default function Workspace() {
               className="flex-1 flex flex-col w-full h-full relative z-20"
             >
               {/* Terminal Tabs Header */}
-              <div className="bg-[#0A0D14] border-b border-border/40 pt-2 px-3 shrink-0 flex justify-between items-end">
+              <div className="bg-terminal-tab border-b border-border/40 pt-2 px-3 shrink-0 flex justify-between items-end">
                 <TabsList className="bg-transparent border-none w-full justify-start h-auto p-0 space-x-1.5">
                   {lab.terminals.map(term => (
                     <TabsTrigger 
                       key={term} 
                       value={term}
-                      className="data-[state=active]:bg-[#050505] data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
+                      className="data-[state=active]:bg-terminal-bg data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
                     >
                       <Terminal className="w-3.5 h-3.5 mr-2 opacity-70" />
                       {term}
@@ -886,15 +886,15 @@ export default function Workspace() {
                 </TabsList>
                 
                 {isRunning && (
-                  <div className="pb-2.5 pr-2 hidden md:block text-[10px] font-mono text-muted-foreground/60 flex items-center gap-2">
+                  <div className="pb-2.5 pr-2 hidden md:block text-xs font-mono text-muted-foreground/60 flex items-center gap-2">
                     <span>CONNECTED</span>
-                    <span className="w-2 h-2 rounded-full bg-[#00ff9d] animate-pulse inline-block" />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse inline-block" />
                   </div>
                 )}
               </div>
               
               {/* Terminal Body */}
-              <div className="flex-1 relative bg-[#050505]">
+              <div className="flex-1 relative bg-terminal-bg">
                 {lab.terminals.map(term => (
                   <TabsContent 
                     key={term} 
@@ -940,7 +940,7 @@ export default function Workspace() {
                 <Trophy className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-green-700/80 dark:text-green-500/60 leading-none mb-1">Mission Complete</p>
+                <p className="font-mono text-xs tracking-[0.25em] uppercase text-green-700/80 dark:text-green-500/60 leading-none mb-1">Mission Complete</p>
                 <p className="font-mono font-bold text-base text-green-700 dark:text-green-400 leading-none">Lab Completed!</p>
               </div>
             </div>

@@ -44,6 +44,9 @@
   --font-sans: var(--app-font-sans);
   --font-mono: var(--app-font-mono);
 
+  --color-terminal-bg: #050505;
+  --color-terminal-tab: #0a0d14;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

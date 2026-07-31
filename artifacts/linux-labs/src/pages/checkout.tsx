@@ -179,7 +179,7 @@ export default function CheckoutPage() {
         {/* ── Left: plan details ── */}
         <div className="space-y-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-[11px] font-semibold tracking-widest uppercase mb-4"
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-xs font-semibold tracking-widest uppercase mb-4"
               style={{ background: plan.accentHex + "14", borderColor: plan.accentHex + "40", color: plan.accentHex }}>
               <Zap className="w-3 h-3" />
               Currently Free · Early Access
@@ -273,7 +273,7 @@ export default function CheckoutPage() {
               <span>Due today</span>
               <span className="text-lg">₹0</span>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Paid plans launching soon — early users get a discount.
             </p>
           </div>
@@ -295,7 +295,7 @@ export default function CheckoutPage() {
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Activating…</>
                 : <>Activate plan <ArrowRight className="w-4 h-4" /></>}
             </Button>
-            <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <ShieldCheck className="w-3.5 h-3.5" />
               No credit card required · Cancel anytime
             </div>

@@ -222,12 +222,12 @@ export default function BillingAdmin() {
                     <tr key={row.user_id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
                             {(row.name ?? row.email ?? "?").charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-foreground truncate max-w-[140px]">{row.name ?? row.email}</p>
-                            {row.name && <p className="text-[11px] text-muted-foreground truncate max-w-[140px]">{row.email}</p>}
+                            {row.name && <p className="text-xs text-muted-foreground truncate max-w-[140px]">{row.email}</p>}
                           </div>
                         </div>
                       </td>

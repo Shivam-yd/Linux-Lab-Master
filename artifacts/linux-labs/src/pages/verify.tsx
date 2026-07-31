@@ -82,7 +82,7 @@ export default function VerifyPage() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: tm.accentHex }}>Certificate of Achievement</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: tm.accentHex }}>Certificate of Achievement</p>
               <p className="text-xs text-muted-foreground">This certifies that</p>
             </div>
 

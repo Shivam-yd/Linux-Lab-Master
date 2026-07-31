@@ -520,7 +520,7 @@ export default function AdminPage() {
               <div>
                 <div className="flex items-center gap-2.5">
                   <span className="font-bold text-base tracking-tight leading-none">DevLabMaster</span>
-                  <span className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-md border border-white/60 text-foreground bg-white/30 dark:border-primary/40 dark:text-primary dark:bg-primary/10 leading-none">
+                  <span className="text-xs font-bold tracking-widest uppercase px-2 py-0.5 rounded-md border border-white/60 text-foreground bg-white/30 dark:border-primary/40 dark:text-primary dark:bg-primary/10 leading-none">
                     Admin
                   </span>
                 </div>
@@ -602,7 +602,7 @@ export default function AdminPage() {
                     <Icon className="w-4 h-4" />
                     {label}
                     {pendingCount > 0 && (
-                      <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                      <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center leading-none">
                         {pendingCount}
                       </span>
                     )}
@@ -657,7 +657,7 @@ export default function AdminPage() {
                       </div>
 
                       {/* Column headers */}
-                      <div className="grid grid-cols-[2rem_1fr_auto_auto_1.5rem] gap-4 px-5 pb-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div className="grid grid-cols-[2rem_1fr_auto_auto_1.5rem] gap-4 px-5 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         <span>#</span><span>Student</span>
                         <span className="hidden md:block">Track Progress</span>
                         <span className="text-right">Labs</span><span />
@@ -716,7 +716,7 @@ export default function AdminPage() {
                                   if (!total) return null
                                   return (
                                     <div key={track} className={cn(
-                                      "px-2 py-0.5 rounded-md text-[10px] font-mono border transition-colors",
+                                      "px-2 py-0.5 rounded-md text-xs font-mono border transition-colors",
                                       done === total
                                         ? `${meta.bgClass} ${meta.accentClass} border-current/30`
                                         : "bg-muted/30 text-muted-foreground border-border/50",
@@ -731,7 +731,7 @@ export default function AdminPage() {
                                   <span className="text-green-400">{student.passed}</span>
                                   <span className="text-muted-foreground font-normal">/{totalLabs}</span>
                                 </p>
-                                <p className="text-[10px] text-muted-foreground mt-0.5">{relativeTime(student.last_active)}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{relativeTime(student.last_active)}</p>
                               </div>
                               <ChevronRight className={cn("w-4 h-4 transition-all", isSelected ? "rotate-90 text-primary" : "text-muted-foreground/40 group-hover:text-muted-foreground")} />
                             </div>
@@ -797,7 +797,7 @@ export default function AdminPage() {
                         </div>
 
                         {/* Column headers */}
-                        <div className="grid grid-cols-[1fr_52px_52px_180px] gap-x-3 px-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        <div className="grid grid-cols-[1fr_52px_52px_180px] gap-x-3 px-3 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           <span>Lab</span>
                           <span className="text-right">Tries</span>
                           <span className="text-right">Passed</span>
@@ -859,7 +859,7 @@ export default function AdminPage() {
                 {sessions.data && sessions.data.length > 0 && (
                   <>
                     <div className="flex items-center justify-between px-1 pb-1">
-                      <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex-1">
+                      <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1">
                         <span>Student</span><span>Lab</span><span className="w-20 text-center">Status</span><span className="w-16" />
                       </div>
                       <button
@@ -880,18 +880,18 @@ export default function AdminPage() {
                         <div key={`${s.student_id}:${s.lab_id}`} className="rounded-xl border border-border/50 bg-card/60 px-5 py-4 grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-center">
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{studentLabel}</p>
-                            {s.email && s.name && <p className="text-[10px] text-muted-foreground truncate">{s.email}</p>}
+                            {s.email && s.name && <p className="text-xs text-muted-foreground truncate">{s.email}</p>}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm truncate">{labTitle}</p>
                             {trackMeta && (
-                              <div className={cn("inline-flex items-center gap-1 mt-0.5 text-[10px] font-semibold", trackMeta.accentClass)}>
+                              <div className={cn("inline-flex items-center gap-1 mt-0.5 text-xs font-semibold", trackMeta.accentClass)}>
                                 <trackMeta.icon className="w-3 h-3" />{trackMeta.label}
                               </div>
                             )}
                           </div>
                           <div className="w-20 flex justify-center">
-                            <span className={cn("text-[10px] font-semibold px-2.5 py-1 rounded-full border",
+                            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full border",
                               s.status === "running"  ? "text-green-400 border-green-500/30 bg-green-500/10" :
                               s.status === "starting" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
                                                         "text-red-400 border-red-500/30 bg-red-500/10",
@@ -928,7 +928,7 @@ export default function AdminPage() {
                 )}
                 {pwResets.data && pwResets.data.length > 0 && (
                   <>
-                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 pb-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       <span>Email</span><span className="w-24 text-center">Status</span><span className="w-20 text-center">Requested</span><span className="w-32" />
                     </div>
                     {pwResets.data.map((r: PasswordResetRequest) => {
@@ -939,7 +939,7 @@ export default function AdminPage() {
                         <div key={r.id} className="rounded-xl border border-border/50 bg-card/60 px-5 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
                           <p className="text-sm font-medium truncate">{r.email}</p>
                           <div className="w-24 flex justify-center">
-                            <span className={cn("text-[10px] font-semibold px-2.5 py-1 rounded-full border",
+                            <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full border",
                               r.status === "pending"                   ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
                               r.status === "approved" && !tokenExpired ? "text-green-400 border-green-500/30 bg-green-500/10" :
                               r.status === "approved" && tokenExpired  ? "text-orange-400 border-orange-500/30 bg-orange-500/10" :
@@ -1030,7 +1030,7 @@ export default function AdminPage() {
                               <Icon className={cn("w-4 h-4", isActive ? icon_active : "text-muted-foreground/60")} />
                               <div>
                                 <p className={cn("text-xs font-semibold", isActive ? "" : "text-foreground/70")}>{label}</p>
-                                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{desc}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{desc}</p>
                               </div>
                             </button>
                           )
@@ -1049,7 +1049,7 @@ export default function AdminPage() {
                     <MailPlus className="w-4 h-4 text-muted-foreground" />
                     <p className="text-sm font-semibold">Approved emails</p>
                     {!regInvites.isLoading && (regInvites.data?.length ?? 0) > 0 && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
                         {regInvites.data!.length}
                       </span>
                     )}
@@ -1061,7 +1061,7 @@ export default function AdminPage() {
                         <button
                           onClick={() => cleanupExpired.mutate()}
                           disabled={cleanupExpired.isPending}
-                          className="ml-auto flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border border-red-500/30 text-red-400 bg-red-500/8 hover:bg-red-500/15 disabled:opacity-40 transition-colors font-semibold"
+                          className="ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-red-500/30 text-red-400 bg-red-500/8 hover:bg-red-500/15 disabled:opacity-40 transition-colors font-semibold"
                         >
                           {cleanupExpired.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                           Clean up {expiredCount} expired
@@ -1107,20 +1107,20 @@ export default function AdminPage() {
                             (inv.usedAt || isExpired) && "opacity-50"
                           )}>
                             <div className={cn(
-                              "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
+                              "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
                               inv.usedAt ? "bg-muted/30 text-muted-foreground" : isExpired ? "bg-red-500/15 text-red-400" : "bg-primary/15 text-primary"
                             )}>
                               {inv.email.charAt(0).toUpperCase()}
                             </div>
                             <span className="flex-1 text-sm truncate">{inv.email}</span>
                             {inv.usedAt
-                              ? <span className="text-[10px] px-2 py-0.5 rounded-full border border-green-500/20 text-green-400 bg-green-500/8 font-medium shrink-0">registered</span>
+                              ? <span className="text-xs px-2 py-0.5 rounded-full border border-green-500/20 text-green-400 bg-green-500/8 font-medium shrink-0">registered</span>
                               : isExpired
-                              ? <span className="text-[10px] px-2 py-0.5 rounded-full border border-red-500/20 text-red-400 bg-red-500/8 font-medium shrink-0">expired</span>
-                              : <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground bg-muted/10 font-medium shrink-0">pending</span>
+                              ? <span className="text-xs px-2 py-0.5 rounded-full border border-red-500/20 text-red-400 bg-red-500/8 font-medium shrink-0">expired</span>
+                              : <span className="text-xs px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground bg-muted/10 font-medium shrink-0">pending</span>
                             }
                             {inv.expiresAt && !inv.usedAt && !isExpired && (
-                              <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
+                              <span className="text-xs text-muted-foreground/60 font-mono shrink-0">
                                 {(() => {
                                   const ms = new Date(inv.expiresAt).getTime() - Date.now()
                                   const h = Math.ceil(ms / 3_600_000)
@@ -1156,12 +1156,12 @@ export default function AdminPage() {
                           <UserPlus className="w-4 h-4 text-muted-foreground" />
                           <p className="text-sm font-semibold">Account requests</p>
                           {!regRequests.isLoading && (regRequests.data?.length ?? 0) > 0 && (
-                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
                               {regRequests.data!.length}
                             </span>
                           )}
                           {pending.length > 0 && (
-                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-semibold">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-semibold">
                               {pending.length} pending
                             </span>
                           )}
@@ -1237,7 +1237,7 @@ export default function AdminPage() {
                                   <p className="text-xs text-muted-foreground truncate">{r.email}</p>
                                 </div>
                                 <span className={cn(
-                                  "text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0",
+                                  "text-xs px-2 py-0.5 rounded-full border font-semibold shrink-0",
                                   r.status === "pending"  ? "text-amber-400 border-amber-500/30 bg-amber-500/10" :
                                   r.status === "approved" ? "text-green-400 border-green-500/30 bg-green-500/10" :
                                                             "text-muted-foreground border-border bg-muted/20",
@@ -1283,7 +1283,7 @@ export default function AdminPage() {
                     <ClipboardList className="w-4 h-4 text-muted-foreground" />
                     <p className="text-sm font-semibold">Activity log</p>
                     {!regAudit.isLoading && (regAudit.data?.length ?? 0) > 0 && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
                         {regAudit.data!.length}
                       </span>
                     )}
@@ -1304,7 +1304,7 @@ export default function AdminPage() {
                         return (
                           <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/20 transition-colors">
                             <span className={cn("w-2 h-2 rounded-full shrink-0", cfg.dot)} />
-                            <span className="text-[11px] font-semibold text-muted-foreground w-20 shrink-0">{cfg.label}</span>
+                            <span className="text-xs font-semibold text-muted-foreground w-20 shrink-0">{cfg.label}</span>
                             <span className="flex-1 text-sm truncate">
                               {ev.name ? <><span className="font-medium">{ev.name}</span> <span className="text-muted-foreground">({ev.email})</span></> : ev.email}
                             </span>
@@ -1372,7 +1372,7 @@ export default function AdminPage() {
                             <tm.icon className={cn("w-3.5 h-3.5", tm.accentClass)} />
                           </div>
                           <p className={cn("text-sm font-bold tracking-wide", tm.accentClass)}>{tm.label}</p>
-                          <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted/40 border border-border/40 text-muted-foreground">{trackLabs.length} labs</span>
+                          <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full bg-muted/40 border border-border/40 text-muted-foreground">{trackLabs.length} labs</span>
                         </div>
                         {/* Level groups */}
                         <div className="divide-y divide-border/30">
@@ -1386,8 +1386,8 @@ export default function AdminPage() {
                                 <button onClick={toggle} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-muted/10 transition-colors group">
                                   <ChevronRight className={cn("w-3.5 h-3.5 text-muted-foreground/40 transition-transform duration-150 group-hover:text-muted-foreground", open && "rotate-90")} />
                                   <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">{level === "—" ? "No level" : `Level ${level}`}</span>
-                                  <span className="text-[11px] text-muted-foreground/40 font-medium">{labs.length} labs</span>
-                                  <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/60">
+                                  <span className="text-xs text-muted-foreground/40 font-medium">{labs.length} labs</span>
+                                  <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-muted-foreground/60">
                                     <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", onlineCount === labs.length ? "bg-green-400/70" : onlineCount === 0 ? "bg-red-400/60" : "bg-amber-400/70")} />
                                     {onlineCount}/{labs.length} online
                                   </span>
@@ -1400,7 +1400,7 @@ export default function AdminPage() {
                                           <p className={cn("text-sm font-medium truncate", !lab.active ? "text-muted-foreground/60" : "text-foreground/90")}>{lab.title}</p>
                                         </div>
                                         {!lab.isRemote && (
-                                          <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground/60 bg-muted/20 shrink-0">built-in</span>
+                                          <span className="text-xs px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground/60 bg-muted/20 shrink-0">built-in</span>
                                         )}
                                         {toggleLabActive.isPending && toggleLabActive.variables?.id === lab.id ? (
                                           <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 text-muted-foreground">
@@ -1468,7 +1468,7 @@ export default function AdminPage() {
                     {displaySub(selectedStudent) && (
                       <p className="text-xs text-muted-foreground truncate mt-0.5">{displaySub(selectedStudent)}</p>
                     )}
-                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Active {relativeTime(selectedStudent.last_active)}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">Active {relativeTime(selectedStudent.last_active)}</p>
                   </div>
                 </div>
                 <button
@@ -1501,7 +1501,7 @@ export default function AdminPage() {
 
               {/* Track progress */}
               <div className="px-5 pt-5 pb-5 border-b border-border/40">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 mb-4">Progress by Track</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60 mb-4">Progress by Track</p>
                 <div className="space-y-4">
                   {Object.entries(TRACK_META).map(([track, meta]) => {
                     const total = trackTotals[track] ?? 0
@@ -1519,7 +1519,7 @@ export default function AdminPage() {
                             {passed === total && total > 0 && <CheckCircle2 className="w-3 h-3 text-green-400" />}
                           </div>
                           <div className="flex items-center gap-2">
-                            {inProgress > 0 && <span className="text-[10px] text-muted-foreground">{inProgress} in progress</span>}
+                            {inProgress > 0 && <span className="text-xs text-muted-foreground">{inProgress} in progress</span>}
                             <span className="text-xs font-mono text-muted-foreground">
                               <span className={passed > 0 ? meta.accentClass : ""}>{passed}</span>/{total}
                             </span>
@@ -1536,7 +1536,7 @@ export default function AdminPage() {
 
               {/* Lab attempts */}
               <div className="px-5 pt-5 pb-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 mb-4">Lab Attempts</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60 mb-4">Lab Attempts</p>
                 {selectedStudent.labs.length === 0 ? (
                   <div className="text-center py-6 space-y-2">
                     <Circle className="w-8 h-8 text-muted-foreground/20 mx-auto" />
@@ -1550,7 +1550,7 @@ export default function AdminPage() {
                       const Icon = meta.icon
                       return (
                         <div key={track}>
-                          <div className={cn("flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider mb-2", meta.accentClass)}>
+                          <div className={cn("flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mb-2", meta.accentClass)}>
                             <Icon className="w-3 h-3" />{meta.label}
                           </div>
                           <div className="space-y-1.5 pl-1">
@@ -1561,7 +1561,7 @@ export default function AdminPage() {
                                   : <Circle className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0" />}
                                 <span className="flex-1 text-xs text-muted-foreground truncate">{labMeta[l.labId]?.title ?? l.labId}</span>
                                 {l.status === "passed" && (
-                                  <span className="shrink-0 text-[10px] font-mono font-bold text-green-400">{l.bestScore}%</span>
+                                  <span className="shrink-0 text-xs font-mono font-bold text-green-400">{l.bestScore}%</span>
                                 )}
                               </div>
                             ))}
@@ -1576,7 +1576,7 @@ export default function AdminPage() {
 
             {/* Danger zone footer */}
             <div className="shrink-0 border-t border-border/60 px-5 py-4 bg-red-950/10">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-red-400/60 mb-3">Danger Zone</p>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-red-400/60 mb-3">Danger Zone</p>
               <div className="flex items-center gap-2">
                 <button
                   disabled={resetProgress.isPending && resetProgress.variables === selectedStudent.id}
