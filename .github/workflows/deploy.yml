@@ -34,17 +34,27 @@ jobs:
           sudo docker save localhost:5000/devlabmaster-migrate:${{ github.sha }} | sudo k3s ctr images import -
           sudo docker save localhost:5000/devlabmaster-api:${{ github.sha }}     | sudo k3s ctr images import -
           sudo docker save localhost:5000/devlabmaster-web:${{ github.sha }}     | sudo k3s ctr images import -
+          echo "--- images in k3s containerd ---"
+          sudo k3s ctr images ls | grep devlabmaster
 
       - name: Run migration
         run: |
           export IMAGE_TAG=${{ github.sha }}
+          echo "--- secrets in namespace ---"
+          sudo kubectl get secrets -n devlabmaster
           sudo kubectl delete job migrate -n devlabmaster --ignore-not-found=true
           envsubst '${IMAGE_TAG}' < /opt/Linux-Lab-Master/k8s/migrate.yaml | sudo kubectl apply -f -
+          sleep 10
+          echo "--- all pods in namespace ---"
+          sudo kubectl get pods -n devlabmaster
+          echo "--- job description ---"
+          sudo kubectl describe job/migrate -n devlabmaster
           if ! sudo kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=180s; then
-            echo "--- migrate pod status ---"
-            sudo kubectl get pods -n devlabmaster -l batch.kubernetes.io/job-name=migrate
-            echo "--- migrate pod logs ---"
-            sudo kubectl logs -n devlabmaster -l batch.kubernetes.io/job-name=migrate --tail=100
+            echo "--- namespace events ---"
+            sudo kubectl get events -n devlabmaster --sort-by=.metadata.creationTimestamp | tail -30
+            echo "--- pod logs ---"
+            POD=$(sudo kubectl get pods -n devlabmaster -o name | grep migrate | head -1)
+            [ -n "$POD" ] && sudo kubectl logs -n devlabmaster "$POD" --tail=100 || echo "no migrate pod found"
             exit 1
           fi
 
