@@ -121,10 +121,12 @@ done
 kubectl get nodes &>/dev/null || die "k3s API server did not become ready in 90 s"
 success "k3s running"
 
-# Give the GitHub Actions runner (if present) kubectl access
+# Give the GitHub Actions runner (if present) kubectl + docker access
 if id github-runner &>/dev/null; then
   install -D -m 600 /etc/rancher/k3s/k3s.yaml /home/github-runner/.kube/config
   chown github-runner:github-runner /home/github-runner/.kube/config
+  usermod -aG docker github-runner
+  success "github-runner added to docker group"
 fi
 
 # ── Step 3: Local registry ────────────────────────────────────────────────────
