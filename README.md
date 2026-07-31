@@ -85,12 +85,51 @@ http://localhost:8085 or http://ServerIP:8085
 
 **4. All future deploys are automatic** — push to `main` → GitHub Actions builds new images and does a rolling update. No manual steps needed.
 
+#### How deploys work
+
+Pushing to `main` triggers GitHub Actions, which:
+
+1. Builds new Docker images for the API, web frontend, and migration runner
+2. Pushes them to the local registry (`localhost:5000`) on your VPS
+3. Applies the migration Job (`k8s/migrate.yaml`) — schema changes run before the new pods come up
+4. Runs `kubectl rollout restart` on the API and web Deployments
+
+Kubernetes then does a **zero-downtime rolling update** for each Deployment:
+- A new pod starts and passes its readiness probe
+- Only then is the old pod terminated
+- At no point are both pods unavailable simultaneously (`maxUnavailable: 0`)
+
+The installer (`install.sh`) only ever runs once — it is not re-invoked on code pushes.
+
+#### Pod structure
+
+| Component | Kind | Replicas | Notes |
+|-----------|------|----------|-------|
+| `api` | Deployment | **1** (fixed) | Mounts host Docker socket to spawn lab sandboxes |
+| `web` | Deployment | **1** (fixed) | nginx serving the static React build on port 80 |
+| `postgres` | StatefulSet | **1** (always) | 10 Gi persistent volume; never scaled |
+| `migrate` | Job | runs once per deploy | Drizzle schema push; retries up to 3× on failure |
+
+No Horizontal Pod Autoscaler (HPA) is configured — replica counts are fixed. During a rolling update there is briefly a second pod for `api` or `web` (`maxSurge: 1`) while the old one drains, then it is removed. Total steady-state pods: **3** (api + web + postgres).
+
+#### Rolling update strategy (api and web)
+
+```
+maxUnavailable: 0   ← old pod stays up until new one is ready
+maxSurge:       1   ← one extra pod is created during the transition
+```
+
+Readiness probes gate the cutover:
+- **api** — `GET /api/stats` on port 8080 (checks every 5 s, up to 60 s)
+- **web** — `GET /` on port 80 (checks every 5 s)
+
 #### Managing the deployment
 
 ```bash
 kubectl get pods -n devlabmaster                         # check pod status
 kubectl logs -n devlabmaster deploy/api                  # api logs
 kubectl logs -n devlabmaster deploy/web                  # web logs
+kubectl rollout status deployment/api -n devlabmaster    # watch a rollout
 kubectl rollout undo deployment/api -n devlabmaster      # rollback api
 kubectl rollout undo deployment/web -n devlabmaster      # rollback web
 ```
