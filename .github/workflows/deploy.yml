@@ -85,5 +85,25 @@ jobs:
         run: |
           export IMAGE_TAG=${{ github.sha }}
           envsubst '${IMAGE_TAG}' < /opt/Linux-Lab-Master/k8s/app.yaml | sudo kubectl apply -f -
-          sudo kubectl rollout status deployment/api -n devlabmaster --timeout=120s
-          sudo kubectl rollout status deployment/web -n devlabmaster --timeout=120s
+
+          dump_pod_logs() {
+            local app=$1
+            echo "--- $app pod logs ---"
+            for POD in $(sudo kubectl get pods -n devlabmaster -l app=$app -o name 2>/dev/null); do
+              echo "=== $POD ==="
+              sudo kubectl logs -n devlabmaster "$POD" --tail=100 2>/dev/null \
+                || sudo kubectl logs -n devlabmaster "$POD" --previous --tail=100 2>/dev/null \
+                || echo "no logs available"
+            done
+            echo "--- $app pod description ---"
+            sudo kubectl describe pods -n devlabmaster -l app=$app | tail -40
+          }
+
+          if ! sudo kubectl rollout status deployment/api -n devlabmaster --timeout=120s; then
+            dump_pod_logs api
+            exit 1
+          fi
+          if ! sudo kubectl rollout status deployment/web -n devlabmaster --timeout=120s; then
+            dump_pod_logs web
+            exit 1
+          fi
