@@ -29,12 +29,24 @@ jobs:
           sudo docker push localhost:5000/devlabmaster-api:${{ github.sha }}
           sudo docker push localhost:5000/devlabmaster-web:${{ github.sha }}
 
+      - name: Import images into k3s containerd
+        run: |
+          sudo docker save localhost:5000/devlabmaster-migrate:${{ github.sha }} | sudo k3s ctr images import -
+          sudo docker save localhost:5000/devlabmaster-api:${{ github.sha }}     | sudo k3s ctr images import -
+          sudo docker save localhost:5000/devlabmaster-web:${{ github.sha }}     | sudo k3s ctr images import -
+
       - name: Run migration
         run: |
           export IMAGE_TAG=${{ github.sha }}
           sudo kubectl delete job migrate -n devlabmaster --ignore-not-found=true
           envsubst '${IMAGE_TAG}' < /opt/Linux-Lab-Master/k8s/migrate.yaml | sudo kubectl apply -f -
-          sudo kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=120s
+          if ! sudo kubectl wait job/migrate -n devlabmaster --for=condition=complete --timeout=180s; then
+            echo "--- migrate pod status ---"
+            sudo kubectl get pods -n devlabmaster -l batch.kubernetes.io/job-name=migrate
+            echo "--- migrate pod logs ---"
+            sudo kubectl logs -n devlabmaster -l batch.kubernetes.io/job-name=migrate --tail=100
+            exit 1
+          fi
 
       - name: Rolling deploy
         run: |
