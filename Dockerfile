@@ -62,11 +62,14 @@ RUN pnpm install --filter @workspace/db --frozen-lockfile
 # `yes` pipes "y" to any drizzle-kit confirmation prompts so it never hangs.
 CMD ["sh", "-c", "\
   if [ -z \"$DATABASE_URL\" ]; then \
-    echo 'ERROR: DATABASE_URL is not set. Add it to the devlabmaster-env secret.'; \
-    echo 'Example: postgresql://linuxlabs:<POSTGRES_PASSWORD>@postgres:5432/linuxlabs'; \
-    exit 1; \
+    if [ -z \"$POSTGRES_PASSWORD\" ]; then \
+      echo 'ERROR: Neither DATABASE_URL nor POSTGRES_PASSWORD is set in the devlabmaster-env secret.'; \
+      exit 1; \
+    fi; \
+    export DATABASE_URL=\"postgresql://linuxlabs:${POSTGRES_PASSWORD}@postgres:5432/linuxlabs\"; \
+    echo 'DATABASE_URL constructed from POSTGRES_PASSWORD.'; \
   fi && \
-  echo \"DATABASE_URL is set (host: $(echo $DATABASE_URL | sed 's|.*@||;s|/.*||')). Waiting for postgres TCP...\" && \
+  echo 'Waiting for postgres TCP...' && \
   until node -e \"require('net').createConnection(5432,'postgres').on('connect',function(){process.exit(0)}).on('error',function(){process.exit(1)})\"; \
   do echo 'Waiting for postgres...'; sleep 2; done && \
   echo 'Postgres ready. Pushing schema...' && \
