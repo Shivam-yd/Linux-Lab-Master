@@ -103,14 +103,23 @@ The installer (`install.sh`) only ever runs once — it is not re-invoked on cod
 
 #### Pod structure
 
-| Component | Kind | Replicas | Notes |
-|-----------|------|----------|-------|
-| `api` | Deployment | **1** (fixed) | Mounts host Docker socket to spawn lab sandboxes |
-| `web` | Deployment | **1** (fixed) | nginx serving the static React build on port 80 |
-| `postgres` | StatefulSet | **1** (always) | 10 Gi persistent volume; never scaled |
-| `migrate` | Job | runs once per deploy | Drizzle schema push; retries up to 3× on failure |
+| Component | Kind | Min pods | Max pods | Notes |
+|-----------|------|----------|----------|-------|
+| `api` | Deployment + HPA | **1** | **5** | Scales on CPU ≥ 70 % or memory ≥ 80 %. Mounts host Docker socket. |
+| `web` | Deployment + HPA | **1** | **3** | nginx static build. Scales on CPU ≥ 70 %. |
+| `postgres` | StatefulSet | **1** | **1** | Never scaled — 10 Gi persistent volume. |
+| `migrate` | Job | — | — | Runs once per deploy; retries up to 3× on failure. |
 
-No Horizontal Pod Autoscaler (HPA) is configured — replica counts are fixed. During a rolling update there is briefly a second pod for `api` or `web` (`maxSurge: 1`) while the old one drains, then it is removed. Total steady-state pods: **3** (api + web + postgres).
+Steady-state pod count: **3** (one each). Under load the HPA adds pods up to the max, then scales back down after a 5-minute stabilisation window (one pod at a time) to avoid flapping.
+
+#### Resource requests and limits
+
+| Container | CPU request | CPU limit | Memory request | Memory limit |
+|-----------|-------------|-----------|----------------|--------------|
+| `api` | 250 m | 1 000 m (1 core) | 256 Mi | 1 Gi |
+| `web` | 100 m | 500 m | 64 Mi | 256 Mi |
+
+HPA uses the *request* values as the 100 % baseline when computing utilisation percentages. k3s ships with `metrics-server` enabled by default, so no extra setup is needed.
 
 #### Rolling update strategy (api and web)
 
