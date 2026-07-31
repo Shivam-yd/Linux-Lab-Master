@@ -205,7 +205,7 @@ export default function About() {
           </div>
         </section>
 
-        <p className="text-center text-xs font-mono text-muted-foreground/50 pb-4">
+        <p className="text-center text-xs font-mono text-muted-foreground/60 pb-4">
           Built with{" "}
           <Heart className="w-3 h-3 inline text-primary/60 fill-primary/20 mx-0.5" />
           {" "}by Shivam Yadav · DevLabMaster

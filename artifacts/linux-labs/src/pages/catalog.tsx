@@ -52,7 +52,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
               {name}
             </p>
             {email && (
-              <p className="text-[10px] text-muted-foreground/45 truncate leading-none mt-0.5">
+              <p className="text-[10px] text-muted-foreground/60 truncate leading-none mt-0.5">
                 {email}
               </p>
             )}
@@ -458,7 +458,7 @@ export default function Catalog() {
                                 {tm?.label ?? track}
                                 {trackComplete && <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
                                 {(isNoPlan || (PRO_TRACKS.has(track) && plan === "linux-starter")) && (
-                                  <Lock className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+                                  <Lock className="w-3 h-3 text-muted-foreground/60 shrink-0" />
                                 )}
                               </p>
                               {sum && (
@@ -782,7 +782,7 @@ export default function Catalog() {
                               return (
                                 <div key={lab.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/10 transition-colors group">
                                   {/* Row number */}
-                                  <span className="w-6 text-right text-xs font-mono text-muted-foreground/50 shrink-0 select-none">
+                                  <span className="w-6 text-right text-xs font-mono text-muted-foreground/60 shrink-0 select-none">
                                     {String(idx + 1).padStart(2, "0")}
                                   </span>
 
@@ -802,7 +802,7 @@ export default function Catalog() {
                                   </span>
 
                                   {/* Meta */}
-                                  <span className="hidden sm:flex items-center gap-3 text-xs font-mono text-muted-foreground/50 shrink-0">
+                                  <span className="hidden sm:flex items-center gap-3 text-xs font-mono text-muted-foreground/60 shrink-0">
                                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{lab.estimatedMinutes}m</span>
                                     {score > 0 && <span className="text-green-400/70">{score}%</span>}
                                   </span>
@@ -966,7 +966,7 @@ export default function Catalog() {
                               }}
                             >
                               <div className="group flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer">
-                                <div className="w-8 font-mono text-muted-foreground/50 text-right text-lg font-bold group-hover:text-primary/50 transition-colors">
+                                <div className="w-8 font-mono text-muted-foreground/60 text-right text-lg font-bold group-hover:text-primary/50 transition-colors">
                                   {(idx + 1).toString().padStart(2, '0')}
                                 </div>
                                 <div className="flex-1 min-w-0">

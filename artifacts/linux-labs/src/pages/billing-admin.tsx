@@ -303,7 +303,7 @@ export default function BillingAdmin() {
                         ) : (
                           <button
                             onClick={() => { setGrantOpen(row.user_id); setGrantPlan("devops-pro"); setGrantExpiry("") }}
-                            className="text-xs text-muted-foreground/50 hover:text-violet-400 transition-colors"
+                            className="text-xs text-muted-foreground/60 hover:text-violet-400 transition-colors"
                           >
                             Grant
                           </button>

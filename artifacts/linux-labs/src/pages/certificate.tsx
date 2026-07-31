@@ -283,7 +283,7 @@ export default function CertificatePage() {
             {/* Footer */}
             <div className="w-full pt-5 border-t border-border/50 flex items-end justify-between">
               <div className="text-left">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 mb-1">Date Awarded</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-1">Date Awarded</p>
                 <p className="text-sm font-semibold">{fmt(storedCert?.earnedAt ?? lastPassedAt ?? "")}</p>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40">
@@ -291,7 +291,7 @@ export default function CertificatePage() {
                 Verified by automated lab testing
               </div>
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 mb-1">Certificate ID</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-1">Certificate ID</p>
                 <p className="text-xs font-mono">{certId ? certId.match(/.{1,4}/g)!.join("-") : "—"}</p>
               </div>
             </div>

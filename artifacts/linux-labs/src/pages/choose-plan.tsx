@@ -91,7 +91,7 @@ export default function ChoosePlan() {
                 ))}
               </ul>
 
-              <p className="text-[11px] text-muted-foreground/50 font-mono">
+              <p className="text-[11px] text-muted-foreground/60 font-mono">
                 Tracks: {tracks.join(" · ")}
               </p>
 

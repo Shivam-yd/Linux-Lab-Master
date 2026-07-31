@@ -638,7 +638,7 @@ export default function AdminPage() {
                     <>
                       {/* Search bar */}
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
                         <input
                           type="text"
                           placeholder="Search by name or email…"
@@ -649,7 +649,7 @@ export default function AdminPage() {
                         {leaderboardSearch && (
                           <button
                             onClick={() => setLeaderboardSearch("")}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -1079,7 +1079,7 @@ export default function AdminPage() {
                       placeholder="student@example.com"
                       value={newInviteEmail}
                       onChange={e => setNewInviteEmail(e.target.value)}
-                      className="flex-1 min-w-0 bg-transparent border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
+                      className="flex-1 min-w-0 bg-transparent border border-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/60"
                     />
                     <button
                       type="submit"
@@ -1328,13 +1328,13 @@ export default function AdminPage() {
                   <p className="text-sm font-semibold">Lab visibility</p>
                   <span className="text-xs text-muted-foreground">— toggle to hide a broken lab from students without a code deploy</span>
                   <div className="ml-auto flex items-center gap-2 min-w-[200px] relative">
-                    <Search className="absolute left-2.5 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" />
+                    <Search className="absolute left-2.5 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Search labs…"
                       value={labSearch}
                       onChange={e => setLabSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50"
                     />
                   </div>
                 </div>
@@ -1387,7 +1387,7 @@ export default function AdminPage() {
                                   <ChevronRight className={cn("w-3.5 h-3.5 text-muted-foreground/40 transition-transform duration-150 group-hover:text-muted-foreground", open && "rotate-90")} />
                                   <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">{level === "—" ? "No level" : `Level ${level}`}</span>
                                   <span className="text-[11px] text-muted-foreground/40 font-medium">{labs.length} labs</span>
-                                  <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/50">
+                                  <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/60">
                                     <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", onlineCount === labs.length ? "bg-green-400/70" : onlineCount === 0 ? "bg-red-400/60" : "bg-amber-400/70")} />
                                     {onlineCount}/{labs.length} online
                                   </span>
@@ -1397,10 +1397,10 @@ export default function AdminPage() {
                                     {labs.sort((a, b) => a.order - b.order).map((lab) => (
                                       <div key={lab.id} className="flex items-center gap-4 px-5 py-2 hover:bg-muted/10 transition-colors">
                                         <div className="flex-1 min-w-0">
-                                          <p className={cn("text-sm font-medium truncate", !lab.active ? "text-muted-foreground/50" : "text-foreground/90")}>{lab.title}</p>
+                                          <p className={cn("text-sm font-medium truncate", !lab.active ? "text-muted-foreground/60" : "text-foreground/90")}>{lab.title}</p>
                                         </div>
                                         {!lab.isRemote && (
-                                          <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground/50 bg-muted/20 shrink-0">built-in</span>
+                                          <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground/60 bg-muted/20 shrink-0">built-in</span>
                                         )}
                                         {toggleLabActive.isPending && toggleLabActive.variables?.id === lab.id ? (
                                           <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 text-muted-foreground">
@@ -1468,7 +1468,7 @@ export default function AdminPage() {
                     {displaySub(selectedStudent) && (
                       <p className="text-xs text-muted-foreground truncate mt-0.5">{displaySub(selectedStudent)}</p>
                     )}
-                    <p className="text-[10px] text-muted-foreground/50 mt-0.5">Active {relativeTime(selectedStudent.last_active)}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Active {relativeTime(selectedStudent.last_active)}</p>
                   </div>
                 </div>
                 <button
@@ -1490,7 +1490,7 @@ export default function AdminPage() {
               ].map(({ label, value, sub }) => (
                 <div key={label} className="bg-muted/50 px-2 py-3.5 text-center">
                   <p className="text-lg font-black font-mono text-foreground leading-none">{value}</p>
-                  <p className="text-[9px] text-muted-foreground/50 mt-0.5 uppercase tracking-wider">{sub}</p>
+                  <p className="text-[9px] text-muted-foreground/60 mt-0.5 uppercase tracking-wider">{sub}</p>
                   <p className="text-[9px] text-muted-foreground uppercase tracking-wide mt-1 font-semibold">{label}</p>
                 </div>
               ))}

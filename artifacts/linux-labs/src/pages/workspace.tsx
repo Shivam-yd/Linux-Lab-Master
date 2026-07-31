@@ -571,7 +571,7 @@ export default function Workspace() {
                       <Eye className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
                     </div>
                     <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary">Reveal First Step</span>
-                    <span className="text-xs font-mono text-muted-foreground/50">Only if you're stuck!</span>
+                    <span className="text-xs font-mono text-muted-foreground/60">Only if you're stuck!</span>
                   </button>
                 ) : (
                   <div className="px-4 pb-4 space-y-3">
@@ -857,7 +857,7 @@ export default function Workspace() {
               <div className="w-72 h-1.5 bg-muted rounded-full mt-8 overflow-hidden relative">
                 <div className="absolute top-0 left-0 h-full bg-primary animate-[shimmer_2s_infinite] w-1/2 rounded-full" />
               </div>
-              <p className="text-[10px] text-muted-foreground/50 font-mono mt-4">Estimated time: 10-30s</p>
+              <p className="text-[10px] text-muted-foreground/60 font-mono mt-4">Estimated time: 10-30s</p>
             </div>
           )}
 
@@ -886,7 +886,7 @@ export default function Workspace() {
                 </TabsList>
                 
                 {isRunning && (
-                  <div className="pb-2.5 pr-2 hidden md:block text-[10px] font-mono text-muted-foreground/50 flex items-center gap-2">
+                  <div className="pb-2.5 pr-2 hidden md:block text-[10px] font-mono text-muted-foreground/60 flex items-center gap-2">
                     <span>CONNECTED</span>
                     <span className="w-2 h-2 rounded-full bg-[#00ff9d] animate-pulse inline-block" />
                   </div>
@@ -920,7 +920,7 @@ export default function Workspace() {
               </div>
             </Tabs>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground/50 font-mono text-sm border-t border-border/20">
+            <div className="flex-1 flex items-center justify-center text-muted-foreground/60 font-mono text-sm border-t border-border/20">
               <p>{`>_ NO_TERMINAL_TARGETS_DEFINED`}</p>
             </div>
           )}

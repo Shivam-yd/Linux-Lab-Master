@@ -95,7 +95,7 @@ export default function TermsPage() {
         </Section>
       </main>
 
-      <footer className="text-center text-xs font-mono text-muted-foreground/50 py-8 border-t border-border/30">
+      <footer className="text-center text-xs font-mono text-muted-foreground/60 py-8 border-t border-border/30">
         © {new Date().getFullYear()} DevLabMaster · <Link href="/privacy"><span className="hover:text-muted-foreground cursor-pointer transition-colors">Privacy Policy</span></Link>
       </footer>
     </div>
