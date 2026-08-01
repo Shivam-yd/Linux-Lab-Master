@@ -9,6 +9,7 @@ import adminRouter from "./admin";
 import passwordResetRouter from "./password-reset";
 import registrationRouter from "./registration";
 import accountRouter from "./account";
+import uiProxyRouter from "./ui-proxy";
 
 const router: IRouter = Router();
 
@@ -19,6 +20,7 @@ router.use(configRouter);
 router.use(registrationRouter);
 router.use(labsRouter);
 router.use(sessionsRouter);
+router.use(uiProxyRouter);
 router.use("/admin", adminRouter);
 router.use(passwordResetRouter);
 router.use(accountRouter);

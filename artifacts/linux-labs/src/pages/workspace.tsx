@@ -24,7 +24,7 @@ import {
   Terminal, Play, Square, RotateCcw, ArrowLeft, 
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity,
   Lightbulb, ChevronDown, ChevronRight, Eye, Server, Loader2, Target, Trophy,
-  Award, ExternalLink, Lock, Zap
+  Award, ExternalLink, Lock, Zap, Monitor
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSession } from "@/lib/auth-client"
@@ -277,8 +277,12 @@ export default function Workspace() {
   const [activeTerminal, setActiveTerminal] = useState<string>("")
   useMeta(lab?.title ? `${lab.title} — DevLabMaster` : "DevLabMaster")
   useEffect(() => {
-    if (lab?.terminals?.length && !activeTerminal) {
-      setActiveTerminal(lab.terminals[0])
+    if (!activeTerminal) {
+      if (lab?.terminals?.length) {
+        setActiveTerminal(lab.terminals[0])
+      } else if ((lab as any)?.uiPort) {
+        setActiveTerminal("__ui__")
+      }
     }
   }, [lab, activeTerminal])
 
@@ -861,7 +865,7 @@ export default function Workspace() {
             </div>
           )}
 
-          {lab.terminals && lab.terminals.length > 0 ? (
+          {(lab.terminals && lab.terminals.length > 0) || (lab as any)?.uiPort ? (
             <Tabs 
               value={activeTerminal} 
               onValueChange={setActiveTerminal} 
@@ -870,7 +874,7 @@ export default function Workspace() {
               {/* Terminal Tabs Header */}
               <div className="bg-terminal-tab border-b border-border/40 pt-2 px-3 shrink-0 flex justify-between items-end">
                 <TabsList className="bg-transparent border-none w-full justify-start h-auto p-0 space-x-1.5">
-                  {lab.terminals.map(term => (
+                  {lab.terminals?.map(term => (
                     <TabsTrigger 
                       key={term} 
                       value={term}
@@ -883,6 +887,18 @@ export default function Workspace() {
                       )}
                     </TabsTrigger>
                   ))}
+                  {(lab as any)?.uiPort && (
+                    <TabsTrigger
+                      value="__ui__"
+                      className="data-[state=active]:bg-terminal-bg data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
+                    >
+                      <Monitor className="w-3.5 h-3.5 mr-2 opacity-70" />
+                      UI
+                      {activeTerminal === "__ui__" && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse ml-3" />
+                      )}
+                    </TabsTrigger>
+                  )}
                 </TabsList>
                 
                 {isRunning && (
@@ -895,7 +911,7 @@ export default function Workspace() {
               
               {/* Terminal Body */}
               <div className="flex-1 relative bg-terminal-bg">
-                {lab.terminals.map(term => (
+                {lab.terminals?.map(term => (
                   <TabsContent 
                     key={term} 
                     value={term}
@@ -917,6 +933,27 @@ export default function Workspace() {
                     </div>
                   </TabsContent>
                 ))}
+                {(lab as any)?.uiPort && (
+                  <TabsContent
+                    value="__ui__"
+                    className="absolute inset-0 m-0 border-none rounded-none focus-visible:ring-0 focus-visible:outline-none"
+                    forceMount
+                  >
+                    <div className={cn("h-full w-full", activeTerminal === "__ui__" ? "block" : "hidden")}>
+                      {isRunning ? (
+                        <iframe
+                          src={`/api/labs/${labId}/ui/jenkins/`}
+                          className="w-full h-full border-none"
+                          title="UI"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground/60 font-mono text-sm">
+                          <p>{`>_ START_LAB_TO_ACCESS_UI`}</p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                )}
               </div>
             </Tabs>
           ) : (

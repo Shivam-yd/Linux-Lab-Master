@@ -217,26 +217,35 @@ export async function startSession(studentId: string, labId: string): Promise<La
         container = await docker.createContainer({
           Image: lab.image,
           name,
-          // Keep the container alive with `sleep infinity`.
-          // Two cases:
-          //   • Normal images (no custom entrypoint): leave Entrypoint unset so
-          //     Docker uses the image default, and set Cmd = ["sleep","infinity"].
-          //   • Images with a custom ENTRYPOINT (e.g. hashicorp/terraform uses
-          //     ["/bin/terraform"]): override Entrypoint with the keepalive command
-          //     directly and leave Cmd empty — otherwise Docker concatenates them
-          //     and runs `sleep infinity sleep infinity`, causing an immediate exit.
-          ...(lab.entrypoint
-            ? { Entrypoint: lab.entrypoint, Cmd: [] }
-            : { Cmd: ["sleep", "infinity"] }),
+          // Keep the container alive. Three cases:
+          //   • useImageCmd: image runs its own service (e.g. Jenkins) — don't
+          //     override CMD/ENTRYPOINT; let the image do its thing.
+          //   • Custom ENTRYPOINT labs: override Entrypoint with the keepalive
+          //     command directly and leave Cmd empty — otherwise Docker
+          //     concatenates them and runs `sleep infinity sleep infinity`.
+          //   • Normal images: set Cmd = ["sleep","infinity"].
+          ...(lab.useImageCmd
+            ? {}
+            : lab.entrypoint
+              ? { Entrypoint: lab.entrypoint, Cmd: [] }
+              : { Cmd: ["sleep", "infinity"] }),
           Tty: false,
+          ...(lab.env?.length ? { Env: lab.env } : {}),
           Labels: { [CONTAINER_LABEL]: "true", labId, studentId },
+          ...(lab.ports?.length
+            ? { ExposedPorts: Object.fromEntries(lab.ports.map(p => [`${p}/tcp`, {}])) }
+            : {}),
           HostConfig: {
             AutoRemove: false,
-            // Docker-in-Docker labs need more headroom: dockerd + inner containers
-            // consume significantly more memory and processes than a plain sandbox.
-            Memory: lab.privileged ? 1024 * 1024 * 1024 : 384 * 1024 * 1024,
+            // useImageCmd labs (e.g. Jenkins) need more memory than plain sandboxes.
+            // Docker-in-Docker labs need the most: dockerd + inner containers.
+            Memory: lab.privileged
+              ? 1024 * 1024 * 1024
+              : lab.useImageCmd
+                ? 768 * 1024 * 1024
+                : 384 * 1024 * 1024,
             NanoCpus: 1_000_000_000,
-            PidsLimit: lab.privileged ? 1024 : 256,
+            PidsLimit: lab.privileged ? 1024 : lab.useImageCmd ? 512 : 256,
             // Run a real init (tini) as PID 1 so killed background processes are
             // reaped instead of piling up as zombies. Without this, `pkill`/`kill`
             // inside a lab leaves a defunct process that tools like `pgrep -f`
@@ -246,6 +255,11 @@ export async function startSession(studentId: string, labId: string): Promise<La
             // Required for Docker-in-Docker labs that run a real dockerd inside
             // the sandbox. Only set when the lab explicitly requests it.
             Privileged: lab.privileged ?? false,
+            // Publish any declared ports to random host ports so the proxy can
+            // reach the service. HostPort: "" lets Docker pick a free port.
+            ...(lab.ports?.length
+              ? { PortBindings: Object.fromEntries(lab.ports.map(p => [`${p}/tcp`, [{ HostPort: "" }]])) }
+              : {}),
           },
         });
       } catch (createErr: unknown) {
@@ -278,7 +292,12 @@ export async function startSession(studentId: string, labId: string): Promise<La
 
       try {
         await container.start();
-        const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], { user: "root", timeoutMs: SETUP_TIMEOUT_MS });
+        // Service containers (Jenkins, etc.) need extra time to boot their daemon
+        // before the setup script can interact with them.
+        const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], {
+          user: "root",
+          timeoutMs: lab.useImageCmd ? SETUP_TIMEOUT_SERVICE : SETUP_TIMEOUT_MS,
+        });
         if (setup.exitCode !== 0) {
           logger.error({ labId, studentId, output: setup.output }, "Lab setup script failed");
           throw new Error(`Setup script failed (exit ${setup.exitCode}): ${setup.output.slice(-500)}`);
