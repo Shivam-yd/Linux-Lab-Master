@@ -96,6 +96,7 @@ router.get("/labs/:labId", async (req, res): Promise<void> => {
       objectives: lab.objectives,
       tasks: lab.tasks,
       terminals: lab.terminals.map((t) => t.name),
+      uiPort: lab.ports?.[0] ?? null,
     }),
   );
 });

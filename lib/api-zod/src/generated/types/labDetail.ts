@@ -15,4 +15,6 @@ export type LabDetail = Lab & {
   tasks: LabTask[];
   /** Terminal targets this lab exposes (e.g. ["server1","server2"]) */
   terminals: string[];
+  /** Container port proxied via /api/labs/:labId/ui — set for service-based labs like Jenkins */
+  uiPort?: number | null;
 };

@@ -39,8 +39,9 @@ function clearTimeout_(studentId: string, labId: string): void {
 // Safety limits for exec.
 // Verify scripts must be fast; setup scripts may pull Docker images inside DinD
 // containers which can take 60-120 s on a cold VPS.
-const EXEC_TIMEOUT_MS  = 30_000;         // 30 s for verify scripts
-const SETUP_TIMEOUT_MS = 120_000;        // 2 min for setup scripts (image pulls etc.)
+const EXEC_TIMEOUT_MS        = 30_000;   // 30 s for verify scripts
+const SETUP_TIMEOUT_MS       = 120_000;  // 2 min for plain setup scripts
+const SETUP_TIMEOUT_SERVICE  = 180_000;  // 3 min for service containers (Jenkins, etc.) that need time to boot
 const MAX_OUTPUT_BYTES = 2 * 1024 * 1024; // 2 MB — prevent OOM from chatty scripts
 
 function containerName(studentId: string, labId: string): string {
