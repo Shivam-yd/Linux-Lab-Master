@@ -942,7 +942,7 @@ export default function Workspace() {
                     <div className={cn("h-full w-full", activeTerminal === "__ui__" ? "block" : "hidden")}>
                       {isRunning ? (
                         <iframe
-                          src={`/api/labs/${labId}/ui/jenkins/`}
+                          src={`/api/labs/${labId}/ui${(lab as any)?.uiPath ?? ""}`}
                           className="w-full h-full border-none"
                           title="UI"
                         />

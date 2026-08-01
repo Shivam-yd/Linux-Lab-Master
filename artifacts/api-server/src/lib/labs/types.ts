@@ -47,6 +47,8 @@ export interface LabDefinition {
    * The first port is exposed as `uiPort` in the lab detail API response.
    */
   ports?: number[];
+  /** URL path suffix appended when embedding the UI in the workspace iframe (e.g. "/jenkins/"). */
+  uiPath?: string;
   /** Bash run as root immediately after the container starts, to seed the lab's starting state. */
   setupScript: string;
   /**

@@ -59,7 +59,8 @@ export const GetLabResponse = zod.object({
   "description": zod.string()
 })),
   "terminals": zod.array(zod.string()).describe('Terminal targets this lab exposes (e.g. [\"server1\",\"server2\"])'),
-  "uiPort": zod.number().nullish().describe('Container port proxied via /api/labs/:labId/ui — set for service-based labs like Jenkins')
+  "uiPort": zod.number().nullish().describe('Container port proxied via /api/labs/:labId/ui — set for service-based labs like Jenkins'),
+  "uiPath": zod.string().nullish().describe('URL path suffix for the embedded UI iframe (e.g. "/jenkins/")')
 }))
 
 
