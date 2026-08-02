@@ -55,7 +55,14 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 500, standardHe
 app.use("/api/auth", authLimiter, toNodeHandler(auth));
 app.use(cookieParser(sessionSecret));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Capture raw body alongside parsed body so the UI proxy can forward
+// form POSTs byte-for-byte without re-encoding (which drops repeated keys).
+app.use(express.urlencoded({
+  extended: true,
+  verify: (req: Request, _res, buf: Buffer) => {
+    (req as Request & { rawBody?: string }).rawBody = buf.toString("utf8");
+  },
+}));
 
 app.use("/api", router);
 
