@@ -162,20 +162,28 @@ CHECK:<taskId>:FAIL:<reason>
 ### Step 1 — Pick a topic and track
 
 Decide what the student will learn and which track it belongs to, then pick
-an `image` that already contains every tool the lab needs (see the
-no-internet warning above — never plan on installing anything at runtime):
+an `image` that **already contains every tool the lab needs** and matches
+what a practitioner would actually use in the real world (see the
+no-internet warning above — never plan on installing anything at runtime).
 
-| Track | Image to use | When |
+**Rule: use the image that fits the lab, not a generic fallback.**
+
+The table below shows the current choices used across existing labs — treat
+them as defaults, not mandates. If a different image is a better fit for
+the specific lab topic, use it:
+
+| Track | Typical image | Notes |
 |---|---|---|
-| `linux` | `alpine:latest` (preferred — BusyBox covers most core-utils/cron needs) or `ubuntu:24.04` (only if you specifically need a tool that requires a glibc environment) | Shell, files, users, networking, scripting |
-| `terraform` | `hashicorp/terraform:1.9` | IaC, providers, state, modules |
-| `docker` | `alpine:latest` | Container concepts, image management |
-| `git` | `alpine/git:latest` | Version control, branching, history |
-| `jenkins` | `ubuntu:24.04` | CI/CD pipelines, job configuration |
+| `linux` | `alpine:latest` | BusyBox covers most core-utils/cron needs. Use `ubuntu:24.04` only if the lab specifically needs a glibc environment. |
+| `terraform` | `hashicorp/terraform:1.9` | Terraform pre-installed, Alpine-based. |
+| `docker` | `alpine:latest` | Lightweight; `docker` CLI labs use the host daemon. |
+| `git` | `alpine/git:latest` | Git pre-installed, Alpine-based. |
+| `jenkins` | `jenkins/jenkins:lts-jdk17` | Full Jenkins LTS with JDK 17. All Jenkins labs are GUI-based — this image starts the Jenkins web UI, which is embedded via the `ports`/`uiPath` fields. Use `useImageCmd: true` so the container runs Jenkins' own startup command instead of a shell. |
 
-If the topic needs a tool that isn't in any of the images above, find a
-pre-built image that bundles it (e.g. `rastasheep/ubuntu-sshd:18.04` for
-SSH) — don't reach for `ubuntu:24.04` + `apt-get install` by default.
+For any track, if the lab topic calls for a specific real-world tool (e.g.
+`rastasheep/ubuntu-sshd:18.04` for SSH labs, `localstack/localstack:latest`
+for AWS-local labs), use that image directly — don't reach for a generic
+base and install packages at runtime.
 
 Give the lab a short **kebab-case ID** that is unique across all labs, e.g. `linux-cron-jobs` or `terraform-data-sources`.
 
