@@ -224,6 +224,7 @@ export const labSyncLogTable = pgTable("lab_sync_log", {
   status: text("status").notNull(), // "success" | "error"
   labsAdded: integer("labs_added").notNull().default(0),
   labsUpdated: integer("labs_updated").notNull().default(0),
+  labsDeleted: integer("labs_deleted").notNull().default(0),
   totalRemote: integer("total_remote").notNull().default(0),
   errorMessage: text("error_message"),
   triggeredBy: text("triggered_by").notNull().default("auto"), // "auto" | "manual"
