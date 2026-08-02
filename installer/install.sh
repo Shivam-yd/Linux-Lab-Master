@@ -283,6 +283,7 @@ pull_image hashicorp/terraform:1.9
 pull_image rastasheep/ubuntu-sshd:18.04
 pull_image localstack/localstack:latest
 pull_image docker:dind
+pull_image jenkins/jenkins:lts-jdk17
 success "Lab image pre-pull complete"
 
 # ── Backup existing data before migration ─────────────────────────────────────
