@@ -1,0 +1,146 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Parameterized Builds (GUI)
+# Concept: make a job accept a runtime input so it can be reused for
+# different environments or values without cloning the job.
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-gui-parameterized-build"
+title: "Parameterized Builds"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Add a String parameter to a freestyle job so the same job can print a different greeting each time it runs — no job duplication required."
+estimatedMinutes: 20
+order: 200
+
+objectives:
+  - "Understand what a build parameter is and why it matters"
+  - "Enable 'This project is parameterized' on a freestyle job"
+  - "Add a String parameter with a default value via the GUI"
+  - "Trigger a parameterized build and verify the parameter reaches the shell"
+
+instructions: |
+  ## Parameterized Builds
+
+  **Scenario**
+  Your team runs the same Jenkins job against three environments: dev, staging, and prod. Right now they have three identical jobs — one per environment. That's three times the maintenance. Parameterized builds solve this: one job, one parameter, run it three different ways.
+
+  **Your task:** create a freestyle job named `greet-job`, add a String parameter called `GREETING`, and build it so the parameter value appears in the console output.
+
+  **What You'll Deliver**
+  - A freestyle job named exactly `greet-job` on the Jenkins dashboard
+  - A String parameter named exactly `GREETING` with default value `Hello World`
+  - An Execute Shell build step containing exactly: `echo "$GREETING"`
+  - At least one successful build of `greet-job`
+
+  > ⏳ **Jenkins takes 60–90 seconds to boot.** The UI tab loads automatically once it is ready — just wait.
+
+  **Credentials**
+  - Username: `admin`
+  - Password: `admin`
+
+  ## Steps
+
+  1. Click the **UI** tab to open Jenkins and log in with `admin` / `admin`.
+  2. Click **"New Item"**, enter `greet-job`, choose **"Freestyle project"**, click **OK**.
+  3. Tick **"This project is parameterized"** near the top of the configuration page.
+  4. Click **"Add Parameter"** → **"String Parameter"**.
+  5. Set **Name** to `GREETING` and **Default Value** to `Hello World`, leave Description blank.
+  6. Scroll to **Build Steps**, click **"Add build step"** → **"Execute shell"**.
+  7. In the command box enter exactly: `echo "$GREETING"`
+  8. Click **"Save"**.
+  9. Click **"Build with Parameters"** in the left sidebar (it replaces "Build Now" once a parameter exists).
+  10. Leave the `GREETING` field as `Hello World` and click **"Build"**.
+  11. Watch Build History — wait for the blue ball, then click **"Verify Objectives"**.
+
+tasks:
+  - id: "create-job"
+    description: "Create a freestyle project named exactly 'greet-job'"
+  - id: "add-param"
+    description: "Add a String parameter named exactly 'GREETING' with default value 'Hello World'"
+  - id: "add-build-step"
+    description: "Add an Execute shell build step containing: echo \"$GREETING\""
+  - id: "run-build"
+    description: "Trigger at least one successful build of greet-job"
+
+image: "jenkins/jenkins:lts-jdk17"
+useImageCmd: true
+shell: "bash"
+env:
+  - "JENKINS_OPTS=--prefix=/jenkins"
+  - "JAVA_OPTS=-Djenkins.install.runSetupWizard=false"
+ports:
+  - 8080
+uiPath: "/jenkins/"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/jenkins_home/init.groovy.d
+  cat > /var/jenkins_home/init.groovy.d/01-admin.groovy << 'GROOVY'
+  import jenkins.model.*
+  import hudson.security.*
+
+  def instance = Jenkins.getInstance()
+  def realm = new HudsonPrivateSecurityRealm(false)
+  realm.createAccount("admin", "admin")
+  instance.setSecurityRealm(realm)
+  def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+  strategy.setAllowAnonymousRead(false)
+  instance.setAuthorizationStrategy(strategy)
+  instance.save()
+  GROOVY
+
+  echo "Waiting for Jenkins to start..."
+  for i in $(seq 1 90); do
+    HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/jenkins/login 2>/dev/null)
+    if [ "$HTTP" = "200" ]; then
+      echo "Jenkins is ready (boot took ~$((i * 2))s)"
+      break
+    fi
+    sleep 2
+  done
+
+verifyScript: |
+  CONFIG="/var/jenkins_home/jobs/greet-job/config.xml"
+
+  # CHECK: create-job
+  if [ -f "$CONFIG" ]; then
+    echo "CHECK:create-job:PASS:greet-job found"
+  else
+    echo "CHECK:create-job:FAIL:No job named 'greet-job' — use New Item to create a Freestyle project with that exact name"
+  fi
+
+  # CHECK: add-param
+  if [ -f "$CONFIG" ] && grep -q '<name>GREETING</name>' "$CONFIG" 2>/dev/null; then
+    echo "CHECK:add-param:PASS:GREETING String parameter found"
+  else
+    echo "CHECK:add-param:FAIL:No parameter named 'GREETING' found — tick 'This project is parameterized', add a String Parameter, name it GREETING"
+  fi
+
+  # CHECK: add-build-step
+  if [ -f "$CONFIG" ] && grep -q '\$GREETING' "$CONFIG" 2>/dev/null; then
+    echo 'CHECK:add-build-step:PASS:Execute shell step using $GREETING found'
+  else
+    echo 'CHECK:add-build-step:FAIL:Add an Execute shell build step with exactly: echo "$GREETING"'
+  fi
+
+  # CHECK: run-build
+  if find /var/jenkins_home/jobs/greet-job/builds -name "build.xml" 2>/dev/null \
+       | xargs grep -l "<result>SUCCESS</result>" 2>/dev/null \
+       | grep -q .; then
+    echo "CHECK:run-build:PASS:Successful build found"
+  else
+    echo "CHECK:run-build:FAIL:No successful builds yet — click 'Build with Parameters' and wait for the blue ball"
+  fi
+
+hints:
+  - "Jenkins takes 60–90 seconds to boot. The UI tab will load automatically — just wait."
+  - "The 'This project is parameterized' checkbox is near the top of the job configuration page, under the description field."
+  - "'Add Parameter' appears after you tick the checkbox. Choose 'String Parameter' from the dropdown."
+  - "The parameter Name must be exactly 'GREETING' — case-sensitive. Default Value should be 'Hello World'."
+  - "Once a parameter exists, 'Build Now' changes to 'Build with Parameters'. Click it, leave the field as-is, and hit Build."
+  - "In the Execute shell command, write echo \"$GREETING\" — the quotes ensure the value is passed correctly to the shell."
