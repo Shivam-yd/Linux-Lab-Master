@@ -111,8 +111,12 @@ verifyScript: |
   fi
 
   # CHECK: add-build-step
+  # Jenkins XML-encodes double quotes as &quot; inside config.xml.
+  # Accept both the encoded form (&quot;) and plain form (") so the check is
+  # robust across Jenkins versions.
   if [ -f /var/jenkins_home/jobs/hello-world/config.xml ] && \
-     grep -q 'echo "Hello from Jenkins!"' /var/jenkins_home/jobs/hello-world/config.xml 2>/dev/null; then
+     (grep -q 'echo &quot;Hello from Jenkins!&quot;' /var/jenkins_home/jobs/hello-world/config.xml 2>/dev/null || \
+      grep -q 'echo "Hello from Jenkins!"' /var/jenkins_home/jobs/hello-world/config.xml 2>/dev/null); then
     echo 'CHECK:add-build-step:PASS:Execute shell step with the required echo command found'
   else
     echo 'CHECK:add-build-step:FAIL:Add an Execute shell build step with exactly: echo "Hello from Jenkins!" (copy-paste to avoid typos)'
