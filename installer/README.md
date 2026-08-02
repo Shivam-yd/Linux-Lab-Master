@@ -32,7 +32,7 @@ The installer packages Linux Labs as a self-contained Windows application:
 
 - Installs Docker Desktop (via winget) if not already present
 - Builds all Docker images from source (Node.js API, nginx frontend, PostgreSQL)
-- Pre-pulls the six lab container images so labs start instantly
+- Pre-pulls the lab container images, including Jenkins LTS for the GUI labs, so labs start instantly
 - Registers a Windows service (`LinuxLabs`) that starts on boot
 - Creates a desktop shortcut that opens `http://localhost:8085` in the browser
 - Provides shareable completion certificates with public verification links

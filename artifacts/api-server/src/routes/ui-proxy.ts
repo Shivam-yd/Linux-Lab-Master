@@ -3,6 +3,7 @@ import http from "node:http";
 import { requireAuth } from "../middleware/auth";
 import { getRunningContainer } from "../lib/docker/manager";
 import { getLabByIdAsync } from "../lib/labs/registry";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -17,7 +18,12 @@ const router: IRouter = Router();
  * the iframe rather than breaking out to the Replit root.
  */
 router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
-  const { labId } = req.params;
+  const rawLabId = req.params.labId;
+  const labId = Array.isArray(rawLabId) ? rawLabId[0] : rawLabId;
+  if (!labId) {
+    res.status(400).json({ error: "Lab ID is required" });
+    return;
+  }
 
   const lab = await getLabByIdAsync(labId);
   if (!lab?.ports?.[0]) {
@@ -32,10 +38,22 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   }
 
   const info = await container.inspect();
-  const bindings = (info.NetworkSettings.Ports as Record<string, { HostPort: string }[] | null>)[`${lab.ports[0]}/tcp`];
+  const containerPort = lab.ports[0];
+  const bindings = (info.NetworkSettings.Ports as Record<string, { HostPort: string }[] | null>)[`${containerPort}/tcp`];
   const hostPort = bindings?.[0]?.HostPort;
-  if (!hostPort) {
-    res.status(503).json({ error: "Container port not yet bound" });
+  const networks = info.NetworkSettings.Networks as Record<string, { IPAddress?: string }> | undefined;
+  const containerIp = Object.values(networks ?? {})
+    .map((network) => network.IPAddress)
+    .find((ip): ip is string => Boolean(ip));
+
+  // The API may run in a different container from the lab. In that layout,
+  // localhost:<published-port> points back at the API container, not at the
+  // Docker host where the lab port is published. The lab's bridge IP and
+  // container port work from the API container regardless of host port mapping.
+  // Keep the localhost route as a fallback for local/dev setups where both
+  // processes share the host network.
+  if (!containerIp && !hostPort) {
+    res.status(503).json({ error: "Container UI port is not available yet" });
     return;
   }
 
@@ -45,11 +63,14 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   const proxyPrefix = `/api/labs/${labId}/ui`;
   const proxyPath = req.url || "/";
 
-  const headers = { ...req.headers, host: `localhost:${hostPort}` };
+  const target = containerIp
+    ? { hostname: containerIp, port: containerPort, label: `container ${containerIp}:${containerPort}` }
+    : { hostname: "127.0.0.1", port: Number(hostPort), label: `host port ${hostPort}` };
+  const headers = { ...req.headers, host: `localhost:${containerPort}` };
   delete (headers as Record<string, unknown>)["content-length"];
 
   const proxyReq = http.request(
-    { hostname: "localhost", port: Number(hostPort), path: proxyPath, method: req.method, headers },
+    { hostname: target.hostname, port: target.port, path: proxyPath, method: req.method, headers },
     (proxyRes) => {
       // Rewrite redirect Location headers so the browser stays inside our proxy.
       if (proxyRes.headers["location"]) {
@@ -97,8 +118,12 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     },
   );
 
-  proxyReq.on("error", () => {
-    if (!res.headersSent) res.status(502).json({ error: "UI proxy error" });
+  proxyReq.on("error", (err) => {
+    logger.warn(
+      { err, labId, studentId: req.studentId, target: target.label, proxyPath },
+      "UI proxy upstream connection failed",
+    );
+    if (!res.headersSent) res.status(502).json({ error: "UI service is not reachable yet" });
   });
 
   // Reconstruct the request body (express.json/urlencoded already consumed the stream).

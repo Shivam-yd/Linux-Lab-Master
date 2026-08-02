@@ -1,5 +1,6 @@
 - [Ponytail coding style](ponytail-style.md) — all code must use ponytail: minimum code that works, YAGNI, reuse first, deletion over addition.
 - [Docker sandbox constraints in this environment](docker-sandbox-constraints.md) — containers have no internet/DNS (no apt/apk installs), users need chpasswd for sshd, sudo is unavailable, dockerode needs ssh2/@grpc bundled not externalized.
+- [Container UI proxy networking](container-ui-proxy-networking.md) — service UIs must be reached through the lab container IP when the API and lab containers are separate; localhost host ports are not portable.
 - [GitHub sync CDN race condition](github-sync-cdn-race.md) — sync may store new SHA + old content if CDN lags; fix by clearing sha='' in remote_labs then re-syncing.
 - [Better Auth migration](better-auth-migration.md) — Clerk replaced with Better Auth; key gotchas: Express 5 wildcard, OpenTelemetry peer dep, BETTER_AUTH_URL env var required.
 - [Better Auth trusted origins on Replit](better-auth-url-replit.md) — BETTER_AUTH_URL goes stale when repl domain rotates; also trust the .repl.co webview variant of REPLIT_DEV_DOMAIN.

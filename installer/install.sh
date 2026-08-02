@@ -35,6 +35,8 @@ header()  { echo -e "\n${BOLD}${CYAN}── $* ──${RESET}"; }
 INSTALL_DIR="/opt/linuxlabs"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+JENKINS_GUI_IMAGE="jenkins/jenkins:lts-jdk17"
+JENKINS_GUI_LAB="${PROJECT_ROOT}/labs/jenkins/l1-06-gui-first-job.yaml"
 
 # ── Preflight ─────────────────────────────────────────────────────────────────
 header "Preflight"
@@ -43,6 +45,20 @@ header "Preflight"
 
 [[ -f "${PROJECT_ROOT}/Dockerfile" ]] || \
   die "Run this script from the project root."
+
+if [[ ! -f "${JENKINS_GUI_LAB}" ]]; then
+  die "Jenkins GUI lab is missing: ${JENKINS_GUI_LAB}"
+fi
+grep -Eq '^id: "jenkins-gui-first-job"$' "${JENKINS_GUI_LAB}" || \
+  die "Jenkins GUI lab has an unexpected ID."
+grep -Fq "image: \"${JENKINS_GUI_IMAGE}\"" "${JENKINS_GUI_LAB}" || \
+  die "Jenkins GUI lab must use ${JENKINS_GUI_IMAGE}."
+grep -Eq '^useImageCmd: true$' "${JENKINS_GUI_LAB}" || \
+  die "Jenkins GUI lab must use Jenkins' image startup command."
+grep -Eq '^uiPath: "/jenkins/"$' "${JENKINS_GUI_LAB}" || \
+  die "Jenkins GUI lab must expose its UI at /jenkins/."
+grep -Eq '^[[:space:]]+- 8080$' "${JENKINS_GUI_LAB}" || \
+  die "Jenkins GUI lab must expose port 8080."
 
 if [[ -f /etc/os-release ]]; then
   source /etc/os-release
@@ -283,7 +299,7 @@ pull_image hashicorp/terraform:1.9
 pull_image rastasheep/ubuntu-sshd:18.04
 pull_image localstack/localstack:latest
 pull_image docker:dind
-pull_image jenkins/jenkins:lts-jdk17
+pull_image "${JENKINS_GUI_IMAGE}"
 success "Lab image pre-pull complete"
 
 # ── Backup existing data before migration ─────────────────────────────────────
