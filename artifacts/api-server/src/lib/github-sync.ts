@@ -74,6 +74,7 @@ const RemoteLabSchema = z.object({
   privileged:       z.boolean().optional(),
   shell:            z.enum(["bash", "sh"]).optional(),
   ports:            z.number().int().positive().array().optional(),
+  uiPath:           z.string().optional(),
   terminals:        LabTerminalSchema.array().min(1),
   setupScript:      z.string(),
   verifyScript:     z.string(),
