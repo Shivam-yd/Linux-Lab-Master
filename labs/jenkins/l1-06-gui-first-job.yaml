@@ -9,50 +9,51 @@ track: "jenkins"
 level: 1
 category: "Jenkins Fundamentals"
 difficulty: "beginner"
-summary: "Spin up a live Jenkins server, log in through the embedded GUI, create a freestyle project, add a shell build step, and run your first successful build."
+summary: "Log into a live Jenkins server, create a freestyle project through the GUI, add a shell build step, and run your first successful build."
 estimatedMinutes: 25
-order: 16
+order: 100
 
 objectives:
-  - "Access a real Jenkins dashboard through the workspace UI tab"
+  - "Navigate the Jenkins dashboard through the embedded UI tab"
   - "Create a freestyle project using the New Item wizard"
-  - "Configure an Execute Shell build step"
-  - "Trigger a build and verify it succeeds"
+  - "Configure an Execute Shell build step via the GUI"
+  - "Trigger a build and confirm it succeeds"
 
 instructions: |
   ## Your First Jenkins Job (GUI)
 
   **Scenario**
-  You've just been handed a fresh Jenkins server. Before the rest of the team can use it, you need to prove the basics work: log in, create a simple freestyle job, and confirm it builds successfully.
+  You've just been handed a fresh Jenkins server. Before the rest of the team can use it, you need to prove the basics work: log in, create a simple freestyle job, and confirm it builds successfully. Everything is done through the Jenkins web interface — no command line needed.
 
-  This is a **live Jenkins instance** — click the **UI** tab next to the terminal to open the Jenkins dashboard inside the workspace.
+  **Your task:** create a freestyle job named `hello-world` with an Execute Shell build step, then run it until it turns green.
+
+  **What You'll Deliver**
+  - A freestyle job named exactly `hello-world` visible on the Jenkins dashboard
+  - An Execute Shell build step containing exactly: `echo "Hello from Jenkins!"`
+  - At least one successful build of the `hello-world` job (blue ball in Build History)
+
+  > ⏳ **Jenkins takes 60–90 seconds to boot.** Click the **UI** tab — if it shows a spinner, wait for it to load automatically. Do not reset the sandbox; just wait.
 
   **Credentials**
   - Username: `admin`
   - Password: `admin`
 
-  > ⏳ Jenkins takes about 60–90 seconds to boot after the sandbox starts. If the UI tab shows a blank page or an error, wait a moment and refresh the tab.
-
-  **What You'll Deliver**
-  - A freestyle job named exactly `hello-world`
-  - A single "Execute shell" build step containing: `echo "Hello from Jenkins!"`
-  - At least one successful build of that job
-
   ## Steps
 
-  1. Click the **UI** tab in the workspace header to open Jenkins.
+  1. Click the **UI** tab at the top of the workspace to open the Jenkins dashboard.
   2. Log in with `admin` / `admin`.
-  3. From the Jenkins dashboard click **"New Item"**.
-  4. Enter `hello-world` as the item name, choose **"Freestyle project"**, click **OK**.
-  5. Scroll to the **Build Steps** section and click **"Add build step" → "Execute shell"**.
+  3. From the dashboard click **"New Item"** in the left sidebar.
+  4. Enter `hello-world` as the item name, select **"Freestyle project"**, click **OK**.
+  5. Scroll to the **Build Steps** section, click **"Add build step"** → **"Execute shell"**.
   6. In the command box enter exactly: `echo "Hello from Jenkins!"`
   7. Click **"Save"**.
-  8. Click **"Build Now"** in the left sidebar — wait for the build ball to turn **blue** (success).
-  9. Click **"Verify Objectives"** to confirm all three checks pass.
+  8. On the job page click **"Build Now"** in the left sidebar.
+  9. Watch the **Build History** panel — wait for the ball to turn **blue** (success).
+  10. Click **"Verify Objectives"** below to confirm all three checks pass.
 
 tasks:
   - id: "create-job"
-    description: "Create a freestyle job named exactly 'hello-world'"
+    description: "Create a freestyle project named exactly 'hello-world' via New Item"
   - id: "add-build-step"
     description: "Add an Execute shell build step containing: echo \"Hello from Jenkins!\""
   - id: "run-build"
@@ -114,7 +115,7 @@ verifyScript: |
      grep -q 'echo "Hello from Jenkins!"' /var/jenkins_home/jobs/hello-world/config.xml 2>/dev/null; then
     echo 'CHECK:add-build-step:PASS:Execute shell step with the required echo command found'
   else
-    echo 'CHECK:add-build-step:FAIL:Add an Execute shell build step with: echo "Hello from Jenkins!" (exact match required)'
+    echo 'CHECK:add-build-step:FAIL:Add an Execute shell build step with exactly: echo "Hello from Jenkins!" (copy-paste to avoid typos)'
   fi
 
   # CHECK: run-build — look for any build.xml containing a SUCCESS result
@@ -127,8 +128,9 @@ verifyScript: |
   fi
 
 hints:
-  - "Jenkins takes 60–90 seconds to boot on first start. If the UI tab is blank, wait and refresh."
+  - "Jenkins takes 60–90 seconds to boot on first start. The UI tab will load automatically once it's ready — just wait."
   - "Log in with admin / admin. If you see an 'Unlock Jenkins' screen the init script didn't apply — reset the sandbox and try again."
-  - "The job name must be exactly 'hello-world' (all lowercase, hyphen, no spaces)."
-  - "After clicking 'Build Now', watch the Build History panel on the left. Click the build number → 'Console Output' to see your echo output."
+  - "The job name must be exactly 'hello-world' — all lowercase, hyphen, no spaces."
+  - "The Execute shell build step is under Build Steps → Add build step → Execute shell. Not 'Build Environment' or 'Post-build Actions'."
+  - "After clicking 'Build Now', watch the Build History panel on the left. A grey or red ball means it's still running or failed — wait for blue."
   - "The echo command must match exactly: echo \"Hello from Jenkins!\" — copy-paste from the instructions to avoid typos."
