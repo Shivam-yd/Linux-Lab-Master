@@ -153,6 +153,59 @@ export default function Workspace() {
   // Reset-confirm modal state
   const [resetConfirm, setResetConfirm] = useState(false)
 
+  // UI service readiness polling (for labs with embedded UIs like Jenkins)
+  const [uiReady, setUiReady] = useState(false)
+  const [uiWaitSecs, setUiWaitSecs] = useState(0)
+  const uiPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const uiTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const uiPath: string = (lab as any)?.uiPath ?? ""
+  const hasUi = !!(lab as any)?.uiPort
+
+  useEffect(() => {
+    // Clear polling when lab changes or session stops
+    return () => {
+      if (uiPollRef.current) clearInterval(uiPollRef.current)
+      if (uiTimerRef.current) clearInterval(uiTimerRef.current)
+    }
+  }, [labId])
+
+  useEffect(() => {
+    if (!isRunning || !hasUi || uiReady) return
+
+    setUiWaitSecs(0)
+
+    // Tick seconds elapsed
+    uiTimerRef.current = setInterval(() => setUiWaitSecs(s => s + 1), 1000)
+
+    // Poll the proxy until Jenkins (or other service) returns HTML
+    uiPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/labs/${labId}/ui${uiPath}`, { method: "GET" })
+        const ct = res.headers.get("content-type") ?? ""
+        if (res.ok && ct.includes("text/html")) {
+          setUiReady(true)
+          clearInterval(uiPollRef.current!)
+          clearInterval(uiTimerRef.current!)
+        }
+      } catch {
+        // still booting
+      }
+    }, 3000)
+
+    return () => {
+      clearInterval(uiPollRef.current!)
+      clearInterval(uiTimerRef.current!)
+    }
+  }, [isRunning, hasUi, uiReady, labId, uiPath])
+
+  // Reset readiness when session stops or lab changes
+  useEffect(() => {
+    if (!isRunning) setUiReady(false)
+  }, [isRunning])
+
+  useEffect(() => { setUiReady(false) }, [labId])
+
   // Hints state
   const [hintsRevealed, setHintsRevealed] = useState(0)
   const [hintsOpen, setHintsOpen] = useState(false)
@@ -939,13 +992,20 @@ export default function Workspace() {
                     className="absolute inset-0 m-0 border-none rounded-none focus-visible:ring-0 focus-visible:outline-none"
                     forceMount
                   >
-                    <div className={cn("h-full w-full", activeTerminal === "__ui__" ? "block" : "hidden")}>
-                      {isRunning ? (
+                    <div className={cn("h-full w-full", activeTerminal === "__ui__" ? "flex" : "hidden", "flex-col")}>
+                      {isRunning && uiReady ? (
                         <iframe
-                          src={`/api/labs/${labId}/ui${(lab as any)?.uiPath ?? ""}`}
+                          src={`/api/labs/${labId}/ui${uiPath}`}
                           className="w-full h-full border-none"
                           title="UI"
                         />
+                      ) : isRunning ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground/70 font-mono text-sm">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
+                          <p className="text-primary/80 font-bold">Service is starting up…</p>
+                          <p className="text-xs opacity-60">{uiWaitSecs}s elapsed — checking every 3s</p>
+                          <p className="text-xs opacity-40 max-w-xs text-center">Jenkins typically takes 60–90 seconds on first boot. This page will load automatically.</p>
+                        </div>
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground/60 font-mono text-sm">
                           <p>{`>_ START_LAB_TO_ACCESS_UI`}</p>
