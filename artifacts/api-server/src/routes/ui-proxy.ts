@@ -63,6 +63,19 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
       delete proxyRes.headers["x-frame-options"];
       delete proxyRes.headers["content-security-policy"];
 
+      // Rewrite Set-Cookie Path so the browser sends session cookies on
+      // subsequent requests through the /api/labs/:labId/ui/... prefix.
+      // Without this, Jenkins sets Path=/jenkins but the browser only sends
+      // that cookie for exact /jenkins/* paths, not /api/labs/.../ui/jenkins/*.
+      const rawCookies = proxyRes.headers["set-cookie"];
+      if (rawCookies) {
+        proxyRes.headers["set-cookie"] = (rawCookies as string[]).map((c) =>
+          c
+            .replace(/; Path=\/jenkins(?=;|$)/gi, `; Path=${proxyPrefix}/jenkins`)
+            .replace(/; Path=\/(?=;|$)/gi, `; Path=${proxyPrefix}/`),
+        );
+      }
+
       const contentType = proxyRes.headers["content-type"] ?? "";
       if (contentType.includes("text/html")) {
         // Buffer and rewrite HTML: replace every /jenkins path with the proxied
