@@ -35,7 +35,6 @@ const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 const SYNC_DENY_LIST = new Set([
   "git-gitignore",        // duplicate of git-gitignore-basics
   "git-tags-basics",      // duplicate of git-tagging
-  "jenkins-pipeline-script", // duplicate of jenkins-pipeline-job
 ]);
 
 // Optional: set GITHUB_TOKEN env var to raise rate limit from 60 → 5 000 req/hr
