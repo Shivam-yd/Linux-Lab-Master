@@ -153,6 +153,12 @@ export default function Workspace() {
   // Reset-confirm modal state
   const [resetConfirm, setResetConfirm] = useState(false)
 
+  // Derived state — declared early so useEffects below can reference them without TDZ errors
+  const isRunning = session?.status === 'running'
+  const isStarting = sessionLoading || session?.status === 'starting' || startSession.isPending || resetSession.isPending
+  const isStopped = session?.status === 'stopped' || !session || session.status === 'none'
+  const sessionError = session?.status === 'error'
+
   // UI service readiness polling (for labs with embedded UIs like Jenkins)
   const [uiReady, setUiReady] = useState(false)
   const [uiWaitSecs, setUiWaitSecs] = useState(0)
@@ -224,12 +230,6 @@ export default function Workspace() {
     setCloseCountdown(null)
     setActiveTerminal("")             // force terminal re-selection for new lab
   }, [labId])
-
-  // Derived state
-  const isRunning = session?.status === 'running'
-  const isStarting = sessionLoading || session?.status === 'starting' || startSession.isPending || resetSession.isPending
-  const isStopped = session?.status === 'stopped' || !session || session.status === 'none'
-  const sessionError = session?.status === 'error'
 
   // Auto-boot the sandbox the first time a student opens a lab — but only
   // when a session has genuinely never been created ('none'). If the

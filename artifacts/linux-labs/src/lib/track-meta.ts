@@ -1,11 +1,11 @@
 import { Cpu } from "lucide-react"
-import type { SVGProps, ReactElement } from "react"
+import type { ComponentType, SVGProps } from "react"
 import {
   LinuxLogo, TerraformLogo, JenkinsLogo, DockerLogo,
   GitLogo, KubernetesLogo, AnsibleLogo,
 } from "@/components/track-logos"
 
-type TrackIcon = (props: SVGProps<SVGSVGElement> & { className?: string }) => ReactElement
+type TrackIcon = ComponentType<SVGProps<SVGSVGElement>>
 
 export type TrackMeta = {
   label: string

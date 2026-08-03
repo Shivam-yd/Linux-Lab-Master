@@ -18,7 +18,7 @@ import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { remoteLabsTable, labSyncLogTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, notInArray, sql } from "drizzle-orm";
 import { logger } from "./logger";
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -153,6 +153,7 @@ export interface SyncResult {
   status: "success" | "error" | "skipped";
   labsAdded: number;
   labsUpdated: number;
+  labsDeleted: number;
   totalRemote: number;
   errorMessage?: string;
 }
@@ -164,13 +165,14 @@ export async function runSync(triggeredBy: "auto" | "manual" = "auto"): Promise<
   if (_syncRunning) {
     logger.info("github-sync: sync already in progress, skipping");
     const rows = await db.select().from(remoteLabsTable).catch(() => []);
-    return { status: "skipped", labsAdded: 0, labsUpdated: 0, totalRemote: rows.length };
+    return { status: "skipped", labsAdded: 0, labsUpdated: 0, labsDeleted: 0, totalRemote: rows.length };
   }
 
   _syncRunning = true;
   const startedAt = Date.now();
   let labsAdded   = 0;
   let labsUpdated = 0;
+  let labsDeleted = 0;
 
   try {
     logger.info({ triggeredBy }, "github-sync: starting sync");
@@ -214,31 +216,54 @@ export async function runSync(triggeredBy: "auto" | "manual" = "auto"): Promise<
       // else: SHA unchanged — skip
     }
 
+    // ── Prune: delete DB rows whose IDs are no longer in GitHub ──────────────
+    // Build the set of IDs that came from this sync (deny-listed ones are never
+    // inserted, so they won't be in seenIds and would be incorrectly pruned —
+    // exclude them from the delete predicate too).
+    const seenIds: string[] = [];
+    for (const file of files) {
+      const def = await fetchAndValidateLab(file).catch(() => null);
+      if (def && !SYNC_DENY_LIST.has(def.id)) seenIds.push(def.id);
+    }
+
+    if (seenIds.length > 0) {
+      // Delete any rows not present in the current GitHub file set
+      const deleted = await db
+        .delete(remoteLabsTable)
+        .where(notInArray(remoteLabsTable.id, seenIds))
+        .returning({ id: remoteLabsTable.id });
+      labsDeleted = deleted.length;
+      if (labsDeleted > 0) {
+        logger.info({ deleted: deleted.map((r) => r.id) }, "github-sync: pruned labs removed from GitHub");
+      }
+    }
+
     const totalRemote = (await db.select().from(remoteLabsTable)).length;
 
     await db.insert(labSyncLogTable).values({
       status:       "success",
       labsAdded,
       labsUpdated,
+      labsDeleted,
       totalRemote,
       triggeredBy,
     });
 
     logger.info(
-      { labsAdded, labsUpdated, totalRemote, elapsedMs: Date.now() - startedAt },
+      { labsAdded, labsUpdated, labsDeleted, totalRemote, elapsedMs: Date.now() - startedAt },
       "github-sync: done",
     );
-    return { status: "success", labsAdded, labsUpdated, totalRemote };
+    return { status: "success", labsAdded, labsUpdated, labsDeleted, totalRemote };
 
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     logger.error({ err }, "github-sync: sync failed");
 
     await db.insert(labSyncLogTable).values({
-      status: "error", labsAdded, labsUpdated, totalRemote: 0, errorMessage, triggeredBy,
+      status: "error", labsAdded, labsUpdated, labsDeleted, totalRemote: 0, errorMessage, triggeredBy,
     }).catch(() => {});
 
-    return { status: "error", labsAdded, labsUpdated, totalRemote: 0, errorMessage };
+    return { status: "error", labsAdded, labsUpdated, labsDeleted, totalRemote: 0, errorMessage };
   } finally {
     _syncRunning = false;
   }

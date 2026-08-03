@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import http from "node:http";
 import { requireAuth } from "../middleware/auth";
 import { getRunningContainer } from "../lib/docker/manager";
@@ -14,8 +14,17 @@ const router: IRouter = Router();
  *
  * Jenkins is configured with --prefix=/jenkins so all its internal links
  * are /jenkins/... The proxy rewrites those to /api/labs/:labId/ui/jenkins/...
- * in HTML responses and Location headers so in-page navigation stays inside
- * the iframe rather than breaking out to the Replit root.
+ * in HTML and JS responses and Location headers so in-page navigation stays
+ * inside the iframe rather than breaking out to the Replit root.
+ *
+ * Key behaviours:
+ *  - Accept-Encoding stripped from upstream request so Jenkins never gzips —
+ *    gzipped bytes can't be string-replaced for path rewrites.
+ *  - Location header rewrites handle both absolute (http://host/jenkins/...)
+ *    and relative (/jenkins/...) forms.
+ *  - Form POST bodies forwarded verbatim via req.rawBody (set by app.ts verify
+ *    callback) so repeated/array keys are never dropped by re-encoding.
+ *  - HTML and JS responses rewritten; all other content types piped as-is.
  */
 router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   const rawLabId = req.params.labId;
@@ -60,9 +69,8 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // proxyPrefix is the path prefix that the browser uses to reach this proxy.
-  // All absolute /jenkins/* links in Jenkins HTML need to be rewritten to
-  // go through this prefix so they stay inside the iframe.
+  // proxyPrefix is the path prefix the browser uses to reach this proxy.
+  // All /jenkins/* links must be rewritten to go through this prefix.
   const proxyPrefix = `/api/labs/${labId}/ui`;
   const proxyPath = req.url || "/";
 
@@ -85,19 +93,10 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   if (hostPort) {
     addTarget({ hostname: "127.0.0.1", port: Number(hostPort), label: `host port ${hostPort}` });
   }
-  const headers = { ...req.headers, host: `localhost:${containerPort}` };
+  const headers: Record<string, string | string[] | undefined> = { ...req.headers };
+  headers["host"] = `localhost:${containerPort}`;
+  headers["accept-encoding"] = "identity";
   delete (headers as Record<string, unknown>)["content-length"];
-
-  let requestBody: Buffer | undefined;
-  const method = req.method.toUpperCase();
-  if (method !== "GET" && method !== "HEAD" && req.body) {
-    const ct = (req.headers["content-type"] ?? "").split(";")[0].trim();
-    if (ct === "application/x-www-form-urlencoded") {
-      requestBody = Buffer.from(new URLSearchParams(req.body as Record<string, string>).toString());
-    } else if (ct === "application/json") {
-      requestBody = Buffer.from(JSON.stringify(req.body));
-    }
-  }
 
   const sendRequest = (targetIndex: number): void => {
     const target = targets[targetIndex];
@@ -111,10 +110,11 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
       (proxyRes) => {
       // Rewrite redirect Location headers so the browser stays inside our proxy.
       if (proxyRes.headers["location"]) {
-        proxyRes.headers["location"] = proxyRes.headers["location"].replace(
-          /^\/jenkins/,
-          `${proxyPrefix}/jenkins`,
-        );
+        proxyRes.headers["location"] = proxyRes.headers["location"]
+          // Absolute: strip scheme + host, keep path portion starting at /jenkins
+          .replace(/^https?:\/\/[^/]+\/jenkins(?=\/|$)/, `${proxyPrefix}/jenkins`)
+          // Relative: plain /jenkins/... path
+          .replace(/^\/jenkins(?=\/|$)/, `${proxyPrefix}/jenkins`);
       }
 
       // Strip headers that prevent iframing.
@@ -123,8 +123,6 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
 
       // Rewrite Set-Cookie Path so the browser sends session cookies on
       // subsequent requests through the /api/labs/:labId/ui/... prefix.
-      // Without this, Jenkins sets Path=/jenkins but the browser only sends
-      // that cookie for exact /jenkins/* paths, not /api/labs/.../ui/jenkins/*.
       const rawCookies = proxyRes.headers["set-cookie"];
       if (rawCookies) {
         proxyRes.headers["set-cookie"] = (rawCookies as string[]).map((c) =>
@@ -135,14 +133,18 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
       }
 
       const contentType = proxyRes.headers["content-type"] ?? "";
-      if (contentType.includes("text/html")) {
-        // Buffer and rewrite HTML: replace every /jenkins path with the proxied
-        // equivalent so in-page links resolve through our proxy.
+      const isHtml = contentType.includes("text/html");
+      const isJs   = contentType.includes("javascript");
+
+      if (isHtml || isJs) {
+        // Buffer and rewrite text: replace every /jenkins occurrence with the
+        // proxied path so in-page links and rootURL JS variable resolve correctly.
+        // Because we stripped Accept-Encoding above, this is plain UTF-8 text.
         const chunks: Buffer[] = [];
         proxyRes.on("data", (c: Buffer) => chunks.push(c));
         proxyRes.on("end", () => {
-          const html = Buffer.concat(chunks).toString("utf8");
-          const rewritten = html.split("/jenkins").join(`${proxyPrefix}/jenkins`);
+          const text = Buffer.concat(chunks).toString("utf8");
+          const rewritten = text.split("/jenkins").join(`${proxyPrefix}/jenkins`);
           const outHeaders = { ...proxyRes.headers };
           delete outHeaders["content-length"]; // byte length changed after rewrite
           res.writeHead(proxyRes.statusCode ?? 200, outHeaders);
@@ -164,9 +166,20 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
       sendRequest(targetIndex + 1);
     });
 
-    if (requestBody) {
-      proxyReq.setHeader("content-length", requestBody.length);
-      proxyReq.write(requestBody);
+    // Reconstruct the request body after Express parsed it. Prefer the raw
+    // form body so repeated Jenkins form fields are preserved exactly.
+    const method = req.method.toUpperCase();
+    if (method !== "GET" && method !== "HEAD") {
+      const rawBody = (req as Request & { rawBody?: string }).rawBody;
+      const ct = (req.headers["content-type"] ?? "").split(";")[0].trim();
+      if (rawBody !== undefined && ct === "application/x-www-form-urlencoded") {
+        proxyReq.setHeader("content-length", Buffer.byteLength(rawBody));
+        proxyReq.write(rawBody);
+      } else if (req.body && ct === "application/json") {
+        const json = JSON.stringify(req.body);
+        proxyReq.setHeader("content-length", Buffer.byteLength(json));
+        proxyReq.write(json);
+      }
     }
     proxyReq.end();
   };
