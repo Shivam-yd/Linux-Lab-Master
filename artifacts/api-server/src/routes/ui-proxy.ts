@@ -39,19 +39,22 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
 
   const info = await container.inspect();
   const containerPort = lab.ports[0];
-  const bindings = (info.NetworkSettings.Ports as Record<string, { HostPort: string }[] | null>)[`${containerPort}/tcp`];
+  const bindings = (info.NetworkSettings.Ports as Record<string, { HostPort: string; HostIp?: string }[] | null>)[`${containerPort}/tcp`];
   const hostPort = bindings?.[0]?.HostPort;
   const networks = info.NetworkSettings.Networks as Record<string, { IPAddress?: string }> | undefined;
   const containerIp = Object.values(networks ?? {})
     .map((network) => network.IPAddress)
     .find((ip): ip is string => Boolean(ip));
+  const dockerGateway = Object.values(networks ?? {})
+    .map((network) => (network as { Gateway?: string }).Gateway)
+    .find((ip): ip is string => Boolean(ip));
+  const nodeIp = process.env.NODE_IP;
 
   // The API may run in a different container from the lab. In that layout,
   // localhost:<published-port> points back at the API container, not at the
-  // Docker host where the lab port is published. The lab's bridge IP and
-  // container port work from the API container regardless of host port mapping.
-  // Keep the localhost route as a fallback for local/dev setups where both
-  // processes share the host network.
+  // Docker host where the lab port is published. In k3s, the API pod also
+  // cannot always route to Docker's bridge IP, so try the node's host port
+  // before falling back to the lab container IP and local development paths.
   if (!containerIp && !hostPort) {
     res.status(503).json({ error: "Container UI port is not available yet" });
     return;
@@ -63,15 +66,49 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   const proxyPrefix = `/api/labs/${labId}/ui`;
   const proxyPath = req.url || "/";
 
-  const target = containerIp
-    ? { hostname: containerIp, port: containerPort, label: `container ${containerIp}:${containerPort}` }
-    : { hostname: "127.0.0.1", port: Number(hostPort), label: `host port ${hostPort}` };
+  type ProxyTarget = { hostname: string; port: number; label: string };
+  const targets: ProxyTarget[] = [];
+  const addTarget = (target: ProxyTarget): void => {
+    if (!targets.some((current) => current.hostname === target.hostname && current.port === target.port)) {
+      targets.push(target);
+    }
+  };
+  if (nodeIp && hostPort) {
+    addTarget({ hostname: nodeIp, port: Number(hostPort), label: `node ${nodeIp}:${hostPort}` });
+  }
+  if (containerIp) {
+    addTarget({ hostname: containerIp, port: containerPort, label: `container ${containerIp}:${containerPort}` });
+  }
+  if (dockerGateway && hostPort) {
+    addTarget({ hostname: dockerGateway, port: Number(hostPort), label: `Docker gateway ${dockerGateway}:${hostPort}` });
+  }
+  if (hostPort) {
+    addTarget({ hostname: "127.0.0.1", port: Number(hostPort), label: `host port ${hostPort}` });
+  }
   const headers = { ...req.headers, host: `localhost:${containerPort}` };
   delete (headers as Record<string, unknown>)["content-length"];
 
-  const proxyReq = http.request(
-    { hostname: target.hostname, port: target.port, path: proxyPath, method: req.method, headers },
-    (proxyRes) => {
+  let requestBody: Buffer | undefined;
+  const method = req.method.toUpperCase();
+  if (method !== "GET" && method !== "HEAD" && req.body) {
+    const ct = (req.headers["content-type"] ?? "").split(";")[0].trim();
+    if (ct === "application/x-www-form-urlencoded") {
+      requestBody = Buffer.from(new URLSearchParams(req.body as Record<string, string>).toString());
+    } else if (ct === "application/json") {
+      requestBody = Buffer.from(JSON.stringify(req.body));
+    }
+  }
+
+  const sendRequest = (targetIndex: number): void => {
+    const target = targets[targetIndex];
+    if (!target) {
+      if (!res.headersSent) res.status(502).json({ error: "UI service is not reachable yet" });
+      return;
+    }
+
+    const proxyReq = http.request(
+      { hostname: target.hostname, port: target.port, path: proxyPath, method: req.method, headers },
+      (proxyRes) => {
       // Rewrite redirect Location headers so the browser stays inside our proxy.
       if (proxyRes.headers["location"]) {
         proxyRes.headers["location"] = proxyRes.headers["location"].replace(
@@ -115,32 +152,26 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
         res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
         proxyRes.pipe(res);
       }
-    },
-  );
-
-  proxyReq.on("error", (err) => {
-    logger.warn(
-      { err, labId, studentId: req.studentId, target: target.label, proxyPath },
-      "UI proxy upstream connection failed",
+      },
     );
-    if (!res.headersSent) res.status(502).json({ error: "UI service is not reachable yet" });
-  });
 
-  // Reconstruct the request body (express.json/urlencoded already consumed the stream).
-  const method = req.method.toUpperCase();
-  if (method !== "GET" && method !== "HEAD" && req.body) {
-    const ct = (req.headers["content-type"] ?? "").split(";")[0].trim();
-    if (ct === "application/x-www-form-urlencoded") {
-      const encoded = new URLSearchParams(req.body as Record<string, string>).toString();
-      proxyReq.setHeader("content-length", Buffer.byteLength(encoded));
-      proxyReq.write(encoded);
-    } else if (ct === "application/json") {
-      const json = JSON.stringify(req.body);
-      proxyReq.setHeader("content-length", Buffer.byteLength(json));
-      proxyReq.write(json);
+    proxyReq.setTimeout(3_000, () => proxyReq.destroy(new Error("UI proxy upstream connection timed out")));
+    proxyReq.on("error", (err) => {
+      logger.warn(
+        { err, labId, studentId: req.studentId, target: target.label, proxyPath },
+        "UI proxy upstream connection failed",
+      );
+      sendRequest(targetIndex + 1);
+    });
+
+    if (requestBody) {
+      proxyReq.setHeader("content-length", requestBody.length);
+      proxyReq.write(requestBody);
     }
-  }
-  proxyReq.end();
+    proxyReq.end();
+  };
+
+  sendRequest(0);
 });
 
 export default router;

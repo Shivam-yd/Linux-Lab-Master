@@ -302,6 +302,13 @@ export async function startSession(studentId: string, labId: string): Promise<La
           logger.error({ labId, studentId, output: setup.output }, "Lab setup script failed");
           throw new Error(`Setup script failed (exit ${setup.exitCode}): ${setup.output.slice(-500)}`);
         }
+        // Jenkins reads init.groovy.d only during startup. The setup script
+        // creates that file after the image command has already started, so
+        // restart service-image labs once to apply the freshly written setup.
+        if (lab.useImageCmd) {
+          logger.info({ labId, studentId }, "Restarting service container to apply setup files");
+          await container.restart({ t: 10 });
+        }
       } catch (setupErr) {
         // Never leave a half-provisioned container running — remove it before surfacing the error.
         await container.remove({ force: true }).catch(() => undefined);
