@@ -518,7 +518,7 @@ export default function Catalog() {
           left: collapsed ? "64px" : "256px",
           transition: "left 200ms ease",
         }}
-        className="absolute top-[22px] -translate-x-1/2 z-20 w-[22px] h-[22px] rounded-full bg-card border border-border/80 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:shadow-[0_0_10px_rgba(45,212,191,0.2)] shadow-sm transition-colors duration-150"
+        className="hidden md:flex absolute top-[22px] -translate-x-1/2 z-20 w-[22px] h-[22px] rounded-full bg-card border border-border/80 items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:shadow-[0_0_10px_rgba(45,212,191,0.2)] shadow-sm transition-colors duration-150"
       >
         <ChevronLeft
           className="w-3 h-3 transition-transform duration-200"
@@ -531,6 +531,30 @@ export default function Catalog() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
         
         <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 lg:space-y-8 relative z-10">
+
+          <nav className="md:hidden -mx-4 px-4 overflow-x-auto flex items-center gap-2" aria-label="Tracks">
+            {tracks.map(track => {
+              const tm = TRACK_META[track]
+              const Icon = tm?.icon ?? Server
+              return (
+                <button
+                  key={track}
+                  type="button"
+                  onClick={() => handleTrackChange(track)}
+                  aria-current={track === resolvedTrack ? "page" : undefined}
+                  className={cn(
+                    "inline-flex items-center gap-2 shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
+                    track === resolvedTrack
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border/70 bg-card/70 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tm?.label ?? track}
+                </button>
+              )
+            })}
+          </nav>
 
           {/* Admin banner */}
           {adminCheck?.isAdmin && (

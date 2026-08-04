@@ -57,7 +57,7 @@ export default function VerifyPage() {
 
   if (status === "not_found")
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
+      <div className="min-h-[100dvh] bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
         <XCircle className="w-14 h-14 text-rose-400/60" />
         <div className="text-center">
           <h1 className="text-2xl font-bold">Certificate not found</h1>

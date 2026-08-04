@@ -39,7 +39,7 @@ function CertificateLoading() {
           <Skeleton className="h-9 w-28 rounded-lg" />
         </div>
       </header>
-      <div className="flex items-center justify-center min-h-[calc(100vh-65px)] p-8">
+      <div className="flex items-center justify-center min-h-[calc(100dvh-65px)] p-8">
         <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl shadow-primary/5">
           <Skeleton className="h-1 w-full rounded-none" />
           <div className="px-14 py-12 flex flex-col items-center text-center gap-7">
