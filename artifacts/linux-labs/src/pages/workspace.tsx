@@ -45,7 +45,8 @@ type RecoveryMarker = {
 function readRecoveryMarker(labId: string): RecoveryMarker | null {
   try {
     const marker = JSON.parse(sessionStorage.getItem(RECOVERY_KEY) || "null") as RecoveryMarker | null
-    return marker?.labId === labId && Date.now() - marker.savedAt < RECOVERY_MAX_AGE_MS ? marker : null
+    const age = marker ? Date.now() - marker.savedAt : -1
+    return marker?.labId === labId && Number.isFinite(marker.savedAt) && age >= 0 && age < RECOVERY_MAX_AGE_MS ? marker : null
   } catch {
     return null
   }
@@ -522,7 +523,7 @@ export default function Workspace() {
 
   if (labLoading) {
     return (
-      <div className="h-screen bg-background flex items-center justify-center">
+      <div className="h-[100dvh] bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-primary">
           <Loader2 className="w-12 h-12 animate-spin" />
           <p className="font-mono text-sm tracking-widest uppercase">Initializing Interface...</p>
@@ -583,7 +584,7 @@ export default function Workspace() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden font-sans">
+    <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden font-sans">
       {/* ── Control Bar (Header) ── */}
       <header className="min-h-14 shrink-0 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 relative z-20">
         <div className="flex items-center min-w-0 space-x-3 sm:space-x-4">
