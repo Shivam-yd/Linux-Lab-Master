@@ -158,6 +158,24 @@ export default function Workspace() {
   const isStarting = sessionLoading || session?.status === 'starting' || startSession.isPending || resetSession.isPending
   const isStopped = session?.status === 'stopped' || !session || session.status === 'none'
   const sessionError = session?.status === 'error'
+  const provisioningActive = session?.status === 'starting' || startSession.isPending || resetSession.isPending
+  const [provisioningSecs, setProvisioningSecs] = useState(0)
+
+  useEffect(() => {
+    if (!provisioningActive) {
+      setProvisioningSecs(0)
+      return
+    }
+
+    setProvisioningSecs(0)
+    const timer = setInterval(() => setProvisioningSecs(seconds => seconds + 1), 1000)
+    return () => clearInterval(timer)
+  }, [provisioningActive])
+
+  // Provisioning has no server-side percentage, so show honest elapsed
+  // progress toward the normal 30-second startup window instead of a fixed
+  // half-width bar. It stops short of 100% until the session is actually ready.
+  const provisioningProgress = Math.min(92, 12 + (provisioningSecs / 30) * 80)
 
   // UI service readiness polling (for labs with embedded UIs like Jenkins)
   const [uiReady, setUiReady] = useState(false)
@@ -920,10 +938,22 @@ export default function Workspace() {
               <p className="text-muted-foreground max-w-sm text-sm font-mono">
                 Allocating containers, attaching virtual networks, and injecting profile configs...
               </p>
-              <div className="w-72 h-1.5 bg-muted rounded-full mt-8 overflow-hidden relative">
-                <div className="absolute top-0 left-0 h-full bg-primary animate-[shimmer_2s_infinite] w-1/2 rounded-full" />
+              <div
+                className="w-72 h-1.5 bg-muted rounded-full mt-8 overflow-hidden"
+                role="progressbar"
+                aria-label="Environment provisioning progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(provisioningProgress)}
+              >
+                <div
+                  className="h-full bg-primary rounded-full transition-[width] duration-1000 ease-linear"
+                  style={{ width: `${provisioningProgress}%` }}
+                />
               </div>
-              <p className="text-xs text-muted-foreground/60 font-mono mt-4">Estimated time: 10-30s</p>
+              <p className="text-xs text-muted-foreground/60 font-mono mt-4">
+                Elapsed time: {provisioningSecs}s — estimated startup: 10-30s
+              </p>
             </div>
           )}
 
