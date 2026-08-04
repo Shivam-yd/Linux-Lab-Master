@@ -6,7 +6,7 @@ import { useSession } from "@/lib/auth-client"
 import { useListLabs } from "@workspace/api-client-react"
 import {
   ArrowLeft, Users, BarChart3, ChevronRight,
-  Trophy, Medal, Crown,
+  Trophy, Medal, Crown, Award,
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Target,
   Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList, Star,
@@ -110,8 +110,8 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
   const { data: labs } = useListLabs()
-  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "labs"
-  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "labs"]
+  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "certificates" | "labs"
+  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "certificates", "labs"]
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
@@ -147,6 +147,7 @@ export default function AdminPage() {
   const [openLevels, setOpenLevels] = useState<Set<string>>(new Set())
   const [leaderboardSearch, setLeaderboardSearch] = useState("")
   const [labSearch, setLabSearch] = useState("")
+  const [certificateSearch, setCertificateSearch] = useState("")
   const { toast } = useToast()
 
   const leaderboard = useQuery<StudentRow[]>({
@@ -220,6 +221,23 @@ export default function AdminPage() {
     queryFn: () => fetchAdmin("/api/admin/labs"),
     retry: false,
     enabled: tab === "labs",
+  })
+
+  type CertRow = {
+    certId: string
+    studentId: string | null
+    studentName: string
+    track: string
+    level: number | null
+    earnedAt: string
+    expiresAt: string
+  }
+  const certificates = useQuery<CertRow[]>({
+    queryKey: ["admin", "certificates"],
+    queryFn: () => fetchAdmin("/api/admin/certs"),
+    retry: false,
+    enabled: tab === "certificates",
+    refetchInterval: tab === "certificates" ? 30_000 : false,
   })
 
   type SummaryStats = { active_sessions: string; pending_requests: string; open_invites: string }
@@ -322,6 +340,46 @@ export default function AdminPage() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "labs"] }),
     onError: (err: Error) => toast({ title: "Failed to update lab", description: err.message, variant: "destructive" }),
+  })
+
+  const refreshCertificate = useMutation({
+    mutationFn: async (certId: string) => {
+      const res = await fetch(`/api/admin/certs/${encodeURIComponent(certId)}/refresh`, { method: "POST" })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? "Failed to refresh certificate")
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "certificates"] })
+      toast({ title: "Certificate refreshed" })
+    },
+    onError: (err: Error) => toast({ title: "Cannot refresh certificate", description: err.message, variant: "destructive" }),
+  })
+
+  const syncCertificates = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/certs/backfill", { method: "POST" })
+      if (!res.ok) throw new Error("Failed to sync certificates")
+      return res.json() as Promise<{ upserted: number }>
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "certificates"] })
+      toast({ title: `Synced ${data.upserted} certificate${data.upserted !== 1 ? "s" : ""}` })
+    },
+    onError: (err: Error) => toast({ title: "Cannot sync certificates", description: err.message, variant: "destructive" }),
+  })
+
+  const revokeCertificate = useMutation({
+    mutationFn: async (certId: string) => {
+      const res = await fetch(`/api/admin/certs/${encodeURIComponent(certId)}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to revoke certificate")
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "certificates"] })
+      toast({ title: "Certificate revoked" })
+    },
+    onError: (err: Error) => toast({ title: "Cannot revoke certificate", description: err.message, variant: "destructive" }),
   })
 
   const denyRequest = useMutation({
@@ -585,6 +643,7 @@ export default function AdminPage() {
                 { id: "sessions",        label: "Sessions",        icon: Activity  },
                 { id: "password-resets", label: "Password Resets", icon: KeyRound  },
                 { id: "registration",    label: "Registration",    icon: Lock      },
+                { id: "certificates",    label: "Certificates",    icon: Award     },
                 { id: "labs",            label: "Labs",            icon: Beaker    },
               ] as const).map(({ id, label, icon: Icon }) => {
                 const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
@@ -1316,6 +1375,119 @@ export default function AdminPage() {
                   )}
                 </div>
 
+              </div>
+            )}
+
+            {/* ── Certificates ── */}
+            {tab === "certificates" && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm font-semibold">Issued certificates</p>
+                  {!certificates.isLoading && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
+                      {certificates.data?.length ?? 0}
+                    </span>
+                  )}
+                  <div className="relative ml-auto w-56">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Search certificates…"
+                      value={certificateSearch}
+                      onChange={e => setCertificateSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <button
+                    disabled={syncCertificates.isPending}
+                    onClick={() => syncCertificates.mutate()}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium shrink-0"
+                  >
+                    {syncCertificates.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                    Sync completed
+                  </button>
+                </div>
+                {certificates.isLoading && (
+                  <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading certificates…</div>
+                )}
+                {certificates.error && (
+                  <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load certificates.</div>
+                )}
+                {!certificates.isLoading && !certificates.error && certificates.data?.length === 0 && (
+                  <div className="text-center py-20 space-y-2">
+                    <Award className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                    <p className="text-muted-foreground text-sm">No certificates have been issued yet.</p>
+                  </div>
+                )}
+                {certificates.data && certificates.data.length > 0 && (() => {
+                  const query = certificateSearch.trim().toLowerCase()
+                  const filtered = query
+                    ? certificates.data.filter(cert =>
+                        [cert.studentName, cert.track, cert.level == null ? "full track" : `level ${cert.level}`, cert.certId]
+                          .some(value => value.toLowerCase().includes(query)),
+                      )
+                    : certificates.data
+                  if (filtered.length === 0) {
+                    return <div className="text-center py-12 text-muted-foreground text-sm">No certificates match &ldquo;{certificateSearch}&rdquo;</div>
+                  }
+                  return (
+                  <div className="space-y-2">
+                    {filtered.map(cert => {
+                      const track = TRACK_META[cert.track] ?? DEFAULT_TRACK_META
+                      const expired = new Date(cert.expiresAt) < new Date()
+                      const refreshing = refreshCertificate.isPending && refreshCertificate.variables === cert.certId
+                      const revoking = revokeCertificate.isPending && revokeCertificate.variables === cert.certId
+                      return (
+                        <div key={cert.certId} className="rounded-xl border border-border/50 bg-card/60 px-5 py-4 flex items-center gap-4">
+                          <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", track.bgClass)}>
+                            <Award className={cn("w-4 h-4", track.accentClass)} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold truncate">{cert.studentName}</p>
+                              <span className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide",
+                                expired
+                                  ? "text-red-400 border-red-500/30 bg-red-500/10"
+                                  : "text-green-400 border-green-500/30 bg-green-500/10",
+                              )}>
+                                {expired ? "expired" : "active"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {track.label} · {cert.level == null ? "Full track" : `Level ${cert.level}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground/60 font-mono mt-1">
+                              {cert.certId.match(/.{1,4}/g)?.join("-")} · expires {new Date(cert.expiresAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              disabled={refreshing || revoking}
+                              onClick={() => refreshCertificate.mutate(cert.certId)}
+                              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+                            >
+                              {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                              Refresh
+                            </button>
+                            <button
+                              disabled={refreshing || revoking}
+                              onClick={() => {
+                                if (window.confirm(`Revoke ${cert.studentName}'s certificate?`)) revokeCertificate.mutate(cert.certId)
+                              }}
+                              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+                            >
+                              {revoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              Revoke
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  )
+                })()}
               </div>
             )}
 

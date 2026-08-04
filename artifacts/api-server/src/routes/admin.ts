@@ -19,6 +19,7 @@ import {
 } from "@workspace/db/schema";
 import { BUILTIN_LABS } from "../lib/labs/registry";
 import { auth } from "../lib/auth";
+import { issueCert } from "../lib/certs";
 import { stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
 
@@ -600,6 +601,49 @@ router.get("/registration/audit", async (_req, res): Promise<void> => {
     LIMIT 200
   `);
   res.json(result.rows);
+});
+
+/** GET /admin/certs — all issued certificates. */
+router.get("/certs", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(certRecordsTable)
+    .orderBy(sql`earned_at DESC`);
+  res.json(rows);
+});
+
+/** POST /admin/certs/:certId/refresh — revalidate and refresh expiry. */
+router.post("/certs/:certId/refresh", async (req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(certRecordsTable)
+    .where(eq(certRecordsTable.certId, req.params.certId))
+    .limit(1);
+  const cert = rows[0];
+  if (!cert) { res.status(404).json({ error: "Certificate not found" }); return; }
+  if (!cert.studentId) { res.status(409).json({ error: "Certificate has no student account" }); return; }
+
+  const certId = await issueCert(cert.studentId, cert.studentName, cert.track, cert.level);
+  if (!certId) {
+    res.status(409).json({ error: "Student no longer meets the completion requirements" });
+    return;
+  }
+  const refreshed = await db
+    .select()
+    .from(certRecordsTable)
+    .where(eq(certRecordsTable.certId, certId))
+    .limit(1);
+  res.json(refreshed[0]);
+});
+
+/** DELETE /admin/certs/:certId — revoke a certificate. */
+router.delete("/certs/:certId", async (req, res): Promise<void> => {
+  const deleted = await db
+    .delete(certRecordsTable)
+    .where(eq(certRecordsTable.certId, req.params.certId))
+    .returning({ certId: certRecordsTable.certId });
+  if (!deleted.length) { res.status(404).json({ error: "Certificate not found" }); return; }
+  res.status(204).send();
 });
 
 /**
