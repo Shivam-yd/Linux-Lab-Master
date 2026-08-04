@@ -644,7 +644,7 @@ export default function Workspace() {
                     {stepsList.slice(0, stepsRevealed).map((step, i) => (
                       <div
                         key={i}
-                        className="p-3.5 rounded-lg bg-muted/30 border border-border/40 prose prose-sm max-w-none prose-p:text-muted-foreground prose-ol:text-muted-foreground prose-ul:text-muted-foreground prose-li:text-muted-foreground prose-li:marker:text-primary prose-p:my-0 prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-pre:bg-muted/60 prose-pre:border prose-pre:border-border/40 animate-in fade-in slide-in-from-top-2 duration-300"
+                        className="p-3.5 rounded-lg bg-muted/30 border border-border/40 prose prose-sm max-w-none prose-p:text-muted-foreground prose-ol:text-muted-foreground prose-ul:text-muted-foreground prose-li:text-muted-foreground prose-li:marker:text-primary prose-strong:text-foreground prose-em:text-foreground prose-p:my-0 prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-pre:bg-muted/60 prose-pre:border prose-pre:border-border/40 animate-in fade-in slide-in-from-top-2 duration-300"
                       >
                         <ReactMarkdown>{step}</ReactMarkdown>
                       </div>
