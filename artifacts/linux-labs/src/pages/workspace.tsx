@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils"
 import { useSession } from "@/lib/auth-client"
 import { NotificationBell } from "@/components/notification-bell"
 import { usePlan, PRO_TRACKS } from "@/lib/use-plan"
+import { useToast } from "@/hooks/use-toast"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
@@ -89,8 +90,8 @@ export default function Workspace() {
   type VerifyResult = { passed: boolean; score: number; checks: { id: string; label?: string | null; passed: boolean; message: string }[] }
 
   const verifyLab = useVerifyLab()
+  const { toast } = useToast()
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
-  const [verifyError, setVerifyError] = useState<string | null>(null)
   const [myRating, setMyRating] = useState<string | null>(null)
 
   const submitRating = async (rating: string) => {
@@ -338,18 +339,22 @@ export default function Workspace() {
   const handleReset = () => setResetConfirm(true)
   
   const handleVerify = () => {
-    setVerifyError(null)
     setCloseCountdown(null)   // cancel any running auto-close from a prior verify
     verifyLab.mutate({ labId }, {
       onSuccess: (res) => {
         setVerifyResult(res)
+        if (!res.passed) setMyRating(null)
         if (res.passed) {
           setCloseCountdown(15)
         }
       },
       onError: (err: any) => {
         const msg = err?.response?.data?.error ?? err?.message ?? "Verification failed. Please try again."
-        setVerifyError(msg)
+        toast({
+          title: "Verification failed",
+          description: msg,
+          variant: "destructive",
+        })
       }
     })
   }

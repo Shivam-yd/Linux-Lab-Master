@@ -190,6 +190,7 @@ export async function getSessionRow(studentId: string, labId: string): Promise<L
  * Docker 409 name-conflict that was previously caught as status="error".
  */
 const _startingKeys = new Set<string>();
+const _startingRows = new Map<string, Promise<LabSessionRow>>();
 
 export async function startSession(
   studentId: string,
@@ -202,16 +203,36 @@ export async function startSession(
   const key = `${studentId}:${labId}`;
 
   if (options.background) {
-    const current = await getSessionRow(studentId, labId);
-    if (current?.status === "running") return current;
-    if (_startingKeys.has(key)) return current ?? await upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
+    const existingStart = _startingRows.get(key);
+    if (existingStart) return existingStart;
 
     _startingKeys.add(key);
-    const row = await upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
-    void startSession(studentId, labId, { lockHeld: true })
-      .catch((err) => logger.error({ err, studentId, labId }, "Background lab provisioning failed"))
-      .finally(() => _startingKeys.delete(key));
-    return row;
+    const startingRow = (async () => {
+      const current = await getSessionRow(studentId, labId);
+      if (current?.status === "running") return current;
+      return upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
+    })();
+    _startingRows.set(key, startingRow);
+
+    const clearStartLock = () => {
+      _startingKeys.delete(key);
+      if (_startingRows.get(key) === startingRow) _startingRows.delete(key);
+    };
+
+    try {
+      const row = await startingRow;
+      if (row.status === "running") {
+        clearStartLock();
+        return row;
+      }
+      void startSession(studentId, labId, { lockHeld: true })
+        .catch((err) => logger.error({ err, studentId, labId }, "Background lab provisioning failed"))
+        .finally(clearStartLock);
+      return row;
+    } catch (err) {
+      clearStartLock();
+      throw err;
+    }
   }
 
   // If a start is already in progress for this student+lab, wait for it to
