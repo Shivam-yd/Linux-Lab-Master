@@ -109,7 +109,20 @@ async function fetchAdmin<T>(path: string): Promise<T> {
 
 export default function AdminPage() {
   const { data: session, isPending } = useSession()
-  const { data: labs } = useListLabs()
+  const adminAccess = useQuery<{ isAdmin: boolean }>({
+    queryKey: ["admin", "access"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/check", { credentials: "include" })
+      if (!res.ok) throw new Error("Unable to check admin access")
+      return res.json()
+    },
+    enabled: !isPending,
+    retry: false,
+  })
+  const canLoadAdminData = !isPending && !adminAccess.isLoading && adminAccess.data?.isAdmin === true
+  const { data: labs } = useListLabs({
+    query: { queryKey: ["/api/labs"], enabled: canLoadAdminData },
+  })
   type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "certificates" | "labs"
   const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "certificates", "labs"]
   const hashTab = window.location.hash.replace("#", "") as Tab
@@ -148,19 +161,23 @@ export default function AdminPage() {
   const [leaderboardSearch, setLeaderboardSearch] = useState("")
   const [labSearch, setLabSearch] = useState("")
   const [certificateSearch, setCertificateSearch] = useState("")
+  const [certificateStatus, setCertificateStatus] = useState<"all" | "active" | "expired">("all")
+  const [certificateTrack, setCertificateTrack] = useState("all")
+  const [certificatePage, setCertificatePage] = useState(1)
   const { toast } = useToast()
 
   const leaderboard = useQuery<StudentRow[]>({
     queryKey: ["admin", "leaderboard"],
     queryFn: () => fetchAdmin("/api/admin/leaderboard"),
     retry: false,
+    enabled: canLoadAdminData,
   })
 
   const cohort = useQuery<LabInsightRow[]>({
     queryKey: ["admin", "lab-insights"],
     queryFn: () => fetchAdmin("/api/admin/lab-insights"),
     retry: false,
-    enabled: tab === "cohort",
+    enabled: canLoadAdminData && tab === "cohort",
   })
 
   const queryClient = useQueryClient()
@@ -169,16 +186,16 @@ export default function AdminPage() {
     queryKey: ["admin", "sessions"],
     queryFn: () => fetchAdmin("/api/admin/sessions"),
     retry: false,
-    enabled: tab === "sessions",
-    refetchInterval: tab === "sessions" ? 10_000 : false,
+    enabled: canLoadAdminData && tab === "sessions",
+    refetchInterval: canLoadAdminData && tab === "sessions" ? 10_000 : false,
   })
 
   const pwResets = useQuery<PasswordResetRequest[]>({
     queryKey: ["admin", "password-resets"],
     queryFn: () => fetchAdmin("/api/admin/password-reset-requests"),
     retry: false,
-    enabled: tab === "password-resets",
-    refetchInterval: tab === "password-resets" ? 15_000 : false,
+    enabled: canLoadAdminData && tab === "password-resets",
+    refetchInterval: canLoadAdminData && tab === "password-resets" ? 15_000 : false,
   })
 
   type RegSettings = { id: number; mode: string }
@@ -189,22 +206,22 @@ export default function AdminPage() {
     queryKey: ["admin", "registration"],
     queryFn: () => fetchAdmin("/api/admin/registration"),
     retry: false,
-    enabled: tab === "registration",
+    enabled: canLoadAdminData && tab === "registration",
   })
 
   const regInvites = useQuery<RegInvite[]>({
     queryKey: ["admin", "registration", "invites"],
     queryFn: () => fetchAdmin("/api/admin/registration/invites"),
     retry: false,
-    enabled: tab === "registration",
+    enabled: canLoadAdminData && tab === "registration",
   })
 
   const regRequests = useQuery<RegRequest[]>({
     queryKey: ["admin", "registration", "requests"],
     queryFn: () => fetchAdmin("/api/admin/registration/requests"),
     retry: false,
-    enabled: tab === "registration",
-    refetchInterval: tab === "registration" ? 20_000 : false,
+    enabled: canLoadAdminData && tab === "registration",
+    refetchInterval: canLoadAdminData && tab === "registration" ? 20_000 : false,
   })
 
   type AuditEvent = { event: string; email: string; name: string | null; at: string }
@@ -212,7 +229,7 @@ export default function AdminPage() {
     queryKey: ["admin", "registration", "audit"],
     queryFn: () => fetchAdmin("/api/admin/registration/audit"),
     retry: false,
-    enabled: tab === "registration",
+    enabled: canLoadAdminData && tab === "registration",
   })
 
   type AdminLabRow = { id: string; title: string; track: string; level: number | null; order: number; isRemote: boolean; active: boolean }
@@ -220,7 +237,7 @@ export default function AdminPage() {
     queryKey: ["admin", "labs"],
     queryFn: () => fetchAdmin("/api/admin/labs"),
     retry: false,
-    enabled: tab === "labs",
+    enabled: canLoadAdminData && tab === "labs",
   })
 
   type CertRow = {
@@ -232,12 +249,29 @@ export default function AdminPage() {
     earnedAt: string
     expiresAt: string
   }
-  const certificates = useQuery<CertRow[]>({
-    queryKey: ["admin", "certificates"],
-    queryFn: () => fetchAdmin("/api/admin/certs"),
+  type CertificateResponse = {
+    items: CertRow[]
+    page: number
+    pageSize: number
+    total: number
+    pageCount: number
+    counts: { total: number; active: number; expired: number }
+  }
+  const certificates = useQuery<CertificateResponse>({
+    queryKey: ["admin", "certificates", certificatePage, certificateSearch, certificateStatus, certificateTrack],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: String(certificatePage),
+        pageSize: "25",
+        status: certificateStatus,
+        track: certificateTrack,
+      })
+      if (certificateSearch.trim()) params.set("search", certificateSearch.trim())
+      return fetchAdmin(`/api/admin/certs?${params.toString()}`)
+    },
     retry: false,
-    enabled: tab === "certificates",
-    refetchInterval: tab === "certificates" ? 30_000 : false,
+    enabled: canLoadAdminData && tab === "certificates",
+    refetchInterval: canLoadAdminData && tab === "certificates" ? 30_000 : false,
   })
 
   type SummaryStats = { active_sessions: string; pending_requests: string; open_invites: string }
@@ -245,7 +279,8 @@ export default function AdminPage() {
     queryKey: ["admin", "summary"],
     queryFn: () => fetchAdmin("/api/admin/summary"),
     retry: false,
-    refetchInterval: 30_000,
+    enabled: canLoadAdminData,
+    refetchInterval: canLoadAdminData ? 30_000 : false,
   })
 
   const setRegMode = useMutation({
@@ -509,12 +544,9 @@ export default function AdminPage() {
     else setSelectedStudent(null)
   }, [leaderboard.data]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isPending) return null
+  if (isPending || adminAccess.isLoading) return null
 
-  const is403 = (leaderboard.error as any)?.status === 403 ||
-    (leaderboard.error as Error)?.message === "Forbidden"
-
-  if (is403) {
+  if (adminAccess.error || !adminAccess.data?.isAdmin) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -1380,33 +1412,68 @@ export default function AdminPage() {
 
             {/* ── Certificates ── */}
             {tab === "certificates" && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
+              <div className="space-y-5">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Award className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-sm font-semibold">Issued certificates</p>
-                  {!certificates.isLoading && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted/40 border border-border/50 text-muted-foreground font-medium">
-                      {certificates.data?.length ?? 0}
-                    </span>
-                  )}
-                  <div className="relative ml-auto w-56">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Search certificates…"
-                      value={certificateSearch}
-                      onChange={e => setCertificateSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50"
-                    />
+                  <div>
+                    <p className="text-sm font-semibold">Certificate registry</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Search, review, refresh, and revoke issued records.</p>
                   </div>
                   <button
                     disabled={syncCertificates.isPending}
                     onClick={() => syncCertificates.mutate()}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium shrink-0"
+                    className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium shrink-0"
                   >
                     {syncCertificates.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                     Sync completed
                   </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Total", value: certificates.data?.counts.total, color: "text-foreground" },
+                    { label: "Active", value: certificates.data?.counts.active, color: "text-emerald-400" },
+                    { label: "Expired", value: certificates.data?.counts.expired, color: "text-amber-400" },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="rounded-xl border border-border/50 bg-card/60 px-4 py-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+                      <p className={cn("text-2xl font-black font-mono mt-1", color)}>{certificates.isLoading ? "—" : value ?? 0}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative flex-1 min-w-[220px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Search learner, certificate ID, or track…"
+                      value={certificateSearch}
+                      onChange={e => { setCertificateSearch(e.target.value); setCertificatePage(1) }}
+                      className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <select
+                    value={certificateStatus}
+                    onChange={e => { setCertificateStatus(e.target.value as typeof certificateStatus); setCertificatePage(1) }}
+                    className="px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:border-primary/50"
+                    aria-label="Certificate status"
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                  </select>
+                  <select
+                    value={certificateTrack}
+                    onChange={e => { setCertificateTrack(e.target.value); setCertificatePage(1) }}
+                    className="px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:border-primary/50"
+                    aria-label="Certificate track"
+                  >
+                    <option value="all">All tracks</option>
+                    {Object.entries(TRACK_META).filter(([, meta]) => !meta.comingSoon).map(([value, meta]) => (
+                      <option key={value} value={value}>{meta.label}</option>
+                    ))}
+                  </select>
                 </div>
                 {certificates.isLoading && (
                   <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading certificates…</div>
@@ -1414,26 +1481,20 @@ export default function AdminPage() {
                 {certificates.error && (
                   <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load certificates.</div>
                 )}
-                {!certificates.isLoading && !certificates.error && certificates.data?.length === 0 && (
+                {!certificates.isLoading && !certificates.error && certificates.data?.items.length === 0 && (
                   <div className="text-center py-20 space-y-2">
                     <Award className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-muted-foreground text-sm">No certificates have been issued yet.</p>
+                    <p className="text-muted-foreground text-sm">
+                      {certificateSearch || certificateStatus !== "all" || certificateTrack !== "all"
+                        ? "No certificates match these filters."
+                        : "No certificates have been issued yet."}
+                    </p>
                   </div>
                 )}
-                {certificates.data && certificates.data.length > 0 && (() => {
-                  const query = certificateSearch.trim().toLowerCase()
-                  const filtered = query
-                    ? certificates.data.filter(cert =>
-                        [cert.studentName, cert.track, cert.level == null ? "full track" : `level ${cert.level}`, cert.certId]
-                          .some(value => value.toLowerCase().includes(query)),
-                      )
-                    : certificates.data
-                  if (filtered.length === 0) {
-                    return <div className="text-center py-12 text-muted-foreground text-sm">No certificates match &ldquo;{certificateSearch}&rdquo;</div>
-                  }
+                {certificates.data && certificates.data.items.length > 0 && (() => {
                   return (
                   <div className="space-y-2">
-                    {filtered.map(cert => {
+                    {certificates.data.items.map(cert => {
                       const track = TRACK_META[cert.track] ?? DEFAULT_TRACK_META
                       const expired = new Date(cert.expiresAt) < new Date()
                       const refreshing = refreshCertificate.isPending && refreshCertificate.variables === cert.certId
@@ -1485,6 +1546,28 @@ export default function AdminPage() {
                         </div>
                       )
                     })}
+                    <div className="flex items-center justify-between pt-3">
+                      <p className="text-xs text-muted-foreground">
+                        Showing {((certificates.data.page - 1) * certificates.data.pageSize) + 1}–{Math.min(certificates.data.page * certificates.data.pageSize, certificates.data.total)} of {certificates.data.total}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={certificatePage <= 1 || certificates.isFetching}
+                          onClick={() => setCertificatePage(page => page - 1)}
+                          className="px-3 py-1.5 text-xs rounded-lg border border-border/60 hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Previous
+                        </button>
+                        <span className="text-xs text-muted-foreground font-mono">{certificates.data.page} / {certificates.data.pageCount}</span>
+                        <button
+                          disabled={certificatePage >= certificates.data.pageCount || certificates.isFetching}
+                          onClick={() => setCertificatePage(page => page + 1)}
+                          className="px-3 py-1.5 text-xs rounded-lg border border-border/60 hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   )
                 })()}

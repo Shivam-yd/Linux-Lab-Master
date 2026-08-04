@@ -16,3 +16,4 @@
 - [Low-cost lab session recovery](session-recovery.md) — reuse the running container; store only a short tab-scoped recovery marker.
 - [Local onboarding preferences](onboarding-local-preferences.md) — keep first-session guidance browser-local until cross-device personalization is required.
 - [Generated query hook options](generated-query-hook-options.md) — gated generated queries need their explicit endpoint query key.
+- [Admin route ordering](admin-route-order.md) — mount `/admin` before auth-gated routers so access probes reach the intended handler.

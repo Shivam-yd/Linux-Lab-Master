@@ -18,10 +18,12 @@ router.use(statsRouter);
 router.use(certsRouter);
 router.use(configRouter);
 router.use(registrationRouter);
+// Mount admin before the auth-gated labs router. Otherwise /admin/check is
+// intercepted by labsRouter's requireAuth middleware.
+router.use("/admin", adminRouter);
 router.use(labsRouter);
 router.use(sessionsRouter);
 router.use(uiProxyRouter);
-router.use("/admin", adminRouter);
 router.use(passwordResetRouter);
 router.use(accountRouter);
 

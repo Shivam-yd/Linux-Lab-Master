@@ -602,13 +602,62 @@ router.get("/registration/audit", async (_req, res): Promise<void> => {
   res.json(result.rows);
 });
 
-/** GET /admin/certs — all issued certificates. */
-router.get("/certs", async (_req, res): Promise<void> => {
-  const rows = await db
-    .select()
-    .from(certRecordsTable)
-    .orderBy(sql`earned_at DESC`);
-  res.json(rows);
+/** GET /admin/certs — paginated certificate management view. */
+router.get("/certs", async (req, res): Promise<void> => {
+  const page = Math.max(1, Number.parseInt(String(req.query.page ?? "1"), 10) || 1);
+  const pageSize = Math.min(100, Math.max(10, Number.parseInt(String(req.query.pageSize ?? "25"), 10) || 25));
+  const search = String(req.query.search ?? "").trim().toLowerCase();
+  const status = String(req.query.status ?? "all");
+  const track = String(req.query.track ?? "all");
+  const offset = (page - 1) * pageSize;
+  const searchPattern = `%${search}%`;
+  const today = new Date();
+
+  const where = sql.join([
+    sql`1 = 1`,
+    ...(search ? [sql`(
+      LOWER(student_name) LIKE ${searchPattern}
+      OR LOWER(cert_id) LIKE ${searchPattern}
+      OR LOWER(track) LIKE ${searchPattern}
+    )`] : []),
+    ...(track !== "all" ? [sql`track = ${track}`] : []),
+    ...(status === "active" ? [sql`expires_at >= ${today}`] : []),
+    ...(status === "expired" ? [sql`expires_at < ${today}`] : []),
+  ], sql` AND `);
+
+  const [items, totalResult, countsResult] = await Promise.all([
+    db.execute(sql`
+      SELECT cert_id AS "certId", student_id AS "studentId", student_name AS "studentName",
+             track, level, earned_at AS "earnedAt", expires_at AS "expiresAt"
+      FROM cert_records
+      WHERE ${where}
+      ORDER BY earned_at DESC
+      LIMIT ${pageSize} OFFSET ${offset}
+    `),
+    db.execute(sql`SELECT COUNT(*)::int AS total FROM cert_records WHERE ${where}`),
+    db.execute(sql`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE expires_at >= ${today})::int AS active,
+        COUNT(*) FILTER (WHERE expires_at < ${today})::int AS expired
+      FROM cert_records
+    `),
+  ]);
+
+  const total = Number((totalResult.rows[0] as { total: number }).total ?? 0);
+  const counts = countsResult.rows[0] as { total: number; active: number; expired: number };
+  res.json({
+    items: items.rows,
+    page,
+    pageSize,
+    total,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    counts: {
+      total: Number(counts.total ?? 0),
+      active: Number(counts.active ?? 0),
+      expired: Number(counts.expired ?? 0),
+    },
+  });
 });
 
 /** POST /admin/certs/:certId/refresh — revalidate and refresh expiry. */
