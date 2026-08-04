@@ -169,6 +169,12 @@ export default function Workspace() {
   // readiness request. Keep the fallback here for older cached lab records
   // that have uiPort but predate the uiPath field.
   const uiPath: string = (lab as any)?.uiPath ?? ((lab as any)?.uiPort ? "/jenkins/" : "")
+  // Anonymous dashboard reads are disabled by the Jenkins lab security
+  // strategy, but the login page is intentionally public. Start there so
+  // readiness does not mistake Jenkins' expected 403 for a boot failure.
+  const uiEntryPath = uiPath.startsWith("/jenkins/")
+    ? `${uiPath.replace(/\/$/, "")}/login`
+    : uiPath
   const hasUi = !!(lab as any)?.uiPort
 
   useEffect(() => {
@@ -190,7 +196,7 @@ export default function Workspace() {
     // Poll the proxy until Jenkins (or other service) returns HTML
     uiPollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`/api/labs/${labId}/ui${uiPath}`, { method: "GET" })
+        const res = await fetch(`/api/labs/${labId}/ui${uiEntryPath}`, { method: "GET" })
         const ct = res.headers.get("content-type") ?? ""
         if (res.ok && ct.includes("text/html")) {
           setUiReady(true)
@@ -206,7 +212,7 @@ export default function Workspace() {
       clearInterval(uiPollRef.current!)
       clearInterval(uiTimerRef.current!)
     }
-  }, [isRunning, hasUi, uiReady, labId, uiPath])
+  }, [isRunning, hasUi, uiReady, labId, uiEntryPath])
 
   // Reset readiness when session stops or lab changes
   useEffect(() => {
@@ -998,7 +1004,7 @@ export default function Workspace() {
                     <div className={cn("h-full w-full", activeTerminal === "__ui__" ? "flex" : "hidden", "flex-col")}>
                       {isRunning && uiReady ? (
                         <iframe
-                          src={`/api/labs/${labId}/ui${uiPath}`}
+                          src={`/api/labs/${labId}/ui${uiEntryPath}`}
                           className="w-full h-full border-none"
                           title="UI"
                         />
