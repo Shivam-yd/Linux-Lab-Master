@@ -106,6 +106,30 @@ async function runExec(
   return { exitCode: inspect.ExitCode ?? -1, output: Buffer.concat(chunks).toString("utf8") };
 }
 
+async function waitForJenkinsReady(container: Docker.Container): Promise<void> {
+  const ready = await runExec(
+    container,
+    [
+      "sh",
+      "-lc",
+      [
+        "for i in $(seq 1 120); do",
+        "  if test -f /var/jenkins_home/.linuxlabs-jenkins-ready; then",
+        "    HTTP=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/jenkins/login 2>/dev/null || true)",
+        "    if [ \"$HTTP\" = \"200\" ]; then exit 0; fi",
+        "  fi",
+        "  sleep 1",
+        "done",
+        "exit 1",
+      ].join("\n"),
+    ],
+    { user: "root", timeoutMs: JENKINS_READY_TIMEOUT },
+  );
+  if (ready.exitCode !== 0) {
+    throw new Error(`Jenkins did not become HTTP-ready: ${ready.output.slice(-500)}`);
+  }
+}
+
 async function ensureImagePresent(image: string): Promise<void> {
   const list = await docker.listImages({ filters: { reference: [image] } });
   if (list.length > 0) return; // already cached locally
@@ -194,6 +218,9 @@ export async function startSession(studentId: string, labId: string): Promise<La
     if (existing) {
       const info = await existing.inspect();
       if (info.State.Running) {
+        if (lab.image.startsWith("jenkins/")) {
+          await waitForJenkinsReady(existing);
+        }
         const current = await getSessionRow(studentId, labId);
         const row = await upsertSessionRow(studentId, labId, {
           containerId: existing.id,
@@ -312,20 +339,10 @@ export async function startSession(studentId: string, labId: string): Promise<La
         }
         // Jenkins returns a login page before init.groovy.d has necessarily
         // finished creating the configured account. Wait for the init script's
-        // marker so the UI cannot expose a login form during that race window.
+        // marker and HTTP login page so the UI cannot expose a half-booted
+        // service during that race window.
         if (lab.image.startsWith("jenkins/")) {
-          const ready = await runExec(
-            container,
-            [
-              "sh",
-              "-lc",
-              "for i in $(seq 1 120); do test -f /var/jenkins_home/.linuxlabs-jenkins-ready && exit 0; sleep 1; done; exit 1",
-            ],
-            { user: "root", timeoutMs: JENKINS_READY_TIMEOUT },
-          );
-          if (ready.exitCode !== 0) {
-            throw new Error(`Jenkins did not finish account initialization: ${ready.output.slice(-500)}`);
-          }
+          await waitForJenkinsReady(container);
           logger.info({ labId, studentId }, "Jenkins account initialization complete");
         }
       } catch (setupErr) {

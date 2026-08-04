@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request } from "express";
 import http from "node:http";
 import { requireAuth } from "../middleware/auth";
-import { getRunningContainer } from "../lib/docker/manager";
+import { getRunningContainer, getSessionRow } from "../lib/docker/manager";
 import { getLabByIdAsync } from "../lib/labs/registry";
 import { logger } from "../lib/logger";
 
@@ -37,6 +37,12 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   const lab = await getLabByIdAsync(labId);
   if (!lab?.ports?.[0]) {
     res.status(404).json({ error: "Lab has no UI port" });
+    return;
+  }
+
+  const session = await getSessionRow(req.studentId, labId);
+  if (session?.status !== "running") {
+    res.status(503).json({ error: "Lab UI is still provisioning" });
     return;
   }
 
