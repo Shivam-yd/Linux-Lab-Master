@@ -49,6 +49,7 @@ export async function issueCert(
     INSERT INTO cert_records (cert_id, student_id, student_name, track, level, earned_at, expires_at)
     VALUES (${certId}, ${studentId}, ${studentName}, ${track}, ${level ?? null}, ${earnedAt}, ${expiresAt})
     ON CONFLICT (cert_id) DO UPDATE SET
+      student_id   = EXCLUDED.student_id,
       student_name = EXCLUDED.student_name,
       earned_at    = EXCLUDED.earned_at,
       expires_at   = EXCLUDED.expires_at

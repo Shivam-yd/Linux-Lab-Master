@@ -1,4 +1,3 @@
-import { createHash } from "crypto";
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { sql, eq, inArray } from "drizzle-orm";
 import { fromNodeHeaders } from "better-auth/node";
@@ -19,7 +18,7 @@ import {
 } from "@workspace/db/schema";
 import { BUILTIN_LABS } from "../lib/labs/registry";
 import { auth } from "../lib/auth";
-import { issueCert } from "../lib/certs";
+import { issueCert, makeCertId } from "../lib/certs";
 import { stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
 
@@ -621,9 +620,15 @@ router.post("/certs/:certId/refresh", async (req, res): Promise<void> => {
     .limit(1);
   const cert = rows[0];
   if (!cert) { res.status(404).json({ error: "Certificate not found" }); return; }
-  if (!cert.studentId) { res.status(409).json({ error: "Certificate has no student account" }); return; }
+  const studentId = cert.studentId ?? (
+    await db.select({ id: userTable.id }).from(userTable)
+  ).find(user => makeCertId(user.id, cert.track, cert.level) === cert.certId)?.id;
+  if (!studentId) {
+    res.status(409).json({ error: "Certificate cannot be linked to a student account" });
+    return;
+  }
 
-  const certId = await issueCert(cert.studentId, cert.studentName, cert.track, cert.level);
+  const certId = await issueCert(studentId, cert.studentName, cert.track, cert.level);
   if (!certId) {
     res.status(409).json({ error: "Student no longer meets the completion requirements" });
     return;
@@ -654,10 +659,6 @@ router.delete("/certs/:certId", async (req, res): Promise<void> => {
  */
 router.post("/certs/backfill", async (req, res): Promise<void> => {
   const dryRun = req.query.dryRun === "true";
-  function makeCertId(studentId: string, track: string, level?: number | null): string {
-    const key = level != null ? `${studentId}:${track}:level:${level}` : `${studentId}:${track}`;
-    return createHash("sha256").update(key).digest("hex").slice(0, 16).toUpperCase();
-  }
 
   // Find students who passed every lab in a track (track cert, no level param)
   // and students who passed every lab at a specific level (level cert).
@@ -729,6 +730,7 @@ router.post("/certs/backfill", async (req, res): Promise<void> => {
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
     return {
       certId: makeCertId(r.student_id, r.track, r.level),
+      studentId: r.student_id,
       studentName: r.student_name,
       track: r.track,
       level: r.level,
@@ -748,7 +750,11 @@ router.post("/certs/backfill", async (req, res): Promise<void> => {
     .values(records)
     .onConflictDoUpdate({
       target: certRecordsTable.certId,
-      set: { studentName: sql`excluded.student_name`, earnedAt: sql`excluded.earned_at` },
+      set: {
+        studentId: sql`excluded.student_id`,
+        studentName: sql`excluded.student_name`,
+        earnedAt: sql`excluded.earned_at`,
+      },
     });
 
   res.json({ upserted: records.length, dryRun: false });
