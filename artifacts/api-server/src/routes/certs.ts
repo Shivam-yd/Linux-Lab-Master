@@ -37,7 +37,14 @@ router.get("/certs/:certId", async (req, res): Promise<void> => {
     await db.execute(sql`DELETE FROM cert_records WHERE cert_id = ${req.params.certId}`);
     res.status(410).json({ error: "Certificate expired" }); return;
   }
-  res.json(row);
+  res.json({
+    certId: row.certId,
+    studentName: row.showName ? row.studentName : "Private learner",
+    track: row.track,
+    level: row.level,
+    earnedAt: row.earnedAt,
+    expiresAt: row.expiresAt,
+  });
 });
 
 export default router;

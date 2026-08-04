@@ -447,16 +447,18 @@ export async function stopSession(studentId: string, labId: string): Promise<voi
 
 /** Called by the cleanup job on startup to stop any sessions that survived a server restart
  *  and have been running longer than the 1-hour limit. */
-export async function stopExpiredSessions(): Promise<void> {
+export async function stopExpiredSessions(): Promise<number> {
   const cutoff = new Date(Date.now() - CONTAINER_MAX_MS);
   const expired = await db
     .select({ studentId: labSessionsTable.studentId, labId: labSessionsTable.labId })
     .from(labSessionsTable)
     .where(and(eq(labSessionsTable.status, "running"), lt(labSessionsTable.startedAt, cutoff)));
+  let stopped = 0;
   for (const { studentId, labId } of expired) {
     logger.info({ studentId, labId }, "cleanup: stopping expired session");
-    await stopSession(studentId, labId).catch(() => {});
+    await stopSession(studentId, labId).then(() => { stopped += 1; }).catch(() => {});
   }
+  return stopped;
 }
 
 export async function resetSession(studentId: string, labId: string): Promise<LabSessionRow> {

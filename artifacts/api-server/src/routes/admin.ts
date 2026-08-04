@@ -19,8 +19,10 @@ import {
 import { BUILTIN_LABS } from "../lib/labs/registry";
 import { auth } from "../lib/auth";
 import { issueCert, makeCertId } from "../lib/certs";
-import { stopSession } from "../lib/docker/manager";
+import { docker, stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
+import { recordAdminAudit } from "../lib/operations";
+import { cleanupRunsTable, errorEventsTable, adminAuditLogTable } from "@workspace/db/schema";
 
 // Comma-separated list of admin emails set via the ADMIN_EMAILS env var.
 // e.g. ADMIN_EMAILS=alice@example.com,bob@example.com
@@ -35,6 +37,7 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction): Pr
     res.status(403).json({ error: "Forbidden" });
     return;
   }
+  req.adminEmail = session.user.email;
   next();
 }
 
@@ -47,6 +50,55 @@ router.get("/check", async (req, res): Promise<void> => {
 });
 
 router.use(requireAdmin);
+router.use((req, res, next) => {
+  res.on("finish", () => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      void recordAdminAudit(req, res.statusCode).catch((err) => logger.error({ err }, "admin audit write failed"));
+    }
+  });
+  next();
+});
+
+router.get("/operations/overview", async (_req, res): Promise<void> => {
+  const checkedAt = new Date().toISOString();
+  const [cleanup, errors, audit, database, dockerStatus] = await Promise.all([
+    db.select().from(cleanupRunsTable).orderBy(sql`${cleanupRunsTable.startedAt} DESC`).limit(1),
+    db.execute(sql`SELECT COUNT(*)::int AS count FROM error_events WHERE created_at >= NOW() - INTERVAL '24 hours'`),
+    db.execute(sql`SELECT COUNT(*)::int AS count FROM admin_audit_log WHERE created_at >= NOW() - INTERVAL '24 hours'`),
+    db.execute(sql`SELECT 1`),
+    docker.ping().then(() => true).catch(() => false),
+  ]);
+  const latest = cleanup[0] ?? null;
+  res.json({
+    checkedAt,
+    api: { ok: true },
+    database: { ok: database.rows.length > 0 },
+    docker: { ok: dockerStatus },
+    cleanup: {
+      ok: latest?.status === "success" && !!latest.completedAt && Date.now() - new Date(latest.completedAt).getTime() < 2 * 60 * 60 * 1000,
+      lastRun: latest,
+    },
+    errors24h: Number((errors.rows[0] as { count?: number }).count ?? 0),
+    adminActions24h: Number((audit.rows[0] as { count?: number }).count ?? 0),
+    backups: {
+      configured: Boolean(process.env.BACKUP_PROVIDER),
+      provider: process.env.BACKUP_PROVIDER ?? "Managed database backups",
+      lastSuccessAt: process.env.BACKUP_LAST_SUCCESS_AT ?? null,
+      note: "Configure provider-level backups and recovery testing before production launch.",
+    },
+  });
+});
+
+router.get("/operations/audit", async (req, res): Promise<void> => {
+  const limit = Math.min(100, Math.max(10, Number.parseInt(String(req.query.limit ?? "50"), 10) || 50));
+  const rows = await db.select().from(adminAuditLogTable).orderBy(sql`${adminAuditLogTable.createdAt} DESC`).limit(limit);
+  res.json(rows);
+});
+
+router.get("/operations/errors", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(errorEventsTable).orderBy(sql`${errorEventsTable.createdAt} DESC`).limit(50);
+  res.json(rows);
+});
 
 /**
  * GET /admin/lab-insights
@@ -627,8 +679,8 @@ router.get("/certs", async (req, res): Promise<void> => {
 
   const [items, totalResult, countsResult] = await Promise.all([
     db.execute(sql`
-      SELECT cert_id AS "certId", student_id AS "studentId", student_name AS "studentName",
-             track, level, earned_at AS "earnedAt", expires_at AS "expiresAt"
+       SELECT cert_id AS "certId", student_id AS "studentId", student_name AS "studentName",
+              show_name AS "showName", track, level, earned_at AS "earnedAt", expires_at AS "expiresAt"
       FROM cert_records
       WHERE ${where}
       ORDER BY earned_at DESC
@@ -688,6 +740,19 @@ router.post("/certs/:certId/refresh", async (req, res): Promise<void> => {
     .where(eq(certRecordsTable.certId, certId))
     .limit(1);
   res.json(refreshed[0]);
+});
+
+router.patch("/certs/:certId/privacy", async (req, res): Promise<void> => {
+  if (typeof req.body?.showName !== "boolean") {
+    res.status(400).json({ error: "showName must be a boolean" });
+    return;
+  }
+  const [updated] = await db.update(certRecordsTable)
+    .set({ showName: req.body.showName })
+    .where(eq(certRecordsTable.certId, req.params.certId))
+    .returning();
+  if (!updated) { res.status(404).json({ error: "Certificate not found" }); return; }
+  res.json(updated);
 });
 
 /** DELETE /admin/certs/:certId — revoke a certificate. */

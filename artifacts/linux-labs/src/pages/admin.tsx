@@ -10,7 +10,7 @@ import {
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Target,
   Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList, Star,
-  Eye, EyeOff, Beaker, CreditCard, ExternalLink,
+  Eye, EyeOff, Beaker, CreditCard, ExternalLink, ShieldCheck, Server, Database, Bug, History,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -123,8 +123,8 @@ export default function AdminPage() {
   const { data: labs } = useListLabs({
     query: { queryKey: ["/api/labs"], enabled: canLoadAdminData },
   })
-  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "certificates" | "labs"
-  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "certificates", "labs"]
+  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "certificates" | "labs" | "operations"
+  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "certificates", "labs", "operations"]
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
@@ -240,10 +240,71 @@ export default function AdminPage() {
     enabled: canLoadAdminData && tab === "labs",
   })
 
+  type OperationsOverview = {
+    checkedAt: string
+    api: { ok: boolean }
+    database: { ok: boolean }
+    docker: { ok: boolean }
+    cleanup: {
+      ok: boolean
+      lastRun: {
+        status: string
+        deletedRows: number
+        stoppedSessions: number
+        errorMessage: string | null
+        startedAt: string
+        completedAt: string | null
+      } | null
+    }
+    errors24h: number
+    adminActions24h: number
+    backups: {
+      configured: boolean
+      provider: string
+      lastSuccessAt: string | null
+      note: string
+    }
+  }
+  type AuditLogRow = {
+    id: number
+    actorEmail: string
+    action: string
+    statusCode: number
+    createdAt: string
+  }
+  type ErrorEventRow = {
+    id: number
+    source: string
+    message: string
+    route: string | null
+    statusCode: number | null
+    createdAt: string
+  }
+  const operations = useQuery<OperationsOverview>({
+    queryKey: ["admin", "operations", "overview"],
+    queryFn: () => fetchAdmin("/api/admin/operations/overview"),
+    retry: false,
+    enabled: canLoadAdminData && tab === "operations",
+    refetchInterval: canLoadAdminData && tab === "operations" ? 30_000 : false,
+  })
+  const auditLog = useQuery<AuditLogRow[]>({
+    queryKey: ["admin", "operations", "audit"],
+    queryFn: () => fetchAdmin("/api/admin/operations/audit?limit=25"),
+    retry: false,
+    enabled: canLoadAdminData && tab === "operations",
+  })
+  const errorEvents = useQuery<ErrorEventRow[]>({
+    queryKey: ["admin", "operations", "errors"],
+    queryFn: () => fetchAdmin("/api/admin/operations/errors"),
+    retry: false,
+    enabled: canLoadAdminData && tab === "operations",
+  })
+
   type CertRow = {
     certId: string
     studentId: string | null
     studentName: string
+    showName: boolean
     track: string
     level: number | null
     earnedAt: string
@@ -415,6 +476,22 @@ export default function AdminPage() {
       toast({ title: "Certificate revoked" })
     },
     onError: (err: Error) => toast({ title: "Cannot revoke certificate", description: err.message, variant: "destructive" }),
+  })
+
+  const updateCertificatePrivacy = useMutation({
+    mutationFn: async ({ certId, showName }: { certId: string; showName: boolean }) => {
+      const res = await fetch(`/api/admin/certs/${encodeURIComponent(certId)}/privacy`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showName }),
+      })
+      if (!res.ok) throw new Error("Failed to update certificate privacy")
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "certificates"] })
+      toast({ title: "Certificate privacy updated" })
+    },
+    onError: (err: Error) => toast({ title: "Cannot update certificate privacy", description: err.message, variant: "destructive" }),
   })
 
   const denyRequest = useMutation({
@@ -677,6 +754,7 @@ export default function AdminPage() {
                 { id: "registration",    label: "Registration",    icon: Lock      },
                 { id: "certificates",    label: "Certificates",    icon: Award     },
                 { id: "labs",            label: "Labs",            icon: Beaker    },
+                 { id: "operations",      label: "Operations",      icon: ShieldCheck },
               ] as const).map(({ id, label, icon: Icon }) => {
                 const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
                 return (
@@ -1577,6 +1655,20 @@ export default function AdminPage() {
                             >
                               {revoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                             </button>
+                            <button
+                              disabled={refreshing || revoking || updateCertificatePrivacy.isPending}
+                              onClick={() => updateCertificatePrivacy.mutate({ certId: cert.certId, showName: !cert.showName })}
+                              title={cert.showName ? "Hide learner name publicly" : "Show learner name publicly"}
+                              aria-label={`${cert.showName ? "Hide" : "Show"} learner name for ${cert.studentName}`}
+                              className={cn(
+                                "inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+                                cert.showName
+                                  ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                  : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10",
+                              )}
+                            >
+                              {cert.showName ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                            </button>
                           </div>
                         </div>
                       )
@@ -1604,6 +1696,103 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Operations ── */}
+            {tab === "operations" && (
+              <div className="space-y-5">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold">Product safety & operations</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Live readiness checks for the API, database, Docker, cleanup, backups, and audit telemetry.</p>
+                  </div>
+                </div>
+
+                {operations.isLoading && (
+                  <div className="text-center py-16 text-muted-foreground text-sm animate-pulse">Checking production readiness…</div>
+                )}
+                {operations.error && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-400">Unable to load operations health.</div>
+                )}
+                {operations.data && (
+                  <>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[
+                        { label: "API", ok: operations.data.api.ok, icon: Server },
+                        { label: "Database", ok: operations.data.database.ok, icon: Database },
+                        { label: "Docker", ok: operations.data.docker.ok, icon: Beaker },
+                        { label: "Cleanup", ok: operations.data.cleanup.ok, icon: RotateCcw },
+                      ].map(({ label, ok, icon: Icon }) => (
+                        <div key={label} className="rounded-xl border border-border/50 bg-card/60 px-4 py-3 flex items-center gap-3">
+                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", ok ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400")}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold">{label}</p>
+                            <p className={cn("text-[10px] uppercase tracking-wider font-bold", ok ? "text-emerald-400" : "text-red-400")}>{ok ? "Healthy" : "Attention"}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid lg:grid-cols-3 gap-4">
+                      <div className="rounded-xl border border-border/50 bg-card/60 p-4">
+                        <div className="flex items-center gap-2 mb-3"><History className="w-4 h-4 text-primary" /><p className="text-sm font-semibold">Cleanup monitor</p></div>
+                        <p className="text-xs text-muted-foreground">
+                          {operations.data.cleanup.lastRun?.completedAt
+                            ? `Last run ${relativeTime(operations.data.cleanup.lastRun.completedAt)}`
+                            : "No completed cleanup run recorded"}
+                        </p>
+                        {operations.data.cleanup.lastRun && (
+                          <p className="text-xs text-muted-foreground/70 mt-2">
+                            Removed {operations.data.cleanup.lastRun.deletedRows} rows · stopped {operations.data.cleanup.lastRun.stoppedSessions} sessions
+                          </p>
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-border/50 bg-card/60 p-4">
+                        <div className="flex items-center gap-2 mb-3"><Database className="w-4 h-4 text-cyan-400" /><p className="text-sm font-semibold">Backup strategy</p></div>
+                        <p className="text-xs text-muted-foreground">{operations.data.backups.configured ? `Configured: ${operations.data.backups.provider}` : "Provider backup configuration not reported"}</p>
+                        <p className="text-[11px] text-muted-foreground/70 mt-2">{operations.data.backups.lastSuccessAt ? `Last success ${relativeTime(operations.data.backups.lastSuccessAt)}` : "Recovery drill timestamp not configured"}</p>
+                      </div>
+                      <div className="rounded-xl border border-border/50 bg-card/60 p-4">
+                        <div className="flex items-center gap-2 mb-3"><Bug className="w-4 h-4 text-amber-400" /><p className="text-sm font-semibold">Telemetry, last 24h</p></div>
+                        <div className="flex items-end gap-5">
+                          <div><p className="text-2xl font-black font-mono">{operations.data.errors24h}</p><p className="text-[10px] uppercase tracking-wider text-muted-foreground">errors</p></div>
+                          <div><p className="text-2xl font-black font-mono">{operations.data.adminActions24h}</p><p className="text-[10px] uppercase tracking-wider text-muted-foreground">admin actions</p></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid lg:grid-cols-2 gap-4">
+                      <div className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2"><History className="w-4 h-4 text-primary" /><p className="text-sm font-semibold">Recent admin actions</p></div>
+                        {auditLog.isLoading && <p className="p-4 text-xs text-muted-foreground animate-pulse">Loading audit log…</p>}
+                        {!auditLog.isLoading && !auditLog.data?.length && <p className="p-4 text-xs text-muted-foreground">No mutating admin actions recorded yet.</p>}
+                        {auditLog.data?.map(row => (
+                          <div key={row.id} className="px-4 py-2.5 border-b border-border/30 last:border-0 flex items-center gap-3">
+                            <span className={cn("w-2 h-2 rounded-full shrink-0", row.statusCode < 400 ? "bg-emerald-400" : "bg-red-400")} />
+                            <div className="min-w-0 flex-1"><p className="text-xs font-medium truncate">{row.action}</p><p className="text-[10px] text-muted-foreground truncate">{row.actorEmail}</p></div>
+                            <span className="text-[10px] text-muted-foreground font-mono shrink-0">{relativeTime(row.createdAt)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2"><Bug className="w-4 h-4 text-amber-400" /><p className="text-sm font-semibold">Recent errors</p></div>
+                        {errorEvents.isLoading && <p className="p-4 text-xs text-muted-foreground animate-pulse">Loading error events…</p>}
+                        {!errorEvents.isLoading && !errorEvents.data?.length && <p className="p-4 text-xs text-muted-foreground">No retained errors.</p>}
+                        {errorEvents.data?.slice(0, 8).map(row => (
+                          <div key={row.id} className="px-4 py-2.5 border-b border-border/30 last:border-0">
+                            <div className="flex items-center justify-between gap-3"><span className="text-[10px] uppercase tracking-wider text-amber-400">{row.source}</span><span className="text-[10px] text-muted-foreground">{relativeTime(row.createdAt)}</span></div>
+                            <p className="text-xs mt-1 truncate">{row.message}</p>
+                            {row.route && <p className="text-[10px] text-muted-foreground font-mono truncate">{row.statusCode ?? "—"} {row.route}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}

@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Response } from "express";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import {
   GetLabSessionParams,
   GetLabSessionResponse,
@@ -24,10 +25,19 @@ import {
   recordProgress,
 } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
+import { recordErrorEvent } from "../lib/operations";
 
 const router: IRouter = Router();
 
 router.use(requireAuth);
+router.use(rateLimit({
+  windowMs: 60 * 1000,
+  limit: 90,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.studentId ? `student:${req.studentId}` : ipKeyGenerator(req.ip ?? ""),
+  message: { error: "Lab request limit reached. Please wait a minute and try again." },
+}));
 
 async function allowLabAccess(studentId: string, track: string, res: Response): Promise<boolean> {
   const accessError = await getLabAccessError(studentId, track);
@@ -186,6 +196,15 @@ router.post("/labs/:labId/verify", async (req, res): Promise<void> => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error({ err, labId: lab.id, studentId: req.studentId }, "Verify failed");
+    if (!message.includes("not running") && !message.includes("Start the sandbox")) {
+      await recordErrorEvent({
+        source: "verify",
+        error: err,
+        req,
+        statusCode: 500,
+        context: { labId: lab.id, studentId: req.studentId },
+      });
+    }
     // 409 for expected pre-condition failures (sandbox not running), 500 for
     // everything else (infra/DB/runtime faults) so clients can distinguish
     // user-fixable errors from server-side failures.

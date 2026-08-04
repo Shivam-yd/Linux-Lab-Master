@@ -19,3 +19,4 @@
 
 export * from "./lab-sessions";
 export * from "./auth";
+export * from "./operations";

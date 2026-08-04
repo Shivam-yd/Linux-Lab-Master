@@ -7,6 +7,7 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { recordErrorEvent } from "./lib/operations";
 
 const app: Express = express();
 
@@ -30,11 +31,17 @@ app.use(
   }),
 );
 
-const sessionSecret = process.env.SESSION_SECRET ?? "changeme-set-SESSION_SECRET-in-production";
-if (!process.env.SESSION_SECRET) {
+const configuredSessionSecret = process.env.SESSION_SECRET;
+if (
+  process.env.NODE_ENV === "production" &&
+  (!configuredSessionSecret || configuredSessionSecret.length < 32)
+) {
+  throw new Error("SESSION_SECRET must be set to a random value of at least 32 characters in production");
+}
+const sessionSecret = configuredSessionSecret ?? "changeme-set-SESSION_SECRET-in-development";
+if (!configuredSessionSecret) {
   console.warn(
-    "[warn] SESSION_SECRET is not set — using an insecure default. " +
-    "Set SESSION_SECRET to a long random string in production.",
+    "[warn] SESSION_SECRET is not set — using an insecure development-only default.",
   );
 }
 
@@ -79,6 +86,7 @@ app.use("/api", router);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   logger.error({ err }, "unhandled error");
+  void recordErrorEvent({ source: "api", error: err, req: _req, statusCode: 500 });
   res.status(500).json({ error: "Internal server error" });
 });
 

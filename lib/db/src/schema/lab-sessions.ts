@@ -170,6 +170,7 @@ export const certRecordsTable = pgTable("cert_records", {
   studentName: text("student_name").notNull(),
   track:       text("track").notNull(),
   level:       integer("level"),
+  showName:    boolean("show_name").notNull().default(true),
   earnedAt:    timestamp("earned_at",  { withTimezone: true }).notNull(),
   expiresAt:   timestamp("expires_at", { withTimezone: true }).notNull(),
 });
