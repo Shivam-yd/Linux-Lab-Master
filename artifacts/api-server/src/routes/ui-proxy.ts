@@ -174,12 +174,13 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     });
 
     // Reconstruct the request body after Express parsed it. Prefer the raw
-    // form body so repeated Jenkins form fields are preserved exactly.
+    // body so repeated form fields and Jenkins Stapler method invocations are
+    // preserved exactly.
     const method = req.method.toUpperCase();
     if (method !== "GET" && method !== "HEAD") {
       const rawBody = (req as Request & { rawBody?: string }).rawBody;
       const ct = (req.headers["content-type"] ?? "").split(";")[0].trim();
-      if (rawBody !== undefined && ct === "application/x-www-form-urlencoded") {
+      if (rawBody !== undefined) {
         proxyReq.setHeader("content-length", Buffer.byteLength(rawBody));
         proxyReq.write(rawBody);
       } else if (req.body && ct === "application/json") {

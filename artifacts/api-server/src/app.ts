@@ -54,14 +54,21 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 500, standardHe
 // Use app.use (not app.all) because Express 5 requires named wildcard params.
 app.use("/api/auth", authLimiter, toNodeHandler(auth));
 app.use(cookieParser(sessionSecret));
-app.use(express.json());
+const captureRawBody = (req: Request, _res: Response, buf: Buffer): void => {
+  (req as Request & { rawBody?: string }).rawBody = buf.toString("utf8");
+};
+app.use(express.json({ verify: captureRawBody }));
 // Capture raw body alongside parsed body so the UI proxy can forward
 // form POSTs byte-for-byte without re-encoding (which drops repeated keys).
 app.use(express.urlencoded({
   extended: true,
-  verify: (req: Request, _res, buf: Buffer) => {
-    (req as Request & { rawBody?: string }).rawBody = buf.toString("utf8");
-  },
+  verify: captureRawBody,
+}));
+// Jenkins' dynamic configuration widgets use this custom content type and
+// send a JSON method-invocation body. Capture it without trying to parse it.
+app.use(express.raw({
+  type: "application/x-stapler-method-invocation",
+  verify: captureRawBody,
 }));
 
 app.use("/api", router);
