@@ -358,7 +358,9 @@ export default function Workspace() {
   useMeta(lab?.title ? `${lab.title} — DevLabMaster` : "DevLabMaster")
   useEffect(() => {
     if (!activeTerminal) {
-      if (lab?.terminals?.length) {
+      if (lab?.track === "jenkins" && (lab as any)?.uiPort) {
+        setActiveTerminal("__ui__")
+      } else if (lab?.terminals?.length) {
         setActiveTerminal(lab.terminals[0])
       } else if ((lab as any)?.uiPort) {
         setActiveTerminal("__ui__")
