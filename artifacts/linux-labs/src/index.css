@@ -183,19 +183,21 @@
 
 /* Markdown inside revealed execution steps must not inherit the typography
    plugin's low-contrast defaults in dark mode. Keep this scoped so the rest
-   of the app can retain its normal prose palette. */
-.execution-step-markdown :where(p, li, ol, ul, strong, em, h1, h2, h3, h4, h5, h6, blockquote) {
+   of the app can retain its normal prose palette. Some generated Markdown
+   nodes are nested inside Typography elements, so apply the base color to
+   every descendant before restoring intentional accent colors below. */
+div.execution-step-markdown.prose * {
   color: hsl(var(--foreground)) !important;
 }
 
-.execution-step-markdown :where(li)::marker {
+div.execution-step-markdown.prose li::marker {
   color: hsl(var(--primary)) !important;
 }
 
-.execution-step-markdown :where(a) {
+div.execution-step-markdown.prose a {
   color: hsl(var(--primary)) !important;
 }
 
-.execution-step-markdown :where(code) {
+div.execution-step-markdown.prose code {
   color: hsl(var(--primary)) !important;
 }
