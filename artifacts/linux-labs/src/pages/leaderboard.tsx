@@ -23,6 +23,9 @@ const RANK_STYLE: Record<number, { icon: typeof Crown; cls: string }> = {
 export default function LeaderboardPage() {
   useMeta("Leaderboard — DevLabMaster")
   const { data: session } = useSession()
+  const fromProgress = new URLSearchParams(window.location.search).get("from") === "progress"
+  const backHref = fromProgress ? `${basePath}/progress` : `${basePath}/dashboard`
+  const backLabel = fromProgress ? "Progress" : "Dashboard"
   const { data: rankData, isLoading: rankLoading } = useGetMyRank()
   const { data: board, isLoading: boardLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ["leaderboard"],
@@ -45,9 +48,9 @@ export default function LeaderboardPage() {
       <header className="sticky top-0 z-20 border-b border-primary/20 bg-primary/8 dark:bg-primary/[0.07] backdrop-blur-md">
         <div className="px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href={backHref} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-4 h-4" />
-              Dashboard
+              {backLabel}
             </Link>
           </div>
           <div className="flex items-center gap-3">
