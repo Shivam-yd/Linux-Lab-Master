@@ -10,7 +10,7 @@ import {
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Target,
   Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList, Star,
-  Eye, EyeOff, Beaker, CreditCard,
+  Eye, EyeOff, Beaker, CreditCard, ExternalLink,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -1491,62 +1491,97 @@ export default function AdminPage() {
                     </p>
                   </div>
                 )}
-                {certificates.data && certificates.data.items.length > 0 && (() => {
-                  return (
-                  <div className="space-y-2">
+                {certificates.data && certificates.data.items.length > 0 && (
+                  <div className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
+                    <div className="hidden lg:grid grid-cols-[minmax(170px,1.25fr)_minmax(150px,1fr)_100px_120px_90px_92px] gap-4 px-4 py-2.5 border-b border-border/50 bg-muted/20 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <span>Learner</span>
+                      <span>Certificate</span>
+                      <span>Issued</span>
+                      <span>Expires</span>
+                      <span>Status</span>
+                      <span className="text-right">Actions</span>
+                    </div>
                     {certificates.data.items.map(cert => {
                       const track = TRACK_META[cert.track] ?? DEFAULT_TRACK_META
                       const expired = new Date(cert.expiresAt) < new Date()
                       const refreshing = refreshCertificate.isPending && refreshCertificate.variables === cert.certId
                       const revoking = revokeCertificate.isPending && revokeCertificate.variables === cert.certId
+                      const formattedId = cert.certId.match(/.{1,4}/g)?.join("-") ?? cert.certId
                       return (
-                        <div key={cert.certId} className="rounded-xl border border-border/50 bg-card/60 px-5 py-4 flex items-center gap-4">
-                          <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", track.bgClass)}>
-                            <Award className={cn("w-4 h-4", track.accentClass)} />
-                          </div>
-                          <div className="flex-1 min-w-0">
+                        <div key={cert.certId} className="grid grid-cols-1 lg:grid-cols-[minmax(170px,1.25fr)_minmax(150px,1fr)_100px_120px_90px_92px] gap-3 lg:gap-4 lg:items-center px-4 py-3 border-b border-border/30 last:border-b-0 hover:bg-muted/15 transition-colors">
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2">
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", track.bgClass)}>
+                                <Award className={cn("w-3.5 h-3.5", track.accentClass)} />
+                              </div>
                               <p className="text-sm font-semibold truncate">{cert.studentName}</p>
-                              <span className={cn(
-                                "text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide",
-                                expired
-                                  ? "text-red-400 border-red-500/30 bg-red-500/10"
-                                  : "text-green-400 border-green-500/30 bg-green-500/10",
-                              )}>
-                                {expired ? "expired" : "active"}
-                              </span>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {track.label} · {cert.level == null ? "Full track" : `Level ${cert.level}`}
-                            </p>
-                            <p className="text-xs text-muted-foreground/60 font-mono mt-1">
-                              {cert.certId.match(/.{1,4}/g)?.join("-")} · expires {new Date(cert.expiresAt).toLocaleDateString()}
+                            <p className="text-[10px] text-muted-foreground/60 font-mono mt-1 truncate lg:pl-9">{formattedId}</p>
+                          </div>
+                          <div className="min-w-0 flex items-center justify-between lg:block">
+                            <div>
+                              <span className="lg:hidden text-[10px] uppercase tracking-wider text-muted-foreground">Certificate</span>
+                              <p className="text-xs font-medium truncate">{track.label}</p>
+                              <p className="text-[11px] text-muted-foreground">{cert.level == null ? "Full track" : `Level ${cert.level}`}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between lg:block">
+                            <span className="lg:hidden text-[10px] uppercase tracking-wider text-muted-foreground">Issued</span>
+                            <p className="text-xs text-muted-foreground">{new Date(cert.earnedAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="flex items-center justify-between lg:block">
+                            <span className="lg:hidden text-[10px] uppercase tracking-wider text-muted-foreground">Expires</span>
+                            <p className={cn("text-xs", expired ? "text-amber-400" : "text-muted-foreground")}>
+                              {new Date(cert.expiresAt).toLocaleDateString()}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center justify-between lg:block">
+                            <span className="lg:hidden text-[10px] uppercase tracking-wider text-muted-foreground">Status</span>
+                            <span className={cn(
+                              "inline-flex text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide",
+                              expired
+                                ? "text-amber-400 border-amber-500/30 bg-amber-500/10"
+                                : "text-green-400 border-green-500/30 bg-green-500/10",
+                            )}>
+                              {expired ? "expired" : "active"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-end gap-1.5 border-t border-border/30 pt-2 lg:border-0 lg:pt-0">
+                            <a
+                              href={`${basePath}/verify/${cert.certId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              title="Open public verification"
+                              aria-label={`Open public verification for ${cert.studentName}`}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/10 transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
                             <button
                               disabled={refreshing || revoking}
                               onClick={() => refreshCertificate.mutate(cert.certId)}
-                              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+                              title="Refresh certificate"
+                              aria-label={`Refresh certificate for ${cert.studentName}`}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                             >
                               {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
-                              Refresh
                             </button>
                             <button
                               disabled={refreshing || revoking}
                               onClick={() => {
                                 if (window.confirm(`Revoke ${cert.studentName}'s certificate?`)) revokeCertificate.mutate(cert.certId)
                               }}
-                              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+                              title="Revoke certificate"
+                              aria-label={`Revoke certificate for ${cert.studentName}`}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                             >
                               {revoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                              Revoke
                             </button>
                           </div>
                         </div>
                       )
                     })}
-                    <div className="flex items-center justify-between pt-3">
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-border/50 bg-muted/10 flex-wrap">
                       <p className="text-xs text-muted-foreground">
                         Showing {((certificates.data.page - 1) * certificates.data.pageSize) + 1}–{Math.min(certificates.data.page * certificates.data.pageSize, certificates.data.total)} of {certificates.data.total}
                       </p>
@@ -1569,8 +1604,7 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </div>
-                  )
-                })()}
+                )}
               </div>
             )}
 
