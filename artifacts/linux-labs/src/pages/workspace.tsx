@@ -33,6 +33,31 @@ import { usePlan, PRO_TRACKS } from "@/lib/use-plan"
 import { useToast } from "@/hooks/use-toast"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
+const RECOVERY_KEY = "devlabmaster:session-recovery"
+const RECOVERY_MAX_AGE_MS = 60 * 60 * 1000
+
+type RecoveryMarker = {
+  labId: string
+  activeTerminal?: string
+  savedAt: number
+}
+
+function readRecoveryMarker(labId: string): RecoveryMarker | null {
+  try {
+    const marker = JSON.parse(sessionStorage.getItem(RECOVERY_KEY) || "null") as RecoveryMarker | null
+    return marker?.labId === labId && Date.now() - marker.savedAt < RECOVERY_MAX_AGE_MS ? marker : null
+  } catch {
+    return null
+  }
+}
+
+function clearRecoveryMarker() {
+  try {
+    sessionStorage.removeItem(RECOVERY_KEY)
+  } catch {
+    // Storage can be unavailable in private browsing; the server session remains authoritative.
+  }
+}
 
 export default function Workspace() {
   const params = useParams()
@@ -93,7 +118,10 @@ export default function Workspace() {
   const { toast } = useToast()
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
   const [myRating, setMyRating] = useState<string | null>(null)
+  const [recoveryAvailable, setRecoveryAvailable] = useState(() => !!readRecoveryMarker(labId))
+  const [reconnectKey, setReconnectKey] = useState(0)
   const [showPartyPopper, setShowPartyPopper] = useState(false)
+  const [activeTerminal, setActiveTerminal] = useState<string>("")
 
   const submitRating = async (rating: string) => {
     setMyRating(rating)
@@ -168,6 +196,23 @@ export default function Workspace() {
   const sessionError = session?.status === 'error'
   const provisioningActive = session?.status === 'starting' || startSession.isPending || resetSession.isPending
   const [provisioningSecs, setProvisioningSecs] = useState(0)
+
+  useEffect(() => {
+    if (isRunning && labId && activeTerminal) {
+      try {
+        sessionStorage.setItem(RECOVERY_KEY, JSON.stringify({
+          labId,
+          activeTerminal,
+          savedAt: Date.now(),
+        }))
+      } catch {
+        // Storage can be unavailable; the server session remains authoritative.
+      }
+    } else if (session?.status && session.status !== "starting") {
+      clearRecoveryMarker()
+      setRecoveryAvailable(false)
+    }
+  }, [activeTerminal, isRunning, labId, session?.status])
 
   useEffect(() => {
     if (!provisioningActive) {
@@ -264,6 +309,7 @@ export default function Workspace() {
     setVerifyResult(null)
     setCloseCountdown(null)
     setActiveTerminal("")             // force terminal re-selection for new lab
+    setRecoveryAvailable(!!readRecoveryMarker(labId))
   }, [labId])
 
   // Auto-boot the sandbox the first time a student opens a lab — but only
@@ -342,8 +388,16 @@ export default function Workspace() {
   }, [isRunning, setLocation])
 
   const handleStart = () => startSession.mutate({ labId })
-  const handleStop = () => stopSession.mutate({ labId })
+  const handleStop = () => {
+    clearRecoveryMarker()
+    setRecoveryAvailable(false)
+    stopSession.mutate({ labId })
+  }
   const handleReset = () => setResetConfirm(true)
+  const handleReconnect = () => {
+    setRecoveryAvailable(false)
+    setReconnectKey(key => key + 1)
+  }
   
   const handleVerify = () => {
     setCloseCountdown(null)   // cancel any running auto-close from a prior verify
@@ -367,10 +421,15 @@ export default function Workspace() {
     })
   }
 
-  const [activeTerminal, setActiveTerminal] = useState<string>("")
   useMeta(lab?.title ? `${lab.title} — DevLabMaster` : "DevLabMaster")
   useEffect(() => {
     if (!activeTerminal) {
+      const saved = readRecoveryMarker(labId)?.activeTerminal
+      const availableTerminals = [...(lab?.terminals ?? []), (lab as any)?.uiPort ? "__ui__" : ""]
+      if (saved && availableTerminals.includes(saved)) {
+        setActiveTerminal(saved)
+        return
+      }
       if (lab?.track === "jenkins" && (lab as any)?.uiPort) {
         setActiveTerminal("__ui__")
       } else if (lab?.terminals?.length) {
@@ -526,20 +585,21 @@ export default function Workspace() {
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden font-sans">
       {/* ── Control Bar (Header) ── */}
-      <header className="h-14 shrink-0 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-4 relative z-20">
-        <div className="flex items-center space-x-4">
+      <header className="min-h-14 shrink-0 border-b border-primary/20 bg-primary/[0.07] backdrop-blur-md flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 relative z-20">
+        <div className="flex items-center min-w-0 space-x-3 sm:space-x-4">
           <Link
             href={`/dashboard?track=${encodeURIComponent(lab.track)}`}
             onClick={handleCatalogClick}
-            className="text-muted-foreground hover:text-primary transition-colors flex items-center text-sm font-semibold tracking-wide"
+            className="min-h-11 text-muted-foreground hover:text-primary transition-colors flex items-center text-sm font-semibold tracking-wide"
+            aria-label="Back to lab catalog"
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" />
             BACK
           </Link>
           <div className="w-px h-5 bg-border/80" />
-          <h1 className="font-bold flex items-center text-sm tracking-tight text-foreground">
+          <h1 className="font-bold flex items-center min-w-0 text-sm tracking-tight text-foreground">
             <Server className="w-4 h-4 mr-2 text-primary" />
-            {lab.title}
+            <span className="truncate">{lab.title}</span>
           </h1>
           <Badge variant="outline" className={cn(
             "ml-2 font-mono text-xs uppercase px-2 h-5 border",
@@ -551,7 +611,7 @@ export default function Workspace() {
           </Badge>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center max-w-full space-x-2 sm:space-x-3">
           <NotificationBell />
           {sessionLoading ? (
             <div className="flex items-center text-sm font-mono text-muted-foreground">
@@ -575,11 +635,11 @@ export default function Workspace() {
               <div className="flex items-center bg-background border border-border/80 rounded-md p-1 shadow-inner">
                 {/* Status Indicator */}
                 <div className={cn(
-                  "px-3 py-1 text-xs font-mono font-bold rounded flex items-center gap-1.5",
+                  "px-2 sm:px-3 py-1 text-xs font-mono font-bold rounded flex items-center gap-1.5",
                   isRunning ? "text-green-600 dark:text-primary bg-green-500/10 dark:bg-primary/10" : 
                   isStarting ? "text-yellow-600 dark:text-yellow-400 bg-yellow-400/10" : 
                   "text-muted-foreground"
-                )}>
+                )} role="status" aria-live="polite">
                   {isStarting ? (
                     <><RefreshCw className="w-3.5 h-3.5 animate-spin"/> BOOTING</>
                   ) : isRunning ? (
@@ -594,17 +654,17 @@ export default function Workspace() {
                 {/* Action Buttons */}
                 <div className="flex items-center space-x-1">
                   {(!isRunning && !isStarting) && (
-                    <Button variant="ghost" size="sm" className="h-7 text-xs px-3 font-semibold hover:bg-primary/20 hover:text-primary text-foreground" onClick={handleStart} disabled={startSession.isPending}>
+                    <Button variant="ghost" size="sm" className="min-h-10 h-10 text-xs px-3 font-semibold hover:bg-primary/20 hover:text-primary text-foreground" onClick={handleStart} disabled={startSession.isPending}>
                       <Play className="w-3.5 h-3.5 mr-1.5" /> START
                     </Button>
                   )}
                   
                   {isRunning && (
                     <>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs px-3 font-semibold hover:bg-destructive/20 hover:text-destructive text-muted-foreground" onClick={handleStop} disabled={stopSession.isPending}>
+                      <Button variant="ghost" size="sm" className="min-h-10 h-10 text-xs px-3 font-semibold hover:bg-destructive/20 hover:text-destructive text-muted-foreground" onClick={handleStop} disabled={stopSession.isPending}>
                         <Square className="w-3.5 h-3.5 mr-1.5" /> STOP
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs px-3 font-semibold hover:bg-yellow-500/20 hover:text-yellow-500 text-muted-foreground" onClick={handleReset} disabled={resetSession.isPending}>
+                      <Button variant="ghost" size="sm" className="min-h-10 h-10 text-xs px-3 font-semibold hover:bg-yellow-500/20 hover:text-yellow-500 text-muted-foreground" onClick={handleReset} disabled={resetSession.isPending}>
                         <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> RESET
                       </Button>
                     </>
@@ -617,11 +677,11 @@ export default function Workspace() {
       </header>
 
       {/* ── Main Workspace ── */}
-      <div className="flex-1 flex overflow-hidden">
+      <main className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
         
         {/* ── Left Panel: Instructions & Objectives ── */}
-        <div className="w-[450px] shrink-0 border-r border-border/50 bg-card/40 flex flex-col relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.2)]">
-          <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scroll-smooth">
+        <div className="w-full h-[48vh] md:h-auto md:w-[450px] shrink-0 border-b md:border-b-0 md:border-r border-border/50 bg-card/40 flex flex-col relative z-10 shadow-[0_4px_24px_rgba(0,0,0,0.2)] md:shadow-[4px_0_24px_rgba(0,0,0,0.2)]">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin scroll-smooth">
             
             {/* Scenario Header */}
             <div className="mb-6 pb-4 border-b border-border/40">
@@ -884,7 +944,18 @@ export default function Workspace() {
         </div>
 
         {/* ── Right Panel: Terminal ── */}
-        <div className="flex-1 bg-terminal-bg flex flex-col relative">
+        <div className="flex-1 min-h-0 bg-terminal-bg flex flex-col relative">
+          {recoveryAvailable && isRunning && (
+            <div className="absolute top-2 left-2 right-2 z-40 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-background/95 px-3 py-2.5 shadow-lg backdrop-blur-md" role="status">
+              <p className="text-xs text-foreground">
+                Existing lab session found. Your container is still running.
+              </p>
+              <Button size="sm" className="min-h-10 h-10 text-xs font-bold" onClick={handleReconnect}>
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                RECONNECT TO EXISTING LAB
+              </Button>
+            </div>
+          )}
           
           {/* Grid background effect for the terminal area */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none opacity-20" />
@@ -943,12 +1014,12 @@ export default function Workspace() {
             >
               {/* Terminal Tabs Header */}
               <div className="bg-terminal-tab border-b border-border/40 pt-2 px-3 shrink-0 flex justify-between items-end">
-                <TabsList className="bg-transparent border-none w-full justify-start h-auto p-0 space-x-1.5">
+                <TabsList className="bg-transparent border-none w-full justify-start h-auto min-h-11 p-0 space-x-1.5 overflow-x-auto">
                   {lab.terminals?.map(term => (
                     <TabsTrigger 
                       key={term} 
                       value={term}
-                      className="data-[state=active]:bg-terminal-bg data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
+                      className="min-h-11 shrink-0 data-[state=active]:bg-terminal-bg data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-4 sm:px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
                     >
                       <Terminal className="w-3.5 h-3.5 mr-2 opacity-70" />
                       {term}
@@ -960,7 +1031,7 @@ export default function Workspace() {
                   {(lab as any)?.uiPort && (
                     <TabsTrigger
                       value="__ui__"
-                      className="data-[state=active]:bg-terminal-bg data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
+                      className="min-h-11 shrink-0 data-[state=active]:bg-terminal-bg data-[state=active]:text-primary data-[state=active]:border-primary/50 rounded-none rounded-t-lg px-4 sm:px-5 py-2.5 text-[13px] font-mono font-bold tracking-wide border border-transparent border-b-0 transition-all opacity-70 data-[state=active]:opacity-100 flex items-center"
                     >
                       <Monitor className="w-3.5 h-3.5 mr-2 opacity-70" />
                       UI
@@ -997,6 +1068,7 @@ export default function Workspace() {
                           key={session?.startedAt ?? session?.createdAt ?? term}
                           labId={labId} 
                           terminalName={term} 
+                          reconnectKey={reconnectKey}
                           className="h-full w-full bg-transparent" 
                         />
                       )}
@@ -1014,7 +1086,7 @@ export default function Workspace() {
                         <iframe
                           src={`/api/labs/${labId}/ui${uiEntryPath}`}
                           className="w-full h-full border-none"
-                          title="UI"
+                          title={`${lab.title} interactive UI`}
                         />
                       ) : isRunning ? (
                         <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground/70 font-mono text-sm">
@@ -1039,7 +1111,7 @@ export default function Workspace() {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* ── Completion toast (bottom-right) ── */}
       {closeCountdown !== null && (
@@ -1072,7 +1144,7 @@ export default function Workspace() {
                 className="h-full rounded-full bg-green-500"
                 style={{ width: `${((15 - closeCountdown) / 15) * 100}%`, transition: "width 1s linear" }}
               />
-            </div>
+              </div>
 
             {/* Certificate nudge */}
             {lab?.track && (
@@ -1113,7 +1185,12 @@ export default function Workspace() {
                 Cancel
               </button>
               <button
-                onClick={() => { setResetConfirm(false); resetSession.mutate({ labId }) }}
+                onClick={() => {
+                  clearRecoveryMarker()
+                  setRecoveryAvailable(false)
+                  setResetConfirm(false)
+                  resetSession.mutate({ labId })
+                }}
                 className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
               >
                 Reset

@@ -9,10 +9,11 @@ import { RefreshCw } from "lucide-react"
 export interface TerminalProps {
   labId: string
   terminalName: string
+  reconnectKey?: number
   className?: string
 }
 
-export function Terminal({ labId, terminalName, className }: TerminalProps) {
+export function Terminal({ labId, terminalName, reconnectKey = 0, className }: TerminalProps) {
   const terminalRef = React.useRef<HTMLDivElement>(null)
   const xtermRef = React.useRef<XTerm | null>(null)
   const fitAddonRef = React.useRef<FitAddon | null>(null)
@@ -34,6 +35,7 @@ export function Terminal({ labId, terminalName, className }: TerminalProps) {
     wsRef.current = ws
 
     ws.onopen = () => {
+      if (wsRef.current !== ws) return
       setConnected(true)
       // Send initial resize if xterm exists
       if (xtermRef.current && ws.readyState === WebSocket.OPEN) {
@@ -66,15 +68,21 @@ export function Terminal({ labId, terminalName, className }: TerminalProps) {
     }
 
     ws.onclose = () => {
+      if (wsRef.current !== ws) return
       setConnected(false)
       xtermRef.current?.write(`\x1b[31m\r\n--- Disconnected ---\x1b[0m\r\n`)
     }
 
     ws.onerror = () => {
+      if (wsRef.current !== ws) return
       setError("WebSocket connection error")
       setConnected(false)
     }
   }, [labId, terminalName])
+
+  React.useEffect(() => {
+    if (reconnectKey > 0) connect()
+  }, [connect, reconnectKey])
 
   React.useEffect(() => {
     if (!terminalRef.current) return
@@ -139,13 +147,23 @@ export function Terminal({ labId, terminalName, className }: TerminalProps) {
   return (
     <div className={cn("relative flex h-full w-full flex-col bg-[#09090b] rounded-md overflow-hidden border border-border", className)}>
       {/* Terminal header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-secondary border-b border-border">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-secondary border-b border-border">
         <div className="flex items-center space-x-2">
-          <div className={cn("h-2 w-2 rounded-full", connected ? "bg-green-500" : "bg-destructive")} />
+          <div
+            className={cn("h-2 w-2 rounded-full", connected ? "bg-green-500" : "bg-destructive")}
+            aria-hidden="true"
+          />
+          <span className="sr-only">{connected ? "Connected" : "Disconnected"}</span>
           <span className="text-xs font-mono text-muted-foreground">{terminalName}</span>
         </div>
         {!connected && (
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={connect}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-9 h-9 px-2 text-xs"
+            onClick={connect}
+            aria-label={`Reconnect ${terminalName} terminal`}
+          >
             <RefreshCw className="w-3 h-3 mr-1" />
             Reconnect
           </Button>
@@ -153,10 +171,19 @@ export function Terminal({ labId, terminalName, className }: TerminalProps) {
       </div>
       
       {/* Terminal container */}
-      <div className="flex-1 p-2 overflow-hidden" ref={terminalRef} />
+      <div
+        className="flex-1 p-2 overflow-hidden"
+        ref={terminalRef}
+        role="application"
+        aria-label={`${terminalName} terminal`}
+        tabIndex={0}
+      />
       
       {error && (
-        <div className="absolute bottom-4 left-4 right-4 bg-destructive/90 text-destructive-foreground p-3 rounded-md shadow-lg text-sm flex items-center justify-between">
+        <div
+          className="absolute bottom-4 left-4 right-4 bg-destructive/90 text-destructive-foreground p-3 rounded-md shadow-lg text-sm flex items-center justify-between gap-3"
+          role="alert"
+        >
           <span>{error}</span>
           <Button variant="outline" size="sm" onClick={connect} className="h-7 border-destructive-foreground/20 hover:bg-destructive-foreground/10 text-destructive-foreground">
             Retry
