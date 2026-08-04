@@ -42,6 +42,7 @@ function clearTimeout_(studentId: string, labId: string): void {
 const EXEC_TIMEOUT_MS        = 30_000;   // 30 s for verify scripts
 const SETUP_TIMEOUT_MS       = 120_000;  // 2 min for plain setup scripts
 const SETUP_TIMEOUT_SERVICE  = 180_000;  // 3 min for service containers (Jenkins, etc.) that need time to boot
+const JENKINS_READY_TIMEOUT  = 150_000;  // Jenkins must finish init.groovy.d after its setup restart
 const MAX_OUTPUT_BYTES = 2 * 1024 * 1024; // 2 MB — prevent OOM from chatty scripts
 
 function containerName(studentId: string, labId: string): string {
@@ -308,6 +309,24 @@ export async function startSession(studentId: string, labId: string): Promise<La
         if (lab.useImageCmd) {
           logger.info({ labId, studentId }, "Restarting service container to apply setup files");
           await container.restart({ t: 10 });
+        }
+        // Jenkins returns a login page before init.groovy.d has necessarily
+        // finished creating the configured account. Wait for the init script's
+        // marker so the UI cannot expose a login form during that race window.
+        if (lab.image.startsWith("jenkins/")) {
+          const ready = await runExec(
+            container,
+            [
+              "sh",
+              "-lc",
+              "for i in $(seq 1 120); do test -f /var/jenkins_home/.linuxlabs-jenkins-ready && exit 0; sleep 1; done; exit 1",
+            ],
+            { user: "root", timeoutMs: JENKINS_READY_TIMEOUT },
+          );
+          if (ready.exitCode !== 0) {
+            throw new Error(`Jenkins did not finish account initialization: ${ready.output.slice(-500)}`);
+          }
+          logger.info({ labId, studentId }, "Jenkins account initialization complete");
         }
       } catch (setupErr) {
         // Never leave a half-provisioned container running — remove it before surfacing the error.

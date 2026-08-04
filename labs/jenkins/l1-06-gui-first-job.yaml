@@ -77,11 +77,13 @@ setupScript: |
   # Write Groovy init script immediately — Jenkins LTS takes 60-90s to boot,
   # so this write reliably arrives before Jenkins reads init.groovy.d.
   mkdir -p /var/jenkins_home/init.groovy.d
+  rm -f /var/jenkins_home/.linuxlabs-jenkins-ready
   cat > /var/jenkins_home/init.groovy.d/01-admin.groovy << 'GROOVY'
   import jenkins.model.*
   import hudson.security.*
 
   def instance = Jenkins.getInstance()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").delete()
   def realm = new HudsonPrivateSecurityRealm(false)
   realm.createAccount("admin", "admin")
   instance.setSecurityRealm(realm)
@@ -89,6 +91,7 @@ setupScript: |
   strategy.setAllowAnonymousRead(false)
   instance.setAuthorizationStrategy(strategy)
   instance.save()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").text = "ready\n"
   GROOVY
 
   # Wait for Jenkins to be responsive (up to 3 minutes)

@@ -80,11 +80,13 @@ terminals:
 
 setupScript: |
   mkdir -p /var/jenkins_home/init.groovy.d
+  rm -f /var/jenkins_home/.linuxlabs-jenkins-ready
   cat > /var/jenkins_home/init.groovy.d/01-admin.groovy << 'GROOVY'
   import jenkins.model.*
   import hudson.security.*
 
   def instance = Jenkins.getInstance()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").delete()
   def realm = new HudsonPrivateSecurityRealm(false)
   realm.createAccount("admin", "admin")
   instance.setSecurityRealm(realm)
@@ -92,6 +94,7 @@ setupScript: |
   strategy.setAllowAnonymousRead(false)
   instance.setAuthorizationStrategy(strategy)
   instance.save()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").text = "ready\n"
   GROOVY
 
   echo "Waiting for Jenkins to start..."
