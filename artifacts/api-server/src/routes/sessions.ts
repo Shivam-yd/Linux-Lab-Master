@@ -20,7 +20,6 @@ import {
   getSessionRow,
   startSession,
   stopSession,
-  resetSession,
   verifyLab,
   recordProgress,
 } from "../lib/docker/manager";
@@ -83,7 +82,7 @@ router.post("/labs/:labId/session", async (req, res): Promise<void> => {
     return;
   }
   if (!await allowLabAccess(req.studentId, lab.track, res)) return;
-  const row = await startSession(req.studentId, lab.id);
+  const row = await startSession(req.studentId, lab.id, { background: true });
   res.json(
     StartLabSessionResponse.parse(
       toSessionResponse(
@@ -122,7 +121,8 @@ router.post("/labs/:labId/session/reset", async (req, res): Promise<void> => {
     return;
   }
   if (!await allowLabAccess(req.studentId, lab.track, res)) return;
-  const row = await resetSession(req.studentId, lab.id);
+  await stopSession(req.studentId, lab.id);
+  const row = await startSession(req.studentId, lab.id, { background: true });
   res.json(
     ResetLabSessionResponse.parse(
       toSessionResponse(

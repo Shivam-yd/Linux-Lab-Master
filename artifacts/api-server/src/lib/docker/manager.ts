@@ -191,15 +191,32 @@ export async function getSessionRow(studentId: string, labId: string): Promise<L
  */
 const _startingKeys = new Set<string>();
 
-export async function startSession(studentId: string, labId: string): Promise<LabSessionRow> {
+export async function startSession(
+  studentId: string,
+  labId: string,
+  options: { background?: boolean; lockHeld?: boolean } = {},
+): Promise<LabSessionRow> {
   const lab = await getLabByIdAsync(labId);
   if (!lab) throw new Error(`Unknown lab: ${labId}`);
 
   const key = `${studentId}:${labId}`;
 
+  if (options.background) {
+    const current = await getSessionRow(studentId, labId);
+    if (current?.status === "running") return current;
+    if (_startingKeys.has(key)) return current ?? await upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
+
+    _startingKeys.add(key);
+    const row = await upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
+    void startSession(studentId, labId, { lockHeld: true })
+      .catch((err) => logger.error({ err, studentId, labId }, "Background lab provisioning failed"))
+      .finally(() => _startingKeys.delete(key));
+    return row;
+  }
+
   // If a start is already in progress for this student+lab, wait for it to
   // finish and return the resulting session row rather than racing it.
-  if (_startingKeys.has(key)) {
+  if (!options.lockHeld && _startingKeys.has(key)) {
     for (let i = 0; i < 30; i++) {
       await new Promise((r) => setTimeout(r, 1_000));
       const row = await getSessionRow(studentId, labId);
@@ -208,7 +225,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
     // Fall through and try anyway if the wait expires.
   }
 
-  _startingKeys.add(key);
+  if (!options.lockHeld) _startingKeys.add(key);
   try {
     const name = containerName(studentId, labId);
     const existing = await findExistingContainer(name);
@@ -365,7 +382,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
       });
     }
   } finally {
-    _startingKeys.delete(key);
+    if (!options.lockHeld) _startingKeys.delete(key);
   }
 }
 
