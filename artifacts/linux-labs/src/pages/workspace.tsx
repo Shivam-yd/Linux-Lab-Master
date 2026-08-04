@@ -833,71 +833,28 @@ export default function Workspace() {
               )}
             </Button>
             
-            {/* Verify API error (distinct from check failures, which are inside verifyResult) */}
-            {verifyError && (
-              <div className="mt-3 flex items-center gap-2 text-xs font-mono text-destructive bg-destructive/10 px-3 py-2.5 rounded-lg border border-destructive/20 animate-in fade-in duration-300">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>{verifyError}</span>
-              </div>
-            )}
-
-            {/* Verify Results */}
-            {verifyResult && (
+            {verifyResult?.passed && (
               <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className={cn(
-                  "p-4 rounded-xl border relative overflow-hidden",
-                  verifyResult.passed 
-                    ? "bg-green-500/10 border-green-500/40 shadow-[0_0_30px_rgba(34,197,94,0.15)]" 
-                    : "bg-red-500/10 border-red-500/40"
-                )}>
-                  {verifyResult.passed && (
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/20 blur-[40px] -mr-10 -mt-10 rounded-full" />
-                  )}
-                  
-                  <div className="flex items-center justify-between mb-4 relative z-10">
-                    <div className="flex items-center gap-2">
-                      {verifyResult.passed ? (
-                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                        </div>
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                          <XCircle className="w-5 h-5 text-red-500" />
-                        </div>
-                      )}
-                      <span className={cn("font-bold tracking-tight text-lg", verifyResult.passed ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
-                        {verifyResult.passed ? 'MISSION_ACCOMPLISHED' : 'CHECKS_FAILED'}
-                      </span>
-                    </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">How difficult was this lab?</p>
+                  <div className="flex gap-2">
+                    {(["easy", "ok", "hard"] as const).map(r => (
+                      <button
+                        key={r}
+                        onClick={() => submitRating(r)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                          myRating === r
+                            ? r === "easy" ? "bg-green-500/20 border-green-500/50 text-green-400"
+                            : r === "ok"   ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
+                            :                "bg-red-500/20 border-red-500/50 text-red-400"
+                            : "border-border/40 text-muted-foreground hover:border-border/70 hover:text-foreground"
+                        )}
+                      >
+                        {r === "easy" ? "Easy" : r === "ok" ? "Just right" : "Hard"}
+                      </button>
+                    ))}
                   </div>
-                  
-                  <p className="text-xs font-mono text-muted-foreground/60 mt-3 relative z-10">
-                    {verifyResult.passed ? "// All objectives verified — see checklist above" : "// See objectives above for details"}
-                  </p>
-
-                  {verifyResult.passed && (
-                    <div className="mt-4 pt-3 border-t border-border/20 relative z-10">
-                      <p className="text-xs text-muted-foreground mb-2">How difficult was this lab?</p>
-                      <div className="flex gap-2">
-                        {(["easy", "ok", "hard"] as const).map(r => (
-                          <button
-                            key={r}
-                            onClick={() => submitRating(r)}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                              myRating === r
-                                ? r === "easy" ? "bg-green-500/20 border-green-500/50 text-green-400"
-                                : r === "ok"   ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
-                                :                "bg-red-500/20 border-red-500/50 text-red-400"
-                                : "border-border/40 text-muted-foreground hover:border-border/70 hover:text-foreground"
-                            )}
-                          >
-                            {r === "easy" ? "Easy" : r === "ok" ? "Just right" : "Hard"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
