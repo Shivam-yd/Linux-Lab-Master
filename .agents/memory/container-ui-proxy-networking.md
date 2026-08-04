@@ -12,3 +12,5 @@ When the API server and a lab container run in separate containers, proxy reques
 Jenkins 2.541.3 dynamic configuration controls use `org/kohsuke/stapler/bind.js`: the browser POSTs a JSON method array to a session-bound `/$stapler/bound/<id>/` URL with the custom `application/x-stapler-method-invocation` content type and crumb headers. A UI proxy must capture and forward that raw body unchanged; parsing only JSON or URL-encoded forms makes widgets such as Freestyle “Execute shell” render without their fields.
 
 Jenkins service containers can return a valid login page before `init.groovy.d` finishes creating the configured account after the setup restart. Service readiness must wait on an initialization marker created at the end of the Groovy script, not only on HTTP 200 from `/jenkins/login`.
+
+Execution-step Markdown should avoid the Tailwind Typography `prose` class entirely. Even scoped color overrides can leave individual emphasis nodes unreadable because Typography injects its own prose color variables; a small card-local renderer is more reliable.

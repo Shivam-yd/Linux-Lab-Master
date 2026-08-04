@@ -181,23 +181,48 @@
   }
 }
 
-/* Markdown inside revealed execution steps must not inherit the typography
-   plugin's low-contrast defaults in dark mode. Keep this scoped so the rest
-   of the app can retain its normal prose palette. Some generated Markdown
-   nodes are nested inside Typography elements, so apply the base color to
-   every descendant before restoring intentional accent colors below. */
-div.execution-step-markdown.prose * {
+/* Execution steps intentionally avoid the Typography plugin. Its generated
+   prose color variables can make only some Markdown emphasis nodes unreadable
+   in the dark theme. Keep this small renderer scoped to the step cards. */
+.execution-step-markdown {
+  color: hsl(var(--foreground));
+}
+
+.execution-step-markdown p {
+  margin: 0;
+}
+
+.execution-step-markdown strong,
+.execution-step-markdown em,
+.execution-step-markdown h1,
+.execution-step-markdown h2,
+.execution-step-markdown h3,
+.execution-step-markdown h4,
+.execution-step-markdown h5,
+.execution-step-markdown h6,
+.execution-step-markdown li,
+.execution-step-markdown blockquote {
   color: hsl(var(--foreground)) !important;
 }
 
-div.execution-step-markdown.prose li::marker {
+.execution-step-markdown ul,
+.execution-step-markdown ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.execution-step-markdown li::marker {
   color: hsl(var(--primary)) !important;
 }
 
-div.execution-step-markdown.prose a {
+.execution-step-markdown a,
+.execution-step-markdown code {
   color: hsl(var(--primary)) !important;
 }
 
-div.execution-step-markdown.prose code {
-  color: hsl(var(--primary)) !important;
+.execution-step-markdown code {
+  border-radius: 0.25rem;
+  background: hsl(var(--primary) / 0.1);
+  padding: 0.125rem 0.375rem;
+  font-family: var(--app-font-mono);
 }
