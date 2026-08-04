@@ -32,11 +32,20 @@ export default function VerifyPage() {
   }, [certId])
 
   if (status === "loading")
-    return <div className="min-h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+    return (
+      <div className="min-h-[100dvh] bg-background text-foreground flex items-center justify-center p-6">
+        <div className="w-full max-w-sm dlm-panel rounded-2xl p-8 space-y-5">
+          <div className="h-2 w-24 rounded-full bg-primary/20 animate-pulse" />
+          <div className="h-8 w-3/4 rounded-lg bg-muted animate-pulse" />
+          <div className="h-4 w-full rounded bg-muted/70 animate-pulse" />
+          <div className="h-4 w-5/6 rounded bg-muted/70 animate-pulse" />
+        </div>
+      </div>
+    )
 
   if (status === "expired")
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
+      <div className="min-h-[100dvh] bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
         <XCircle className="w-14 h-14 text-yellow-400/60" />
         <div className="text-center">
           <h1 className="text-2xl font-bold">Certificate expired</h1>
@@ -49,7 +58,7 @@ export default function VerifyPage() {
   if (status === "not_found")
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-5 px-6">
-        <XCircle className="w-14 h-14 text-red-400/60" />
+        <XCircle className="w-14 h-14 text-rose-400/60" />
         <div className="text-center">
           <h1 className="text-2xl font-bold">Certificate not found</h1>
           <p className="text-muted-foreground mt-2 text-sm">This certificate ID doesn't exist or hasn't been shared yet.</p>
@@ -65,24 +74,26 @@ export default function VerifyPage() {
   const scope = cert.level ? `${tm.label} · ${LEVEL_NAMES[cert.level] ?? `Level ${cert.level}`}` : `${tm.label} Track`
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <div className="flex items-center px-6 py-4 border-b border-border/50">
+    <div className="dlm-noise min-h-[100dvh] bg-background text-foreground flex flex-col">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-primary/20 bg-background/75 backdrop-blur-md">
         <Link href={`${basePath}/`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" /> DevLabMaster
         </Link>
+        <span className="dlm-kicker hidden sm:block">public verification</span>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md border border-border/60 rounded-2xl bg-card overflow-hidden">
+      <div className="relative flex-1 flex items-center justify-center p-4 sm:p-8">
+        <div className="absolute inset-0 dlm-grid pointer-events-none" />
+        <div className="relative w-full max-w-md border border-emerald-400/25 rounded-2xl bg-card/95 overflow-hidden shadow-2xl shadow-primary/10">
           <div className="h-1" style={{ background: tm.accentHex }} />
           <div className="px-10 py-10 flex flex-col items-center text-center gap-6">
 
-            <div className="w-16 h-16 rounded-full border-2 flex items-center justify-center" style={{ borderColor: `${tm.accentHex}50`, background: `${tm.accentHex}10` }}>
+            <div className="w-16 h-16 rounded-2xl border-2 flex items-center justify-center" style={{ borderColor: `${tm.accentHex}50`, background: `${tm.accentHex}10` }}>
               <Icon className="w-7 h-7" style={{ color: tm.accentHex }} />
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: tm.accentHex }}>Certificate of Achievement</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: tm.accentHex }}>Verified achievement record</p>
               <p className="text-xs text-muted-foreground">This certifies that</p>
             </div>
 
@@ -96,7 +107,7 @@ export default function VerifyPage() {
               <span className="text-muted-foreground">{fmt(cert.earnedAt)}</span>
               <div className="flex items-center gap-1.5 text-green-500">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="font-semibold">Verified</span>
+                <span className="font-semibold">Verified by DevLabMaster</span>
               </div>
               <span className="font-mono text-muted-foreground/60">{cert.certId.match(/.{1,4}/g)!.join("-")}</span>
             </div>

@@ -14,3 +14,4 @@
 - [Admin certificate safety](admin-certificate-safety.md) — certificate refreshes must reuse completion validation; revocation remains explicit.
 - [GitHub sync reliability](github-sync-reliability.md) — manual sync should return its completed result and reuse one validated-file pass.
 - [Low-cost lab session recovery](session-recovery.md) — reuse the running container; store only a short tab-scoped recovery marker.
+- [Local onboarding preferences](onboarding-local-preferences.md) — keep first-session guidance browser-local until cross-device personalization is required.

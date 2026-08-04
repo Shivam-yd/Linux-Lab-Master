@@ -317,6 +317,28 @@ export default function Catalog() {
     setViewMode(mode)
   }
 
+  const [onboardingDone, setOnboardingDone] = useState(() => {
+    try { return localStorage.getItem("devlabmaster-onboarding") === "done" } catch { return false }
+  })
+  const [onboardingExperience, setOnboardingExperience] = useState("")
+  const [onboardingGoal, setOnboardingGoal] = useState("")
+  const [onboardingTrack, setOnboardingTrack] = useState("")
+  const onboardingRecommendation = onboardingTrack || (
+    onboardingGoal === "projects" ? "docker"
+      : onboardingGoal === "automation" ? "terraform"
+      : "linux"
+  )
+  const onboardingMeta = TRACK_META[onboardingRecommendation] ?? DEFAULT_TRACK_META
+  const saveOnboarding = (track = onboardingRecommendation) => {
+    try { localStorage.setItem("devlabmaster-onboarding", "done") } catch {}
+    setOnboardingDone(true)
+    handleTrackChange(track)
+  }
+  const dismissOnboarding = () => {
+    try { localStorage.setItem("devlabmaster-onboarding", "done") } catch {}
+    setOnboardingDone(true)
+  }
+
   // All track+level combos for "By Level" view
   type LabItem = NonNullable<typeof labs>[number]
   const trackLevelCards = useMemo(() => {
@@ -360,11 +382,11 @@ export default function Catalog() {
   const { data: authSession, isPending: authPending } = useSession()
 
   return (
-    <div className="relative flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="relative flex min-h-[100dvh] bg-background text-foreground overflow-hidden">
 
       {/* ── Sidebar ─────────────────────────────────────── */}
       <aside className={cn(
-        "shrink-0 flex flex-col bg-card border-r border-border relative z-10 transition-[width] duration-200 overflow-hidden",
+        "hidden md:flex shrink-0 flex-col bg-card border-r border-border relative z-10 transition-[width] duration-200 overflow-hidden",
         collapsed ? "w-16" : "w-64"
       )}>
         {/* Brand */}
@@ -505,10 +527,10 @@ export default function Catalog() {
       </button>
 
       {/* ── Main content ────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto bg-background/50 relative">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-background/50 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
         
-        <div className="p-8 max-w-6xl mx-auto space-y-8 relative z-10">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 lg:space-y-8 relative z-10">
 
           {/* Admin banner */}
           {adminCheck?.isAdmin && (
@@ -532,9 +554,10 @@ export default function Catalog() {
           )}
 
           {/* Header Area */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-primary/20 dark:border-border/40">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-primary/20 dark:border-border/40">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              <p className="dlm-kicker mb-2">/ dashboard · {overallStats.passed} verified</p>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
                 {meta.label} Range
               </h1>
               <p className="text-muted-foreground mt-2 max-w-xl text-sm leading-relaxed">
@@ -620,6 +643,128 @@ export default function Catalog() {
               </div>
             </div>
           </div>
+
+          {!onboardingDone && !loading && (
+            <section className="dlm-panel rounded-2xl overflow-hidden" aria-labelledby="onboarding-title">
+              <div className="p-5 sm:p-6 border-b border-border/60">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="dlm-kicker mb-2">first session setup</p>
+                    <h2 id="onboarding-title" className="text-xl sm:text-2xl font-bold tracking-tight">Choose a path that fits your goals</h2>
+                    <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
+                      A few choices help us point you to the right first lab. You can change tracks anytime.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={dismissOnboarding}
+                    className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  >
+                    Skip for now
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-3">
+                <fieldset>
+                  <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Your experience</legend>
+                  <div className="space-y-2">
+                    {[
+                      ["new", "New to DevOps"],
+                      ["some", "Some hands-on experience"],
+                      ["working", "I work with technical systems"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setOnboardingExperience(value)}
+                        aria-pressed={onboardingExperience === value}
+                        className={cn(
+                          "w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors",
+                          onboardingExperience === value
+                            ? "border-primary/50 bg-primary/10 text-foreground"
+                            : "border-border/70 bg-background/30 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset>
+                  <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Your goal</legend>
+                  <div className="space-y-2">
+                    {[
+                      ["foundations", "Build strong foundations"],
+                      ["projects", "Ship real projects"],
+                      ["automation", "Automate infrastructure"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setOnboardingGoal(value)}
+                        aria-pressed={onboardingGoal === value}
+                        className={cn(
+                          "w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors",
+                          onboardingGoal === value
+                            ? "border-primary/50 bg-primary/10 text-foreground"
+                            : "border-border/70 bg-background/30 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset>
+                  <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Preferred starting track</legend>
+                  <div className="grid grid-cols-2 gap-2">
+                    {["linux", "docker", "terraform", "git"].filter(track => tracks.includes(track)).map(track => {
+                      const tm = TRACK_META[track]
+                      return (
+                        <button
+                          key={track}
+                          type="button"
+                          onClick={() => setOnboardingTrack(track)}
+                          aria-pressed={onboardingTrack === track}
+                          className={cn(
+                            "rounded-lg border px-3 py-2.5 text-left text-sm transition-colors",
+                            onboardingTrack === track
+                              ? "border-primary/50 bg-primary/10 text-foreground"
+                              : "border-border/70 bg-background/30 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                          )}
+                        >
+                          {tm.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-4 flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${onboardingMeta.accentHex}18` }}>
+                      <onboardingMeta.icon className="w-4 h-4" style={{ color: onboardingMeta.accentHex }} />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      We recommend <span className="font-semibold text-foreground">{onboardingMeta.label}</span> first.
+                    </p>
+                  </div>
+                </fieldset>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 pb-5 sm:px-6 sm:pb-6">
+                <p className="text-xs text-muted-foreground/70">Saved only in this browser.</p>
+                <button
+                  type="button"
+                  onClick={() => saveOnboarding()}
+                  disabled={!onboardingExperience || !onboardingGoal}
+                  className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Use this path
+                </button>
+              </div>
+            </section>
+          )}
 
           {/* ── Track lock wall ── */}
           {isTrackLocked && (

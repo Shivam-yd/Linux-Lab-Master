@@ -31,8 +31,8 @@ function fmt(iso: string) {
 
 function CertificateLoading() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border/40 bg-background/80 backdrop-blur-md flex items-center justify-between px-6 py-4">
+    <div className="min-h-[100dvh] bg-background text-foreground">
+      <header className="sticky top-0 z-20 border-b border-primary/20 bg-background/80 backdrop-blur-md flex items-center justify-between px-6 py-4">
         <Skeleton className="h-5 w-20" />
         <div className="flex items-center gap-3">
           <Skeleton className="h-9 w-24 rounded-lg" />
@@ -40,7 +40,7 @@ function CertificateLoading() {
         </div>
       </header>
       <div className="flex items-center justify-center min-h-[calc(100vh-65px)] p-8">
-        <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl shadow-primary/5">
           <Skeleton className="h-1 w-full rounded-none" />
           <div className="px-14 py-12 flex flex-col items-center text-center gap-7">
             <Skeleton className="h-4 w-28" />
@@ -80,6 +80,7 @@ export default function CertificatePage() {
   const levelNum = level ? Number(level) : undefined
   const lm       = levelNum ? (LEVEL_META[levelNum] ?? { tier: `Level ${levelNum}`, blurb: "completed all labs in" }) : undefined
   const skills   = TRACK_SKILLS[track ?? ""] ?? "technical lab exercises"
+  const title    = lm ? `${tm.label} · ${lm.tier}` : `${tm.label} Track`
 
   const { passed, total, lastPassedAt, isComplete } = useMemo(() => {
     if (!labs || !progress) return { passed: 0, total: 0, lastPassedAt: null, isComplete: false }
@@ -205,14 +206,16 @@ export default function CertificatePage() {
 
   if (!isComplete && !storedCert)
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <header className="sticky top-0 z-20 border-b border-border/40 bg-background/80 backdrop-blur-md flex items-center px-6 py-4">
+      <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
+        <header className="sticky top-0 z-20 border-b border-primary/20 bg-background/80 backdrop-blur-md flex items-center px-6 py-4">
           <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
             <ArrowLeft className="w-4 h-4" /> Progress
           </Link>
         </header>
         <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6">
-          <Award className="w-14 h-14 text-muted-foreground/30" />
+          <div className="w-16 h-16 rounded-2xl border border-primary/20 bg-primary/10 flex items-center justify-center">
+            <Award className="w-7 h-7 text-primary/70" />
+          </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold">Certificate not yet earned</h1>
             <p className="text-muted-foreground mt-2 text-sm">Complete all {tm.label}{lm ? ` ${lm.tier}` : ""} labs to unlock this. {passed} of {total} passed so far.</p>
@@ -222,16 +225,18 @@ export default function CertificatePage() {
       </div>
     )
 
-  const title = lm ? `${tm.label} · ${lm.tier}` : `${tm.label} Track`
   const blurb = lm ? lm.blurb : "has successfully completed all hands-on labs in the"
 
   return (
-    <div className="min-h-screen bg-background text-foreground print:bg-white">
-      <header className="print:hidden sticky top-0 z-20 border-b border-primary/20 bg-primary/8 dark:bg-primary/[0.07] backdrop-blur-md flex items-center justify-between px-6 py-4">
+    <div className="min-h-[100dvh] bg-background text-foreground print:bg-white">
+      <header className="print:hidden sticky top-0 z-20 border-b border-primary/20 bg-background/80 backdrop-blur-md flex items-center justify-between px-6 py-4">
         <Link href={`${basePath}/progress`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" /> Progress
         </Link>
         <div className="flex items-center gap-3">
+          <span className="hidden sm:inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> achievement record
+          </span>
           {certId && (
             <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-muted transition-colors">
               {copied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
@@ -245,8 +250,9 @@ export default function CertificatePage() {
         </div>
       </header>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-65px)] print:block print:min-h-0 p-8 print:p-6">
-        <div className="cert-card w-full max-w-2xl border border-border/60 rounded-2xl bg-card overflow-hidden print:rounded-none print:border print:max-w-none">
+      <div className="relative flex items-center justify-center min-h-[calc(100dvh-65px)] print:block print:min-h-0 p-4 sm:p-8 print:p-6">
+        <div className="absolute inset-0 dlm-grid pointer-events-none print:hidden" />
+        <div className="cert-card relative w-full max-w-2xl border border-primary/20 rounded-2xl bg-card overflow-hidden shadow-2xl shadow-primary/10 print:rounded-none print:border print:max-w-none">
 
           {/* Accent top bar */}
           <div className="h-1" style={{ background: tm.accentHex }} />
@@ -260,14 +266,14 @@ export default function CertificatePage() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: tm.accentHex }}>Certificate of Achievement</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: tm.accentHex }}>Verified achievement record</p>
               <div className="w-12 h-px mx-auto" style={{ background: tm.accentHex }} />
             </div>
 
             {/* Body */}
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">This certifies that</p>
-              <p className="text-4xl font-black tracking-tight" style={{ fontFamily: "Georgia, serif" }}>{userName}</p>
+              <p className="text-3xl sm:text-4xl font-black tracking-tight" style={{ fontFamily: "Georgia, serif" }}>{userName}</p>
               <p className="text-sm text-muted-foreground">{blurb}</p>
             </div>
 
@@ -286,7 +292,7 @@ export default function CertificatePage() {
                 <p className="text-xs uppercase tracking-widest text-muted-foreground/60 mb-1">Date Awarded</p>
                 <p className="text-sm font-semibold">{fmt(storedCert?.earnedAt ?? lastPassedAt ?? "")}</p>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground/40">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
                 <CheckCircle2 className="w-3 h-3 text-green-500/50" />
                 Verified by automated lab testing
               </div>

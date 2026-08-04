@@ -225,8 +225,8 @@ function TerminalMockup() {
           </div>
 
           {/* Server banner */}
-          <div className="px-3.5 py-1.5 shrink-0 text-xs font-semibold" style={{ background: "rgba(139,92,246,0.28)", color: "#c4b5fd" }}>
-            ⬡ devops-sandbox
+           <div className="px-3.5 py-1.5 shrink-0 text-xs font-semibold" style={{ background: "rgba(139,92,246,0.28)", color: "#c4b5fd" }}>
+             devops-sandbox
           </div>
 
           {/* Output */}
@@ -286,7 +286,7 @@ export default function Home() {
   if (!isPending && session?.user) return <Redirect to="/dashboard" />
 
   return (
-    <div className="bg-background text-foreground">
+    <div className="dlm-noise bg-background text-foreground">
 
       {/* ── Background orbs ── */}
       <BackgroundOrbs />
@@ -303,15 +303,15 @@ export default function Home() {
             <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" />
             <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link href="/pricing" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
             <ThemeToggle />
-            <Link href="/sign-in" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2">
+            <Link href="/sign-in" className="text-sm font-semibold whitespace-nowrap text-muted-foreground hover:text-foreground transition-colors px-2 sm:px-3 py-2">
               Sign In
             </Link>
             <Link
               href="/sign-up"
-              className="text-sm font-bold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity shadow-[0_2px_16px_rgba(13,148,136,0.25)]"
+              className="text-sm font-bold whitespace-nowrap px-3 sm:px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity shadow-[0_2px_16px_rgba(13,148,136,0.25)]"
             >
               Get Started
             </Link>
@@ -320,7 +320,7 @@ export default function Home() {
       </motion.header>
 
       {/* ── Hero ── */}
-      <section className="relative z-10 max-w-7xl mx-auto px-6 pt-24 pb-20 text-center">
+      <section className="relative z-10 max-w-7xl mx-auto px-6 pt-20 sm:pt-28 pb-16 text-center">
         <motion.div variants={heroContainer} initial="hidden" animate="show">
 
           {/* Badge */}
@@ -330,7 +330,7 @@ export default function Home() {
           </motion.div>
 
           {/* Headline */}
-          <motion.h1 variants={heroItem} className="text-5xl sm:text-7xl font-bold tracking-tight leading-[1.06] max-w-4xl mx-auto">
+          <motion.h1 variants={heroItem} className="text-5xl sm:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.01] max-w-5xl mx-auto">
             Learn DevOps by{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
               doing it for real
@@ -338,7 +338,7 @@ export default function Home() {
           </motion.h1>
 
           {/* Subtitle */}
-          <motion.p variants={heroItem} className="mt-7 text-foreground/80 text-xl max-w-2xl mx-auto leading-relaxed">
+          <motion.p variants={heroItem} className="mt-7 text-foreground/70 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed">
             Hands-on Linux, Terraform, Jenkins, Docker, Git, and more —<br className="hidden sm:block" /> each one a real terminal, automatically verified.
           </motion.p>
 
@@ -361,12 +361,17 @@ export default function Home() {
               </Link>
             </div>
           </motion.div>
+          <motion.div variants={heroItem} className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-mono text-muted-foreground/70">
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> isolated containers</span>
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> objective-level feedback</span>
+            <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-secondary" /> progress that persists</span>
+          </motion.div>
         </motion.div>
       </section>
 
       {/* ── Product preview ── */}
       <motion.section
-        className="relative z-10 max-w-4xl mx-auto px-6 pb-16"
+        className="relative z-10 max-w-5xl mx-auto px-6 pb-20"
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
@@ -382,7 +387,7 @@ export default function Home() {
         viewport={{ once: true }}
         transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-3">
+        <p className="text-center dlm-kicker mb-3">
           How it works
         </p>
         <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight mb-14">
@@ -396,7 +401,7 @@ export default function Home() {
             { num: 3, icon: CheckCheck, title: "Verify your work",     desc: "Hit Verify. Check scripts run inside your container and tell you exactly what passed." },
           ]
           return (
-            <div className="flex items-start">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-8 sm:gap-0">
               {steps.map(({ num, icon: Icon, title, desc }, i) => (
                 <Fragment key={num}>
                   {/* step column */}
@@ -426,7 +431,7 @@ export default function Home() {
 
                   {/* arrow between steps */}
                   {i < 2 && (
-                    <div className="flex items-center shrink-0 mt-[20px]">
+                    <div className="hidden sm:flex items-center shrink-0 mt-[20px]">
                       <div className="w-8 h-px" style={{ background: "rgba(13,148,136,0.3)" }} />
                       <ArrowRight className="w-3.5 h-3.5 -ml-0.5" style={{ color: "rgba(13,148,136,0.35)" }} />
                     </div>
@@ -441,7 +446,7 @@ export default function Home() {
       {/* ── Track marquee ── */}
       <section className="relative z-10 w-full mb-12">
         <motion.p
-          className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-5"
+          className="text-center dlm-kicker mb-5"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -488,7 +493,7 @@ export default function Home() {
 
       {/* ── Features ── */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 pb-24">
-        <p className="text-center text-xs font-bold tracking-widest text-muted-foreground/60 uppercase mb-3">
+        <p className="text-center dlm-kicker mb-3">
           Why it works
         </p>
         <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight mb-10">
