@@ -20,15 +20,16 @@ spec:
     matchLabels:
       app: api
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    # The API uses host networking so it can reach Docker-published lab ports.
+    # Recreate avoids two API pods competing for host port 8080 during deploys.
+    type: Recreate
   template:
     metadata:
       labels:
         app: api
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: api
           image: localhost:5000/devlabmaster-api:${IMAGE_TAG}
