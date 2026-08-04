@@ -184,10 +184,14 @@ export async function runSync(triggeredBy: "auto" | "manual" = "auto"): Promise<
     const existingRows = await db.select().from(remoteLabsTable);
     const shaById = new Map(existingRows.map((r) => [r.id, r.sha]));
 
-    for (const file of files) {
-      const def = await fetchAndValidateLab(file);
-      if (!def) continue;
+    const validated = (await Promise.all(files.map(async (file) => ({
+      file,
+      def: await fetchAndValidateLab(file),
+    })))).filter(
+      (entry): entry is { file: GhContent; def: ValidatedLab } => entry.def !== null,
+    );
 
+    for (const { file, def } of validated) {
       if (SYNC_DENY_LIST.has(def.id)) {
         logger.debug({ labId: def.id }, "github-sync: skipping denied lab");
         continue;
@@ -220,11 +224,9 @@ export async function runSync(triggeredBy: "auto" | "manual" = "auto"): Promise<
     // Build the set of IDs that came from this sync (deny-listed ones are never
     // inserted, so they won't be in seenIds and would be incorrectly pruned —
     // exclude them from the delete predicate too).
-    const seenIds: string[] = [];
-    for (const file of files) {
-      const def = await fetchAndValidateLab(file).catch(() => null);
-      if (def && !SYNC_DENY_LIST.has(def.id)) seenIds.push(def.id);
-    }
+    const seenIds = validated
+      .filter(({ def }) => !SYNC_DENY_LIST.has(def.id))
+      .map(({ def }) => def.id);
 
     if (seenIds.length > 0) {
       // Delete any rows not present in the current GitHub file set

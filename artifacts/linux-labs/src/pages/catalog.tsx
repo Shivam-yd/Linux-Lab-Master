@@ -88,14 +88,25 @@ interface SyncStatus {
   totalRemote: number
 }
 
+interface SyncResult {
+  status: "success" | "error" | "skipped"
+  labsAdded: number
+  labsUpdated: number
+  totalRemote: number
+  errorMessage?: string
+}
+
 async function fetchSyncStatus(): Promise<SyncStatus> {
   const res = await fetch("/api/labs/sync/status", { credentials: "include" })
   if (!res.ok) throw new Error("Failed to fetch sync status")
   return res.json()
 }
 
-async function triggerSync(): Promise<void> {
-  await fetch("/api/labs/sync", { method: "POST", credentials: "include" })
+async function triggerSync(): Promise<SyncResult> {
+  const res = await fetch("/api/labs/sync", { method: "POST", credentials: "include" })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.errorMessage ?? body.error ?? "Lab sync failed")
+  return body as SyncResult
 }
 
 function formatRelativeTime(iso: string): string {
@@ -140,35 +151,24 @@ export default function Catalog() {
   const handleFetchLabs = useCallback(async () => {
     setSyncing(true)
     setSyncMessage(null)
-    const beforeSyncedAt = syncStatus?.lastSync?.syncedAt ?? null
     try {
-      await triggerSync()
-      // Poll until syncedAt changes (sync completed) or 90s timeout
-      let fresh = syncStatus
-      for (let i = 0; i < 45; i++) {
-        await new Promise(r => setTimeout(r, 2000))
-        fresh = await fetchSyncStatus().catch(() => fresh)
-        if (fresh?.lastSync?.syncedAt !== beforeSyncedAt) break
-      }
+      const result = await triggerSync()
+      const fresh = await fetchSyncStatus()
       setSyncStatus(fresh)
-      if (fresh?.lastSync?.status === "error") {
-        setSyncMessage("✗ Sync failed — check network or repo")
+      const added   = result.labsAdded
+      const updated = result.labsUpdated
+      if (added === 0 && updated === 0) {
+        setSyncMessage("Already up to date")
       } else {
-        const added   = fresh?.lastSync?.labsAdded   ?? 0
-        const updated = fresh?.lastSync?.labsUpdated ?? 0
-        if (added === 0 && updated === 0) {
-          setSyncMessage("Already up to date")
-        } else {
-          const parts = []
-          if (added   > 0) parts.push(`${added} new`)
-          if (updated > 0) parts.push(`${updated} updated`)
-          setSyncMessage(`✓ ${parts.join(", ")} lab${(added + updated) !== 1 ? "s" : ""} synced`)
-        }
+        const parts = []
+        if (added   > 0) parts.push(`${added} new`)
+        if (updated > 0) parts.push(`${updated} updated`)
+        setSyncMessage(`✓ ${parts.join(", ")} lab${(added + updated) !== 1 ? "s" : ""} synced`)
       }
       await refetchLabs()
       await refetchProgress()
-    } catch {
-      setSyncMessage("✗ Sync failed — check network or repo")
+    } catch (err) {
+      setSyncMessage(`✗ ${err instanceof Error ? err.message : "Lab sync failed"}`)
     } finally {
       setSyncing(false)
     }

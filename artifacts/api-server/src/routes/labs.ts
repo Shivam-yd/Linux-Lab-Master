@@ -64,10 +64,18 @@ router.get("/labs/sync/status", async (_req, res): Promise<void> => {
   }
 });
 
-/** POST /labs/sync — kick off a sync and return immediately; poll GET /labs/sync/status for result */
-router.post("/labs/sync", (_req, res): void => {
-  res.status(202).json({ status: "started" });
-  runSync("manual").catch(() => {});
+/** POST /labs/sync — run a manual sync and return its result. */
+router.post("/labs/sync", async (_req, res): Promise<void> => {
+  const result = await runSync("manual");
+  if (result.status === "error") {
+    res.status(502).json(result);
+    return;
+  }
+  if (result.status === "skipped") {
+    res.status(409).json({ ...result, errorMessage: "A lab sync is already in progress" });
+    return;
+  }
+  res.json(result);
 });
 
 router.get("/labs/:labId", async (req, res): Promise<void> => {
