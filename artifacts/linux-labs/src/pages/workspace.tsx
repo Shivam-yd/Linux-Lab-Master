@@ -93,6 +93,7 @@ export default function Workspace() {
   const { toast } = useToast()
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
   const [myRating, setMyRating] = useState<string | null>(null)
+  const [showPartyPopper, setShowPartyPopper] = useState(false)
 
   const submitRating = async (rating: string) => {
     setMyRating(rating)
@@ -117,6 +118,12 @@ export default function Workspace() {
       .catch(() => {})
     return () => controller.abort()
   }, [labId, verifyResult?.passed])
+
+  useEffect(() => {
+    if (!showPartyPopper) return
+    const timer = setTimeout(() => setShowPartyPopper(false), 1200)
+    return () => clearTimeout(timer)
+  }, [showPartyPopper])
 
   // Seed verifyResult from stored lastResults when progress loads or lab changes.
   // Compute score from lastResults directly so it matches the checks shown —
@@ -345,6 +352,7 @@ export default function Workspace() {
         setVerifyResult(res)
         if (!res.passed) setMyRating(null)
         if (res.passed) {
+          setShowPartyPopper(true)
           setCloseCountdown(15)
         }
       },
@@ -823,7 +831,8 @@ export default function Workspace() {
             <Button 
               className={cn(
                 "w-full h-12 font-bold font-mono tracking-wide text-sm transition-all duration-300 relative overflow-hidden group",
-                verifyLab.isPending ? "bg-primary/80" : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--primary),0.5)]"
+                verifyLab.isPending ? "bg-primary/80" : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--primary),0.5)]",
+                showPartyPopper && "motion-safe:animate-[party-pop_1.2s_ease-out]"
               )}
               onClick={handleVerify}
               disabled={!isRunning || verifyLab.isPending}
@@ -834,7 +843,15 @@ export default function Workspace() {
               {verifyLab.isPending ? (
                 <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> EXECUTING_TESTS...</>
               ) : (
-                <><CheckCircle2 className="w-4 h-4 mr-2" /> VERIFY_OBJECTIVES</>
+                <>
+                  {showPartyPopper ? <span className="mr-2 text-base motion-safe:animate-[party-pop-icon_1.2s_ease-out]">🎉</span> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                  VERIFY_OBJECTIVES
+                </>
+              )}
+              {showPartyPopper && (
+                <span aria-hidden="true" className="pointer-events-none absolute inset-0 motion-safe:animate-[party-pop-confetti_1.2s_ease-out]">
+                  🎊 ✨ 🎉 ✨ 🎊
+                </span>
               )}
             </Button>
             
