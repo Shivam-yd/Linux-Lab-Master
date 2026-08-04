@@ -869,9 +869,6 @@ export default function Workspace() {
                         {verifyResult.passed ? 'MISSION_ACCOMPLISHED' : 'CHECKS_FAILED'}
                       </span>
                     </div>
-                    <div className={cn("font-mono text-2xl font-black", verifyResult.passed ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
-                      {verifyResult.score}%
-                    </div>
                   </div>
                   
                   <p className="text-xs font-mono text-muted-foreground/60 mt-3 relative z-10">
