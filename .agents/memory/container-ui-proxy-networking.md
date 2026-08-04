@@ -13,6 +13,6 @@ Jenkins 2.541.3 dynamic configuration controls use `org/kohsuke/stapler/bind.js`
 
 Jenkins service containers can return a valid login page before `init.groovy.d` finishes creating the configured account after the setup restart. Service readiness must wait on an initialization marker created at the end of the Groovy script, not only on HTTP 200 from `/jenkins/login`.
 
-The API must also keep a service session in `starting` until both the initialization marker and the service's HTTP entry point are ready. The UI proxy should reject non-running session rows before inspecting or forwarding to the container.
+The API must keep a service session in `starting` until the initialization marker is ready. Do not require a separate exact HTTP status probe inside the container; Jenkins' startup response can vary while its prefixed proxy route is still usable. The UI proxy should reject non-running session rows before inspecting or forwarding to the container.
 
 Execution-step Markdown should avoid the Tailwind Typography `prose` class entirely. Even scoped color overrides can leave individual emphasis nodes unreadable because Typography injects its own prose color variables; a small card-local renderer is more reliable.

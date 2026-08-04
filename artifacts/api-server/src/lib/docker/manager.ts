@@ -114,10 +114,7 @@ async function waitForJenkinsReady(container: Docker.Container): Promise<void> {
       "-lc",
       [
         "for i in $(seq 1 120); do",
-        "  if test -f /var/jenkins_home/.linuxlabs-jenkins-ready; then",
-        "    HTTP=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/jenkins/login 2>/dev/null || true)",
-        "    if [ \"$HTTP\" = \"200\" ]; then exit 0; fi",
-        "  fi",
+        "  test -f /var/jenkins_home/.linuxlabs-jenkins-ready && exit 0",
         "  sleep 1",
         "done",
         "exit 1",
@@ -126,7 +123,7 @@ async function waitForJenkinsReady(container: Docker.Container): Promise<void> {
     { user: "root", timeoutMs: JENKINS_READY_TIMEOUT },
   );
   if (ready.exitCode !== 0) {
-    throw new Error(`Jenkins did not become HTTP-ready: ${ready.output.slice(-500)}`);
+    throw new Error(`Jenkins did not finish account initialization: ${ready.output.slice(-500)}`);
   }
 }
 
@@ -339,8 +336,7 @@ export async function startSession(studentId: string, labId: string): Promise<La
         }
         // Jenkins returns a login page before init.groovy.d has necessarily
         // finished creating the configured account. Wait for the init script's
-        // marker and HTTP login page so the UI cannot expose a half-booted
-        // service during that race window.
+        // marker so the UI cannot expose a login form during that race window.
         if (lab.image.startsWith("jenkins/")) {
           await waitForJenkinsReady(container);
           logger.info({ labId, studentId }, "Jenkins account initialization complete");
