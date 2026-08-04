@@ -165,7 +165,10 @@ export default function Workspace() {
   const uiPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const uiTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const uiPath: string = (lab as any)?.uiPath ?? ""
+  // Jenkins requires its configured URL prefix even for the initial
+  // readiness request. Keep the fallback here for older cached lab records
+  // that have uiPort but predate the uiPath field.
+  const uiPath: string = (lab as any)?.uiPath ?? ((lab as any)?.uiPort ? "/jenkins/" : "")
   const hasUi = !!(lab as any)?.uiPort
 
   useEffect(() => {

@@ -72,7 +72,14 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   // proxyPrefix is the path prefix the browser uses to reach this proxy.
   // All /jenkins/* links must be rewritten to go through this prefix.
   const proxyPrefix = `/api/labs/${labId}/ui`;
-  const proxyPath = req.url || "/";
+  // A request to the bare proxy endpoint has no Jenkins prefix. Use the
+  // configured service path instead of forwarding "/" to Jenkins, which
+  // returns 404 when started with --prefix=/jenkins.
+  const configuredUiPath = lab.uiPath
+    ?? (lab.image.startsWith("jenkins/") ? "/jenkins/" : undefined);
+  const proxyPath = (!req.url || req.url === "/") && configuredUiPath
+    ? configuredUiPath
+    : req.url || "/";
 
   type ProxyTarget = { hostname: string; port: number; label: string };
   const targets: ProxyTarget[] = [];
