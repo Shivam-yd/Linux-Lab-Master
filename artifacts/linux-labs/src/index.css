@@ -180,3 +180,22 @@
     background: hsl(var(--muted-foreground) / 0.4);
   }
 }
+
+/* Markdown inside revealed execution steps must not inherit the typography
+   plugin's low-contrast defaults in dark mode. Keep this scoped so the rest
+   of the app can retain its normal prose palette. */
+.execution-step-markdown :where(p, li, ol, ul, strong, em, h1, h2, h3, h4, h5, h6, blockquote) {
+  color: hsl(var(--foreground)) !important;
+}
+
+.execution-step-markdown :where(li)::marker {
+  color: hsl(var(--primary)) !important;
+}
+
+.execution-step-markdown :where(a) {
+  color: hsl(var(--primary)) !important;
+}
+
+.execution-step-markdown :where(code) {
+  color: hsl(var(--primary)) !important;
+}
