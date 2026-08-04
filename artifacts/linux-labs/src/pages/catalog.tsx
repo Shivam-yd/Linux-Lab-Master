@@ -134,9 +134,14 @@ const DIFFICULTY_BADGE: Record<string, string> = {
 }
 
 export default function Catalog() {
-  const { data: labs, isLoading: labsLoading, refetch: refetchLabs } = useListLabs()
-  const { data: progress, isLoading: progressLoading, refetch: refetchProgress } = useListProgress()
-  const { data: session } = useSession()
+  const { data: session, isPending: authPending } = useSession()
+  const isAuthenticated = !!session?.user
+  const { data: labs, isLoading: labsLoading, refetch: refetchLabs } = useListLabs({
+    query: { queryKey: ["/api/labs"], enabled: isAuthenticated },
+  })
+  const { data: progress, isLoading: progressLoading, refetch: refetchProgress } = useListProgress({
+    query: { queryKey: ["/api/progress"], enabled: isAuthenticated },
+  })
   const loading = labsLoading || progressLoading
 
   // ── GitHub sync state ──────────────────────────────────────────────────────
@@ -145,8 +150,8 @@ export default function Catalog() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchSyncStatus().then(setSyncStatus).catch(() => {})
-  }, [])
+    if (isAuthenticated) fetchSyncStatus().then(setSyncStatus).catch(() => {})
+  }, [isAuthenticated])
 
   const handleFetchLabs = useCallback(async () => {
     setSyncing(true)
@@ -293,6 +298,7 @@ export default function Catalog() {
   const { data: adminCheck } = useQuery({
     queryKey: ["admin-check"],
     queryFn: () => fetch(`${basePath}/api/admin/check`).then(r => r.json()) as Promise<{ isAdmin: boolean }>,
+    enabled: isAuthenticated,
     staleTime: Infinity,
   })
 
@@ -379,7 +385,14 @@ export default function Catalog() {
     }
   }, [filteredCards]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: authSession, isPending: authPending } = useSession()
+  if (authPending) {
+    return (
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
+        <RefreshCw className="w-6 h-6 text-primary animate-spin" aria-label="Loading dashboard" />
+      </div>
+    )
+  }
+  if (!session?.user) return <Redirect to="/sign-in" />
 
   return (
     <div className="relative flex min-h-[100dvh] bg-background text-foreground overflow-hidden">
