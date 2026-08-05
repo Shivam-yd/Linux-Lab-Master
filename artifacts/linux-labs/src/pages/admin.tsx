@@ -766,10 +766,11 @@ export default function AdminPage() {
 
         {/* ── Desktop admin navigation ── */}
         <aside className="hidden md:flex w-[238px] shrink-0 flex-col border-r border-border/50 bg-card/20">
-          <div className="h-5 border-b border-border/40" />
+          <div className="px-5 py-6 border-b border-border/40">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Admin workspace</p>
+          </div>
 
           <nav aria-label="Admin sections" className="flex-1 overflow-y-auto p-3 space-y-1">
-            <p className="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/60">Workspace</p>
             {ADMIN_NAV.map(({ id, label, icon: Icon }) => {
               const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
               const active = tab === id
