@@ -14,6 +14,7 @@
 #   6. Creates the devlabmaster k8s namespace + secret
 #   7. Builds Docker images and deploys them
 #   8. Pre-pulls lab container images so sandbox startup is instant
+#   9. Installs a verified, single-retained daily database backup at 02:00
 #
 # Subsequent deploys are handled by GitHub Actions (zero-downtime rolling
 # update) — re-running this script is only needed after wiping the server.
@@ -72,7 +73,7 @@ header "Step 1/7 — Docker"
 
 install_docker() {
   apt-get update -qq
-  apt-get install -y -qq ca-certificates curl gnupg lsb-release
+  apt-get install -y -qq ca-certificates curl gnupg lsb-release postgresql-client cron
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
     | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -92,6 +93,14 @@ else
   systemctl enable --now docker
   success "Docker installed"
 fi
+
+if ! command -v pg_dump &>/dev/null || ! command -v pg_restore &>/dev/null || ! command -v crontab &>/dev/null; then
+  info "Installing PostgreSQL client and cron tools for verified backups..."
+  apt-get update -qq
+  apt-get install -y -qq postgresql-client cron
+fi
+systemctl enable --now cron
+success "PostgreSQL backup tools available"
 
 # envsubst is used by the GitHub Actions deploy to template k8s manifests
 if ! command -v envsubst &>/dev/null; then
@@ -303,25 +312,23 @@ pull_image "${JENKINS_GUI_IMAGE}"
 success "Lab image pre-pull complete"
 
 # ── Backup existing data before migration ─────────────────────────────────────
-# If postgres is already running (reinstall / upgrade), dump the database to
-# /opt/linuxlabs/backups/ before applying any schema changes.
-# The dump is a plain-SQL file you can restore with:
-#   kubectl exec -n devlabmaster statefulset/postgres -- \
-#     psql -U linuxlabs linuxlabs < /opt/linuxlabs/backups/<file>
+# If postgres is already running (reinstall / upgrade), create the same verified
+# single-retained backup used by the daily schedule before applying migrations.
 BACKUP_DIR="${INSTALL_DIR}/backups"
 mkdir -p "${BACKUP_DIR}"
 
 POSTGRES_POD=$(kubectl get pods -n devlabmaster -l app=postgres \
   -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
 if [[ -n "${POSTGRES_POD}" ]]; then
-  BACKUP_FILE="${BACKUP_DIR}/linuxlabs-$(date +%Y%m%d-%H%M%S).sql"
-  info "Existing database detected — backing up to ${BACKUP_FILE} ..."
-  if kubectl exec -n devlabmaster "${POSTGRES_POD}" -- \
-      pg_dump -U linuxlabs linuxlabs > "${BACKUP_FILE}" 2>/dev/null; then
-    success "Backup saved: ${BACKUP_FILE}"
+  info "Existing database detected — creating a verified backup ..."
+  if INSTALL_DIR="${INSTALL_DIR}" BACKUP_DIR="${BACKUP_DIR}" \
+      bash "${INSTALL_DIR}/scripts/backup/create-k8s-backup.sh"; then
+    success "Verified migration backup saved"
+    # Remove legacy installer/migration dumps only after the replacement is
+    # complete, leaving exactly one backup under the new policy.
+    rm -f "${BACKUP_DIR}"/linuxlabs-*.sql "${BACKUP_DIR}"/compose-migration-*.sql
   else
-    warn "Backup failed — continuing anyway. Check pg_dump logs if data is missing."
-    rm -f "${BACKUP_FILE}"
+    die "Backup failed — refusing to run a schema migration without a verified backup."
   fi
 else
   info "Fresh install — no existing database to back up"
@@ -372,6 +379,27 @@ envsubst '${IMAGE_TAG}' < "${INSTALL_DIR}/k8s/app.yaml" | kubectl apply -f -
 kubectl rollout status deployment/api -n devlabmaster --timeout=120s
 kubectl rollout status deployment/web -n devlabmaster --timeout=120s
 success "Deployment complete"
+
+# Create or refresh the single retained backup immediately after deployment.
+# This ensures a fresh install has a verified backup before the first 02:00 run.
+header "Initial verified backup"
+if INSTALL_DIR="${INSTALL_DIR}" BACKUP_DIR="${BACKUP_DIR}" \
+    bash "${INSTALL_DIR}/scripts/backup/create-k8s-backup.sh"; then
+  success "Exactly one verified backup is ready"
+else
+  die "Initial backup failed — installation cannot complete without a verified backup."
+fi
+
+# ── Daily backup schedule ─────────────────────────────────────────────────────
+header "Backup schedule"
+if PROJECT_DIR="${INSTALL_DIR}" \
+    BACKUP_DIR="${BACKUP_DIR}" \
+    BACKUP_SCRIPT="${INSTALL_DIR}/scripts/backup/create-k8s-backup.sh" \
+    bash "${INSTALL_DIR}/scripts/backup/install-cron.sh"; then
+  success "Daily verified backup scheduled for 02:00"
+else
+  warn "Could not install the daily backup schedule. Run scripts/backup/install-cron.sh manually."
+fi
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""

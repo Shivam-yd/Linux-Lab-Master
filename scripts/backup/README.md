@@ -60,6 +60,13 @@ entry and does not duplicate it.
 
 On Replit, the script is ready to run, but a persistent daily trigger should be
 provided by the deployment/host scheduler rather than relying on a development
-process staying alive. Store the single backup on durable private storage
-separate from the application workspace, and periodically perform a restore
-drill. A successful backup alone does not prove recoverability.
+process staying alive. The Replit setup script deliberately does not install
+cron because injected database environment values are not reliably available to
+cron jobs. Store the single backup on durable private storage separate from the
+application workspace, and periodically perform a restore drill. A successful
+backup alone does not prove recoverability.
+
+The Ubuntu self-hosted installer wires this schedule automatically. Because its
+PostgreSQL service is inside Kubernetes, it uses
+`scripts/backup/create-k8s-backup.sh` and captures the dump from the PostgreSQL
+pod before verifying and rotating the host-side backup directory.

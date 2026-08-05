@@ -7,4 +7,4 @@ Backups use PostgreSQL custom-format dumps with checksums and exactly-one retent
 
 **Why:** restoring a backup is destructive and an accidental restore against the live database could overwrite user accounts, progress, sessions, and operational records.
 
-**How to apply:** keep backup files on private durable storage outside source control, verify an archive before restore, back up the target first, and perform recovery drills against a disposable target.
+**How to apply:** keep backup files on private durable storage outside source control, verify an archive before restore, back up the target first, and perform recovery drills against a disposable target. The Ubuntu/Kubernetes installer must create the first verified dump and install the idempotent 02:00 cron job automatically; refuse schema migration or installation when a required backup cannot be verified.

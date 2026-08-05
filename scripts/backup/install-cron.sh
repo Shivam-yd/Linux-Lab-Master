@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 BACKUP_DIR="${BACKUP_DIR:-${PROJECT_DIR}/backups/postgres}"
 MARKER="# devlabmaster-postgres-backup"
-SCRIPT="${PROJECT_DIR}/scripts/backup/create-backup.sh"
+SCRIPT="${BACKUP_SCRIPT:-${PROJECT_DIR}/scripts/backup/create-backup.sh}"
 
 command -v crontab >/dev/null || { echo "cron: crontab is required" >&2; exit 1; }
 [[ -x "$SCRIPT" ]] || { echo "cron: backup script is not executable: $SCRIPT" >&2; exit 1; }

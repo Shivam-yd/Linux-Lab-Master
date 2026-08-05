@@ -43,6 +43,7 @@ sha256sum --check "${final}.sha256" >/dev/null
 while IFS= read -r archive; do
   [[ "$archive" == "$final" ]] || rm -f -- "$archive" "${archive}.sha256"
 done < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'devlabmaster-*.dump' -print)
+rm -f "$BACKUP_DIR"/linuxlabs-*.sql "$BACKUP_DIR"/compose-migration-*.sql
 
 echo "Backup complete: ${final}"
 echo "Retention: kept exactly one verified backup"

@@ -8,7 +8,10 @@ Run this from the project root on the target machine:
 sudo bash installer/install.sh
 ```
 
-That's it. The script installs Docker, builds the images, pulls lab containers, and registers a systemd service that starts on boot. Open `http://localhost:8085` when it finishes.
+That's it. The script installs Docker, builds the images, pulls lab containers,
+registers a systemd service that starts on boot, and installs a daily 02:00
+PostgreSQL backup schedule retaining exactly one verified backup. Open
+`http://localhost:8085` when it finishes.
 
 After completing every lab in a track, open `/certificate/<track>` to view the
 certificate. Use **Share** to open the device share dialog or copy a public
