@@ -53,6 +53,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            - name: BACKUP_DIR
+              value: "/var/lib/devlabmaster/backups"
           envFrom:
             - secretRef:
                 name: devlabmaster-env
@@ -66,6 +68,8 @@ spec:
           volumeMounts:
             - name: docker-sock
               mountPath: /var/run/docker.sock
+            - name: backup-storage
+              mountPath: /var/lib/devlabmaster/backups
           readinessProbe:
             httpGet:
               path: /api/stats
@@ -77,6 +81,10 @@ spec:
         - name: docker-sock
           hostPath:
             path: /var/run/docker.sock
+        - name: backup-storage
+          hostPath:
+            path: /opt/linuxlabs/backups
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service

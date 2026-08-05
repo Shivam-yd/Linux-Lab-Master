@@ -22,6 +22,7 @@ import { issueCert, makeCertId } from "../lib/certs";
 import { docker, stopSession } from "../lib/docker/manager";
 import { logger } from "../lib/logger";
 import { recordAdminAudit } from "../lib/operations";
+import { getBackupStatus, runBackupNow, verifyCurrentBackup } from "../lib/backup-manager";
 import { cleanupRunsTable, errorEventsTable, adminAuditLogTable } from "@workspace/db/schema";
 
 // Comma-separated list of admin emails set via the ADMIN_EMAILS env var.
@@ -80,13 +81,28 @@ router.get("/operations/overview", async (_req, res): Promise<void> => {
     },
     errors24h: Number((errors.rows[0] as { count?: number }).count ?? 0),
     adminActions24h: Number((audit.rows[0] as { count?: number }).count ?? 0),
-    backups: {
-      configured: Boolean(process.env.BACKUP_PROVIDER),
-      provider: process.env.BACKUP_PROVIDER ?? "Managed database backups",
-      lastSuccessAt: process.env.BACKUP_LAST_SUCCESS_AT ?? null,
-      note: "Configure provider-level backups and recovery testing before production launch.",
-    },
+    backups: await getBackupStatus(),
   });
+});
+
+router.post("/operations/backups/run", async (_req, res): Promise<void> => {
+  try {
+    const result = await runBackupNow();
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    logger.error({ err: error }, "admin backup run failed");
+    res.status(500).json({ error: error instanceof Error ? error.message : "Backup failed" });
+  }
+});
+
+router.post("/operations/backups/verify", async (_req, res): Promise<void> => {
+  try {
+    const result = await verifyCurrentBackup();
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    logger.error({ err: error }, "admin backup verification failed");
+    res.status(500).json({ error: error instanceof Error ? error.message : "Backup verification failed" });
+  }
 });
 
 router.get("/operations/audit", async (req, res): Promise<void> => {

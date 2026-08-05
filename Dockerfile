@@ -83,7 +83,11 @@ CMD ["sh", "-c", "\
 FROM node:20-slim AS api
 
 WORKDIR /app
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends bash postgresql-client util-linux && \
+    rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/artifacts/api-server/dist ./dist
+COPY scripts/backup ./scripts/backup
 
 CMD ["node", "--enable-source-maps", "./dist/index.mjs"]
 

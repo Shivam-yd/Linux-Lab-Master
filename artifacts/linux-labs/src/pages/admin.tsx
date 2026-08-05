@@ -259,10 +259,19 @@ export default function AdminPage() {
     errors24h: number
     adminActions24h: number
     backups: {
-      configured: boolean
-      provider: string
-      lastSuccessAt: string | null
-      note: string
+      available: boolean
+      policy: {
+        retention: number
+        schedule: string
+        verification: string
+      }
+      current: {
+        filename: string
+        sizeBytes: number
+        createdAt: string
+        checksumPresent: boolean
+      } | null
+      message: string
     }
   }
   type AuditLogRow = {
@@ -298,6 +307,34 @@ export default function AdminPage() {
     queryFn: () => fetchAdmin("/api/admin/operations/errors"),
     retry: false,
     enabled: canLoadAdminData && tab === "operations",
+  })
+  const runBackup = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/operations/backups/run", { method: "POST" })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? "Backup failed")
+      return body
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "operations", "overview"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "operations", "audit"] })
+      toast({ title: "Backup created and verified" })
+    },
+    onError: (err: Error) => toast({ title: "Backup failed", description: err.message, variant: "destructive" }),
+  })
+  const verifyBackup = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/operations/backups/verify", { method: "POST" })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? "Backup verification failed")
+      return body
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "operations", "overview"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "operations", "audit"] })
+      toast({ title: "Backup verification passed" })
+    },
+    onError: (err: Error) => toast({ title: "Verification failed", description: err.message, variant: "destructive" }),
   })
 
   type CertRow = {
@@ -1754,8 +1791,40 @@ export default function AdminPage() {
                       </div>
                       <div className="rounded-xl border border-border/50 bg-card/60 p-4">
                         <div className="flex items-center gap-2 mb-3"><Database className="w-4 h-4 text-cyan-400" /><p className="text-sm font-semibold">Backup strategy</p></div>
-                        <p className="text-xs text-muted-foreground">{operations.data.backups.configured ? `Configured: ${operations.data.backups.provider}` : "Provider backup configuration not reported"}</p>
-                        <p className="text-[11px] text-muted-foreground/70 mt-2">{operations.data.backups.lastSuccessAt ? `Last success ${relativeTime(operations.data.backups.lastSuccessAt)}` : "Recovery drill timestamp not configured"}</p>
+                        <p className="text-xs text-muted-foreground">{operations.data.backups.message}</p>
+                        <p className="text-[11px] text-muted-foreground/70 mt-2">
+                          Daily at {operations.data.backups.policy.schedule} · retains {operations.data.backups.policy.retention} backup
+                        </p>
+                        {operations.data.backups.current ? (
+                          <div className="mt-3 rounded-lg border border-border/50 bg-background/30 p-2.5">
+                            <p className="text-[11px] font-mono truncate">{operations.data.backups.current.filename}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {(operations.data.backups.current.sizeBytes / 1024 / 1024).toFixed(2)} MB · {relativeTime(operations.data.backups.current.createdAt)} · checksum {operations.data.backups.current.checksumPresent ? "ready" : "missing"}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-amber-400 mt-3">No completed backup found.</p>
+                        )}
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <button
+                            type="button"
+                            disabled={!operations.data.backups.available || runBackup.isPending || verifyBackup.isPending}
+                            onClick={() => runBackup.mutate()}
+                            className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {runBackup.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                            Run backup now
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!operations.data.backups.available || !operations.data.backups.current || runBackup.isPending || verifyBackup.isPending}
+                            onClick={() => verifyBackup.mutate()}
+                            className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {verifyBackup.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                            Verify current
+                          </button>
+                        </div>
                       </div>
                       <div className="rounded-xl border border-border/50 bg-card/60 p-4">
                         <div className="flex items-center gap-2 mb-3"><Bug className="w-4 h-4 text-amber-400" /><p className="text-sm font-semibold">Telemetry, last 24h</p></div>
