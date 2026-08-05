@@ -22,6 +22,19 @@ import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
+type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "certificates" | "labs" | "operations"
+
+const ADMIN_NAV: { id: Tab; label: string; icon: typeof Trophy }[] = [
+  { id: "leaderboard", label: "Leaderboard", icon: Trophy },
+  { id: "cohort", label: "Lab Insights", icon: BarChart3 },
+  { id: "sessions", label: "Sessions", icon: Activity },
+  { id: "password-resets", label: "Password Resets", icon: KeyRound },
+  { id: "registration", label: "Registration", icon: Lock },
+  { id: "certificates", label: "Certificates", icon: Award },
+  { id: "labs", label: "Labs", icon: Beaker },
+  { id: "operations", label: "Operations", icon: ShieldCheck },
+]
+
 type PasswordResetRequest = {
   id: number
   userId: string
@@ -123,8 +136,7 @@ export default function AdminPage() {
   const { data: labs } = useListLabs({
     query: { queryKey: ["/api/labs"], enabled: canLoadAdminData },
   })
-  type Tab = "leaderboard" | "cohort" | "sessions" | "password-resets" | "registration" | "certificates" | "labs" | "operations"
-  const TABS: Tab[] = ["leaderboard", "cohort", "sessions", "password-resets", "registration", "certificates", "labs", "operations"]
+  const TABS: Tab[] = ADMIN_NAV.map(({ id }) => id)
   const hashTab = window.location.hash.replace("#", "") as Tab
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
@@ -752,9 +764,87 @@ export default function AdminPage() {
       {/* ── Split pane body ── */}
       <div className="flex flex-1 overflow-hidden">
 
+        {/* ── Desktop admin navigation ── */}
+        <aside className="hidden md:flex w-[238px] shrink-0 flex-col border-r border-border/50 bg-card/20">
+          <div className="px-5 py-6 border-b border-border/40">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Admin workspace</p>
+            <p className="text-sm font-semibold mt-2">Control center</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Manage learning activity, access, and platform health.</p>
+          </div>
+
+          <nav aria-label="Admin sections" className="flex-1 overflow-y-auto p-3 space-y-1">
+            <p className="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/60">Workspace</p>
+            {ADMIN_NAV.map(({ id, label, icon: Icon }) => {
+              const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
+              const active = tab === id
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTabAndHash(id)}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-150",
+                    active
+                      ? "bg-primary/10 border border-primary/25 text-primary shadow-[0_0_18px_rgba(45,212,191,0.07)]"
+                      : "border border-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5",
+                  )}
+                >
+                  <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "text-muted-foreground/80")} />
+                  <span className="flex-1">{label}</span>
+                  {pendingCount > 0 && (
+                    <span className="min-w-[19px] h-[19px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </nav>
+
+          <div className="p-4 border-t border-border/40">
+            <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/15 bg-emerald-500/5 px-3 py-2.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+              <div>
+                <p className="text-[11px] font-semibold text-emerald-300">Admin access active</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Secure workspace</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
         {/* ── Main scrollable area ── */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto min-w-0">
           <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+
+            {/* ── Mobile navigation fallback ── */}
+            <nav aria-label="Admin sections" className="md:hidden flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/50 w-full overflow-x-auto">
+              {ADMIN_NAV.map(({ id, label, icon: Icon }) => {
+                const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setTabAndHash(id)}
+                    aria-current={tab === id ? "page" : undefined}
+                    className={cn(
+                      "shrink-0 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150",
+                      tab === id
+                        ? "bg-primary/10 border border-primary/25 text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-primary/5",
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                    {pendingCount > 0 && (
+                      <span className="min-w-[17px] h-[17px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -779,42 +869,6 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/50 w-full overflow-x-auto">
-              {([
-                { id: "leaderboard",     label: "Leaderboard",    icon: Trophy    },
-                { id: "cohort",          label: "Lab Insights",    icon: BarChart3 },
-                { id: "sessions",        label: "Sessions",        icon: Activity  },
-                { id: "password-resets", label: "Password Resets", icon: KeyRound  },
-                { id: "registration",    label: "Registration",    icon: Lock      },
-                { id: "certificates",    label: "Certificates",    icon: Award     },
-                { id: "labs",            label: "Labs",            icon: Beaker    },
-                 { id: "operations",      label: "Operations",      icon: ShieldCheck },
-              ] as const).map(({ id, label, icon: Icon }) => {
-                const pendingCount = id === "registration" ? Number(summary.data?.pending_requests ?? 0) : 0
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setTabAndHash(id)}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 px-4 py-1 text-sm font-medium rounded-lg transition-all duration-150",
-                      tab === id
-                        ? "bg-primary/10 border border-primary/25 text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-primary/5",
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                    {pendingCount > 0 && (
-                      <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center leading-none">
-                        {pendingCount}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
             </div>
 
             {/* ── Leaderboard ── */}
