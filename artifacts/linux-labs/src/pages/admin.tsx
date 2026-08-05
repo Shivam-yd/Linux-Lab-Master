@@ -35,6 +35,54 @@ const ADMIN_NAV: { id: Tab; label: string; icon: typeof Trophy }[] = [
   { id: "operations", label: "Operations", icon: ShieldCheck },
 ]
 
+const ADMIN_SECTION_DESCRIPTIONS: Record<Tab, string> = {
+  leaderboard: "Review learner progress, completion rates, and individual activity.",
+  cohort: "See which labs are helping learners succeed and where learners get stuck.",
+  sessions: "Monitor active lab containers and safely stop stale sessions.",
+  "password-resets": "Review and approve learner password reset requests.",
+  registration: "Control account access, invitations, and registration requests.",
+  certificates: "Manage issued certificates and public learner visibility.",
+  labs: "Control which labs are visible to learners.",
+  operations: "Monitor platform health, backups, and administrative activity.",
+}
+
+function AdminLoadingState({ label }: { label: string }) {
+  return (
+    <div className="space-y-3 py-6" aria-label={`Loading ${label}`}>
+      {[0, 1, 2].map((row) => (
+        <div key={row} className="h-14 rounded-xl border border-border/40 bg-card/50 animate-pulse" />
+      ))}
+      <p className="text-center text-xs text-muted-foreground">{`Loading ${label}…`}</p>
+    </div>
+  )
+}
+
+function AdminErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-6 text-center">
+      <XCircle className="w-8 h-8 text-red-400/80 mx-auto mb-3" />
+      <p className="text-sm font-medium text-red-300">{message}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-lg border border-red-500/30 text-xs font-semibold text-red-300 hover:bg-red-500/10 transition-colors"
+      >
+        <RotateCcw className="w-3.5 h-3.5" /> Try again
+      </button>
+    </div>
+  )
+}
+
+function AdminEmptyState({ icon: Icon, title, description }: { icon: typeof Trophy; title: string; description?: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border/60 bg-card/20 py-14 px-6 text-center">
+      <Icon className="w-9 h-9 text-muted-foreground/25 mx-auto mb-3" />
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      {description && <p className="text-xs text-muted-foreground/70 mt-1">{description}</p>}
+    </div>
+  )
+}
+
 type PasswordResetRequest = {
   id: number
   userId: string
@@ -166,6 +214,16 @@ export default function AdminPage() {
   const [confirmApprovePwReset, setConfirmApprovePwReset] = useState<PasswordResetRequest | null>(null)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<StudentRow | null>(null)
   const [confirmDenyRequest, setConfirmDenyRequest] = useState<{ id: number; name: string; email: string } | null>(null)
+  const [confirmAction, setConfirmAction] = useState<
+    | { kind: "revokeCertificate"; certId: string; studentName: string }
+    | { kind: "disableLab"; labId: string; title: string }
+    | { kind: "killSession"; studentId: string; labId: string; studentLabel: string }
+    | { kind: "killIdle" }
+    | { kind: "suspendAccount"; studentId: string; studentName: string }
+    | { kind: "removeInvite"; inviteId: number; email: string }
+    | { kind: "cleanupExpired" }
+    | null
+  >(null)
   const [selectedRequestIds, setSelectedRequestIds] = useState<Set<number>>(new Set())
   const [deleteAccountEmail, setDeleteAccountEmail] = useState("")
   const [newInviteEmail, setNewInviteEmail] = useState("")
@@ -177,6 +235,7 @@ export default function AdminPage() {
   const [certificateTrack, setCertificateTrack] = useState("all")
   const [certificatePage, setCertificatePage] = useState(1)
   const { toast } = useToast()
+  const activeNav = ADMIN_NAV.find(({ id }) => id === tab) ?? ADMIN_NAV[0]
 
   const leaderboard = useQuery<StudentRow[]>({
     queryKey: ["admin", "leaderboard"],
@@ -401,7 +460,11 @@ export default function AdminPage() {
       })
       if (!res.ok) throw new Error("Failed to update mode")
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "registration"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "registration"] })
+      toast({ title: "Registration mode updated" })
+    },
+    onError: (err: Error) => toast({ title: "Could not update registration mode", description: err.message, variant: "destructive" }),
   })
 
   const addInvite = useMutation({
@@ -416,7 +479,9 @@ export default function AdminPage() {
       setNewInviteEmail("")
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
+      toast({ title: "Invite added" })
     },
+    onError: (err: Error) => toast({ title: "Could not add invite", description: err.message, variant: "destructive" }),
   })
 
   const removeInvite = useMutation({
@@ -427,7 +492,9 @@ export default function AdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
+      toast({ title: "Invite removed" })
     },
+    onError: (err: Error) => toast({ title: "Could not remove invite", description: err.message, variant: "destructive" }),
   })
 
   const cleanupExpired = useMutation({
@@ -441,6 +508,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
       toast({ title: `Removed ${data.deleted} expired invite${data.deleted !== 1 ? "s" : ""}` })
     },
+    onError: (err: Error) => toast({ title: "Could not clean up invites", description: err.message, variant: "destructive" }),
   })
 
   const approveRequest = useMutation({
@@ -453,7 +521,9 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "requests"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "registration", "invites"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
+      toast({ title: "Registration request approved" })
     },
+    onError: (err: Error) => toast({ title: "Could not approve request", description: err.message, variant: "destructive" }),
   })
 
   const bulkApprove = useMutation({
@@ -483,7 +553,10 @@ export default function AdminPage() {
       })
       if (!res.ok) throw new Error("Failed to update lab")
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "labs"] }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "labs"] })
+      toast({ title: variables.active ? "Lab brought online" : "Lab taken offline" })
+    },
     onError: (err: Error) => toast({ title: "Failed to update lab", description: err.message, variant: "destructive" }),
   })
 
@@ -582,7 +655,9 @@ export default function AdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
+      toast({ title: "Session stopped" })
     },
+    onError: (err: Error) => toast({ title: "Could not stop session", description: err.message, variant: "destructive" }),
   })
 
   const killIdle = useMutation({
@@ -596,6 +671,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "summary"] })
       toast({ title: `Killed ${data.killed} idle session${data.killed !== 1 ? "s" : ""}` })
     },
+    onError: (err: Error) => toast({ title: "Could not stop idle sessions", description: err.message, variant: "destructive" }),
   })
 
   const resetProgress = useMutation({
@@ -608,7 +684,9 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] })
       queryClient.invalidateQueries({ queryKey: ["admin", "cohort"] })
+      toast({ title: "Progress reset" })
     },
+    onError: (err: Error) => toast({ title: "Could not reset progress", description: err.message, variant: "destructive" }),
   })
 
   const deleteAccount = useMutation({
@@ -634,7 +712,10 @@ export default function AdminPage() {
         throw new Error(body.error ?? "Failed to suspend account")
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] })
+      toast({ title: "Account suspended" })
+    },
     onError: (err: Error) => toast({ title: "Cannot suspend account", description: err.message, variant: "destructive" }),
   })
 
@@ -643,9 +724,87 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/users/${encodeURIComponent(studentId)}/unsuspend`, { method: "POST" })
       if (!res.ok) throw new Error("Failed to unsuspend account")
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard"] })
+      toast({ title: "Account unsuspended" })
+    },
     onError: (err: Error) => toast({ title: "Cannot unsuspend account", description: err.message, variant: "destructive" }),
   })
+
+  const confirmActionCopy = confirmAction && (() => {
+    switch (confirmAction.kind) {
+      case "revokeCertificate":
+        return {
+          title: "Revoke certificate?",
+          description: `The certificate issued to ${confirmAction.studentName} will no longer be valid.`,
+          confirmLabel: "Revoke certificate",
+        }
+      case "disableLab":
+        return {
+          title: "Take lab offline?",
+          description: `${confirmAction.title} will be hidden from learners until it is brought online again.`,
+          confirmLabel: "Take offline",
+        }
+      case "killSession":
+        return {
+          title: "Stop lab session?",
+          description: `${confirmAction.studentLabel}'s running lab session will be stopped.`,
+          confirmLabel: "Stop session",
+        }
+      case "killIdle":
+        return {
+          title: "Stop idle sessions?",
+          description: "All sessions idle for more than 30 minutes will be stopped.",
+          confirmLabel: "Stop idle sessions",
+        }
+      case "suspendAccount":
+        return {
+          title: "Suspend account?",
+          description: `${confirmAction.studentName} will lose access until the account is unsuspended.`,
+          confirmLabel: "Suspend account",
+        }
+      case "removeInvite":
+        return {
+          title: "Remove approved email?",
+          description: `${confirmAction.email} will no longer be able to use this invitation.`,
+          confirmLabel: "Remove invite",
+        }
+      case "cleanupExpired":
+        return {
+          title: "Remove expired invites?",
+          description: "All expired, unused invitations will be permanently removed.",
+          confirmLabel: "Remove expired",
+        }
+    }
+  })()
+
+  const runConfirmedAction = () => {
+    if (!confirmAction) return
+    switch (confirmAction.kind) {
+      case "revokeCertificate":
+        revokeCertificate.mutate(confirmAction.certId)
+        break
+      case "disableLab":
+        toggleLabActive.mutate({ id: confirmAction.labId, active: false })
+        break
+      case "killSession":
+        killSession.mutate({ studentId: confirmAction.studentId, labId: confirmAction.labId })
+        break
+      case "killIdle":
+        killIdle.mutate()
+        break
+      case "suspendAccount":
+        suspendAccount.mutate(confirmAction.studentId)
+        break
+      case "removeInvite":
+        removeInvite.mutate(confirmAction.inviteId)
+        break
+      case "cleanupExpired":
+        cleanupExpired.mutate()
+        break
+    }
+    setConfirmAction(null)
+  }
 
   const labMeta = useMemo(() => {
     if (!labs) return {} as Record<string, { title: string; track: string; difficulty: string }>
@@ -843,6 +1002,21 @@ export default function AdminPage() {
               })}
             </nav>
 
+            <div className="flex items-end justify-between gap-4 border-b border-border/50 pb-5">
+              <div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Admin</span>
+                  <ChevronRight className="w-3 h-3" />
+                  <span className="text-primary">{activeNav.label}</span>
+                </div>
+                <h1 className="text-2xl font-black tracking-tight mt-2">{activeNav.label}</h1>
+                <p className="text-sm text-muted-foreground mt-1">{ADMIN_SECTION_DESCRIPTIONS[activeNav.id]}</p>
+              </div>
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-400/80 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Live admin view
+              </span>
+            </div>
+
             {/* Summary cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
@@ -871,17 +1045,12 @@ export default function AdminPage() {
             {/* ── Leaderboard ── */}
             {tab === "leaderboard" && (
               <div className="space-y-3">
-                {leaderboard.isLoading && (
-                  <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading students…</div>
-                )}
+                {leaderboard.isLoading && <AdminLoadingState label="students" />}
                 {leaderboard.error && (
-                  <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load data. Check that the API server is running.</div>
+                  <AdminErrorState message="Students could not be loaded." onRetry={() => leaderboard.refetch()} />
                 )}
                 {!leaderboard.isLoading && students.length === 0 && (
-                  <div className="text-center py-20 space-y-2">
-                    <Users className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-muted-foreground text-sm">No students yet.</p>
-                  </div>
+                  <AdminEmptyState icon={Users} title="No students yet." description="Learners will appear here after they create an account." />
                 )}
                 {students.length > 0 && (() => {
                   const q = leaderboardSearch.trim().toLowerCase()
@@ -1010,13 +1179,11 @@ export default function AdminPage() {
             {tab === "cohort" && (
               <div className="space-y-8">
                 {cohort.isLoading && (
-                  <div className="text-center py-20 text-muted-foreground text-sm animate-pulse">Loading lab insights…</div>
+                  <AdminLoadingState label="lab insights" />
                 )}
+                {cohort.error && <AdminErrorState message="Lab insights could not be loaded." onRetry={() => cohort.refetch()} />}
                 {!cohort.isLoading && cohort.data?.length === 0 && (
-                  <div className="text-center py-20 space-y-2">
-                    <Target className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-muted-foreground text-sm">No attempts recorded yet.</p>
-                  </div>
+                  <AdminEmptyState icon={Target} title="No attempts recorded yet." description="Insights will appear once learners start completing labs." />
                 )}
                 {cohort.data && cohort.data.length > 0 && (() => {
                   const byTrack: Record<string, LabInsightRow[]> = {}
@@ -1105,13 +1272,10 @@ export default function AdminPage() {
             {/* ── Sessions ── */}
             {tab === "sessions" && (
               <div className="space-y-2">
-                {sessions.isLoading && <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading sessions…</div>}
-                {sessions.error && <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load sessions.</div>}
+                {sessions.isLoading && <AdminLoadingState label="sessions" />}
+                {sessions.error && <AdminErrorState message="Sessions could not be loaded." onRetry={() => sessions.refetch()} />}
                 {!sessions.isLoading && !sessions.error && sessions.data?.length === 0 && (
-                  <div className="text-center py-20 space-y-2">
-                    <Activity className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-muted-foreground text-sm">No active sessions.</p>
-                  </div>
+                  <AdminEmptyState icon={Activity} title="No active sessions." description="Running lab containers will appear here." />
                 )}
                 {sessions.data && sessions.data.length > 0 && (
                   <>
@@ -1121,7 +1285,7 @@ export default function AdminPage() {
                       </div>
                       <button
                         disabled={killIdle.isPending}
-                        onClick={() => killIdle.mutate()}
+                        onClick={() => setConfirmAction({ kind: "killIdle" })}
                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium shrink-0"
                       >
                         {killIdle.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
@@ -1157,7 +1321,7 @@ export default function AdminPage() {
                           <div className="w-16 flex justify-end">
                             <button
                               disabled={isKilling}
-                              onClick={() => killSession.mutate({ studentId: s.student_id, labId: s.lab_id })}
+                              onClick={() => setConfirmAction({ kind: "killSession", studentId: s.student_id, labId: s.lab_id, studentLabel })}
                               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
                             >
                               {isKilling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
@@ -1175,13 +1339,10 @@ export default function AdminPage() {
             {/* ── Password Resets ── */}
             {tab === "password-resets" && (
               <div className="space-y-2">
-                {pwResets.isLoading && <div className="text-center py-20 text-muted-foreground font-mono text-sm animate-pulse">Loading requests…</div>}
-                {pwResets.error && <div className="text-center py-20 text-red-400 font-mono text-sm">Failed to load password reset requests.</div>}
+                {pwResets.isLoading && <AdminLoadingState label="password reset requests" />}
+                {pwResets.error && <AdminErrorState message="Password reset requests could not be loaded." onRetry={() => pwResets.refetch()} />}
                 {!pwResets.isLoading && !pwResets.error && pwResets.data?.length === 0 && (
-                  <div className="text-center py-20 space-y-2">
-                    <KeyRound className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-muted-foreground text-sm">No password reset requests.</p>
-                  </div>
+                  <AdminEmptyState icon={KeyRound} title="No password reset requests." />
                 )}
                 {pwResets.data && pwResets.data.length > 0 && (
                   <>
@@ -1316,7 +1477,7 @@ export default function AdminPage() {
                       ).length ?? 0
                       return expiredCount > 0 ? (
                         <button
-                          onClick={() => cleanupExpired.mutate()}
+                          onClick={() => setConfirmAction({ kind: "cleanupExpired" })}
                           disabled={cleanupExpired.isPending}
                           className="ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-red-500/30 text-red-400 bg-red-500/8 hover:bg-red-500/15 disabled:opacity-40 transition-colors font-semibold"
                         >
@@ -1386,7 +1547,7 @@ export default function AdminPage() {
                               </span>
                             )}
                             <button
-                              onClick={() => removeInvite.mutate(inv.id)}
+                              onClick={() => setConfirmAction({ kind: "removeInvite", inviteId: inv.id, email: inv.email })}
                               disabled={removeInvite.isPending && removeInvite.variables === inv.id}
                               className="shrink-0 p-1 rounded text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/8 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-40"
                               title="Remove"
@@ -1735,7 +1896,7 @@ export default function AdminPage() {
                             <button
                               disabled={refreshing || revoking}
                               onClick={() => {
-                                if (window.confirm(`Revoke ${cert.studentName}'s certificate?`)) revokeCertificate.mutate(cert.certId)
+                                setConfirmAction({ kind: "revokeCertificate", certId: cert.certId, studentName: cert.studentName })
                               }}
                               title="Revoke certificate"
                               aria-label={`Revoke certificate for ${cert.studentName}`}
@@ -2006,7 +2167,7 @@ export default function AdminPage() {
                                           </span>
                                         ) : lab.active ? (
                                           <button
-                                            onClick={() => toggleLabActive.mutate({ id: lab.id, active: false })}
+                                            onClick={() => setConfirmAction({ kind: "disableLab", labId: lab.id, title: lab.title })}
                                             disabled={!lab.isRemote}
                                             title={!lab.isRemote ? "Built-in labs cannot be disabled" : "Take offline"}
                                             className={cn(
@@ -2198,7 +2359,7 @@ export default function AdminPage() {
                 ) : (
                   <button
                     disabled={suspendAccount.isPending && suspendAccount.variables === selectedStudent.id}
-                    onClick={() => suspendAccount.mutate(selectedStudent.id)}
+                    onClick={() => setConfirmAction({ kind: "suspendAccount", studentId: selectedStudent.id, studentName: displayName(selectedStudent) })}
                     className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2.5 rounded-xl border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-semibold"
                   >
                     {suspendAccount.isPending && suspendAccount.variables === selectedStudent.id
@@ -2362,6 +2523,43 @@ export default function AdminPage() {
             <div className="flex justify-end gap-2.5">
               <button onClick={() => setConfirmReset(null)} className="px-4 py-2.5 text-sm rounded-xl border border-border hover:bg-muted/50 transition-colors font-medium">Cancel</button>
               <button onClick={() => { resetProgress.mutate(confirmReset.id); setConfirmReset(null) }} className="px-4 py-2.5 text-sm rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors">Reset progress</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmAction && confirmActionCopy && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="admin-confirm-action-title"
+        >
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
+                <ShieldAlert className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h2 id="admin-confirm-action-title" className="font-bold text-base">{confirmActionCopy.title}</h2>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{confirmActionCopy.description}</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2.5 text-sm rounded-xl border border-border hover:bg-muted/50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={runConfirmedAction}
+                className="px-4 py-2.5 text-sm rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold transition-colors"
+              >
+                {confirmActionCopy.confirmLabel}
+              </button>
             </div>
           </div>
         </div>
