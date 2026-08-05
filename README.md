@@ -5,7 +5,7 @@
 **A self-hosted, hands-on DevOps lab platform — spin up real sandboxes and learn by doing.**
 
 [![Tracks](https://img.shields.io/badge/Tracks-Linux%20·%20Terraform%20·%20Jenkins%20·%20Docker%20·%20Git%20·%20Kubernetes%20·%20Ansible-22d3ee?style=flat-square)](#-lab-tracks)
-[![Labs](https://img.shields.io/badge/Labs-92%2B-10b981?style=flat-square)](#-lab-tracks)
+[![Labs](https://img.shields.io/badge/Labs-85-10b981?style=flat-square)](#-lab-tracks)
 [![Platform](https://img.shields.io/badge/Platform-Ubuntu%20·%20Windows-6366f1?style=flat-square)](#-installation)
 
 </div>
@@ -28,15 +28,17 @@ Linux Lab Master is a self-hosted web application that provides **browser-based 
 
 | Track | Levels | Labs | What you'll learn |
 |-------|--------|------|-------------------|
-| **Linux** | L1 · L2 · L3 | 18 | Filesystem, processes, networking, permissions, scripting, system administration |
+| **Linux** | L1 · L2 · L3 | 29 | Filesystem, processes, networking, permissions, scripting, system administration |
 | **Terraform** | L1 · L2 · L3 | 30 | Infrastructure as Code — variables, modules, state, workspaces, lifecycle rules |
-| **Jenkins** | L1 | 9 | CI/CD fundamentals — server setup, plugins, user access, jobs, folders |
+| **Jenkins** | L1 | 2 | CI/CD fundamentals — server setup and GUI-based jobs |
 | **Docker** | L1 | 11 | Images, containers, exec/logs, Dockerfiles, volumes — all taught via a realistic in-sandbox simulator |
 | **Git** | L1 | 10 | Init, commits, branching, remotes, stash & reset |
-| **Kubernetes** | L1 | 2+ | Pods, services, deployments — orchestrate containers with kubectl |
-| **Ansible** | L1 | 2+ | Automate configuration, provisioning, and deployment at scale |
+| **Kubernetes** | L1 | 2 | Pods and manifests — practise Kubernetes concepts with kubectl |
+| **Ansible** | L1 | 1 | Introductory configuration and automation |
 
-> Labs are fetched directly from this repository. Click **Fetch Labs** inside the app at any time to pull the latest content without restarting.
+> The catalog currently contains 85 labs: 74 YAML definitions fetched from this
+> repository plus 11 built-in Linux labs. Click **Fetch Labs** inside the app at
+> any time to pull the latest YAML content without restarting.
 
 ---
 
@@ -72,10 +74,10 @@ The installer will:
 1. Install Docker Engine and k3s (single-node Kubernetes)
 2. Start a local image registry on `localhost:5000`
 3. Copy the project to `/opt/linuxlabs`
-4. Ask interactively for your URL, optional Google OAuth, admin email, and GitHub token
+4. Ask interactively for your URL, admin email, and optional GitHub token
 5. Build Docker images and push them to the local registry (~3–5 minutes on first run)
 6. Pre-pull all lab sandbox images so labs start instantly
-7. Deploy everything to k3s — zero-downtime rolling updates on every subsequent push
+7. Create the initial verified database backup, install the daily backup schedule, and deploy everything to k3s
 
 **3. Open the app**
 
@@ -83,7 +85,7 @@ The installer will:
 http://localhost:8085 or http://ServerIP:8085
 ```
 
-**4. All future deploys are automatic** — push to `main` → GitHub Actions builds new images and does a rolling update. No manual steps needed.
+**4. All future deploys are automatic** — push to `main` → GitHub Actions builds new images, runs the migration Job, and updates the workloads. No manual steps needed.
 
 #### How deploys work
 
@@ -92,12 +94,12 @@ Pushing to `main` triggers GitHub Actions, which:
 1. Builds new Docker images for the API, web frontend, and migration runner
 2. Pushes them to the local registry (`localhost:5000`) on your VPS
 3. Applies the migration Job (`k8s/migrate.yaml`) — schema changes run before the new pods come up
-4. Runs `kubectl rollout restart` on the API and web Deployments
+4. Applies the API and web Deployment manifests with the new image tag
 
-Kubernetes then does a **zero-downtime rolling update** for each Deployment:
+Kubernetes updates the workloads after the migration succeeds:
 - A new pod starts and passes its readiness probe
-- Only then is the old pod terminated
-- At no point are both pods unavailable simultaneously (`maxUnavailable: 0`)
+- The web Deployment uses a rolling update.
+- The API Deployment uses `Recreate` because it uses host networking and must not have two pods competing for port 8080.
 
 The installer (`install.sh`) only ever runs once — it is not re-invoked on code pushes.
 
@@ -105,7 +107,7 @@ The installer (`install.sh`) only ever runs once — it is not re-invoked on cod
 
 | Component | Kind | Min pods | Max pods | Notes |
 |-----------|------|----------|----------|-------|
-| `api` | Deployment + HPA | **1** | **5** | Scales on CPU ≥ 70 % or memory ≥ 80 %. Mounts host Docker socket. |
+| `api` | Deployment + HPA | **1** | **5** | Scales on CPU ≥ 70 % or memory ≥ 80 %. Uses host networking and mounts the host Docker socket. |
 | `web` | Deployment + HPA | **1** | **3** | nginx static build. Scales on CPU ≥ 70 %. |
 | `postgres` | StatefulSet | **1** | **1** | Never scaled — 10 Gi persistent volume. |
 | `migrate` | Job | — | — | Runs once per deploy; retries up to 3× on failure. |
@@ -234,14 +236,20 @@ workflows. Replit supplies PostgreSQL through the `postgresql-16` module and
 injects `DATABASE_URL`; add `SESSION_SECRET` as a Replit Secret before starting.
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm --filter @workspace/db run push
+bash scripts/setup-replit.sh
 ```
 
-The web preview runs at the root path and proxies `/api` to the API workflow.
-Live terminal sandboxes work when the Replit runtime exposes the Docker daemon;
-otherwise lab browsing, authentication, and progress tracking remain available
-but sandbox deployment is unavailable.
+The setup script installs the frozen lockfile dependencies, checks PostgreSQL,
+and pushes the Drizzle schema. It is safe to run again. The web preview runs at
+the root path and proxies `/api` to the API workflow. `BETTER_AUTH_URL` must
+match the current Replit development domain; update the shared variable if the
+domain changes.
+
+Live terminal sandboxes work when the Replit runtime exposes the Docker daemon.
+If Docker is unavailable, lab browsing, authentication, and progress tracking
+remain available but sandbox deployment is unavailable. The API warms the lab
+images at startup and reports a normal lab-start error for any image that could
+not be pulled.
 
 Certificates and their public verification links work the same way on Replit.
 If direct clipboard access is blocked in an embedded preview, the Share button
@@ -269,7 +277,10 @@ Browser
 PostgreSQL :5432   — stores labs, progress, session data
 ```
 
-All components run as Kubernetes pods managed by k3s (single-node). Lab sandboxes are additional Docker containers spawned on demand by the API when a student clicks **Deploy Sandbox** — the API pod mounts the host Docker socket for this purpose.
+On the Ubuntu installation, the application components run as Kubernetes
+workloads managed by single-node k3s. Lab sandboxes are additional Docker
+containers spawned on demand by the API. On Windows, Docker Compose runs the
+same PostgreSQL, migration, API, and nginx web services.
 
 ---
 

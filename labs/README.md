@@ -40,19 +40,21 @@ Sub-folders are just for organisation — the app recursively picks up every
 
 ---
 
-## ⚠️ Sandbox has NO internet access — read this before writing any script
+## ⚠️ Sandbox scripts have NO outbound internet — read this before writing any script
 
-Every lab runs in a Docker container in the Replit environment, and **that
-container has no outbound internet/DNS access**. This means:
+Every lab runs in an isolated Docker container. In the Replit runtime, the
+container has **no outbound internet/DNS access**, and you should not assume
+that runtime networking is available on other self-hosted deployments. This
+means:
 
 - `apt-get`, `apk add`, `pip install`, `npm install`, `curl <url>`,
   `wget <url>`, `git clone` — **none of these work at runtime**, even with
   `-qq` or `--quiet` flags. They will hang or fail silently, and any lab that
   depends on them will look "broken" to students no matter what they do.
-- `docker pull` for the `image:` field **does** work (images are pulled once
-  ahead of time), so the fix is always to **choose or build an image that
-  already contains everything the lab needs** — never to install things
-  inside `setupScript`.
+- The host/API startup process pulls the `image:` field ahead of time when
+  possible. That pull is outside the lab container, so the fix is always to
+  choose or build an image that already contains everything the lab needs —
+  never to install things inside `setupScript`.
 - This bit a real lab before ("Cron & Task Scheduling" used `ubuntu:24.04` +
   `apt-get install -y cron at`, which silently failed, so `cron`/`at` were
   never present and every check failed). Don't repeat that mistake.

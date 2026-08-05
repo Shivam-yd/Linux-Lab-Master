@@ -3,12 +3,17 @@ set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-backups/postgres}"
 LOCK_FILE="${BACKUP_LOCK_FILE:-${BACKUP_DIR}/.backup.lock}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 die() { echo "backup: $*" >&2; exit 1; }
 
-command -v pg_dump >/dev/null || die "pg_dump is required"
-command -v pg_restore >/dev/null || die "pg_restore is required"
+source "${SCRIPT_DIR}/postgres-tools.sh"
+pg_dump_bin="$(postgres_tool pg_dump)" || die "PostgreSQL ${PG_MAJOR} pg_dump is required"
+pg_restore_bin="$(postgres_tool pg_restore)" || die "PostgreSQL ${PG_MAJOR} pg_restore is required"
+psql_bin="$(postgres_tool psql)" || die "PostgreSQL ${PG_MAJOR} psql is required"
 [[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL is required"
+check_postgres_server_major "$DATABASE_URL" "$psql_bin" "$pg_dump_bin" ||
+  die "PostgreSQL client/server major versions must match"
 
 mkdir -p "$BACKUP_DIR"
 exec 9>"$LOCK_FILE"
@@ -21,7 +26,7 @@ temporary_checksum="${temporary}.sha256"
 trap 'rm -f "$temporary" "$temporary_checksum"' EXIT
 
 echo "Creating PostgreSQL backup: ${final}"
-pg_dump \
+"$pg_dump_bin" \
   --dbname="$DATABASE_URL" \
   --format=custom \
   --compress=9 \
@@ -32,7 +37,7 @@ pg_dump \
 # Validate the new archive before publishing it or removing the current one.
 sha256sum "$temporary" > "$temporary_checksum"
 sha256sum --check "$temporary_checksum" >/dev/null
-pg_restore --list "$temporary" >/dev/null
+"$pg_restore_bin" --list "$temporary" >/dev/null
 
 mv "$temporary" "$final"
 sha256sum "$final" > "${final}.sha256"

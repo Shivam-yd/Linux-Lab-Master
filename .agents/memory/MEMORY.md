@@ -21,3 +21,4 @@
 - [Managed container log retention](managed-container-log-retention.md) — outer lab containers use bounded compressed Docker logs; inner DinD containers need their own daemon policy.
 - [Database backup safety](database-backup-safety.md) — create backups from DATABASE_URL, but restore only to an explicit target with confirmation.
 - [Admin destructive-action UX](admin-destructive-action-ux.md) — use the shared accessible confirmation modal for admin destructive actions, not browser-native prompts.
+- [Catalog counts](catalog-counts.md) — public totals combine synchronized YAML labs with built-in Linux labs; update static copy together.

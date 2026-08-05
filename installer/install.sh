@@ -10,14 +10,14 @@
 #   2. Installs k3s (single-node Kubernetes)
 #   3. Starts a local image registry on localhost:5000
 #   4. Copies the project to /opt/linuxlabs
-#   5. Generates random secrets and configures Better Auth / Google OAuth
+#   5. Generates random secrets and configures Better Auth
 #   6. Creates the devlabmaster k8s namespace + secret
 #   7. Builds Docker images and deploys them
 #   8. Pre-pulls lab container images so sandbox startup is instant
 #   9. Installs a verified, single-retained daily database backup at 02:00
 #
-# Subsequent deploys are handled by GitHub Actions (zero-downtime rolling
-# update) — re-running this script is only needed after wiping the server.
+# Subsequent deploys are handled by GitHub Actions — re-running this script is
+# only needed after wiping the server.
 #
 # Supported: Ubuntu 20.04 LTS, 22.04 LTS, 24.04 LTS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ header "Step 1/7 — Docker"
 
 install_docker() {
   apt-get update -qq
-  apt-get install -y -qq ca-certificates curl gnupg lsb-release postgresql-client cron
+  apt-get install -y -qq ca-certificates curl gnupg lsb-release
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
     | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -86,6 +86,20 @@ install_docker() {
                           docker-buildx-plugin docker-compose-plugin
 }
 
+install_postgres_client() {
+  apt-get update -qq
+  apt-get install -y -qq ca-certificates curl gnupg
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    | gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg
+  source /etc/os-release
+  echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] \
+    https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+    > /etc/apt/sources.list.d/pgdg.list
+  apt-get update -qq
+  apt-get install -y -qq postgresql-client-16 cron
+}
+
 if command -v docker &>/dev/null && docker info &>/dev/null; then
   success "Docker already running ($(docker --version))"
 else
@@ -94,10 +108,10 @@ else
   success "Docker installed"
 fi
 
-if ! command -v pg_dump &>/dev/null || ! command -v pg_restore &>/dev/null || ! command -v crontab &>/dev/null; then
-  info "Installing PostgreSQL client and cron tools for verified backups..."
-  apt-get update -qq
-  apt-get install -y -qq postgresql-client cron
+if ! command -v pg_dump &>/dev/null || ! command -v pg_restore &>/dev/null ||
+   ! command -v crontab &>/dev/null || ! pg_dump --version | grep -qE 'PostgreSQL 16(\.|$)'; then
+  info "Installing PostgreSQL 16 client and cron tools for verified backups..."
+  install_postgres_client
 fi
 systemctl enable --now cron
 success "PostgreSQL backup tools available"
@@ -209,18 +223,6 @@ else
   BETTER_AUTH_URL="${INPUT_URL:-${DEFAULT_BETTER_AUTH_URL}}"
 
   echo ""
-  echo -e "  ${CYAN}Google OAuth (optional — leave blank to skip)${RESET}"
-  read -rp "  GOOGLE_CLIENT_ID     : " GOOGLE_CLIENT_ID
-  read -rp "  GOOGLE_CLIENT_SECRET : " GOOGLE_CLIENT_SECRET
-
-  if [[ -n "${GOOGLE_CLIENT_ID}" ]]; then
-    echo ""
-    echo -e "  ${YELLOW}[!] Add this Authorised redirect URI in Google Console:${RESET}"
-    echo -e "      ${BOLD}${BETTER_AUTH_URL}/api/auth/callback/google${RESET}"
-    echo ""
-  fi
-
-  echo ""
   echo -e "  ${CYAN}Admin emails${RESET} — comma-separated, can access /admin"
   read -rp "  ADMIN_EMAILS        : " ADMIN_EMAILS
   [[ -z "${ADMIN_EMAILS}" ]] && warn "No admin email set — /admin will be inaccessible until you add ADMIN_EMAILS to ${ENV_FILE}"
@@ -249,8 +251,6 @@ else
     echo "BETTER_AUTH_URL=${BETTER_AUTH_URL}"
     echo "TRUSTED_ORIGINS=${TRUSTED_ORIGINS}"
     echo "SECURE_COOKIES=${SECURE_COOKIES}"
-    echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
-    echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
     echo "GITHUB_TOKEN=${GITHUB_TOKEN}"
     echo "ADMIN_EMAILS=${ADMIN_EMAILS}"
   } > "${ENV_FILE}"
@@ -308,6 +308,7 @@ pull_image hashicorp/terraform:1.9
 pull_image rastasheep/ubuntu-sshd:18.04
 pull_image localstack/localstack:latest
 pull_image docker:dind
+pull_image cytopia/ansible:latest
 pull_image "${JENKINS_GUI_IMAGE}"
 success "Lab image pre-pull complete"
 

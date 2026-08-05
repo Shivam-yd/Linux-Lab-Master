@@ -5,11 +5,13 @@ INSTALL_DIR="${INSTALL_DIR:-/opt/linuxlabs}"
 BACKUP_DIR="${BACKUP_DIR:-${INSTALL_DIR}/backups}"
 NAMESPACE="${BACKUP_NAMESPACE:-devlabmaster}"
 LOCK_FILE="${BACKUP_LOCK_FILE:-${BACKUP_DIR}/.backup.lock}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 die() { echo "backup: $*" >&2; exit 1; }
 
 command -v kubectl >/dev/null || die "kubectl is required"
-command -v pg_restore >/dev/null || die "pg_restore is required"
+source "${SCRIPT_DIR}/postgres-tools.sh"
+pg_restore_bin="$(postgres_tool pg_restore)" || die "PostgreSQL ${PG_MAJOR} pg_restore is required"
 [[ -f "${INSTALL_DIR}/.env" ]] || die "missing ${INSTALL_DIR}/.env"
 set -o allexport
 source "${INSTALL_DIR}/.env"
@@ -49,7 +51,7 @@ kubectl exec -n "$NAMESPACE" "$pod" -- env \
   '
 
 kubectl exec -n "$NAMESPACE" "$pod" -- cat "$remote" > "$temporary"
-pg_restore --list "$temporary" >/dev/null
+"$pg_restore_bin" --list "$temporary" >/dev/null
 mv "$temporary" "$final"
 sha256sum "$final" > "${final}.sha256"
 sha256sum --check "${final}.sha256" >/dev/null

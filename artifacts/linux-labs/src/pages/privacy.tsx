@@ -62,7 +62,7 @@ export default function PrivacyPage() {
 
         <Section title="5. Third-Party Services">
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong className="text-foreground">Google OAuth</strong> (optional) — if you sign in with Google, your public profile name and email are shared with us by Google under their privacy policy</li>
+            <li><strong className="text-foreground">Account authentication</strong> — email and password are used to create and secure your account; social sign-in is not enabled in the current server build</li>
             <li><strong className="text-foreground">Google Fonts</strong> — fonts are loaded from Google's CDN; Google may log font requests per their policy</li>
           </ul>
         </Section>

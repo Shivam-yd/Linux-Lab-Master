@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: linuxlabs
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-linuxlabs}
+      POSTGRES_DB: linuxlabs
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linuxlabs -d linuxlabs"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://linuxlabs:${POSTGRES_PASSWORD:-linuxlabs}@postgres:5432/linuxlabs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgresql://linuxlabs:${POSTGRES_PASSWORD:-linuxlabs}@postgres:5432/linuxlabs
+      SESSION_SECRET: ${SESSION_SECRET}
+      NODE_ENV: production
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:8085}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      ENFORCE_PLANS: ${ENFORCE_PLANS:-true}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - backup-data:/var/lib/devlabmaster/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  backup-data:

@@ -8,10 +8,10 @@ Run this from the project root on the target machine:
 sudo bash installer/install.sh
 ```
 
-That's it. The script installs Docker, builds the images, pulls lab containers,
-registers a systemd service that starts on boot, and installs a daily 02:00
-PostgreSQL backup schedule retaining exactly one verified backup. Open
-`http://localhost:8085` when it finishes.
+That's it. The script installs Docker and k3s, builds and deploys the images,
+pre-pulls the lab containers, creates an initial verified database backup, and
+installs a daily 02:00 PostgreSQL backup schedule retaining exactly one verified
+backup. Open `http://localhost:8085` when it finishes.
 
 After completing every lab in a track, open `/certificate/<track>` to view the
 certificate. Use **Share** to open the device share dialog or copy a public
@@ -20,10 +20,10 @@ verification link. Anyone with that link can verify the certificate at
 
 | Command | What it does |
 |---|---|
-| `sudo systemctl status linuxlabs` | Check if it's running |
-| `sudo systemctl stop linuxlabs` | Stop |
-| `sudo systemctl start linuxlabs` | Start |
-| `journalctl -u linuxlabs -f` | Live logs |
+| `kubectl get pods -n devlabmaster` | Check workload status |
+| `kubectl logs -n devlabmaster deploy/api` | API logs |
+| `kubectl rollout status deployment/api -n devlabmaster` | Watch an API rollout |
+| `kubectl rollout undo deployment/api -n devlabmaster` | Roll back the API |
 
 ---
 
@@ -34,8 +34,9 @@ verification link. Anyone with that link can verify the certificate at
 The installer packages Linux Labs as a self-contained Windows application:
 
 - Installs Docker Desktop (via winget) if not already present
-- Builds all Docker images from source (Node.js API, nginx frontend, PostgreSQL)
-- Pre-pulls the lab container images, including Jenkins LTS for the GUI labs, so labs start instantly
+- Builds the API, migration, and nginx frontend images; PostgreSQL runs from the
+  `postgres:16-alpine` image
+- Pre-pulls every lab container image, including Jenkins LTS for the GUI labs, so labs start instantly
 - Registers a Windows service (`LinuxLabs`) that starts on boot
 - Creates a desktop shortcut that opens `http://localhost:8085` in the browser
 - Provides shareable completion certificates with public verification links
@@ -106,5 +107,5 @@ api:8080  →  postgres:5432  (schema auto-migrated on each start)
 api:8080  →  /var/run/docker.sock  (spawns lab containers on the host)
 ```
 
-The Windows service runs `docker compose up --no-build`.  
+The Windows service runs `docker compose --project-directory <install-dir> --env-file <install-dir>/.env up --no-build`.
 Images are built once during installation and reused on every subsequent start.

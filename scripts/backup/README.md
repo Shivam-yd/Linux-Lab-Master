@@ -1,9 +1,9 @@
 # PostgreSQL backup management
 
-These scripts use the PostgreSQL client tools already available in the Replit
-runtime. Backups use PostgreSQL's compressed custom format and include a SHA-256
-sidecar file. They contain database data, so the backup directory must not be
-committed or exposed publicly.
+These scripts use PostgreSQL 16 client tools to match the application's
+PostgreSQL 16 server. Backups use PostgreSQL's compressed custom format and
+include a SHA-256 sidecar file. They contain database data, so the backup
+directory must not be committed or exposed publicly.
 
 ## Create and retain backups
 
@@ -17,6 +17,10 @@ creates a timestamped `.dump`, verifies its checksum and PostgreSQL archive
 catalog, prevents concurrent runs, and then removes the previous dump. There
 is exactly one completed backup after a successful run. If creation or
 verification fails, the previous backup is left untouched.
+
+The scripts select the PostgreSQL 16 binary explicitly when it is installed
+alongside another client version. Before creating a backup, the direct
+database script also checks that the client and server major versions match.
 
 ## Check backups
 

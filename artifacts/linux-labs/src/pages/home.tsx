@@ -326,7 +326,7 @@ export default function Home() {
           {/* Badge */}
           <motion.div variants={heroItem} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card/60 text-xs font-mono font-semibold text-muted-foreground mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
-            {labCount !== null ? `${labCount} labs across ${trackCount} tracks` : "Labs across 5 tracks"}
+            {labCount !== null ? `${labCount} labs across ${trackCount} tracks` : "Labs across 7 tracks"}
           </motion.div>
 
           {/* Headline */}

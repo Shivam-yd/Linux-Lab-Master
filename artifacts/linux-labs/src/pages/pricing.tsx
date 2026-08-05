@@ -21,7 +21,7 @@ const PLANS = [
     tracks: [
       { icon: Terminal, label: "Linux", color: "#22d3ee" },
     ],
-    stats: ["36 labs", "4 difficulty levels", "~12 hrs of content"],
+     stats: ["29 labs", "4 difficulty levels", "~12 hrs of content"],
     features: [
       "All Linux labs (beginner → advanced)",
       "Real terminal sandboxes",

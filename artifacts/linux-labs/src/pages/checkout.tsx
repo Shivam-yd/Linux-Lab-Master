@@ -29,7 +29,7 @@ const PLANS = {
       "Progress tracking",
       "Completion certificate",
     ],
-    labCount: "36 labs",
+    labCount: "29 labs",
     duration: "~12 hrs",
   },
   "devops-pro": {
@@ -54,7 +54,7 @@ const PLANS = {
       "Git version control",
       "All future tracks included",
     ],
-    labCount: "78+ labs",
+    labCount: "82 labs",
     duration: "~40 hrs",
   },
 } as const

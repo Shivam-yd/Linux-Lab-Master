@@ -17,8 +17,8 @@
 # Optional:
 #   GITHUB_TOKEN           — raises GitHub API rate limit for lab YAML sync
 #   LOG_LEVEL              — defaults to "info"
-#   GOOGLE_CLIENT_ID       — for Google OAuth sign-in
-#   GOOGLE_CLIENT_SECRET   — for Google OAuth sign-in
+#   GOOGLE_CLIENT_ID       — reserved; social sign-in is disabled in this build
+#   GOOGLE_CLIENT_SECRET   — reserved; social sign-in is disabled in this build
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail

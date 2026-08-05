@@ -226,7 +226,7 @@ begin
   // to auto-discovering .env via --project-directory, but that lookup is
   // unreliable under Docker Desktop's WSL2 backend and results in SESSION_SECRET
   // arriving blank, crashing the API on every boot.  Embedding the values
-  // directly mirrors exactly what the Ubuntu systemd service does.
+  // directly injects the values before Docker Compose starts.
   WizardForm.StatusLabel.Caption := 'Writing service configuration...';
   WinSWXml := TStringList.Create;
   try
@@ -290,13 +290,19 @@ begin
   //   hashicorp/terraform:1.9  /bin/sh = ash   — [[ ]] NOT supported; use shell: "sh"
   //   rastasheep/ubuntu-sshd   /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
   //   localstack/localstack    /bin/sh = dash  — [[ ]] NOT supported; use shell: "bash"
-  WizardForm.StatusLabel.Caption := 'Downloading lab environments (ubuntu, alpine, alpine/git, terraform, rastasheep, localstack)...';
+  //   jenkins/jenkins          uses its image command and serves /jenkins/
+  WizardForm.StatusLabel.Caption := 'Downloading lab environments...';
+  ExecOK('docker', 'pull postgres:16-alpine',              AppDir);
   ExecOK('docker', 'pull ubuntu:24.04',                  AppDir);
   ExecOK('docker', 'pull alpine:latest',                 AppDir);
   ExecOK('docker', 'pull alpine/git:latest',             AppDir);
   ExecOK('docker', 'pull hashicorp/terraform:1.9',       AppDir);
   ExecOK('docker', 'pull rastasheep/ubuntu-sshd:18.04',  AppDir);
   ExecOK('docker', 'pull localstack/localstack:latest',  AppDir);
+  ExecOK('docker', 'pull alpine/k8s:1.30.2',              AppDir);
+  ExecOK('docker', 'pull docker:dind',                    AppDir);
+  ExecOK('docker', 'pull cytopia/ansible:latest',          AppDir);
+  ExecOK('docker', 'pull jenkins/jenkins:lts-jdk17',       AppDir);
 
   // ── Step 7: Install and start the Windows service ─────────────────────────
   WizardForm.StatusLabel.Caption := 'Installing Windows service...';

@@ -84,8 +84,17 @@ FROM node:20-slim AS api
 
 WORKDIR /app
 RUN apt-get update -qq && \
-    apt-get install -y -qq --no-install-recommends bash postgresql-client util-linux && \
+    apt-get install -y -qq --no-install-recommends bash ca-certificates curl gnupg util-linux && \
+    install -d -m 0755 /etc/apt/keyrings && \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+      gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg && \
+    . /etc/os-release && \
+    echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends postgresql-client-16 && \
     rm -rf /var/lib/apt/lists/*
+ENV PG_MAJOR=16
 COPY --from=builder /app/artifacts/api-server/dist ./dist
 COPY scripts/backup ./scripts/backup
 
