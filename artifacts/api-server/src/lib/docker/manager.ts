@@ -17,6 +17,11 @@ const CONTAINER_LABEL = "linuxlabs.managed";
 // Containers are killed after this wall-clock time regardless of activity.
 const CONTAINER_MAX_MS = 60 * 60 * 1_000; // 1 hour
 
+// Keep Docker's json-file logs bounded even if a lab service is unusually chatty.
+// Docker keeps the active file plus these rotated files per container.
+const CONTAINER_LOG_MAX_SIZE = "10m";
+const CONTAINER_LOG_MAX_FILES = "3";
+
 // Per-(studentId:labId) kill timers — cleared on stop/reset.
 const _containerTimeouts = new Map<string, NodeJS.Timeout>();
 
@@ -318,6 +323,17 @@ export async function startSession(
             // Required for Docker-in-Docker labs that run a real dockerd inside
             // the sandbox. Only set when the lab explicitly requests it.
             Privileged: lab.privileged ?? false,
+            // Explicit rotation prevents service stdout/stderr (for example,
+            // Jenkins startup logs) from consuming the host disk indefinitely.
+            // This applies to the outer managed container; inner DinD containers
+            // remain governed by their own daemon configuration.
+            LogConfig: {
+              Type: "json-file",
+              Config: {
+                "max-size": CONTAINER_LOG_MAX_SIZE,
+                "max-file": CONTAINER_LOG_MAX_FILES,
+              },
+            },
             // Publish any declared ports to random host ports so the proxy can
             // reach the service. HostPort: "" lets Docker pick a free port.
             ...(lab.ports?.length
