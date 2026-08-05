@@ -1012,9 +1012,6 @@ export default function AdminPage() {
                 <h1 className="text-2xl font-black tracking-tight mt-2">{activeNav.label}</h1>
                 <p className="text-sm text-muted-foreground mt-1">{ADMIN_SECTION_DESCRIPTIONS[activeNav.id]}</p>
               </div>
-              <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-400/80 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Live admin view
-              </span>
             </div>
 
             {/* Summary cards */}
