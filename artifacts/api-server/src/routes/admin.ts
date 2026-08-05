@@ -32,6 +32,15 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
   .map((s) => s.trim())
   .filter(Boolean);
 
+type BackupVerificationResult = Awaited<ReturnType<typeof verifyCurrentBackup>>;
+const BACKUP_VERIFY_DEBOUNCE_MS = 10_000;
+let backupVerificationInFlight: Promise<BackupVerificationResult> | null = null;
+let lastBackupVerification: { completedAt: number; result: BackupVerificationResult } | null = null;
+
+function skipAdminAudit(req: Request): void {
+  (req as Request & { skipAdminAudit?: boolean }).skipAdminAudit = true;
+}
+
 async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
   if (!session?.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
@@ -95,13 +104,35 @@ router.post("/operations/backups/run", async (_req, res): Promise<void> => {
   }
 });
 
-router.post("/operations/backups/verify", async (_req, res): Promise<void> => {
+router.post("/operations/backups/verify", async (req, res): Promise<void> => {
+  const now = Date.now();
+  if (backupVerificationInFlight) {
+    skipAdminAudit(req);
+    try {
+      const result = await backupVerificationInFlight;
+      res.json({ ok: true, ...result, deduplicated: true });
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Backup verification failed" });
+    }
+    return;
+  }
+  if (lastBackupVerification && now - lastBackupVerification.completedAt < BACKUP_VERIFY_DEBOUNCE_MS) {
+    skipAdminAudit(req);
+    res.json({ ok: true, ...lastBackupVerification.result, deduplicated: true });
+    return;
+  }
+
+  const verification = verifyCurrentBackup();
+  backupVerificationInFlight = verification;
   try {
-    const result = await verifyCurrentBackup();
+    const result = await verification;
+    lastBackupVerification = { completedAt: Date.now(), result };
     res.json({ ok: true, ...result });
   } catch (error) {
     logger.error({ err: error }, "admin backup verification failed");
     res.status(500).json({ error: error instanceof Error ? error.message : "Backup verification failed" });
+  } finally {
+    if (backupVerificationInFlight === verification) backupVerificationInFlight = null;
   }
 });
 

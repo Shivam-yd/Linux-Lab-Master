@@ -236,6 +236,7 @@ export default function AdminPage() {
   const [certificatePage, setCertificatePage] = useState(1)
   const { toast } = useToast()
   const activeNav = ADMIN_NAV.find(({ id }) => id === tab) ?? ADMIN_NAV[0]
+  const verifyBackupLock = useRef(false)
 
   const leaderboard = useQuery<StudentRow[]>({
     queryKey: ["admin", "leaderboard"],
@@ -406,6 +407,7 @@ export default function AdminPage() {
       toast({ title: "Backup verification passed" })
     },
     onError: (err: Error) => toast({ title: "Verification failed", description: err.message, variant: "destructive" }),
+    onSettled: () => { verifyBackupLock.current = false },
   })
 
   type CertRow = {
@@ -2027,7 +2029,11 @@ export default function AdminPage() {
                           <button
                             type="button"
                             disabled={!operations.data.backups.available || !operations.data.backups.current || runBackup.isPending || verifyBackup.isPending}
-                            onClick={() => verifyBackup.mutate()}
+                            onClick={() => {
+                              if (verifyBackupLock.current) return
+                              verifyBackupLock.current = true
+                              verifyBackup.mutate()
+                            }}
                             className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             {verifyBackup.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}

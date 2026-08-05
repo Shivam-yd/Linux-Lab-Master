@@ -8,7 +8,7 @@ export async function recordAdminAudit(
   metadata?: Record<string, unknown>,
 ): Promise<void> {
   const actorEmail = req.adminEmail;
-  if (!actorEmail || req.path === "/operations/audit") return;
+  if (!actorEmail || req.path === "/operations/audit" || (req as Request & { skipAdminAudit?: boolean }).skipAdminAudit) return;
   await db.insert(adminAuditLogTable).values({
     actorEmail,
     action: `${req.method} ${req.path}`,
