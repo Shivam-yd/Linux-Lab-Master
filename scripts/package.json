@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "backup:create": "bash ./backup/create-backup.sh",
+    "backup:status": "bash ./backup/status-backups.sh",
+    "backup:verify": "bash ./backup/verify-backup.sh",
+    "backup:restore": "bash ./backup/restore-backup.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

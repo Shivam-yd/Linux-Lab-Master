@@ -49,3 +49,6 @@ Thumbs.db
 .local/
 attached_assets/
 instruction.md
+
+# Local database backup output
+/backups/

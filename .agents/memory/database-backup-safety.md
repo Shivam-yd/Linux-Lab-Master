@@ -1,0 +1,10 @@
+---
+name: Database backup safety
+description: Operating rules for PostgreSQL backup and restore scripts
+---
+
+Backups use PostgreSQL custom-format dumps with checksums and bounded retention. Restore must require an explicit target URL and a confirmation flag; it must never default to the active application database.
+
+**Why:** restoring a backup is destructive and an accidental restore against the live database could overwrite user accounts, progress, sessions, and operational records.
+
+**How to apply:** keep backup files on private durable storage outside source control, verify an archive before restore, back up the target first, and perform recovery drills against a disposable target.
