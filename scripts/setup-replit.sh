@@ -54,7 +54,21 @@ info "Pushing database schema via Drizzle..."
 pnpm --filter @workspace/db run push
 success "Database schema up to date"
 
-# ── 4. Done ───────────────────────────────────────────────────────────────────
+# ── 4. Lab image cache ─────────────────────────────────────────────────────────
+if ! command -v docker >/dev/null 2>&1; then
+  die "Docker is required for labs but was not found"
+fi
+
+info "Pre-pulling lab images..."
+for img in ubuntu:24.04 alpine:latest rastasheep/ubuntu-sshd:18.04 hashicorp/terraform:1.9 jenkins/jenkins:lts-jdk17; do
+  if docker pull "$img"; then
+    success "Cached $img"
+  else
+    echo "warning: failed to pull $img (labs using it will error until this is resolved)" >&2
+  fi
+done
+
+# ── 5. Done ───────────────────────────────────────────────────────────────────
 success "Setup complete. Start the app with:"
 echo "  pnpm --filter @workspace/api-server run dev   # API on \$PORT (default 8080)"
 echo "  pnpm --filter @workspace/devlabmaster run dev  # Frontend on \$PORT"
