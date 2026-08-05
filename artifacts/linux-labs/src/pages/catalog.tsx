@@ -323,9 +323,23 @@ export default function Catalog() {
     setViewMode(mode)
   }
 
-  const [onboardingDone, setOnboardingDone] = useState(() => {
-    try { return localStorage.getItem("devlabmaster-onboarding") === "done" } catch { return false }
-  })
+  const [onboardingDone, setOnboardingDone] = useState(false)
+  const [onboardingReady, setOnboardingReady] = useState(false)
+  const onboardingKey = session?.user?.id
+    ? `devlabmaster-onboarding:${session.user.id}`
+    : null
+  useEffect(() => {
+    if (!onboardingKey) {
+      setOnboardingReady(false)
+      return
+    }
+    try {
+      setOnboardingDone(localStorage.getItem(onboardingKey) === "done")
+    } catch {
+      setOnboardingDone(false)
+    }
+    setOnboardingReady(true)
+  }, [onboardingKey])
   const [onboardingExperience, setOnboardingExperience] = useState("")
   const [onboardingGoal, setOnboardingGoal] = useState("")
   const [onboardingTrack, setOnboardingTrack] = useState("")
@@ -336,12 +350,16 @@ export default function Catalog() {
   )
   const onboardingMeta = TRACK_META[onboardingRecommendation] ?? DEFAULT_TRACK_META
   const saveOnboarding = (track = onboardingRecommendation) => {
-    try { localStorage.setItem("devlabmaster-onboarding", "done") } catch {}
+    if (onboardingKey) {
+      try { localStorage.setItem(onboardingKey, "done") } catch {}
+    }
     setOnboardingDone(true)
     handleTrackChange(track)
   }
   const dismissOnboarding = () => {
-    try { localStorage.setItem("devlabmaster-onboarding", "done") } catch {}
+    if (onboardingKey) {
+      try { localStorage.setItem(onboardingKey, "done") } catch {}
+    }
     setOnboardingDone(true)
   }
 
@@ -681,7 +699,7 @@ export default function Catalog() {
             </div>
           </div>
 
-          {!onboardingDone && !loading && (
+          {onboardingReady && !onboardingDone && !loading && (
             <section className="dlm-panel rounded-2xl overflow-hidden" aria-labelledby="onboarding-title">
               <div className="p-5 sm:p-6 border-b border-border/60">
                 <div className="flex items-start justify-between gap-4">
