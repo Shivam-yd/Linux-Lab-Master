@@ -22,3 +22,4 @@
 - [Database backup safety](database-backup-safety.md) — create backups from DATABASE_URL, but restore only to an explicit target with confirmation.
 - [Admin destructive-action UX](admin-destructive-action-ux.md) — use the shared accessible confirmation modal for admin destructive actions, not browser-native prompts.
 - [Catalog counts](catalog-counts.md) — public totals combine synchronized YAML labs with built-in Linux labs; update static copy together.
+- [Mockup sandbox build environment](mockup-build-env.md) — mockup Vite builds require explicit PORT and BASE_PATH defaults.
