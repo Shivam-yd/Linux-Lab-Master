@@ -9,13 +9,14 @@ committed or exposed publicly.
 
 ```bash
 export BACKUP_DIR=/secure/path/devlabmaster-backups
-export RETENTION_COUNT=7
 bash scripts/backup/create-backup.sh
 ```
 
 `DATABASE_URL` is read from the environment and is never printed. The script
-creates a timestamped `.dump`, writes its checksum, prevents concurrent runs,
-and removes backups older than the configured retention count.
+creates a timestamped `.dump`, verifies its checksum and PostgreSQL archive
+catalog, prevents concurrent runs, and then removes the previous dump. There
+is exactly one completed backup after a successful run. If creation or
+verification fails, the previous backup is left untouched.
 
 ## Check backups
 
@@ -45,12 +46,20 @@ it.
 
 ## Scheduling
 
-Run the create script from a protected host scheduler, not from a web request:
+Install the daily schedule once on the host that has access to `DATABASE_URL`:
 
-```cron
-0 2 * * * cd /path/to/devlabmaster && BACKUP_DIR=/secure/path/devlabmaster-backups /usr/bin/env bash scripts/backup/create-backup.sh >> /var/log/devlabmaster-backup.log 2>&1
+```bash
+PROJECT_DIR=/path/to/devlabmaster \
+BACKUP_DIR=/secure/path/devlabmaster-backups \
+  bash scripts/backup/install-cron.sh
 ```
 
-Use the host's log rotation for the scheduler log. Store backups on durable
-storage separate from the application workspace, and periodically perform a
-restore drill. A successful backup alone does not prove recoverability.
+This installs an idempotent cron entry that runs every day at **02:00 in the
+host's local timezone**. Re-running the installer replaces only this project's
+entry and does not duplicate it.
+
+On Replit, the script is ready to run, but a persistent daily trigger should be
+provided by the deployment/host scheduler rather than relying on a development
+process staying alive. Store the single backup on durable private storage
+separate from the application workspace, and periodically perform a restore
+drill. A successful backup alone does not prove recoverability.

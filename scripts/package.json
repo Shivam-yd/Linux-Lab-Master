@@ -9,6 +9,7 @@
     "backup:status": "bash ./backup/status-backups.sh",
     "backup:verify": "bash ./backup/verify-backup.sh",
     "backup:restore": "bash ./backup/restore-backup.sh",
+    "backup:install-cron": "bash ./backup/install-cron.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

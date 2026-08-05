@@ -46,7 +46,9 @@ Replit's built-in PostgreSQL. Schema managed by Drizzle ORM.
 To push schema changes: `pnpm --filter @workspace/db run push`
 
 PostgreSQL backup and restore operators' scripts live in `scripts/backup/`.
-They use `DATABASE_URL` only for creating a backup; restore always requires an
+The policy retains exactly one verified backup: the daily job runs at 02:00 in
+the host's local timezone, and deletes the previous dump only after the new
+dump passes checksum and archive-readability checks. Restore always requires an
 explicit target URL and `--confirm-restore`. Keep backup files on durable,
 private storage outside the repository.
 

@@ -3,7 +3,7 @@ name: Database backup safety
 description: Operating rules for PostgreSQL backup and restore scripts
 ---
 
-Backups use PostgreSQL custom-format dumps with checksums and bounded retention. Restore must require an explicit target URL and a confirmation flag; it must never default to the active application database.
+Backups use PostgreSQL custom-format dumps with checksums and exactly-one retention. The old dump is removed only after the new dump passes checksum and archive-readability checks. Restore must require an explicit target URL and a confirmation flag; it must never default to the active application database.
 
 **Why:** restoring a backup is destructive and an accidental restore against the live database could overwrite user accounts, progress, sessions, and operational records.
 

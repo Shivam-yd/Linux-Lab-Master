@@ -2,14 +2,13 @@
 set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-backups/postgres}"
-RETENTION_COUNT="${RETENTION_COUNT:-7}"
 LOCK_FILE="${BACKUP_LOCK_FILE:-${BACKUP_DIR}/.backup.lock}"
 
 die() { echo "backup: $*" >&2; exit 1; }
 
 command -v pg_dump >/dev/null || die "pg_dump is required"
+command -v pg_restore >/dev/null || die "pg_restore is required"
 [[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL is required"
-[[ "$RETENTION_COUNT" =~ ^[1-9][0-9]*$ ]] || die "RETENTION_COUNT must be a positive integer"
 
 mkdir -p "$BACKUP_DIR"
 exec 9>"$LOCK_FILE"
@@ -18,7 +17,8 @@ flock -n 9 || die "another backup is already running"
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 final="${BACKUP_DIR}/devlabmaster-${timestamp}.dump"
 temporary="${final}.tmp"
-trap 'rm -f "$temporary"' EXIT
+temporary_checksum="${temporary}.sha256"
+trap 'rm -f "$temporary" "$temporary_checksum"' EXIT
 
 echo "Creating PostgreSQL backup: ${final}"
 pg_dump \
@@ -28,13 +28,21 @@ pg_dump \
   --no-owner \
   --no-acl \
   --file="$temporary"
+
+# Validate the new archive before publishing it or removing the current one.
+sha256sum "$temporary" > "$temporary_checksum"
+sha256sum --check "$temporary_checksum" >/dev/null
+pg_restore --list "$temporary" >/dev/null
+
 mv "$temporary" "$final"
 sha256sum "$final" > "${final}.sha256"
+sha256sum --check "${final}.sha256" >/dev/null
 
-mapfile -t archives < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'devlabmaster-*.dump' -printf '%T@ %p\n' | sort -rn | tail -n +"$((RETENTION_COUNT + 1))" | cut -d' ' -f2-)
-for archive in "${archives[@]}"; do
-  rm -f -- "$archive" "${archive}.sha256"
-done
+# Keep exactly one completed backup. This happens only after the replacement
+# has been fully written and verified.
+while IFS= read -r archive; do
+  [[ "$archive" == "$final" ]] || rm -f -- "$archive" "${archive}.sha256"
+done < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'devlabmaster-*.dump' -print)
 
 echo "Backup complete: ${final}"
-echo "Retention: kept the ${RETENTION_COUNT} most recent backup(s)"
+echo "Retention: kept exactly one verified backup"
