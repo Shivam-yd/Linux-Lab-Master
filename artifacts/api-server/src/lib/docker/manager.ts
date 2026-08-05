@@ -48,7 +48,6 @@ const EXEC_TIMEOUT_MS        = 30_000;   // 30 s for verify scripts
 const SETUP_TIMEOUT_MS       = 120_000;  // 2 min for plain setup scripts
 const SETUP_TIMEOUT_SERVICE  = 180_000;  // 3 min for service containers (Jenkins, etc.) that need time to boot
 const JENKINS_READY_TIMEOUT  = 150_000;  // Jenkins must finish init.groovy.d after its setup restart
-const EXEC_RETRY_DELAY_MS    = 1_500;
 const MAX_OUTPUT_BYTES = 2 * 1024 * 1024; // 2 MB — prevent OOM from chatty scripts
 
 function containerName(studentId: string, labId: string): string {
@@ -57,75 +56,58 @@ function containerName(studentId: string, labId: string): string {
   return `linuxlabs-${safeStudent}-${safeLab}`;
 }
 
-function isTransientExecError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /OCI runtime exec failed|setns process|error executing setns/i.test(message);
-}
-
 async function runExec(
   container: Docker.Container,
   cmd: string[],
   opts: { user?: string; cwd?: string; timeoutMs?: number } = {},
 ): Promise<{ exitCode: number; output: string }> {
   const timeoutMs = opts.timeoutMs ?? EXEC_TIMEOUT_MS;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const exec = await container.exec({
-        Cmd: cmd,
-        User: opts.user ?? "root",
-        WorkingDir: opts.cwd,
-        AttachStdout: true,
-        AttachStderr: true,
-      });
-      const stream = await exec.start({ hijack: true, stdin: false });
+  const exec = await container.exec({
+    Cmd: cmd,
+    User: opts.user ?? "root",
+    WorkingDir: opts.cwd,
+    AttachStdout: true,
+    AttachStderr: true,
+  });
+  const stream = await exec.start({ hijack: true, stdin: false });
 
-      const chunks: Buffer[] = [];
-      let totalBytes = 0;
+  const chunks: Buffer[] = [];
+  let totalBytes = 0;
 
-      // Race the exec stream against a hard timeout so a hung or infinite-looping
-      // verify/setup script can never block an API worker indefinitely.
-      let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-      try {
-        await Promise.race([
-          new Promise<void>((resolve, reject) => {
-            const sink = new Writable({
-              write(chunk: Buffer, _enc, callback) {
-                totalBytes += chunk.length;
-                if (totalBytes > MAX_OUTPUT_BYTES) {
-                  callback(new Error(`Exec output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MB limit — script may be runaway`));
-                  return;
-                }
-                chunks.push(chunk);
-                callback();
-              },
-            });
-            container.modem.demuxStream(stream, sink, sink);
-            stream.on("end", resolve);
-            stream.on("error", reject);
-          }),
-          new Promise<void>((_, reject) => {
-            timeoutHandle = setTimeout(() => {
-              stream.destroy();
-              reject(new Error(`Exec timed out after ${timeoutMs / 1000}s — verify/setup script did not finish`));
-            }, timeoutMs);
-          }),
-        ]);
-      } finally {
-        if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
-      }
-
-      const inspect = await exec.inspect();
-      return { exitCode: inspect.ExitCode ?? -1, output: Buffer.concat(chunks).toString("utf8") };
-    } catch (error) {
-      if (attempt === 0 && isTransientExecError(error)) {
-        logger.warn({ err: error, cmd }, "Container exec hit a transient OCI runtime error; retrying once");
-        await new Promise((resolve) => setTimeout(resolve, EXEC_RETRY_DELAY_MS));
-        continue;
-      }
-      throw error;
-    }
+  // Race the exec stream against a hard timeout so a hung or infinite-looping
+  // verify/setup script can never block an API worker indefinitely.
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      new Promise<void>((resolve, reject) => {
+        const sink = new Writable({
+          write(chunk: Buffer, _enc, callback) {
+            totalBytes += chunk.length;
+            if (totalBytes > MAX_OUTPUT_BYTES) {
+              callback(new Error(`Exec output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MB limit — script may be runaway`));
+              return;
+            }
+            chunks.push(chunk);
+            callback();
+          },
+        });
+        container.modem.demuxStream(stream, sink, sink);
+        stream.on("end", resolve);
+        stream.on("error", reject);
+      }),
+      new Promise<void>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          stream.destroy();
+          reject(new Error(`Exec timed out after ${timeoutMs / 1000}s — verify/setup script did not finish`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
   }
-  throw new Error("Container exec failed");
+
+  const inspect = await exec.inspect();
+  return { exitCode: inspect.ExitCode ?? -1, output: Buffer.concat(chunks).toString("utf8") };
 }
 
 async function waitForJenkinsReady(container: Docker.Container): Promise<void> {
