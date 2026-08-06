@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useMeta } from "@/hooks/use-meta"
 import { Loader2, ArrowLeft, CheckCircle2, Clock } from "lucide-react"
 import { Link } from "wouter"

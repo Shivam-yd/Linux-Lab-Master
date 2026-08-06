@@ -18,7 +18,7 @@ import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { remoteLabsTable, labSyncLogTable } from "@workspace/db/schema";
-import { eq, notInArray, sql } from "drizzle-orm";
+import { eq, notInArray } from "drizzle-orm";
 import { logger } from "./logger";
 
 // ── Config ────────────────────────────────────────────────────────────────────

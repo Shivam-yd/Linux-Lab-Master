@@ -16,14 +16,12 @@ import { useQueryClient } from "@tanstack/react-query"
 import ReactMarkdown from "react-markdown"
 import { Terminal as TerminalComponent } from "@/components/terminal"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Skeleton } from "@/components/ui/skeleton"
 import { 
-  Terminal, Play, Square, RotateCcw, ArrowLeft, 
+  Terminal, Play, Square, RotateCcw, ArrowLeft,
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity,
-  Lightbulb, ChevronDown, ChevronRight, Eye, Server, Loader2, Target, Trophy,
+  Lightbulb, ChevronDown, Eye, Server, Loader2, Target, Trophy,
   Award, ExternalLink, Lock, Zap, Monitor
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -193,7 +191,6 @@ export default function Workspace() {
   // Derived state — declared early so useEffects below can reference them without TDZ errors
   const isRunning = session?.status === 'running'
   const isStarting = sessionLoading || session?.status === 'starting' || startSession.isPending || resetSession.isPending
-  const isStopped = session?.status === 'stopped' || !session || session.status === 'none'
   const sessionError = session?.status === 'error'
   const provisioningActive = session?.status === 'starting' || startSession.isPending || resetSession.isPending
   const [provisioningSecs, setProvisioningSecs] = useState(0)

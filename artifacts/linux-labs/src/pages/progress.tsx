@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState } from "react"
 import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import { useListLabs, useListProgress, useGetMyRank } from "@workspace/api-client-react"

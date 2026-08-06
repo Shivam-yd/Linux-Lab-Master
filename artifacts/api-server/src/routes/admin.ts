@@ -9,10 +9,7 @@ import {
   registrationRequestsTable,
   remoteLabsTable,
   userTable,
-  labRatingsTable,
   certRecordsTable,
-  subscriptionsTable,
-  planOverridesTable,
   type RegistrationRequestRow,
   type RemoteLabRow,
 } from "@workspace/db/schema";

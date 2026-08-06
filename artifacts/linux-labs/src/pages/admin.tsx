@@ -9,7 +9,7 @@ import {
   Trophy, Medal, Crown, Award,
   CheckCircle2, Circle, ShieldAlert, Activity, XCircle, Loader2, RotateCcw,
   KeyRound, Trash2, UserX, X, TrendingUp, Target,
-  Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList, Star,
+  Lock, Unlock, UserPlus, MailPlus, UserCheck, Search, ClipboardList,
   Eye, EyeOff, Beaker, CreditCard, ExternalLink, ShieldCheck, Server, Database, Bug, History,
 } from "lucide-react"
 import { AccountDropdown } from "@/components/account-dropdown"
@@ -869,8 +869,6 @@ export default function AdminPage() {
   }
 
   const students = leaderboard.data ?? []
-  const totalStudents = students.length
-  const totalPassed = students.reduce((a: number, s: StudentRow) => a + s.passed, 0)
   const activeToday = students.filter((s: StudentRow) => {
     if (!s.last_active) return false
     return Date.now() - new Date(s.last_active).getTime() < 86400000
@@ -1245,7 +1243,6 @@ export default function AdminPage() {
                         <div>
                           {rows.map(row => {
                             const rate      = row.attempted > 0 ? Math.round((row.passed / row.attempted) * 100) : 0
-                            const bc = rate >= 80 ? "bg-green-400" : rate >= 50 ? "bg-amber-400" : "bg-red-400"
                             const tc = rate >= 80 ? "text-green-400" : rate >= 50 ? "text-amber-400" : "text-red-400"
                             const r  = row.ratings
                             return (

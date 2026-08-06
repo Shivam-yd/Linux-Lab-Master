@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useMeta } from "@/hooks/use-meta"
 import { Loader2, CheckCircle2 } from "lucide-react"
 import { Link, useLocation } from "wouter"
@@ -19,7 +19,7 @@ export default function ResetPasswordPage() {
   const emailParam = params.get("email") ?? ""
   const tokenParam = params.get("token") ?? ""
 
-  const [email, setEmail] = useState(emailParam)
+  const [email] = useState(emailParam)
   const [newPwd, setNewPwd] = useState("")
   const [confirmPwd, setConfirmPwd] = useState("")
   const [loading, setLoading] = useState(false)

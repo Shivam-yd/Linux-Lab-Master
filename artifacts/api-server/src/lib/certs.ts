@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { certRecordsTable, labProgressTable } from "@workspace/db/schema";
+import { labProgressTable } from "@workspace/db/schema";
 import { getAllLabs } from "./labs/registry";
 
 /** Deterministic ID — same student+track+level always produces the same 16-char hex string. */

@@ -51,11 +51,6 @@ function PlanBadge({ plan, override }: { plan: string; override?: boolean }) {
   )
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const s = { active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25", past_due: "bg-amber-500/15 text-amber-400 border-amber-500/25", cancelled: "bg-muted/60 text-muted-foreground border-border/60" }
-  return <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full border", s[status as keyof typeof s] ?? s.cancelled)}>{status.replace("_", " ")}</span>
-}
-
 export default function BillingAdmin() {
   const { data: session, isPending } = useSession()
   const qc = useQueryClient()

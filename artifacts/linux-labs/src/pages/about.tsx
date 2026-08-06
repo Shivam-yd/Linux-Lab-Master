@@ -2,11 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 import { useMeta } from "@/hooks/use-meta"
 import { Link } from "wouter"
 import {
-  Zap, Linkedin, MapPin, Terminal,
+  Linkedin, MapPin, Terminal,
   Layers, Server, Container, GitBranch, CheckCircle2,
-  BookOpen, ExternalLink, Heart, Award, BarChart3, RefreshCw, Box,
+  BookOpen, Heart, Award, BarChart3, RefreshCw, Box,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BackgroundOrbs } from "@/components/background-orbs"
 import { useSession } from "@/lib/auth-client"

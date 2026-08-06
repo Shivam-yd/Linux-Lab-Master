@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "wouter"
-import { useSession, signOut } from "@/lib/auth-client"
+import { useSession } from "@/lib/auth-client"
 import { useQuery } from "@tanstack/react-query"
 import { User, LogOut, BarChart2, Shield, LogIn, UserPlus } from "lucide-react"
 import { cn } from "@/lib/utils"

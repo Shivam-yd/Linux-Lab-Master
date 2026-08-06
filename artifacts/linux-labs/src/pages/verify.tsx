@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useMeta } from "@/hooks/use-meta"
 import { useParams, Link } from "wouter"
-import { CheckCircle2, Award, XCircle, ArrowLeft } from "lucide-react"
+import { CheckCircle2, XCircle, ArrowLeft } from "lucide-react"
 import { TRACK_META, DEFAULT_TRACK_META } from "@/lib/track-meta"
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")

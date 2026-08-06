@@ -5,18 +5,16 @@ import { Link, useLocation, useSearch, Redirect } from "wouter"
 import { useListLabs, useListProgress } from "@workspace/api-client-react"
 import { useSession } from "@/lib/auth-client"
 import { usePlan, PRO_TRACKS } from "@/lib/use-plan"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Info, User, ChevronLeft, ShieldCheck } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
 import { AccountDropdown } from "@/components/account-dropdown"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
 import {
   Lock, CheckCircle2, PlayCircle,
-  Clock, ChevronRight, Trophy, Star, Cpu, ChevronDown, ChevronUp,
-  Award, Hourglass, Unlock, Zap, Server, RefreshCw, CloudDownload, Github,
+  Clock, ChevronRight, Trophy, ChevronDown,
+  Award, Zap, Server, RefreshCw, CloudDownload, Github,
   Terminal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -125,12 +123,6 @@ const LEVEL_META: Record<number, { name: string; accentHex: string }> = {
   1: { name: "Foundation",    accentHex: "#22d3ee" },
   2: { name: "Intermediate",  accentHex: "#818cf8" },
   3: { name: "Advanced",      accentHex: "#c084fc" },
-}
-
-const DIFFICULTY_BADGE: Record<string, string> = {
-  beginner:     "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  intermediate: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-  advanced:     "bg-rose-500/10 text-rose-400 border-rose-500/20",
 }
 
 export default function Catalog() {
@@ -301,8 +293,6 @@ export default function Catalog() {
     enabled: isAuthenticated,
     staleTime: Infinity,
   })
-
-  const [expanded, setExpanded] = useState(true)
 
   // Sidebar collapsed state — persisted across page loads
   const [collapsed, setCollapsed] = useState(() => {
@@ -907,12 +897,10 @@ export default function Catalog() {
                     <div key={i} className="h-24 rounded-xl bg-card/50 border border-border/50 animate-pulse" />
                   ))
                 : filteredCards.map(({ track, level, lvlLabs, passed, total }) => {
-                    const tm = TRACK_META[track] ?? { ...DEFAULT_TRACK_META, label: track }
                     const lm = LEVEL_META[level] ?? LEVEL_META[1]
                     const cardKey = `${track}-${level}`
                     const isOpen = !!expandedCards[cardKey]
                     const allPassed = passed === total && total > 0
-                    const anyInProgress = lvlLabs.some(l => progressByLabId[l.id]?.status === "in_progress")
 
                     return (
                       <div key={cardKey} className={cn(
