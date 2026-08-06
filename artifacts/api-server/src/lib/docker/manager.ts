@@ -28,9 +28,6 @@ function positiveIntEnv(name: string, fallback: number): number {
   return value;
 }
 
-// Default limits keep a 4 GB Replit/VPS host from being exhausted by sandboxes.
-// Operators can raise these after sizing the Docker host appropriately.
-const MAX_ACTIVE_SESSIONS = positiveIntEnv("MAX_ACTIVE_SESSIONS", 6);
 const MAX_ACTIVE_SESSIONS_PER_STUDENT = positiveIntEnv("MAX_ACTIVE_SESSIONS_PER_STUDENT", 2);
 
 // Keep Docker's json-file logs bounded even if a lab service is unusually chatty.
@@ -208,14 +205,6 @@ function activeSessionWhere(studentId?: string, labId?: string) {
 }
 
 async function assertSessionCapacity(studentId: string, labId: string): Promise<void> {
-  const [globalCount] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(labSessionsTable)
-    .where(activeSessionWhere(studentId, labId));
-  if (Number(globalCount?.count ?? 0) >= MAX_ACTIVE_SESSIONS) {
-    throw new Error(`Sandbox capacity reached (${MAX_ACTIVE_SESSIONS} active sandboxes). Stop an existing sandbox and try again.`);
-  }
-
   const [studentCount] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(labSessionsTable)
