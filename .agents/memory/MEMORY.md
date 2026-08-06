@@ -20,6 +20,7 @@
 - [Operations rollout boundary](operations-rollout-boundary.md) — production schema rollout precedes app publish; provider backups and recovery drills remain deployment responsibilities.
 - [Managed container log retention](managed-container-log-retention.md) — outer lab containers use bounded compressed Docker logs; inner DinD containers need their own daemon policy.
 - [Database backup safety](database-backup-safety.md) — create backups from DATABASE_URL, but restore only to an explicit target with confirmation.
+- [Protected history scrubs](protected-history-scrubs.md) — local secret-removal rewrites may require an authorized force-push when the remote main branch is protected.
 - [Admin destructive-action UX](admin-destructive-action-ux.md) — use the shared accessible confirmation modal for admin destructive actions, not browser-native prompts.
 - [Catalog counts](catalog-counts.md) — public totals combine synchronized YAML labs with built-in Linux labs; update static copy together.
 - [Mockup sandbox build environment](mockup-build-env.md) — mockup Vite builds require explicit PORT and BASE_PATH defaults.
