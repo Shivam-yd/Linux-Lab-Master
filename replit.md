@@ -48,6 +48,8 @@ available as a Replit Secret, and `BETTER_AUTH_URL` must match the current
 | `GOOGLE_CLIENT_ID` | Reserved | Social sign-in configuration; not enabled in the current server build |
 | `GOOGLE_CLIENT_SECRET` | Reserved | Social sign-in configuration; not enabled in the current server build |
 | `ADMIN_EMAILS` | Optional | Comma-separated list of admin email addresses |
+| `MAX_ACTIVE_SESSIONS` | Optional | Global concurrent sandbox limit; defaults to 6 |
+| `MAX_ACTIVE_SESSIONS_PER_STUDENT` | Optional | Per-user concurrent sandbox limit; defaults to 2 |
 
 ## Database
 

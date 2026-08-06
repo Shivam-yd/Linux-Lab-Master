@@ -1,7 +1,7 @@
 import Docker from "dockerode";
 import { Writable } from "node:stream";
 import { db } from "@workspace/db";
-import { eq, and, lt, sql } from "drizzle-orm";
+import { eq, and, lt, ne, or, sql } from "drizzle-orm";
 import {
   labSessionsTable,
   labProgressTable,
@@ -16,6 +16,22 @@ const CONTAINER_LABEL = "linuxlabs.managed";
 
 // Containers are killed after this wall-clock time regardless of activity.
 const CONTAINER_MAX_MS = 60 * 60 * 1_000; // 1 hour
+const STARTING_MAX_MS = 10 * 60 * 1_000; // 10 minutes
+
+function positiveIntEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return value;
+}
+
+// Default limits keep a 4 GB Replit/VPS host from being exhausted by sandboxes.
+// Operators can raise these after sizing the Docker host appropriately.
+const MAX_ACTIVE_SESSIONS = positiveIntEnv("MAX_ACTIVE_SESSIONS", 6);
+const MAX_ACTIVE_SESSIONS_PER_STUDENT = positiveIntEnv("MAX_ACTIVE_SESSIONS_PER_STUDENT", 2);
 
 // Keep Docker's json-file logs bounded even if a lab service is unusually chatty.
 // Docker keeps the active file plus these rotated files per container.
@@ -182,6 +198,36 @@ async function upsertSessionRow(
   return row;
 }
 
+function activeSessionWhere(studentId?: string, labId?: string) {
+  const active = sql`${labSessionsTable.status} IN ('starting', 'running')`;
+  if (!studentId || !labId) return active;
+  return and(
+    active,
+    or(ne(labSessionsTable.studentId, studentId), ne(labSessionsTable.labId, labId)),
+  );
+}
+
+async function assertSessionCapacity(studentId: string, labId: string): Promise<void> {
+  const [globalCount] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(labSessionsTable)
+    .where(activeSessionWhere(studentId, labId));
+  if (Number(globalCount?.count ?? 0) >= MAX_ACTIVE_SESSIONS) {
+    throw new Error(`Sandbox capacity reached (${MAX_ACTIVE_SESSIONS} active sandboxes). Stop an existing sandbox and try again.`);
+  }
+
+  const [studentCount] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(labSessionsTable)
+    .where(and(
+      activeSessionWhere(studentId, labId),
+      eq(labSessionsTable.studentId, studentId),
+    ));
+  if (Number(studentCount?.count ?? 0) >= MAX_ACTIVE_SESSIONS_PER_STUDENT) {
+    throw new Error(`You can run up to ${MAX_ACTIVE_SESSIONS_PER_STUDENT} sandboxes at once. Stop one before starting another.`);
+  }
+}
+
 export async function getSessionRow(studentId: string, labId: string): Promise<LabSessionRow | undefined> {
   return db.query.labSessionsTable.findFirst({
     where: and(eq(labSessionsTable.studentId, studentId), eq(labSessionsTable.labId, labId)),
@@ -278,6 +324,7 @@ export async function startSession(
     await upsertSessionRow(studentId, labId, { status: "starting", errorMessage: null });
 
     try {
+      await assertSessionCapacity(studentId, labId);
       await ensureImagePresent(lab.image);
       let container: Docker.Container;
       try {
@@ -464,10 +511,14 @@ export async function stopSession(studentId: string, labId: string): Promise<voi
  *  and have been running longer than the 1-hour limit. */
 export async function stopExpiredSessions(): Promise<number> {
   const cutoff = new Date(Date.now() - CONTAINER_MAX_MS);
+  const startingCutoff = new Date(Date.now() - STARTING_MAX_MS);
   const expired = await db
     .select({ studentId: labSessionsTable.studentId, labId: labSessionsTable.labId })
     .from(labSessionsTable)
-    .where(and(eq(labSessionsTable.status, "running"), lt(labSessionsTable.startedAt, cutoff)));
+    .where(or(
+      and(eq(labSessionsTable.status, "running"), lt(labSessionsTable.startedAt, cutoff)),
+      and(eq(labSessionsTable.status, "starting"), lt(labSessionsTable.updatedAt, startingCutoff)),
+    ));
   let stopped = 0;
   for (const { studentId, labId } of expired) {
     logger.info({ studentId, labId }, "cleanup: stopping expired session");

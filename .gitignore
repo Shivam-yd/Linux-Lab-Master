@@ -52,3 +52,6 @@ instruction.md
 
 # Local database backup output
 /backups/
+artifacts/api-server/backups/
+**/*.dump
+**/*.dump.sha256
