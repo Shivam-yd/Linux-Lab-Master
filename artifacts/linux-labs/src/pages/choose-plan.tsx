@@ -31,7 +31,7 @@ const PLANS = [
 ] as const
 
 export default function ChoosePlan() {
-  useMeta("Choose a Plan — DevLabMaster")
+  useMeta("Choose a DevOps Training Plan — DevLabMaster", undefined, { indexable: false })
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const { hasSubscription, isLoading: planLoading } = usePlan()

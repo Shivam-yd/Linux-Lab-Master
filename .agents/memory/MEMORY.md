@@ -24,3 +24,4 @@
 - [Admin destructive-action UX](admin-destructive-action-ux.md) — use the shared accessible confirmation modal for admin destructive actions, not browser-native prompts.
 - [Catalog counts](catalog-counts.md) — public totals combine synchronized YAML labs with built-in Linux labs; update static copy together.
 - [Mockup sandbox build environment](mockup-build-env.md) — mockup Vite builds require explicit PORT and BASE_PATH defaults.
+- [SEO deployment URLs](seo-deployment-urls.md) — absolute SEO URLs must follow the verified published domain, never a guessed host.

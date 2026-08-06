@@ -1,2 +1,14 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /choose-plan
+Disallow: /dashboard
+Disallow: /forgot-password
+Disallow: /labs/
+Disallow: /my-certificates
+Disallow: /profile
+Disallow: /progress
+Disallow: /reset-password
+Disallow: /sign-in
+Disallow: /sign-up

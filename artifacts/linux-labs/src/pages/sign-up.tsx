@@ -16,7 +16,7 @@ type CheckStatus = "approved" | "pending" | "none"
 type CheckPhase = "email" | "checking" | "approved" | "pending" | "request" | "done"
 
 export default function SignUpPage() {
-  useMeta("Sign Up — DevLabMaster")
+  useMeta("Create a DevLabMaster Account", "Create a free account to start interactive Linux and DevOps labs in your browser.", { indexable: false })
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const { data: config } = useConfig()

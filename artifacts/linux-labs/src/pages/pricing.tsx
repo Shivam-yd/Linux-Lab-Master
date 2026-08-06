@@ -71,7 +71,7 @@ const COMPARE = [
 ]
 
 export default function PricingPage() {
-  useMeta("Pricing — DevLabMaster", "Simple, transparent pricing for hands-on DevOps labs. Start free, upgrade when you're ready.")
+  useMeta("DevOps Training Plans & Pricing | DevLabMaster", "Compare DevLabMaster plans for hands-on Linux and DevOps labs. Start practising in real browser-based terminal sandboxes.")
   const { data: session, isPending } = useSession()
   const [term, setTerm] = useState<"monthly" | "two-years">("monthly")
 

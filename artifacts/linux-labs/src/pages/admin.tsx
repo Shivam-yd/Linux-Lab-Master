@@ -203,7 +203,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>(TABS.includes(hashTab) ? hashTab : "leaderboard")
   const setTabAndHash = (t: Tab) => { setTab(t); window.location.hash = t }
   // Sync tab when browser back/forward changes the hash
-  useMeta("Admin — DevLabMaster")
+  useMeta("Admin — DevLabMaster", undefined, { indexable: false })
   useEffect(() => {
     const onPop = () => {
       const h = window.location.hash.replace("#", "") as Tab

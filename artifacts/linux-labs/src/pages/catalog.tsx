@@ -197,7 +197,7 @@ export default function Catalog() {
   // Ensure activeTrack stays valid once data loads
   const resolvedTrack = tracks.includes(activeTrack) ? activeTrack : (tracks[0] ?? "linux")
   const trackLabel = (TRACK_META[resolvedTrack] ?? DEFAULT_TRACK_META).label
-  useMeta(`${trackLabel} Labs — DevLabMaster`)
+  useMeta(`${trackLabel} DevOps Labs | DevLabMaster`, `Practise ${trackLabel} with interactive, browser-based DevOps labs and real terminal environments.`, { indexable: false })
 
   const handleTrackChange = (track: string) => {
     setActiveTrack(track)
@@ -414,7 +414,7 @@ export default function Catalog() {
         <div className={cn("border-b border-primary/20 bg-primary/8 dark:bg-none dark:border-border/50 relative overflow-hidden", collapsed ? "px-2 py-[18px]" : "px-5 py-[18px]")}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10" />
           <Link href="/" className={cn("relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity", collapsed && "justify-center")}>
-            <img src="/logo.svg" className="w-9 h-9 rounded-xl shrink-0" />
+            <img src="/logo.svg" className="w-9 h-9 rounded-xl shrink-0" alt="DevLabMaster logo" />
             {!collapsed && (
               <div>
                 <p className="text-sm font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">DevLabMaster</p>

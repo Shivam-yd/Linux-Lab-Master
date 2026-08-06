@@ -36,7 +36,7 @@ const STATIC_STATS = [
 ]
 
 export default function About() {
-  useMeta("About — DevLabMaster", "The team and mission behind DevLabMaster, the hands-on DevOps training platform.")
+  useMeta("About DevLabMaster | Hands-On DevOps Training", "Learn how DevLabMaster helps engineers practise Linux, Docker, Terraform, Jenkins, Git, and Kubernetes with real browser-based terminal labs.")
   const { data: session, isPending } = useSession()
   const { data: stats } = useQuery<{ labs: number; tracks: number }>({
     queryKey: ["stats"],

@@ -2,17 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>DevLabMaster — Master DevOps. One lab at a time.</title>
-    <meta name="description" content="Hands-on DevOps labs for Linux, Terraform, Docker, Kubernetes and more. No VM setup required." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hands-On DevOps Labs for Linux, Docker &amp; Terraform | DevLabMaster</title>
+    <meta name="description" content="Build real DevOps skills with interactive Linux, Docker, Terraform, Jenkins, Git, Kubernetes, and Ansible labs in browser-based terminal sandboxes." />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="DevLabMaster" />
-    <meta property="og:description" content="Hands-on DevOps labs for Linux, Terraform, Docker, Kubernetes and more. No VM setup required." />
+    <meta name="googlebot" content="index, follow" />
+    <meta property="og:title" content="Hands-On DevOps Labs | DevLabMaster" />
+    <meta property="og:description" content="Practice Linux, Docker, Terraform, Jenkins, Git, Kubernetes, and Ansible in real browser-based terminal labs." />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DevLabMaster" />
     <meta property="og:image" content="/opengraph.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="DevLabMaster" />
-    <meta name="twitter:description" content="Hands-on DevOps labs for Linux, Terraform, Docker, Kubernetes and more. No VM setup required." />
+    <meta name="twitter:title" content="Hands-On DevOps Labs | DevLabMaster" />
+    <meta name="twitter:description" content="Practice Linux, Docker, Terraform, Jenkins, Git, Kubernetes, and Ansible in real browser-based terminal labs." />
     <meta name="twitter:image" content="/opengraph.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#22d3ee" />
@@ -21,20 +23,30 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "DevLabMaster",
-      "url": "https://devlabmaster.com",
-      "description": "Hands-on DevOps labs for Linux, Terraform, Docker, Kubernetes and more. No VM setup required.",
-      "offers": {
-        "@type": "Offer",
-        "category": "Online Course"
-      },
-      "hasCourseInstance": [
-        { "@type": "Course", "name": "Linux Fundamentals", "description": "Master Linux commands and shell scripting through hands-on labs." },
-        { "@type": "Course", "name": "Docker Essentials", "description": "Learn containerization with Docker through interactive exercises." },
-        { "@type": "Course", "name": "Terraform Infrastructure", "description": "Provision and manage infrastructure as code with Terraform." },
-        { "@type": "Course", "name": "Jenkins CI/CD", "description": "Build and automate delivery pipelines with Jenkins." },
-        { "@type": "Course", "name": "Git Version Control", "description": "Master branching, merging, and collaboration workflows with Git." }
+      "@graph": [
+        {
+          "@type": "EducationalOrganization",
+          "name": "DevLabMaster",
+          "logo": "/logo.svg",
+          "description": "Hands-on DevOps training with interactive browser-based terminal labs."
+        },
+        {
+          "@type": "WebSite",
+          "name": "DevLabMaster",
+          "description": "Interactive DevOps labs for Linux, Docker, Terraform, Jenkins, Git, Kubernetes, and Ansible.",
+          "publisher": { "@type": "EducationalOrganization", "name": "DevLabMaster" }
+        },
+        {
+          "@type": "ItemList",
+          "name": "DevLabMaster DevOps learning tracks",
+          "itemListElement": [
+            { "@type": "Course", "position": 1, "name": "Linux Fundamentals", "description": "Learn Linux commands, filesystems, processes, networking, permissions, and shell scripting through hands-on labs.", "provider": { "@type": "EducationalOrganization", "name": "DevLabMaster" } },
+            { "@type": "Course", "position": 2, "name": "Docker Essentials", "description": "Practice containers, images, Dockerfiles, volumes, and networking in interactive labs.", "provider": { "@type": "EducationalOrganization", "name": "DevLabMaster" } },
+            { "@type": "Course", "position": 3, "name": "Terraform Infrastructure", "description": "Build infrastructure-as-code skills with variables, modules, state, and workspaces.", "provider": { "@type": "EducationalOrganization", "name": "DevLabMaster" } },
+            { "@type": "Course", "position": 4, "name": "Jenkins CI/CD", "description": "Learn continuous integration and delivery with practical Jenkins pipeline labs.", "provider": { "@type": "EducationalOrganization", "name": "DevLabMaster" } },
+            { "@type": "Course", "position": 5, "name": "Git Version Control", "description": "Master commits, branches, merges, remotes, stash, reset, and collaboration workflows.", "provider": { "@type": "EducationalOrganization", "name": "DevLabMaster" } }
+          ]
+        }
       ]
     }
     </script>
@@ -44,6 +56,13 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main>
+        <h1>Hands-On DevOps Labs</h1>
+        <p>Practice Linux, Docker, Terraform, Jenkins, Git, Kubernetes, and Ansible in browser-based terminal sandboxes.</p>
+        <p><a href="/about">Learn about DevLabMaster</a> · <a href="/pricing">View plans</a></p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

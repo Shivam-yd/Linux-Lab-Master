@@ -11,7 +11,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 type Stage = "form" | "pending" | "approved"
 
 export default function ForgotPasswordPage() {
-  useMeta("Forgot Password — DevLabMaster")
+  useMeta("Reset Your Password — DevLabMaster", undefined, { indexable: false })
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>("form")

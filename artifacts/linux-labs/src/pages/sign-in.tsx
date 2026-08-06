@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 export default function SignInPage() {
-  useMeta("Sign In — DevLabMaster")
+  useMeta("Sign In — DevLabMaster", undefined, { indexable: false })
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const [email, setEmail] = useState("")

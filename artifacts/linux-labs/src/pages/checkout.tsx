@@ -62,7 +62,7 @@ const PLANS = {
 type PlanId = keyof typeof PLANS
 
 export default function CheckoutPage() {
-  useMeta("Checkout — DevLabMaster")
+  useMeta("Checkout — DevLabMaster", undefined, { indexable: false })
   const [, setLocation] = useLocation()
   const { data: session, isPending } = useSession()
   const { hasSubscription, isLoading: planLoading } = usePlan()

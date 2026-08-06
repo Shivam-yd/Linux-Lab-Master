@@ -24,7 +24,7 @@ const LEVEL_META: Record<number, { name: string; accentHex: string }> = {
 }
 
 export default function ProgressPage() {
-  useMeta("My Progress — DevLabMaster")
+  useMeta("My Progress — DevLabMaster", undefined, { indexable: false })
   const { data: session } = useSession()
   const { data: labs, isLoading: labsLoading } = useListLabs()
   const { data: progress, isLoading: progressLoading } = useListProgress()
@@ -75,7 +75,7 @@ export default function ProgressPage() {
             </Link>
             <div className="w-px h-4 bg-border/60" />
             <div className="flex items-center gap-2">
-              <img src={`${basePath}/logo.svg`} className="w-4 h-4 rounded-sm" />
+              <img src={`${basePath}/logo.svg`} className="w-4 h-4 rounded-sm" alt="DevLabMaster logo" />
               <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
             </div>
           </div>

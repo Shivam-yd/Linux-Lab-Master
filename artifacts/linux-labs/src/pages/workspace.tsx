@@ -438,7 +438,7 @@ export default function Workspace() {
     })
   }
 
-  useMeta(lab?.title ? `${lab.title} — DevLabMaster` : "DevLabMaster")
+  useMeta(lab?.title ? `${lab.title} | DevLabMaster` : "DevOps Lab Workspace | DevLabMaster", lab?.summary ?? undefined, { indexable: false })
   useEffect(() => {
     if (!activeTerminal) {
       const saved = readRecoveryMarker(labId)?.activeTerminal

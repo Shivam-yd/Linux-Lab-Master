@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const EFFECTIVE_DATE = "July 22, 2025"
 
 export default function PrivacyPage() {
-  useMeta("Privacy Policy — DevLabMaster")
+  useMeta("Privacy Policy | DevLabMaster", "Learn how DevLabMaster handles account, progress, session, and usage data for its DevOps training platform.")
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}

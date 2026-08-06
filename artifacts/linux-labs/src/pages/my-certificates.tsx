@@ -21,7 +21,7 @@ type Cert = { certId: string; track: string; level: number | null; earnedAt: str
 const TRACK_ORDER = ["linux", "terraform", "jenkins", "docker", "git"]
 
 export default function MyCertificatesPage() {
-  useMeta("My Certificates — DevLabMaster")
+  useMeta("My Certificates — DevLabMaster", undefined, { indexable: false })
   const { data: session } = useSession()
 
   const { data: certs, isLoading } = useQuery<Cert[]>({
@@ -50,7 +50,7 @@ export default function MyCertificatesPage() {
             </Link>
             <div className="w-px h-4 bg-border/60" />
             <div className="flex items-center gap-2">
-              <img src={`${basePath}/logo.svg`} className="w-4 h-4 rounded-sm" />
+              <img src={`${basePath}/logo.svg`} className="w-4 h-4 rounded-sm" alt="DevLabMaster logo" />
               <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
             </div>
           </div>

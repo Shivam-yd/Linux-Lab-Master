@@ -119,7 +119,7 @@ export default function CertificatePage() {
       .finally(() => setCertLoading(false))
   }, [session?.user?.id, track, levelNum])
 
-  useMeta(`${tm.label} Certificate — DevLabMaster`)
+  useMeta(`${tm.label} Certificate | DevLabMaster`, `Track completion certificate for the ${tm.label} DevOps learning path.`, { indexable: false })
 
   // Register / refresh the cert on the server whenever the student has
   // completed all labs. No-op if the cert already exists (server upserts).
@@ -261,7 +261,7 @@ export default function CertificatePage() {
 
             {/* Issuer */}
             <div className="flex items-center gap-2">
-              <img src="/logo.svg" className="w-7 h-7 rounded-lg print:hidden" alt="DevLabMaster" />
+              <img src="/logo.svg" className="w-7 h-7 rounded-lg print:hidden" alt="DevLabMaster logo" />
               <span className="text-xs font-bold tracking-[0.25em] uppercase text-muted-foreground">DevLabMaster</span>
             </div>
 

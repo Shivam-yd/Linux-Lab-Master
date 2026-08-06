@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "")
 
 export default function ResetPasswordPage() {
-  useMeta("Reset Password — DevLabMaster")
+  useMeta("Set a New Password — DevLabMaster", undefined, { indexable: false })
   const [, setLocation] = useLocation()
 
   // Support both flows:

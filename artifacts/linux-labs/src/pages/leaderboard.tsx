@@ -21,7 +21,7 @@ const RANK_STYLE: Record<number, { icon: typeof Crown; cls: string }> = {
 }
 
 export default function LeaderboardPage() {
-  useMeta("Leaderboard — DevLabMaster")
+  useMeta("Leaderboard — DevLabMaster", undefined, { indexable: false })
   const { data: session } = useSession()
   const fromProgress = new URLSearchParams(window.location.search).get("from") === "progress"
   const backHref = fromProgress ? `${basePath}/progress` : `${basePath}/dashboard`

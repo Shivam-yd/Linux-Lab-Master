@@ -53,7 +53,7 @@ export default function ProfilePage() {
   const hasCredentialAccount = accounts?.some(a => a.providerId === "credential") ?? null
   // null = still loading; true/false = determined
 
-  useMeta("Profile — DevLabMaster")
+  useMeta("Profile — DevLabMaster", undefined, { indexable: false })
   useEffect(() => {
     if (!isPending && !user) setLocation(`${basePath}/sign-in`)
   }, [isPending, user])
@@ -139,7 +139,7 @@ export default function ProfilePage() {
             </Link>
             <div className="w-px h-4 bg-border/60" />
             <div className="flex items-center gap-2">
-              <img src={`${basePath}/logo.svg`} className="w-4 h-4 rounded-sm" />
+              <img src={`${basePath}/logo.svg`} className="w-4 h-4 rounded-sm" alt="DevLabMaster logo" />
               <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
             </div>
           </div>

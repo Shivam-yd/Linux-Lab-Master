@@ -18,7 +18,7 @@ export default function VerifyPage() {
   const { certId } = useParams<{ certId: string }>()
   const [cert, setCert] = useState<CertRecord | null>(null)
   const [status, setStatus] = useState<"loading" | "ok" | "not_found" | "expired">("loading")
-  useMeta(cert ? `${cert.studentName}'s Certificate — DevLabMaster` : "DevLabMaster")
+  useMeta(cert ? `${cert.studentName}'s ${cert.track} Certificate | DevLabMaster` : "Certificate Verification | DevLabMaster", cert ? `Verify ${cert.studentName}'s DevLabMaster ${cert.track} completion certificate.` : "Verify a DevLabMaster DevOps training certificate.", { indexable: false })
 
   useEffect(() => {
     fetch(`${basePath}/api/certs/${certId}`)

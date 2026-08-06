@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const EFFECTIVE_DATE = "July 22, 2025"
 
 export default function TermsPage() {
-  useMeta("Terms of Service — DevLabMaster")
+  useMeta("Terms of Service | DevLabMaster", "Read the terms that govern access to DevLabMaster's browser-based DevOps training labs.")
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}

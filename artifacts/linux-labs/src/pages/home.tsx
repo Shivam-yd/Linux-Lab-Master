@@ -290,7 +290,7 @@ export default function Home() {
       >
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" />
+            <img src={`${basePath}/logo.svg`} className="w-9 h-9 rounded-xl" alt="DevLabMaster logo" />
             <span className="font-bold text-sm tracking-tight">DevLabMaster</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
