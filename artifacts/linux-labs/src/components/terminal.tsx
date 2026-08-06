@@ -4,7 +4,7 @@ import { FitAddon } from "@xterm/addon-fit"
 import "@xterm/xterm/css/xterm.css"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw, Wifi, WifiOff } from "lucide-react"
 
 export interface TerminalProps {
   labId: string
@@ -19,16 +19,26 @@ export function Terminal({ labId, terminalName, reconnectKey = 0, className }: T
   const fitAddonRef = React.useRef<FitAddon | null>(null)
   const wsRef = React.useRef<WebSocket | null>(null)
 
-  const [connected, setConnected] = React.useState(false)
+  const [connectionState, setConnectionState] = React.useState<"connecting" | "connected" | "reconnecting" | "offline">("connecting")
   const [error, setError] = React.useState<string | null>(null)
+  const reconnectTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reconnectAttemptRef = React.useRef(0)
+  const intentionalCloseRef = React.useRef(false)
+  const serverEndedRef = React.useRef(false)
 
   const connect = React.useCallback(() => {
+    intentionalCloseRef.current = false
+    serverEndedRef.current = false
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
     if (wsRef.current) {
       wsRef.current.close()
     }
     
     setError(null)
-    setConnected(false)
+    setConnectionState(reconnectAttemptRef.current > 0 ? "reconnecting" : "connecting")
 
     const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${import.meta.env.BASE_URL}api/ws/terminal?labId=${labId}&terminal=${terminalName}`
     const ws = new WebSocket(wsUrl)
@@ -36,7 +46,8 @@ export function Terminal({ labId, terminalName, reconnectKey = 0, className }: T
 
     ws.onopen = () => {
       if (wsRef.current !== ws) return
-      setConnected(true)
+      reconnectAttemptRef.current = 0
+      setConnectionState("connected")
       // Send initial resize if xterm exists
       if (xtermRef.current && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "resize", cols: xtermRef.current.cols, rows: xtermRef.current.rows }))
@@ -58,6 +69,9 @@ export function Terminal({ labId, terminalName, reconnectKey = 0, className }: T
           try {
             const msg = JSON.parse(new TextDecoder().decode(buf.subarray(1)))
             if (msg.type === "status" && msg.message) {
+              if (/not running|session ended|inactivity|unknown lab|missing lab/i.test(msg.message)) {
+                serverEndedRef.current = true
+              }
               xtermRef.current?.write(`\x1b[90m\r\n--- ${msg.message} ---\x1b[0m\r\n`)
             }
           } catch {
@@ -69,14 +83,24 @@ export function Terminal({ labId, terminalName, reconnectKey = 0, className }: T
 
     ws.onclose = () => {
       if (wsRef.current !== ws) return
-      setConnected(false)
+      setConnectionState("offline")
       xtermRef.current?.write(`\x1b[31m\r\n--- Disconnected ---\x1b[0m\r\n`)
+      if (!intentionalCloseRef.current && !serverEndedRef.current) {
+        const attempt = reconnectAttemptRef.current
+        const delay = Math.min(10_000, 1_000 * 2 ** Math.min(attempt, 3))
+        reconnectAttemptRef.current = attempt + 1
+        setConnectionState("reconnecting")
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectTimerRef.current = null
+          connect()
+        }, delay)
+      }
     }
 
     ws.onerror = () => {
       if (wsRef.current !== ws) return
-      setError("WebSocket connection error")
-      setConnected(false)
+      setError("The terminal connection was interrupted. Reconnecting…")
+      setConnectionState("reconnecting")
     }
   }, [labId, terminalName])
 
@@ -137,6 +161,8 @@ export function Terminal({ labId, terminalName, reconnectKey = 0, className }: T
 
     return () => {
       window.removeEventListener("resize", handleWindowResize)
+      intentionalCloseRef.current = true
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
       if (wsRef.current) {
         wsRef.current.close()
       }
@@ -150,13 +176,22 @@ export function Terminal({ labId, terminalName, reconnectKey = 0, className }: T
       <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-secondary border-b border-border">
         <div className="flex items-center space-x-2">
           <div
-            className={cn("h-2 w-2 rounded-full", connected ? "bg-green-500" : "bg-destructive")}
+            className={cn(
+              "h-2 w-2 rounded-full",
+              connectionState === "connected" ? "bg-green-500" :
+              connectionState === "reconnecting" || connectionState === "connecting" ? "bg-amber-400 animate-pulse" :
+              "bg-destructive",
+            )}
             aria-hidden="true"
           />
-          <span className="sr-only">{connected ? "Connected" : "Disconnected"}</span>
+          <span className="sr-only">{connectionState === "connected" ? "Connected" : connectionState === "reconnecting" ? "Reconnecting" : "Disconnected"}</span>
           <span className="text-xs font-mono text-muted-foreground">{terminalName}</span>
+          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+            {connectionState === "connected" ? <Wifi className="w-3 h-3 text-green-400" /> : <WifiOff className="w-3 h-3 text-amber-400" />}
+            {connectionState === "connected" ? "Connected" : connectionState === "reconnecting" ? "Reconnecting…" : connectionState === "connecting" ? "Connecting…" : "Offline"}
+          </span>
         </div>
-        {!connected && (
+        {connectionState !== "connected" && connectionState !== "reconnecting" && (
           <Button
             variant="ghost"
             size="sm"

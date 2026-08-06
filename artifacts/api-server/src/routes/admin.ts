@@ -389,21 +389,39 @@ router.delete("/progress/:studentId", async (req, res): Promise<void> => {
  * All non-stopped lab sessions with student info.
  */
 router.get("/sessions", async (_req, res): Promise<void> => {
-  const result = await db.execute(sql`
+  const [result, summary] = await Promise.all([
+    db.execute(sql`
     SELECT
       ls.student_id,
       ls.lab_id,
       ls.status,
       ls.container_id,
+      ls.started_at,
       ls.updated_at,
+      ls.error_message,
+      FLOOR(EXTRACT(EPOCH FROM (NOW() - ls.updated_at)))::int AS age_seconds,
       u.name,
       u.email
     FROM lab_sessions ls
     LEFT JOIN "user" u ON u.id = ls.student_id
     WHERE ls.status NOT IN ('stopped')
     ORDER BY ls.updated_at DESC
-  `);
-  res.json(result.rows);
+  `),
+    db.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status IN ('starting', 'running'))::int AS active,
+        COUNT(*) FILTER (WHERE status = 'starting')::int AS starting,
+        COUNT(*) FILTER (WHERE status = 'running')::int AS running,
+        COUNT(*) FILTER (WHERE status = 'error')::int AS failed,
+        COUNT(*) FILTER (WHERE status IN ('starting', 'running') AND updated_at < NOW() - interval '30 minutes')::int AS stale
+      FROM lab_sessions
+      WHERE status NOT IN ('stopped')
+    `),
+  ]);
+  res.json({
+    sessions: result.rows,
+    summary: summary.rows[0] ?? { active: 0, starting: 0, running: 0, failed: 0, stale: 0 },
+  });
 });
 
 /**

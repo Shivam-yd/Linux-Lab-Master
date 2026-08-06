@@ -230,6 +230,25 @@ export default function Workspace() {
   // progress toward the normal 30-second startup window instead of a fixed
   // half-width bar. It stops short of 100% until the session is actually ready.
   const provisioningProgress = Math.min(92, 12 + (provisioningSecs / 30) * 80)
+  const provisioningStage =
+    provisioningSecs < 4 ? { label: "Preparing your lab", detail: "Checking the lab definition and reserving your workspace." } :
+    provisioningSecs < 14 ? { label: "Starting the sandbox", detail: "Launching your isolated Linux container and network." } :
+    provisioningSecs < 28 ? { label: "Configuring the environment", detail: "Applying setup files and waiting for services to become ready." } :
+    { label: "Finishing startup", detail: "This is taking a little longer than usual, but the sandbox can still recover safely." }
+
+  const friendlySessionError = (message: string | null | undefined) => {
+    const raw = (message ?? "").toLowerCase()
+    if (raw.includes("up to") && raw.includes("sandboxes")) {
+      return { title: "Sandbox limit reached", detail: "You already have two active sandboxes. Stop one of them, then try again." }
+    }
+    if (raw.includes("timeout") || raw.includes("timed out")) {
+      return { title: "Sandbox startup took too long", detail: "Your work was not lost. Try starting again; if it keeps happening, wait a minute and retry." }
+    }
+    if (raw.includes("image") || raw.includes("docker") || raw.includes("container")) {
+      return { title: "Sandbox could not start", detail: "The lab environment could not be prepared. Retry once, and contact an administrator if it continues." }
+    }
+    return { title: "Sandbox could not start", detail: message || "Try again to start a fresh sandbox. Your previous lab progress is safe." }
+  }
 
   // UI service readiness polling (for labs with embedded UIs like Jenkins)
   const [uiReady, setUiReady] = useState(false)
@@ -621,15 +640,18 @@ export default function Workspace() {
           ) : (
             <>
               {sessionFetchError && (
-                <div className="flex items-center text-sm font-mono text-destructive bg-destructive/10 px-3 py-1 rounded-md border border-destructive/20 mr-2">
+                <div className="flex items-center text-xs text-destructive bg-destructive/10 px-3 py-1.5 rounded-md border border-destructive/20 mr-2">
                   <AlertCircle className="w-4 h-4 mr-2" />
-                  ERR_SESSION_FETCH
+                  Couldn't check sandbox status — refresh to try again.
                 </div>
               )}
               {sessionError && !sessionFetchError && (
-                <div className="flex items-center text-sm font-mono text-destructive bg-destructive/10 px-3 py-1 rounded-md border border-destructive/20 mr-2">
-                  <AlertCircle className="w-4 h-4 mr-2" />
-                  {session.errorMessage || "ERR_SESSION_FAIL"}
+                <div className="flex items-start text-xs text-destructive bg-destructive/10 px-3 py-1.5 rounded-md border border-destructive/20 mr-2 max-w-[min(32rem,55vw)]">
+                  <AlertCircle className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
+                  <span>
+                    <strong className="font-semibold">{friendlySessionError(session.errorMessage).title}</strong>
+                    <span className="block text-destructive/80 mt-0.5">{friendlySessionError(session.errorMessage).detail}</span>
+                  </span>
                 </div>
               )}
               
@@ -966,17 +988,17 @@ export default function Workspace() {
               <div className="w-24 h-24 rounded-full bg-muted/20 border border-border flex items-center justify-center mb-6 shadow-xl">
                 <Terminal className="w-10 h-10 text-muted-foreground/60" />
               </div>
-              <h2 className="text-2xl font-bold font-mono tracking-tight mb-3">CONNECTION_OFFLINE</h2>
-              <p className="text-muted-foreground max-w-sm mb-8 text-sm">
-                Awaiting manual start to provision your isolated Linux container environment.
-              </p>
+               <h2 className="text-2xl font-bold font-mono tracking-tight mb-3">{sessionError ? friendlySessionError(session?.errorMessage).title : "CONNECTION_OFFLINE"}</h2>
+               <p className="text-muted-foreground max-w-sm mb-8 text-sm">
+                 {sessionError ? friendlySessionError(session?.errorMessage).detail : "Start a sandbox to open your isolated Linux container environment."}
+               </p>
               <Button 
                 onClick={handleStart} 
                 size="lg" 
                 className="h-12 px-8 font-bold font-mono text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(var(--primary),0.2)] hover:scale-[1.02] transition-all"
                 disabled={startSession.isPending}
               >
-                <Play className="w-4 h-4 mr-2" /> INITIALIZE_UPLINK
+                 <Play className="w-4 h-4 mr-2" /> {sessionError ? "TRY AGAIN" : "INITIALIZE_UPLINK"}
               </Button>
             </div>
           )}
@@ -984,10 +1006,8 @@ export default function Workspace() {
           {isStarting && (
             <div className="absolute inset-0 z-30 bg-terminal-bg/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
               <RefreshCw className="w-16 h-16 text-primary opacity-80 mb-8 animate-spin" />
-              <h2 className="text-2xl font-bold font-mono tracking-tight mb-3 text-primary">PROVISIONING_ENVIRONMENT</h2>
-              <p className="text-muted-foreground max-w-sm text-sm font-mono">
-                Allocating containers, attaching virtual networks, and injecting profile configs...
-              </p>
+              <h2 className="text-2xl font-bold font-mono tracking-tight mb-3 text-primary">{provisioningStage.label}</h2>
+              <p className="text-muted-foreground max-w-sm text-sm font-mono">{provisioningStage.detail}</p>
               <div
                 className="w-72 h-1.5 bg-muted rounded-full mt-8 overflow-hidden"
                 role="progressbar"
@@ -1002,7 +1022,7 @@ export default function Workspace() {
                 />
               </div>
               <p className="text-xs text-muted-foreground/60 font-mono mt-4">
-                Elapsed time: {provisioningSecs}s — estimated startup: 10-30s
+                 Elapsed time: {provisioningSecs}s · Typical startup: 10–30s
               </p>
             </div>
           )}
