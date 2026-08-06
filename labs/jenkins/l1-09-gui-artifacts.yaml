@@ -1,0 +1,147 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Archived Artifacts (GUI)
+# Concept: preserve build outputs so people and later jobs can download them.
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-gui-artifacts"
+title: "Archive Build Artifacts"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Create a build report and archive it in Jenkins so the output remains available after the build finishes."
+estimatedMinutes: 25
+order: 400
+
+objectives:
+  - "Understand the difference between a temporary workspace file and a retained artifact"
+  - "Create a freestyle project and generate a report in the build step"
+  - "Configure Jenkins to archive a specific artifact pattern"
+  - "Run the job and confirm the archived file is available from the build"
+
+instructions: |
+  ## Archive Build Artifacts
+
+  **Scenario**
+  A release job produces a small report that the support team needs after the
+  build container is gone. Files left only in the workspace are temporary, so
+  you will configure Jenkins to archive the report with the build record.
+
+  **Your task:** create a freestyle job named `release-report` that writes
+  `build/release-notes.txt` and archives that exact file after every successful
+  build.
+
+  **What You'll Deliver**
+  - A freestyle job named exactly `release-report`
+  - An **Archive the artifacts** post-build action with the pattern exactly
+    `build/release-notes.txt`
+  - At least one successful build where `build/release-notes.txt` is archived
+
+  > ⏳ **Jenkins takes 60–90 seconds to boot.** Click the **UI** tab — if it
+  > shows a spinner, wait for it to load automatically. Do not reset the
+  > sandbox; just wait.
+
+  **Credentials**
+  - Username: `admin`
+  - Password: `admin`
+
+  ## Steps
+
+  1. Click the **UI** tab and log in with `admin` / `admin`.
+  2. Click **New Item**, enter `release-report`, choose **Freestyle project**,
+     and click **OK**.
+  3. Under **Build Steps**, choose **Add build step** → **Execute shell**.
+  4. Enter exactly:
+     `mkdir -p build && printf '%s\n' 'Release report: ready' > build/release-notes.txt`
+  5. Scroll to **Post-build Actions**, click **Add post-build action**, and
+     choose **Archive the artifacts**.
+  6. In **Files to archive**, enter exactly `build/release-notes.txt`.
+  7. Click **Save**, then click **Build Now**.
+  8. Wait for the build ball to turn blue. Open the build number and click
+     **Build Artifacts** to see `build/release-notes.txt`.
+  9. Click **Verify Objectives**.
+
+tasks:
+  - id: "create-job"
+    description: "Create a freestyle project named exactly 'release-report'"
+  - id: "configure-artifact"
+    description: "Archive the exact artifact pattern build/release-notes.txt"
+  - id: "run-build"
+    description: "Trigger a successful build that archives build/release-notes.txt"
+
+image: "jenkins/jenkins:lts-jdk17"
+useImageCmd: true
+shell: "bash"
+env:
+  - "JENKINS_OPTS=--prefix=/jenkins"
+  - "JAVA_OPTS=-Djenkins.install.runSetupWizard=false"
+ports:
+  - 8080
+uiPath: "/jenkins/"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/jenkins_home/init.groovy.d
+  rm -f /var/jenkins_home/.linuxlabs-jenkins-ready
+  cat > /var/jenkins_home/init.groovy.d/01-admin.groovy << 'GROOVY'
+  import jenkins.model.*
+  import hudson.security.*
+
+  def instance = Jenkins.getInstance()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").delete()
+  def realm = new HudsonPrivateSecurityRealm(false)
+  realm.createAccount("admin", "admin")
+  instance.setSecurityRealm(realm)
+  def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+  strategy.setAllowAnonymousRead(false)
+  instance.setAuthorizationStrategy(strategy)
+  instance.save()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").text = "ready\n"
+  GROOVY
+
+  echo "Waiting for Jenkins to start..."
+  for i in $(seq 1 90); do
+    HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/jenkins/login 2>/dev/null)
+    if [ "$HTTP" = "200" ]; then
+      echo "Jenkins is ready (boot took ~$((i * 2))s)"
+      break
+    fi
+    sleep 2
+  done
+
+verifyScript: |
+  CONFIG="/var/jenkins_home/jobs/release-report/config.xml"
+
+  # CHECK: create-job
+  if [ -f "$CONFIG" ]; then
+    echo "CHECK:create-job:PASS:release-report job found"
+  else
+    echo "CHECK:create-job:FAIL:No job named 'release-report' — create a Freestyle project with that exact name"
+  fi
+
+  # CHECK: configure-artifact
+  if [ -f "$CONFIG" ] && grep -qF '<artifacts>build/release-notes.txt</artifacts>' "$CONFIG" 2>/dev/null; then
+    echo "CHECK:configure-artifact:PASS:Archive pattern build/release-notes.txt found"
+  else
+    echo "CHECK:configure-artifact:FAIL:Add Archive the artifacts with exactly: build/release-notes.txt"
+  fi
+
+  # CHECK: run-build
+  if find /var/jenkins_home/jobs/release-report/builds -path "*/archive/build/release-notes.txt" -type f 2>/dev/null \
+       | grep -q . && \
+     find /var/jenkins_home/jobs/release-report/builds -name "build.xml" 2>/dev/null \
+       | xargs grep -l "<result>SUCCESS</result>" 2>/dev/null \
+       | grep -q .; then
+    echo "CHECK:run-build:PASS:Successful build with archived release-notes.txt found"
+  else
+    echo "CHECK:run-build:FAIL:No successful build with the archived report — run the job and check Build Artifacts"
+  fi
+
+hints:
+  - "Archive the artifacts is under Post-build Actions, not Build Steps."
+  - "The pattern must be relative to the workspace: build/release-notes.txt."
+  - "The Execute shell step must create the build directory and report before Jenkins archives it."
+  - "After a successful build, open the build number and choose Build Artifacts to confirm the file was retained."

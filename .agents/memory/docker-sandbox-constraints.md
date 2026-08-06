@@ -10,3 +10,6 @@ description: Container internet/DNS access has been observed as both unavailable
 - Users need `chpasswd` for sshd-style images; `sudo` is unavailable inside containers.
 - If building tooling that manages Docker programmatically (e.g. via `dockerode`), bundle `ssh2`/`@grpc` rather than externalizing them.
 - Before trusting any script that assumes a tool exists in an image, verify with `docker run --rm <image> sh -c 'which <tool1> <tool2>'` rather than assuming from the image's reputation.
+- Docker service containers may serve HTTP while `docker exec` intermittently fails with a host `setns` runtime error; use the service API and a separate disposable verifier container when testing.
+  **Why:** Jenkins HTTP remained healthy while exec into the Jenkins container failed during local E2E testing.
+  **How to apply:** separate service-readiness/API tests from in-container exec tests, and do not classify a host `setns` failure as an application or lab-script failure.

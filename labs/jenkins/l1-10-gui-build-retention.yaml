@@ -1,0 +1,141 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Build Retention (GUI)
+# Concept: limit stored build history so automation does not fill disk space.
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-gui-build-retention"
+title: "Build Retention"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Configure Jenkins to keep only the five most recent builds, a simple control that protects shared build storage."
+estimatedMinutes: 20
+order: 500
+
+objectives:
+  - "Understand why build history needs a retention policy"
+  - "Create a freestyle project through the Jenkins GUI"
+  - "Configure Discard old builds with a maximum of five builds"
+  - "Run the job successfully after saving the retention policy"
+
+instructions: |
+  ## Build Retention
+
+  **Scenario**
+  Your Jenkins server has many jobs and every build keeps logs and metadata.
+  Without a retention policy, old history can eventually consume all available
+  disk space. You will configure a small, explicit retention limit for one job.
+
+  **Your task:** create a freestyle job named `retention-demo`, enable
+  **Discard old builds**, and keep a maximum of five builds.
+
+  **What You'll Deliver**
+  - A freestyle job named exactly `retention-demo`
+  - **Discard old builds** enabled with **Max # of builds to keep** set to
+    exactly `5`
+  - At least one successful build of `retention-demo`
+
+  > ⏳ **Jenkins takes 60–90 seconds to boot.** Click the **UI** tab — if it
+  > shows a spinner, wait for it to load automatically. Do not reset the
+  > sandbox; just wait.
+
+  **Credentials**
+  - Username: `admin`
+  - Password: `admin`
+
+  ## Steps
+
+  1. Click the **UI** tab and log in with `admin` / `admin`.
+  2. Click **New Item**, enter `retention-demo`, choose **Freestyle project**,
+     and click **OK**.
+  3. Tick **Discard old builds** near the top of the configuration page.
+  4. In **Max # of builds to keep**, enter exactly `5`. Leave the other
+     retention fields blank.
+  5. Under **Build Steps**, choose **Add build step** → **Execute shell**.
+  6. Enter exactly: `echo "Retention policy check passed"`
+  7. Click **Save**, then click **Build Now**.
+  8. Wait for the build ball to turn blue, then click **Verify Objectives**.
+
+tasks:
+  - id: "create-job"
+    description: "Create a freestyle project named exactly 'retention-demo'"
+  - id: "configure-retention"
+    description: "Enable Discard old builds with Max # of builds to keep set to exactly 5"
+  - id: "run-build"
+    description: "Trigger at least one successful build of retention-demo"
+
+image: "jenkins/jenkins:lts-jdk17"
+useImageCmd: true
+shell: "bash"
+env:
+  - "JENKINS_OPTS=--prefix=/jenkins"
+  - "JAVA_OPTS=-Djenkins.install.runSetupWizard=false"
+ports:
+  - 8080
+uiPath: "/jenkins/"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/jenkins_home/init.groovy.d
+  rm -f /var/jenkins_home/.linuxlabs-jenkins-ready
+  cat > /var/jenkins_home/init.groovy.d/01-admin.groovy << 'GROOVY'
+  import jenkins.model.*
+  import hudson.security.*
+
+  def instance = Jenkins.getInstance()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").delete()
+  def realm = new HudsonPrivateSecurityRealm(false)
+  realm.createAccount("admin", "admin")
+  instance.setSecurityRealm(realm)
+  def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+  strategy.setAllowAnonymousRead(false)
+  instance.setAuthorizationStrategy(strategy)
+  instance.save()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").text = "ready\n"
+  GROOVY
+
+  echo "Waiting for Jenkins to start..."
+  for i in $(seq 1 90); do
+    HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/jenkins/login 2>/dev/null)
+    if [ "$HTTP" = "200" ]; then
+      echo "Jenkins is ready (boot took ~$((i * 2))s)"
+      break
+    fi
+    sleep 2
+  done
+
+verifyScript: |
+  CONFIG="/var/jenkins_home/jobs/retention-demo/config.xml"
+
+  # CHECK: create-job
+  if [ -f "$CONFIG" ]; then
+    echo "CHECK:create-job:PASS:retention-demo job found"
+  else
+    echo "CHECK:create-job:FAIL:No job named 'retention-demo' — create a Freestyle project with that exact name"
+  fi
+
+  # CHECK: configure-retention
+  if [ -f "$CONFIG" ] && grep -qF '<numToKeep>5</numToKeep>' "$CONFIG" 2>/dev/null; then
+    echo "CHECK:configure-retention:PASS:Build retention is set to keep five builds"
+  else
+    echo "CHECK:configure-retention:FAIL:Enable Discard old builds and set Max # of builds to keep to exactly 5"
+  fi
+
+  # CHECK: run-build
+  if find /var/jenkins_home/jobs/retention-demo/builds -name "build.xml" 2>/dev/null \
+       | xargs grep -l "<result>SUCCESS</result>" 2>/dev/null \
+       | grep -q .; then
+    echo "CHECK:run-build:PASS:Successful retention-demo build found"
+  else
+    echo "CHECK:run-build:FAIL:No successful build yet — click Build Now and wait for the blue ball"
+  fi
+
+hints:
+  - "Discard old builds is near the top of the job configuration page."
+  - "After checking it, use Max # of builds to keep and enter 5. Do not fill in the days field."
+  - "The setting is a per-job policy; it does not delete the job or stop future builds."
+  - "Run Build Now after saving, then wait for the blue success ball before verifying."

@@ -1,0 +1,144 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Jenkins Lab: Scheduled Builds (GUI)
+# Concept: schedule repeatable automation instead of relying on manual runs.
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: "jenkins-gui-scheduled-build"
+title: "Scheduled Builds"
+track: "jenkins"
+level: 1
+category: "Jenkins Fundamentals"
+difficulty: "beginner"
+summary: "Configure a freestyle job to run automatically on a schedule, the basic pattern behind nightly tests and reports."
+estimatedMinutes: 20
+order: 300
+
+objectives:
+  - "Understand why teams schedule repeatable Jenkins work"
+  - "Create a freestyle project through the Jenkins GUI"
+  - "Configure a Build periodically trigger with Jenkins cron syntax"
+  - "Run the job successfully and confirm the schedule is saved"
+
+instructions: |
+  ## Scheduled Builds
+
+  **Scenario**
+  Your team generates a small health report every 15 minutes so the morning
+  support handoff has fresh information. A person should not have to remember
+  to click **Build Now** all day, so you will configure Jenkins to run the job
+  automatically.
+
+  **Your task:** create a freestyle job named `scheduled-health-check` that
+  prints a health-check message and is configured to run every 15 minutes.
+
+  **What You'll Deliver**
+  - A freestyle job named exactly `scheduled-health-check`
+  - A **Build periodically** trigger with the schedule exactly `H/15 * * * *`
+  - At least one successful build of `scheduled-health-check`
+
+  > ⏳ **Jenkins takes 60–90 seconds to boot.** Click the **UI** tab — if it
+  > shows a spinner, wait for it to load automatically. Do not reset the
+  > sandbox; just wait.
+
+  **Credentials**
+  - Username: `admin`
+  - Password: `admin`
+
+  ## Steps
+
+  1. Click the **UI** tab and log in with `admin` / `admin`.
+  2. Click **New Item**, enter `scheduled-health-check`, choose
+     **Freestyle project**, and click **OK**.
+  3. Scroll to **Build Triggers** and tick **Build periodically**.
+  4. Enter exactly `H/15 * * * *` in the schedule box. Jenkins uses `H` to
+     spread scheduled work safely instead of starting every job at once.
+  5. Under **Build Steps**, choose **Add build step** → **Execute shell**.
+  6. Enter exactly:
+     `echo "Scheduled health check completed"`
+  7. Click **Save**.
+  8. Click **Build Now** once so you do not need to wait 15 minutes for the
+     first scheduled run.
+  9. Wait for the build ball to turn blue, then click **Verify Objectives**.
+
+tasks:
+  - id: "create-job"
+    description: "Create a freestyle project named exactly 'scheduled-health-check'"
+  - id: "configure-schedule"
+    description: "Enable Build periodically with the exact schedule H/15 * * * *"
+  - id: "run-build"
+    description: "Trigger at least one successful build of scheduled-health-check"
+
+image: "jenkins/jenkins:lts-jdk17"
+useImageCmd: true
+shell: "bash"
+env:
+  - "JENKINS_OPTS=--prefix=/jenkins"
+  - "JAVA_OPTS=-Djenkins.install.runSetupWizard=false"
+ports:
+  - 8080
+uiPath: "/jenkins/"
+terminals:
+  - name: "Terminal"
+    user: "root"
+    cwd: "/root"
+
+setupScript: |
+  mkdir -p /var/jenkins_home/init.groovy.d
+  rm -f /var/jenkins_home/.linuxlabs-jenkins-ready
+  cat > /var/jenkins_home/init.groovy.d/01-admin.groovy << 'GROOVY'
+  import jenkins.model.*
+  import hudson.security.*
+
+  def instance = Jenkins.getInstance()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").delete()
+  def realm = new HudsonPrivateSecurityRealm(false)
+  realm.createAccount("admin", "admin")
+  instance.setSecurityRealm(realm)
+  def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+  strategy.setAllowAnonymousRead(false)
+  instance.setAuthorizationStrategy(strategy)
+  instance.save()
+  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").text = "ready\n"
+  GROOVY
+
+  echo "Waiting for Jenkins to start..."
+  for i in $(seq 1 90); do
+    HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/jenkins/login 2>/dev/null)
+    if [ "$HTTP" = "200" ]; then
+      echo "Jenkins is ready (boot took ~$((i * 2))s)"
+      break
+    fi
+    sleep 2
+  done
+
+verifyScript: |
+  CONFIG="/var/jenkins_home/jobs/scheduled-health-check/config.xml"
+
+  # CHECK: create-job
+  if [ -f "$CONFIG" ]; then
+    echo "CHECK:create-job:PASS:scheduled-health-check job found"
+  else
+    echo "CHECK:create-job:FAIL:No job named 'scheduled-health-check' — create a Freestyle project with that exact name"
+  fi
+
+  # CHECK: configure-schedule
+  if [ -f "$CONFIG" ] && grep -qF '<spec>H/15 * * * *</spec>' "$CONFIG" 2>/dev/null; then
+    echo "CHECK:configure-schedule:PASS:Build periodically is configured for H/15 * * * *"
+  else
+    echo "CHECK:configure-schedule:FAIL:Enable Build periodically and enter exactly H/15 * * * *"
+  fi
+
+  # CHECK: run-build
+  if find /var/jenkins_home/jobs/scheduled-health-check/builds -name "build.xml" 2>/dev/null \
+       | xargs grep -l "<result>SUCCESS</result>" 2>/dev/null \
+       | grep -q .; then
+    echo "CHECK:run-build:PASS:Successful scheduled-health-check build found"
+  else
+    echo "CHECK:run-build:FAIL:No successful build yet — click Build Now and wait for the blue ball"
+  fi
+
+hints:
+  - "Build Triggers is above Build Environment. Look for the checkbox named Build periodically."
+  - "Use Jenkins' H syntax exactly: H/15 * * * * means once every 15 minutes."
+  - "After saving, click Build Now for an immediate first run instead of waiting for the schedule."
+  - "The schedule is case-sensitive and must be H/15 * * * * — do not use Poll SCM."
