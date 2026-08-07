@@ -17,6 +17,7 @@ objectives:
   - "Understand why teams schedule repeatable Jenkins work"
   - "Create a freestyle project through the Jenkins GUI"
   - "Configure a Build periodically trigger with Jenkins cron syntax"
+  - "Add an Execute Shell build step with the required health-check command"
   - "Run the job successfully and confirm the schedule is saved"
 
 instructions: |
@@ -34,6 +35,8 @@ instructions: |
   **What You'll Deliver**
   - A freestyle job named exactly `scheduled-health-check`
   - A **Build periodically** trigger with the schedule exactly `H/15 * * * *`
+  - An **Execute shell** build step containing exactly:
+    `echo "Scheduled health check completed"`
   - At least one successful build of `scheduled-health-check`
 
   > ⏳ **Jenkins takes 60–90 seconds to boot.** Click the **UI** tab — if it
@@ -53,20 +56,27 @@ instructions: |
   4. Enter exactly `H/15 * * * *` in the schedule box. Jenkins uses `H` to
      spread scheduled work safely instead of starting every job at once.
   5. Under **Build Steps**, choose **Add build step** → **Execute shell**.
-  6. Enter exactly:
+  6. In the command box enter exactly:
      `echo "Scheduled health check completed"`
+     Do not replace this with a different message — verification checks this
+     command and the resulting console output.
   7. Click **Save**.
   8. Click **Build Now** once so you do not need to wait 15 minutes for the
      first scheduled run.
-  9. Wait for the build ball to turn blue, then click **Verify Objectives**.
+  9. Wait for the build ball to turn blue.
+  10. Open the build number, click **Console Output**, and confirm it contains:
+      `Scheduled health check completed`
+  11. Click **Verify Objectives**.
 
 tasks:
   - id: "create-job"
     description: "Create a freestyle project named exactly 'scheduled-health-check'"
   - id: "configure-schedule"
     description: "Enable Build periodically with the exact schedule H/15 * * * *"
+  - id: "add-build-step"
+    description: "Add an Execute shell build step containing exactly: echo \"Scheduled health check completed\""
   - id: "run-build"
-    description: "Trigger at least one successful build of scheduled-health-check"
+    description: "Trigger a successful build whose Console Output contains 'Scheduled health check completed'"
 
 image: "jenkins/jenkins:lts-jdk17"
 useImageCmd: true
@@ -128,17 +138,32 @@ verifyScript: |
     echo "CHECK:configure-schedule:FAIL:Enable Build periodically and enter exactly H/15 * * * *"
   fi
 
+  # CHECK: add-build-step
+  # Jenkins XML-encodes double quotes as &quot; inside config.xml.
+  if [ -f "$CONFIG" ] && \
+     (grep -q 'echo &quot;Scheduled health check completed&quot;' "$CONFIG" 2>/dev/null || \
+      grep -q 'echo "Scheduled health check completed"' "$CONFIG" 2>/dev/null); then
+    echo 'CHECK:add-build-step:PASS:Execute shell step contains the required health-check command'
+  else
+    echo 'CHECK:add-build-step:FAIL:Add an Execute shell build step with exactly: echo "Scheduled health check completed"'
+  fi
+
   # CHECK: run-build
   if find /var/jenkins_home/jobs/scheduled-health-check/builds -name "build.xml" 2>/dev/null \
        | xargs grep -l "<result>SUCCESS</result>" 2>/dev/null \
+       | grep -q . && \
+     find /var/jenkins_home/jobs/scheduled-health-check/builds -name "log" -type f 2>/dev/null \
+       | xargs grep -lF "Scheduled health check completed" 2>/dev/null \
        | grep -q .; then
-    echo "CHECK:run-build:PASS:Successful scheduled-health-check build found"
+    echo "CHECK:run-build:PASS:Successful build with the required Console Output found"
   else
-    echo "CHECK:run-build:FAIL:No successful build yet — click Build Now and wait for the blue ball"
+    echo "CHECK:run-build:FAIL:Click Build Now, wait for the blue ball, and confirm Console Output contains: Scheduled health check completed"
   fi
 
 hints:
   - "Build Triggers is above Build Environment. Look for the checkbox named Build periodically."
   - "Use Jenkins' H syntax exactly: H/15 * * * * means once every 15 minutes."
+  - "Under Build Steps, choose Execute shell and enter exactly: echo \"Scheduled health check completed\""
   - "After saving, click Build Now for an immediate first run instead of waiting for the schedule."
+  - "Open the completed build number and click Console Output. You should see Scheduled health check completed."
   - "The schedule is case-sensitive and must be H/15 * * * * — do not use Poll SCM."
