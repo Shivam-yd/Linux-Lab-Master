@@ -1,5 +1,6 @@
 import Docker from "dockerode";
 import { Writable } from "node:stream";
+import http from "node:http";
 import { db } from "@workspace/db";
 import { eq, and, lt, ne, or, sql } from "drizzle-orm";
 import {
@@ -63,6 +64,20 @@ const SETUP_TIMEOUT_SERVICE  = 180_000;  // 3 min for service containers (Jenkin
 const JENKINS_READY_TIMEOUT  = 150_000;  // Jenkins must finish init.groovy.d after its setup restart
 const MAX_OUTPUT_BYTES = 2 * 1024 * 1024; // 2 MB — prevent OOM from chatty scripts
 
+const JENKINS_BOOTSTRAP = `import jenkins.model.*
+import hudson.security.*
+
+def instance = Jenkins.getInstance()
+def realm = new HudsonPrivateSecurityRealm(false)
+realm.createAccount("admin", "admin")
+instance.setSecurityRealm(realm)
+def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+strategy.setAllowAnonymousRead(false)
+instance.setAuthorizationStrategy(strategy)
+instance.save()
+new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").text = "ready\\n"
+`;
+
 function containerName(studentId: string, labId: string): string {
   const safeStudent = studentId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 24);
   const safeLab = labId.replace(/[^a-zA-Z0-9-]/g, "");
@@ -123,25 +138,91 @@ async function runExec(
   return { exitCode: inspect.ExitCode ?? -1, output: Buffer.concat(chunks).toString("utf8") };
 }
 
-async function waitForJenkinsReady(container: Docker.Container): Promise<void> {
-  const ready = await runExec(
-    container,
-    [
-      "sh",
-      "-lc",
-      [
-        "for i in $(seq 1 120); do",
-        "  test -f /var/jenkins_home/.linuxlabs-jenkins-ready && exit 0",
-        "  sleep 1",
-        "done",
-        "exit 1",
-      ].join("\n"),
-    ],
-    { user: "root", timeoutMs: JENKINS_READY_TIMEOUT },
-  );
-  if (ready.exitCode !== 0) {
-    throw new Error(`Jenkins did not finish account initialization: ${ready.output.slice(-500)}`);
+function writeTarField(buffer: Buffer, offset: number, length: number, value: string): void {
+  buffer.write(value.slice(0, length - 1), offset, length - 1, "utf8");
+}
+
+function tarEntry(
+  name: string,
+  content: Buffer,
+  mode: number,
+  uid: number,
+  gid: number,
+  type: number = 0,
+): Buffer {
+  const header = Buffer.alloc(512);
+  writeTarField(header, 0, 100, name);
+  writeTarField(header, 100, 8, `${mode.toString(8).padStart(7, "0")}\0`);
+  writeTarField(header, 108, 8, `${uid.toString(8).padStart(7, "0")}\0`);
+  writeTarField(header, 116, 8, `${gid.toString(8).padStart(7, "0")}\0`);
+  writeTarField(header, 124, 12, `${content.length.toString(8).padStart(11, "0")}\0`);
+  writeTarField(header, 136, 12, `${Math.floor(Date.now() / 1000).toString(8).padStart(11, "0")}\0`);
+  header.fill(0x20, 148, 156);
+  header[156] = 0x30 + type;
+  writeTarField(header, 257, 8, "ustar\0");
+  writeTarField(header, 265, 2, "00");
+  const checksum = header.reduce((sum, byte) => sum + byte, 0);
+  writeTarField(header, 148, 8, `${checksum.toString(8).padStart(6, "0")}\0 `);
+  const padding = Buffer.alloc((512 - (content.length % 512)) % 512);
+  return Buffer.concat([header, content, padding]);
+}
+
+async function injectJenkinsBootstrap(container: Docker.Container): Promise<void> {
+  const archive = Buffer.concat([
+    tarEntry("init.groovy.d/", Buffer.alloc(0), 0o755, 1000, 1000, 5),
+    tarEntry(
+      "init.groovy.d/01-admin.groovy",
+      Buffer.from(JENKINS_BOOTSTRAP, "utf8"),
+      0o644,
+      1000,
+      1000,
+    ),
+    Buffer.alloc(1024),
+  ]);
+  const response = await container.putArchive(archive, { path: "/var/jenkins_home" });
+  if (response && typeof response.on === "function") {
+    await new Promise<void>((resolve, reject) => {
+      response.on("end", resolve);
+      response.on("error", reject);
+    });
   }
+}
+
+async function waitForJenkinsReady(container: Docker.Container): Promise<void> {
+  const deadline = Date.now() + JENKINS_READY_TIMEOUT;
+  let lastError = "Jenkins did not respond";
+
+  while (Date.now() < deadline) {
+    const info = await container.inspect();
+    const networks = info.NetworkSettings.Networks as Record<string, { IPAddress?: string }> | undefined;
+    const containerIp = Object.values(networks ?? {})
+      .map((network) => network.IPAddress)
+      .find((ip): ip is string => Boolean(ip));
+
+    if (containerIp) {
+      try {
+        const statusCode = await new Promise<number>((resolve, reject) => {
+          const request = http.get(
+            { hostname: containerIp, port: 8080, path: "/jenkins/login", timeout: 3_000 },
+            (response) => {
+              response.resume();
+              response.once("end", () => resolve(response.statusCode ?? 0));
+            },
+          );
+          request.once("error", reject);
+          request.once("timeout", () => request.destroy(new Error("Jenkins readiness request timed out")));
+        });
+        if (statusCode === 200) return;
+        lastError = `Jenkins returned HTTP ${statusCode}`;
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  throw new Error(`${lastError}; Jenkins did not become ready within ${JENKINS_READY_TIMEOUT / 1000}s`);
 }
 
 async function ensureImagePresent(image: string): Promise<void> {
@@ -349,12 +430,12 @@ export async function startSession(
                 : 384 * 1024 * 1024,
             NanoCpus: 1_000_000_000,
             PidsLimit: lab.privileged ? 1024 : lab.useImageCmd ? 512 : 256,
-            // Run a real init (tini) as PID 1 so killed background processes are
-            // reaped instead of piling up as zombies. Without this, `pkill`/`kill`
-            // inside a lab leaves a defunct process that tools like `pgrep -f`
-            // can still match (via /proc/pid/comm), causing verify scripts to
-            // report a process as "still running" after it was actually killed.
-            Init: true,
+            // Run a real init (tini) for ordinary sandboxes so killed
+            // background processes are reaped instead of piling up as zombies.
+            // Service images already provide their own init (Jenkins ships
+            // /usr/bin/tini); adding Docker's init option at all breaks
+            // docker exec with an OCI setns error on this runtime.
+            ...(lab.useImageCmd ? {} : { Init: true }),
             // Required for Docker-in-Docker labs that run a real dockerd inside
             // the sandbox. Only set when the lab explicitly requests it.
             Privileged: lab.privileged ?? false,
@@ -405,27 +486,25 @@ export async function startSession(
       }
 
       try {
+        if (lab.image.startsWith("jenkins/")) {
+          // Jenkins cannot accept docker exec in this runtime. Seed its init
+          // script before the image entrypoint starts instead.
+          await injectJenkinsBootstrap(container);
+        }
         await container.start();
-        // Service containers (Jenkins, etc.) need extra time to boot their daemon
-        // before the setup script can interact with them.
-        const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], {
-          user: "root",
-          timeoutMs: lab.useImageCmd ? SETUP_TIMEOUT_SERVICE : SETUP_TIMEOUT_MS,
-        });
-        if (setup.exitCode !== 0) {
-          logger.error({ labId, studentId, output: setup.output }, "Lab setup script failed");
-          throw new Error(`Setup script failed (exit ${setup.exitCode}): ${setup.output.slice(-500)}`);
+        if (!lab.image.startsWith("jenkins/")) {
+          // Service containers need extra time to boot their daemon before
+          // setup can interact with them. Jenkins is excluded because its
+          // runtime rejects docker exec; it is configured before start above.
+          const setup = await runExec(container, [lab.shell ?? "sh", "-lc", lab.setupScript], {
+            user: "root",
+            timeoutMs: lab.useImageCmd ? SETUP_TIMEOUT_SERVICE : SETUP_TIMEOUT_MS,
+          });
+          if (setup.exitCode !== 0) {
+            logger.error({ labId, studentId, output: setup.output }, "Lab setup script failed");
+            throw new Error(`Setup script failed (exit ${setup.exitCode}): ${setup.output.slice(-500)}`);
+          }
         }
-        // Jenkins reads init.groovy.d only during startup. The setup script
-        // creates that file after the image command has already started, so
-        // restart service-image labs once to apply the freshly written setup.
-        if (lab.useImageCmd) {
-          logger.info({ labId, studentId }, "Restarting service container to apply setup files");
-          await container.restart({ t: 10 });
-        }
-        // Jenkins returns a login page before init.groovy.d has necessarily
-        // finished creating the configured account. Wait for the init script's
-        // marker so the UI cannot expose a login form during that race window.
         if (lab.image.startsWith("jenkins/")) {
           await waitForJenkinsReady(container);
           logger.info({ labId, studentId }, "Jenkins account initialization complete");
