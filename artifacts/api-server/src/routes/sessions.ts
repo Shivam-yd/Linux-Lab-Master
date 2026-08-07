@@ -168,6 +168,11 @@ router.post("/labs/:labId/verify", async (req, res): Promise<void> => {
 
     const allPassed = checks.length > 0 && passedCount === checks.length;
 
+    if (allPassed) {
+      await stopSession(req.studentId, lab.id);
+      logger.info({ labId: lab.id, studentId: req.studentId }, "Lab passed; sandbox stopped");
+    }
+
     // Auto-issue cert when this verify completes a track level or full track.
     if (allPassed) {
       const nameRow = await db.execute(sql`SELECT name FROM "user" WHERE id = ${req.studentId} LIMIT 1`);

@@ -26,3 +26,4 @@
 - [Mockup sandbox build environment](mockup-build-env.md) — mockup Vite builds require explicit PORT and BASE_PATH defaults.
 - [SEO deployment URLs](seo-deployment-urls.md) — absolute SEO URLs must follow the verified published domain, never a guessed host.
 - [Prefixed Jenkins proxy links](prefixed-jenkins-proxy-links.md) — normalize root-relative Jenkins links through the lab proxy and configured prefix, or console pages return upstream 404s.
+- [Passed lab cleanup](passed-lab-cleanup.md) — stop and remove the sandbox in the verify endpoint after every lab passes; keep progress and certificates.

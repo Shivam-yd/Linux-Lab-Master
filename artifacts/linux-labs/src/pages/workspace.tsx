@@ -423,8 +423,14 @@ export default function Workspace() {
         setVerifyResult(res)
         if (!res.passed) setMyRating(null)
         if (res.passed) {
+          clearRecoveryMarker()
+          setRecoveryAvailable(false)
+          queryClient.setQueryData(getGetLabSessionQueryKey(labId), (old: Record<string, unknown> | null | undefined) =>
+            old ? { ...old, status: "stopped" } : old,
+          )
+          queryClient.invalidateQueries({ queryKey: getGetLabSessionQueryKey(labId) })
           setShowPartyPopper(true)
-          setCloseCountdown(15)
+          setCloseCountdown(5)
         }
       },
       onError: (err: any) => {
