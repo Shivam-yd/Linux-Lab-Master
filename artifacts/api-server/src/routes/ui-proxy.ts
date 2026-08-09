@@ -117,7 +117,13 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     const marker = "__DEVLAB_JENKINS_PROXY_PATH__";
     const protectedText = text.split(proxyJenkinsPrefix).join(marker);
     const rewritten = protectedText
-      .split("/jenkins").join(proxyJenkinsPrefix)
+      // Rewrite Jenkins-prefixed URLs only when they are used as URL values.
+      // A global replacement corrupts visible breadcrumbs and inline page data
+      // on dynamic pages such as New Item.
+      .replace(
+        /(["'`(=])\/jenkins(?=\/|["'`)\s?#]|$)/g,
+        `$1${proxyJenkinsPrefix}`,
+      )
       // Keep root-relative Jenkins links inside the lab proxy too.
       .replace(
         /([("'=])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
