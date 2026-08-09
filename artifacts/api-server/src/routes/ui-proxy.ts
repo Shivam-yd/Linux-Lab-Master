@@ -78,6 +78,7 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   // proxyPrefix is the path prefix the browser uses to reach this proxy.
   // All /jenkins/* links must be rewritten to go through this prefix.
   const proxyPrefix = `/api/labs/${labId}/ui`;
+  const proxyJenkinsPrefix = `${proxyPrefix}/jenkins`;
   // A request to the bare proxy endpoint has no Jenkins prefix. Use the
   // configured service path instead of forwarding "/" to Jenkins, which
   // returns 404 when started with --prefix=/jenkins.
@@ -109,6 +110,26 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   const rootFallbackPath = upstreamPrefix && proxyPath.startsWith(upstreamPrefix)
     ? (proxyPath.slice(upstreamPrefix.length) || "/")
     : undefined;
+  const rewriteText = (text: string): string => {
+    // Protect URLs that already point through this proxy before rewriting
+    // Jenkins' own /jenkins references. Without this guard, a second pass
+    // turns /api/labs/<id>/ui/jenkins into nested proxy paths.
+    const marker = "__DEVLAB_JENKINS_PROXY_PATH__";
+    const protectedText = text.split(proxyJenkinsPrefix).join(marker);
+    const rewritten = protectedText
+      .split("/jenkins").join(proxyJenkinsPrefix)
+      // Keep root-relative Jenkins links inside the lab proxy too.
+      .replace(
+        /([("'=])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
+        `$1${proxyPrefix}${upstreamPrefix}/`,
+      )
+      // CSS url(/static/...) has no quote or equals sign before the slash.
+      .replace(
+        /url\(\s*\/(?!jenkins(?=\/|["')]|$)|api\/labs\/)/g,
+        `url(${proxyPrefix}${upstreamPrefix}/`,
+      );
+    return rewritten.split(marker).join(proxyJenkinsPrefix);
+  };
 
   type ProxyTarget = { hostname: string; port: number; label: string };
   const targets: ProxyTarget[] = [];
@@ -165,18 +186,25 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
 
       // Rewrite redirect Location headers so the browser stays inside our proxy.
       if (proxyRes.headers["location"]) {
-        proxyRes.headers["location"] = proxyRes.headers["location"]
+        let location = proxyRes.headers["location"]
           // Absolute: strip scheme + host, keep path portion starting at /jenkins
           .replace(/^https?:\/\/[^/]+\/jenkins(?=\/|$)/, `${proxyPrefix}/jenkins`)
           // Relative: plain /jenkins/... path
           .replace(/^\/jenkins(?=\/|$)/, `${proxyPrefix}/jenkins`)
-          // Root-relative Jenkins redirects can omit the configured prefix.
-          .replace(/^\/(?!jenkins(?=\/|$))/, `${proxyPrefix}${upstreamPrefix}/`)
-          // Canonicalize redirects to the bare Jenkins prefix after login.
-          .replace(
-            new RegExp(`^${proxyPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/jenkins(?=$|\\?)`),
-            `${proxyPrefix}/jenkins/`,
-          );
+        // Root-relative Jenkins redirects can omit the configured prefix.
+        if (
+          location.startsWith("/") &&
+          !location.startsWith(proxyPrefix) &&
+          !location.startsWith("/jenkins")
+        ) {
+          location = `${proxyPrefix}${upstreamPrefix}${location}`;
+        }
+        // Canonicalize redirects to the bare Jenkins prefix after login.
+        location = location.replace(
+          new RegExp(`^${proxyJenkinsPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=$|\\?)`),
+          `${proxyJenkinsPrefix}/`,
+        );
+        proxyRes.headers["location"] = location;
       }
 
       // Strip headers that prevent iframing.
@@ -210,18 +238,7 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
         proxyRes.on("data", (c: Buffer) => chunks.push(c));
         proxyRes.on("end", () => {
           const text = Buffer.concat(chunks).toString("utf8");
-          const rewritten = text
-            .split("/jenkins").join(`${proxyPrefix}/jenkins`)
-            // Keep root-relative Jenkins links inside the lab proxy too.
-             .replace(
-               /([("'=])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
-               `$1${proxyPrefix}${upstreamPrefix}/`,
-             )
-             // CSS url(/static/...) has no quote or equals sign before the slash.
-             .replace(
-               /url\(\s*\/(?!jenkins(?=\/|["')]|$)|api\/labs\/)/g,
-               `url(${proxyPrefix}${upstreamPrefix}/`,
-             );
+           const rewritten = rewriteText(text);
           const outHeaders = { ...proxyRes.headers };
           delete outHeaders["content-length"]; // byte length changed after rewrite
           res.writeHead(proxyRes.statusCode ?? 200, outHeaders);
