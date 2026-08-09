@@ -1909,51 +1909,56 @@ export default function AdminPage() {
                               {expired ? "expired" : "active"}
                             </span>
                           </div>
-                          <div className="flex items-center justify-end gap-1.5 border-t border-border/30 pt-2 lg:border-0 lg:pt-0">
+                          <div className="flex items-center justify-end border-t border-border/30 pt-2 lg:border-0 lg:pt-0">
+                            <div className="inline-flex items-center gap-0.5 rounded-xl border border-border/60 bg-background/40 p-1 shadow-sm shadow-black/5 dark:shadow-black/20">
                             <a
                               href={`${basePath}/verify/${cert.certId}`}
                               target="_blank"
                               rel="noreferrer"
                               title="Open public verification"
                               aria-label={`Open public verification for ${cert.studentName}`}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/10 transition-colors"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>
                             <button
+                              type="button"
                               disabled={refreshing || revoking}
                               onClick={() => refreshCertificate.mutate(cert.certId)}
                               title="Refresh certificate"
                               aria-label={`Refresh certificate for ${cert.studentName}`}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                             </button>
                             <button
+                              type="button"
                               disabled={refreshing || revoking}
                               onClick={() => {
                                 setConfirmAction({ kind: "revokeCertificate", certId: cert.certId, studentName: cert.studentName })
                               }}
                               title="Revoke certificate"
                               aria-label={`Revoke certificate for ${cert.studentName}`}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-400 transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               {revoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                             </button>
                             <button
+                              type="button"
                               disabled={refreshing || revoking || updateCertificatePrivacy.isPending}
                               onClick={() => updateCertificatePrivacy.mutate({ certId: cert.certId, showName: !cert.showName })}
                               title={cert.showName ? "Hide learner name publicly" : "Show learner name publicly"}
                               aria-label={`${cert.showName ? "Hide" : "Show"} learner name for ${cert.studentName}`}
                               className={cn(
-                                "inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+                                "inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-40",
                                 cert.showName
-                                  ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-                                  : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10",
+                                  ? "text-amber-400 hover:bg-amber-500/10"
+                                  : "text-emerald-400 hover:bg-emerald-500/10",
                               )}
                             >
                               {cert.showName ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                             </button>
+                            </div>
                           </div>
                         </div>
                       )
