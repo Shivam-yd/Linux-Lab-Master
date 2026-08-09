@@ -102,6 +102,13 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     !requestPath.startsWith(`${upstreamPrefix}/`)
     ? `${upstreamPrefix}${requestPath.startsWith("/") ? requestPath : `/${requestPath}`}`
     : requestPath;
+  // Some Jenkins image/runtime combinations ignore JENKINS_OPTS=--prefix and
+  // serve at the root even though the lab definition requests /jenkins.
+  // Keep the prefixed request as the primary path, but retry its equivalent
+  // root path on a Jenkins 404 so login redirects and form posts still work.
+  const rootFallbackPath = upstreamPrefix && proxyPath.startsWith(upstreamPrefix)
+    ? (proxyPath.slice(upstreamPrefix.length) || "/")
+    : undefined;
 
   type ProxyTarget = { hostname: string; port: number; label: string };
   const targets: ProxyTarget[] = [];
@@ -127,7 +134,11 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   headers["accept-encoding"] = "identity";
   delete (headers as Record<string, unknown>)["content-length"];
 
-  const sendRequest = (targetIndex: number): void => {
+  const sendRequest = (
+    targetIndex: number,
+    requestTargetPath: string = proxyPath,
+    allowRootFallback = true,
+  ): void => {
     const target = targets[targetIndex];
     if (!target) {
       if (!res.headersSent) res.status(502).json({ error: "UI service is not reachable yet" });
@@ -135,8 +146,23 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     }
 
     const proxyReq = http.request(
-      { hostname: target.hostname, port: target.port, path: proxyPath, method: req.method, headers },
+      { hostname: target.hostname, port: target.port, path: requestTargetPath, method: req.method, headers },
       (proxyRes) => {
+      if (
+        allowRootFallback &&
+        rootFallbackPath &&
+        proxyRes.statusCode === 404 &&
+        rootFallbackPath !== requestTargetPath
+      ) {
+        logger.info(
+          { labId, requestPath: requestTargetPath, fallbackPath: rootFallbackPath, target: target.label },
+          "UI proxy: retrying Jenkins request without configured prefix",
+        );
+        proxyRes.resume();
+        sendRequest(targetIndex, rootFallbackPath, false);
+        return;
+      }
+
       // Rewrite redirect Location headers so the browser stays inside our proxy.
       if (proxyRes.headers["location"]) {
         proxyRes.headers["location"] = proxyRes.headers["location"]
