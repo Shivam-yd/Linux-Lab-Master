@@ -28,4 +28,5 @@
 - [Prefixed Jenkins proxy links](prefixed-jenkins-proxy-links.md) — normalize root-relative Jenkins links through the lab proxy and configured prefix, or console pages return upstream 404s.
 - [Passed lab cleanup](passed-lab-cleanup.md) — stop and remove the sandbox in the verify endpoint after every lab passes; keep progress and certificates.
 - [Pulled code dependency restore](pulled-code-dependency-restore.md) — after pulling code, restore node_modules from the existing lockfile before diagnosing missing imports.
+- [Pulled dependency restore](pulled-dependency-restore.md) — frozen-lockfile install may be needed after pulls; offline mode can fail when the pnpm store lacks a transitive package.
 - [Jenkins UI metadata normalization](jenkins-ui-metadata-normalization.md) — synced Jenkins records must expose port 8080 and `/jenkins/` or the UI tab stays hidden.
