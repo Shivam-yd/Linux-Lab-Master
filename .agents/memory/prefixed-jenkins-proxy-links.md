@@ -7,4 +7,4 @@ Embedded Jenkins instances use `--prefix=/jenkins`, but some Jenkins pages can e
 
 **Why:** A page can load successfully while a later action such as Console Output returns Jenkins' own 404 because only the initial prefixed URL was routed correctly.
 
-**How to apply:** When changing the UI proxy, test initial login, job pages, build pages, and console output; preserve handling for prefixed, root-relative, absolute, and relative URLs.
+**How to apply:** When changing the UI proxy, test initial login, post-login redirects, job pages, build pages, and console output; preserve handling for prefixed, root-relative, absolute, and relative URLs. Canonicalize a bare `/jenkins` redirect/request to `/jenkins/`, including its query string.

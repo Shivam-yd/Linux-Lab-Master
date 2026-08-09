@@ -84,9 +84,16 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   const configuredUiPath = lab.uiPath
     ?? (lab.image.startsWith("jenkins/") ? "/jenkins/" : undefined);
   const upstreamPrefix = configuredUiPath?.replace(/\/+$/, "") || "";
-  const requestPath = (!req.url || req.url === "/") && configuredUiPath
-    ? configuredUiPath
-    : req.url || "/";
+  const rawRequestPath = req.url || "/";
+  // Jenkins may redirect to the prefix without its trailing slash after login.
+  // Keep the upstream context path canonical so /jenkins and /jenkins/ do not
+  // land on different Jenkins routes.
+  const requestPath = configuredUiPath &&
+    (rawRequestPath === upstreamPrefix || rawRequestPath.startsWith(`${upstreamPrefix}?`))
+    ? `${configuredUiPath}${rawRequestPath.slice(upstreamPrefix.length)}`
+    : (!req.url || req.url === "/") && configuredUiPath
+      ? configuredUiPath
+      : rawRequestPath;
   // Jenkins occasionally emits root-relative links such as /job/... even
   // when it is running with --prefix=/jenkins. Normalize those escaped links
   // before forwarding so the upstream server does not return its own 404.
@@ -138,7 +145,12 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
           // Relative: plain /jenkins/... path
           .replace(/^\/jenkins(?=\/|$)/, `${proxyPrefix}/jenkins`)
           // Root-relative Jenkins redirects can omit the configured prefix.
-          .replace(/^\/(?!jenkins(?=\/|$))/, `${proxyPrefix}${upstreamPrefix}/`);
+          .replace(/^\/(?!jenkins(?=\/|$))/, `${proxyPrefix}${upstreamPrefix}/`)
+          // Canonicalize redirects to the bare Jenkins prefix after login.
+          .replace(
+            new RegExp(`^${proxyPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/jenkins(?=$|\\?)`),
+            `${proxyPrefix}/jenkins/`,
+          );
       }
 
       // Strip headers that prevent iframing.
