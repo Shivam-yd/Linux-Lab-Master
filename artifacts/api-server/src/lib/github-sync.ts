@@ -83,6 +83,22 @@ const RemoteLabSchema = z.object({
 
 type ValidatedLab = z.infer<typeof RemoteLabSchema>;
 
+/**
+ * Older Jenkins YAML definitions did not include the service metadata needed
+ * by the embedded UI. Keep those definitions usable after sync so the manager
+ * publishes port 8080 and the workspace can render the /jenkins/ tab.
+ */
+function normalizeLabDefinition(def: ValidatedLab): ValidatedLab {
+  if (!def.image.startsWith("jenkins/")) return def;
+
+  return {
+    ...def,
+    useImageCmd: def.useImageCmd ?? true,
+    ports: def.ports?.length ? def.ports : [8080],
+    uiPath: def.uiPath ?? "/jenkins/",
+  };
+}
+
 // ── GitHub API helpers ────────────────────────────────────────────────────────
 interface GhContent {
   type: "file" | "dir" | "symlink" | "submodule";
@@ -144,7 +160,7 @@ async function fetchAndValidateLab(file: GhContent): Promise<ValidatedLab | null
     );
     return null;
   }
-  return result.data;
+  return normalizeLabDefinition(result.data);
 }
 
 // ── Core sync logic ───────────────────────────────────────────────────────────
@@ -182,6 +198,7 @@ export async function runSync(triggeredBy: "auto" | "manual" = "auto"): Promise<
 
     // Build a map of id → current SHA from the DB for change detection
     const existingRows = await db.select().from(remoteLabsTable);
+    const existingById = new Map(existingRows.map((r) => [r.id, r]));
     const shaById = new Map(existingRows.map((r) => [r.id, r.sha]));
 
     const validated = (await Promise.all(files.map(async (file) => ({
@@ -216,8 +233,23 @@ export async function runSync(triggeredBy: "auto" | "manual" = "auto"): Promise<
           .where(eq(remoteLabsTable.id, def.id));
         labsUpdated++;
         logger.info({ labId: def.id }, "github-sync: updated lab");
+      } else {
+        // Repair metadata added after an older definition was already synced.
+        // Do not count unchanged labs as updates unless this compatibility
+        // normalization is needed.
+        const existingDefinition = existingById.get(def.id)?.definition as Partial<ValidatedLab> | undefined;
+        const needsJenkinsMetadataRepair =
+          def.image.startsWith("jenkins/") &&
+          (!existingDefinition?.ports?.length || !existingDefinition.uiPath);
+        if (needsJenkinsMetadataRepair) {
+          await db
+            .update(remoteLabsTable)
+            .set({ definition: def as any })
+            .where(eq(remoteLabsTable.id, def.id));
+          labsUpdated++;
+          logger.info({ labId: def.id }, "github-sync: repaired Jenkins UI metadata");
+        }
       }
-      // else: SHA unchanged — skip
     }
 
     // ── Prune: delete DB rows whose IDs are no longer in GitHub ──────────────
