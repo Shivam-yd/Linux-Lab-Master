@@ -24,7 +24,7 @@ const router: IRouter = Router();
  *    and relative (/jenkins/...) forms.
  *  - Form POST bodies forwarded verbatim via req.rawBody (set by app.ts verify
  *    callback) so repeated/array keys are never dropped by re-encoding.
- *  - HTML and JS responses rewritten; all other content types piped as-is.
+ *  - HTML, CSS, and JS responses rewritten; all other content types piped as-is.
  */
 router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   const rawLabId = req.params.labId;
@@ -157,13 +157,17 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
       }
 
       const contentType = proxyRes.headers["content-type"] ?? "";
-      const isHtml = contentType.includes("text/html");
-      const isJs   = contentType.includes("javascript");
+       const isHtml = contentType.includes("text/html");
+       const isCss  = contentType.includes("text/css");
+       const isJs   = contentType.includes("javascript");
 
-      if (isHtml || isJs) {
-        // Buffer and rewrite text: replace every /jenkins occurrence with the
-        // proxied path so in-page links and rootURL JS variable resolve correctly.
-        // Because we stripped Accept-Encoding above, this is plain UTF-8 text.
+       if (isHtml || isCss || isJs) {
+         // Buffer and rewrite text: replace every /jenkins occurrence with the
+         // proxied path so in-page links and rootURL JS variable resolve correctly.
+         // CSS also needs rewriting because Jenkins stylesheets contain root-relative
+         // image/font URLs. Without this, the browser requests those assets outside
+         // the lab proxy and the UI renders unstyled with broken images.
+         // Because we stripped Accept-Encoding above, this is plain UTF-8 text.
         const chunks: Buffer[] = [];
         proxyRes.on("data", (c: Buffer) => chunks.push(c));
         proxyRes.on("end", () => {
@@ -171,7 +175,15 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
           const rewritten = text
             .split("/jenkins").join(`${proxyPrefix}/jenkins`)
             // Keep root-relative Jenkins links inside the lab proxy too.
-            .replace(/([("'=])\/(?!jenkins(?=\/|["']|$))/g, `$1${proxyPrefix}${upstreamPrefix}/`);
+             .replace(
+               /([("'=])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
+               `$1${proxyPrefix}${upstreamPrefix}/`,
+             )
+             // CSS url(/static/...) has no quote or equals sign before the slash.
+             .replace(
+               /url\(\s*\/(?!jenkins(?=\/|["')]|$)|api\/labs\/)/g,
+               `url(${proxyPrefix}${upstreamPrefix}/`,
+             );
           const outHeaders = { ...proxyRes.headers };
           delete outHeaders["content-length"]; // byte length changed after rewrite
           res.writeHead(proxyRes.statusCode ?? 200, outHeaders);
