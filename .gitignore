@@ -55,3 +55,6 @@ instruction.md
 artifacts/api-server/backups/
 **/*.dump
 **/*.dump.sha256
+
+# Generated screenshots
+/screenshots/
