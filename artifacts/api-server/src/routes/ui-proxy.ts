@@ -116,32 +116,8 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     // turns /api/labs/<id>/ui/jenkins into nested proxy paths.
     const marker = "__DEVLAB_JENKINS_PROXY_PATH__";
     const protectedText = text.split(proxyJenkinsPrefix).join(marker);
-    const proxyRelative = (value: string): string => {
-      if (
-        !value ||
-        value.startsWith("/") ||
-        value.startsWith("#") ||
-        /^[a-z][a-z\d+.-]*:/i.test(value)
-      ) {
-        return value;
-      }
-      return `${proxyJenkinsPrefix}/${value}`;
-    };
     const rewritten = protectedText
       .split("/jenkins").join(proxyJenkinsPrefix)
-      // Jenkins uses relative form actions and links on pages such as New Item.
-      // Make them explicit so they stay inside the outer lab proxy.
-      .replace(
-        /\b(action|href|src)=(["'])([^"']+)\2/g,
-        (_match, attribute: string, quote: string, value: string) =>
-          `${attribute}=${quote}${proxyRelative(value)}${quote}`,
-      )
-      // Dynamic Jenkins pages use relative fetch() URLs for their widgets.
-      .replace(
-        /(\bfetch\(\s*)(["'`])([^"'`]*?)\2/g,
-        (_match, prefix: string, quote: string, value: string) =>
-          `${prefix}${quote}${proxyRelative(value)}${quote}`,
-      )
       // Keep root-relative Jenkins links inside the lab proxy too.
       .replace(
         /([("'=])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
