@@ -7,4 +7,4 @@ Jenkins GUI lab definitions must resolve to `useImageCmd: true`, `ports: [8080]`
 
 **Why:** Older synced Jenkins records retained the image but lost the port and UI path, so the frontend's `uiPort` gate hid the UI tab and the manager could not publish the service port.
 
-**How to apply:** Keep normalization at the GitHub-sync boundary and preserve the frontend fallback only for legacy cached records; verify all Jenkins GUI records expose port 8080 and `/jenkins/` after sync.
+**How to apply:** Keep normalization at the GitHub-sync boundary and preserve the frontend fallback only for legacy cached records; verify all Jenkins GUI records expose port 8080 and `/jenkins/` after sync. Jenkins setup belongs in the manager bootstrap, not the YAML `setupScript`.

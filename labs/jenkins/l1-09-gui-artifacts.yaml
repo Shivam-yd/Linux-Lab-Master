@@ -84,33 +84,9 @@ terminals:
     cwd: "/root"
 
 setupScript: |
-  mkdir -p /var/jenkins_home/init.groovy.d
-  rm -f /var/jenkins_home/.linuxlabs-jenkins-ready
-  cat > /var/jenkins_home/init.groovy.d/01-admin.groovy << 'GROOVY'
-  import jenkins.model.*
-  import hudson.security.*
-
-  def instance = Jenkins.getInstance()
-  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").delete()
-  def realm = new HudsonPrivateSecurityRealm(false)
-  realm.createAccount("admin", "admin")
-  instance.setSecurityRealm(realm)
-  def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
-  strategy.setAllowAnonymousRead(false)
-  instance.setAuthorizationStrategy(strategy)
-  instance.save()
-  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").text = "ready\n"
-  GROOVY
-
-  echo "Waiting for Jenkins to start..."
-  for i in $(seq 1 90); do
-    HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/jenkins/login 2>/dev/null)
-    if [ "$HTTP" = "200" ]; then
-      echo "Jenkins is ready (boot took ~$((i * 2))s)"
-      break
-    fi
-    sleep 2
-  done
+  # Jenkins is a service image. The platform injects the admin bootstrap
+  # before starting the image command; this field is retained for schema
+  # compatibility and is intentionally not used for service initialization.
 
 verifyScript: |
   CONFIG="/var/jenkins_home/jobs/release-report/config.xml"

@@ -79,33 +79,9 @@ terminals:
     cwd: "/root"
 
 setupScript: |
-  mkdir -p /var/jenkins_home/init.groovy.d
-  rm -f /var/jenkins_home/.linuxlabs-jenkins-ready
-  cat > /var/jenkins_home/init.groovy.d/01-admin.groovy << 'GROOVY'
-  import jenkins.model.*
-  import hudson.security.*
-
-  def instance = Jenkins.getInstance()
-  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").delete()
-  def realm = new HudsonPrivateSecurityRealm(false)
-  realm.createAccount("admin", "admin")
-  instance.setSecurityRealm(realm)
-  def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
-  strategy.setAllowAnonymousRead(false)
-  instance.setAuthorizationStrategy(strategy)
-  instance.save()
-  new File(instance.getRootDir(), ".linuxlabs-jenkins-ready").text = "ready\n"
-  GROOVY
-
-  echo "Waiting for Jenkins to start..."
-  for i in $(seq 1 90); do
-    HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/jenkins/login 2>/dev/null)
-    if [ "$HTTP" = "200" ]; then
-      echo "Jenkins is ready (boot took ~$((i * 2))s)"
-      break
-    fi
-    sleep 2
-  done
+  # Jenkins is a service image. The platform injects the admin bootstrap
+  # before starting the image command; this field is retained for schema
+  # compatibility and is intentionally not used for service initialization.
 
 verifyScript: |
   CONFIG="/var/jenkins_home/jobs/greet-job/config.xml"
@@ -118,15 +94,20 @@ verifyScript: |
   fi
 
   # CHECK: add-param
-  if [ -f "$CONFIG" ] && grep -q '<name>GREETING</name>' "$CONFIG" 2>/dev/null; then
-    echo "CHECK:add-param:PASS:GREETING String parameter found"
+  if [ -f "$CONFIG" ] && \
+     grep -q '<hudson.model.StringParameterDefinition>' "$CONFIG" 2>/dev/null && \
+     grep -q '<name>GREETING</name>' "$CONFIG" 2>/dev/null && \
+     grep -q '<defaultValue>Hello World</defaultValue>' "$CONFIG" 2>/dev/null; then
+    echo "CHECK:add-param:PASS:GREETING String parameter with default Hello World found"
   else
-    echo "CHECK:add-param:FAIL:No parameter named 'GREETING' found — tick 'This project is parameterized', add a String Parameter, name it GREETING"
+    echo "CHECK:add-param:FAIL:Add a String Parameter named GREETING with default value Hello World"
   fi
 
   # CHECK: add-build-step
-  if [ -f "$CONFIG" ] && grep -q '\$GREETING' "$CONFIG" 2>/dev/null; then
-    echo 'CHECK:add-build-step:PASS:Execute shell step using $GREETING found'
+  if [ -f "$CONFIG" ] && \
+     (grep -q 'echo &quot;\$GREETING&quot;' "$CONFIG" 2>/dev/null || \
+      grep -q 'echo "\$GREETING"' "$CONFIG" 2>/dev/null); then
+    echo 'CHECK:add-build-step:PASS:Execute shell step contains exactly echo "$GREETING"'
   else
     echo 'CHECK:add-build-step:FAIL:Add an Execute shell build step with exactly: echo "$GREETING"'
   fi

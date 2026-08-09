@@ -132,6 +132,7 @@ with no visible error to the student.
 | `hashicorp/terraform:1.9` | **BusyBox ash** (Alpine-based) | ✅ Yes | `"sh"` |
 | `rastasheep/ubuntu-sshd:18.04` | **dash** (Ubuntu-based) | ❌ No | `"bash"` |
 | `localstack/localstack:latest` | **dash** (Ubuntu-based) | ❌ No | `"bash"` (bash is pre-installed) |
+| `jenkins/jenkins:lts-jdk17` | **dash** (Debian-based) | ❌ No | `"bash"` |
 | Any other Ubuntu-based image | **dash** | ❌ No | `"bash"` if bash is present |
 | Any other Alpine-based image | **BusyBox ash** | ✅ Yes | `"sh"` |
 
@@ -231,6 +232,13 @@ Tips:
 - Pick an `image` that already has what you need instead of installing anything.
 - The script must be idempotent (re-running it should not break anything).
 - Always set `shell:` before writing the script — it controls which interpreter the platform uses to run this script.
+- **Jenkins service-image exception:** Jenkins labs use `useImageCmd: true` and
+  are started with the image's own command. The platform skips their
+  `setupScript` and performs the Jenkins bootstrap itself. Keep the field
+  present for schema compatibility, but do not put required Jenkins setup
+  there; document service initialization in the lab instructions instead.
+  Other `useImageCmd` images may still run their `setupScript`, so confirm the
+  manager behavior before applying this exception to a new service image.
 
 ---
 
