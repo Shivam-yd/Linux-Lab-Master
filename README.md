@@ -267,231 +267,98 @@ The app also polls for new labs automatically every hour.
 
 ## 🗄 Architecture
 
-The diagrams below use Mermaid, which GitHub renders natively.
+These simple diagrams show the platform from a student's point of view.
+GitHub renders Mermaid diagrams automatically.
 
-### System structure
-
-```mermaid
-flowchart TB
-    browser["Student browser"]
-
-    subgraph edge["Single external entry point"]
-        nginx["nginx :80<br/>React static files<br/>/api proxy<br/>WebSocket upgrade"]
-    end
-
-    subgraph frontend["Frontend: artifacts/linux-labs"]
-        react["React + Vite application"]
-        catalog["Catalog and track filters"]
-        workspace["Lab workspace"]
-        terminal["xterm.js terminal"]
-        ui["Embedded service UI<br/>Jenkins and similar labs"]
-        authui["Sign-in, registration,<br/>progress and certificates"]
-        react --> catalog
-        react --> workspace
-        workspace --> terminal
-        workspace --> ui
-        react --> authui
-    end
-
-    subgraph backend["Backend: artifacts/api-server"]
-        express["Express API :8080"]
-        auth["Better Auth<br/>sessions, cookies and access"]
-        labroutes["Lab and progress routes"]
-        sessionroutes["Session routes<br/>start, stop, reset, verify"]
-        adminroutes["Admin and operations routes"]
-        ws["WebSocket terminal server"]
-        registry["Lab registry<br/>built-ins + remote YAML"]
-        sync["GitHub lab sync<br/>parse, validate, normalize, upsert"]
-        docker["Docker manager<br/>containers, exec, ports, cleanup"]
-        uiproxy["UI proxy<br/>Jenkins paths, assets, redirects"]
-        certs["Progress and certificate service"]
-
-        express --> auth
-        express --> labroutes
-        express --> sessionroutes
-        express --> adminroutes
-        ws --> auth
-        labroutes --> registry
-        sessionroutes --> registry
-        sessionroutes --> docker
-        sessionroutes --> certs
-        ws --> docker
-        uiproxy --> docker
-        sync --> registry
-    end
-
-    subgraph data["Persistent data: PostgreSQL"]
-        db["PostgreSQL :5432"]
-        users["Users and Better Auth sessions"]
-        labsdb["remote_labs<br/>validated YAML definitions"]
-        synclog["lab_sync_log<br/>sync history and errors"]
-        sessions["lab_sessions<br/>container/session state"]
-        progress["lab_progress<br/>task checks and scores"]
-        certificates["certificates"]
-        db --> users
-        db --> labsdb
-        db --> synclog
-        db --> sessions
-        db --> progress
-        db --> certificates
-    end
-
-    subgraph runtime["Lab runtime"]
-        daemon["Docker Engine / Docker daemon"]
-        sandbox["Per-student lab containers<br/>Linux, Terraform, Docker, Git, Jenkins, etc."]
-        daemon --> sandbox
-    end
-
-    github["GitHub repository<br/>labs/**/*.yaml"]
-    deploy["Ubuntu k3s / Windows Compose / Replit workflows"]
-
-    browser --> nginx
-    nginx --> react
-    nginx --> express
-    nginx -. "terminal WebSocket" .-> ws
-    nginx -. "embedded UI" .-> uiproxy
-    express --> db
-    auth --> db
-    registry --> db
-    sync --> db
-    sessionroutes --> db
-    certs --> db
-    docker --> daemon
-    sync -. "GitHub Contents API" .-> github
-    deploy --> nginx
-    deploy --> express
-    deploy --> db
-    deploy --> daemon
-```
-
-### Student lab workflow
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Student
-    participant Browser
-    participant Web as nginx + React
-    participant API as Express API
-    participant DB as PostgreSQL
-    participant Docker as Docker Engine
-    participant Lab as Lab container
-
-    Student->>Browser: Open catalog
-    Browser->>Web: GET /
-    Web-->>Browser: React application
-    Browser->>API: GET /api/labs and /api/progress
-    API->>DB: Read built-in and synced lab records
-    DB-->>API: Labs, access state and progress
-    API-->>Browser: Catalog data
-
-    Student->>Browser: Select lab and click Deploy Sandbox
-    Browser->>API: POST /api/labs/:labId/session
-    API->>DB: Check identity, plan and existing session
-    API->>Docker: Pull or reuse the lab image
-    API->>Docker: Create labeled container with limits and ports
-    Docker-->>API: Container ID and published port
-    API->>Docker: Start container
-    API->>Docker: Run setupScript as root
-    Docker->>Lab: Prepare files, services and starting state
-    API->>DB: Save running session and container metadata
-    API-->>Browser: Session status
-
-    Student->>Browser: Open terminal
-    Browser->>Web: WebSocket upgrade
-    Web->>API: Forward authenticated terminal WebSocket
-    API->>Docker: Attach to container exec
-    Docker->>Lab: Run shell command
-    Lab-->>Docker: Binary terminal output
-    Docker-->>API: Terminal output
-    API-->>Browser: 0x01 output / 0x02 control frames
-
-    Student->>Browser: Click Check my work
-    Browser->>API: POST /api/labs/:labId/verify
-    API->>Docker: Execute verifyScript
-    Docker->>Lab: Print CHECK:<taskId>:PASS or FAIL
-    Lab-->>API: Verification output
-    API->>API: Parse task checks and calculate score
-    API->>DB: Upsert progress and task results
-    alt Every task passes
-        API->>Docker: Stop and remove sandbox
-        API->>DB: Preserve progress and issue eligible certificate
-        API-->>Browser: Passed result and certificate state
-    else Some tasks fail
-        API-->>Browser: Per-task results and hints
-    end
-```
-
-### Lab-definition sync workflow
+### 1. The student journey
 
 ```mermaid
 flowchart LR
-    commit["Author pushes<br/>labs/**/*.yaml to GitHub"]
-    trigger["Background poll<br/>every hour<br/>or Fetch Labs button"]
-    contents["GitHub Contents API<br/>recursive directory listing"]
-    download["Download YAML files"]
-    parse["Parse YAML"]
-    validate{"Zod schema<br/>validation succeeds?"}
-    normalize["Normalize trusted metadata<br/>Jenkins ports, UI path and service mode"]
-    upsert["Upsert remote_labs by lab id<br/>only update changed SHA"]
-    logok["Write successful lab_sync_log entry"]
-    reject["Reject definition<br/>record validation error"]
-    logerr["Write failed lab_sync_log entry"]
-    registry["Async lab registry merges<br/>built-in labs + remote labs"]
-    catalog["Catalog refreshes<br/>new lab appears without restart"]
+    A["1. Choose a lab"] --> B["2. Start sandbox"]
+    B --> C["3. Learn by doing<br/>Terminal or UI"]
+    C --> D["4. Check my work"]
+    D --> E{"Everything passed?"}
+    E -->|Not yet| C
+    E -->|Yes| F["5. Progress saved"]
+    F --> G["Certificate when<br/>the track is complete"]
 
-    commit --> trigger
-    trigger --> contents
-    contents --> download
-    download --> parse
-    parse --> validate
-    validate -->|yes| normalize
-    normalize --> upsert
-    upsert --> logok
-    logok --> registry
-    validate -->|no| reject
-    reject --> logerr
-    registry --> catalog
+    classDef action fill:#172554,stroke:#60a5fa,color:#fff
+    classDef check fill:#713f12,stroke:#fbbf24,color:#fff
+    classDef success fill:#064e3b,stroke:#34d399,color:#fff
+    class A,B,C,D action
+    class E check
+    class F,G success
 ```
 
-### Deployment and runtime workflow
+### 2. What happens behind the screen
 
 ```mermaid
-flowchart TD
-    push["Push to main"]
-    actions["GitHub Actions"]
-    build["Build API, web and migration images"]
-    registry["Push images to local registry<br/>localhost:5000 on Ubuntu"]
-    migrate["Run k8s/migrate.yaml<br/>apply database schema first"]
-    rollout["Apply API and web Deployments"]
-    ready["Readiness probes pass"]
-    traffic["nginx routes live traffic"]
-    api["API pod<br/>host network + Docker socket"]
-    web["Web pod<br/>nginx + static React build"]
-    postgres["PostgreSQL StatefulSet<br/>persistent volume"]
-    labs["On-demand Docker lab containers"]
-    hpa["HPA scales API and web<br/>within configured limits"]
-    compose["Windows / local alternative:<br/>Docker Compose"]
-    replit["Replit alternative:<br/>managed API and web workflows"]
+flowchart TB
+    student["Student"]
+    app["Web app<br/>Catalog + Workspace"]
+    api["Lab service<br/>Handles sessions and checks"]
+    database[("Progress database")]
+    engine["Docker"]
+    sandbox["Your private lab sandbox<br/>One container per active lab"]
 
-    push --> actions --> build --> registry --> migrate --> rollout
-    rollout --> ready --> traffic
-    traffic --> api
-    traffic --> web
-    api --> postgres
-    api --> labs
-    api -->|migration completed| postgres
-    ready --> hpa
-    compose -. "same services" .-> traffic
-    replit -. "same app boundaries" .-> traffic
+    student -->|"click, type and check"| app
+    app -->|"requests and live terminal"| api
+    api -->|"save progress"| database
+    api -->|"start, stop and check"| engine
+    engine --> sandbox
+    sandbox -->|"terminal output and check results"| api
+    api -->|"feedback and score"| app
+
+    classDef person fill:#312e81,stroke:#a5b4fc,color:#fff
+    classDef app fill:#164e63,stroke:#67e8f9,color:#fff
+    classDef service fill:#1e3a8a,stroke:#93c5fd,color:#fff
+    classDef data fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef sandbox fill:#064e3b,stroke:#34d399,color:#fff
+    class student person
+    class app app
+    class api service
+    class database data
+    class engine,sandbox sandbox
 ```
 
-On the Ubuntu installation, the application components run as Kubernetes
-workloads managed by single-node k3s. Lab sandboxes are additional Docker
-containers spawned on demand by the API. On Windows, Docker Compose runs the
-same PostgreSQL, migration, API, and nginx web services. In Replit, the API
-and web are managed workflows, while lab deployment depends on whether the
-runtime exposes a Docker daemon.
+**In plain English:**
+
+1. The website shows the catalog and gives you a workspace.
+2. The lab service starts an isolated Docker sandbox for you.
+3. Your terminal commands run inside that sandbox, not on the host machine.
+4. The checker reads your work and returns task-by-task feedback.
+5. Your progress is saved, while a passed sandbox is cleaned up automatically.
+
+### 3. How a new lab reaches the catalog
+
+```mermaid
+flowchart LR
+    author["Lab author"]
+    github["GitHub<br/>labs/*.yaml"]
+    sync["App fetches labs<br/>automatically or with<br/>Fetch Labs"]
+    check{"Definition<br/>is valid?"}
+    catalog["Lab appears<br/>in the catalog"]
+    review["Rejected and<br/>logged for review"]
+
+    author -->|"push YAML"| github
+    github --> sync
+    sync --> check
+    check -->|Yes| catalog
+    check -->|No| review
+
+    classDef source fill:#312e81,stroke:#a5b4fc,color:#fff
+    classDef process fill:#164e63,stroke:#67e8f9,color:#fff
+    classDef decision fill:#713f12,stroke:#fbbf24,color:#fff
+    classDef result fill:#064e3b,stroke:#34d399,color:#fff
+    class author,github source
+    class sync process
+    class check decision
+    class catalog,review result
+```
+
+The same application can run on Ubuntu with k3s, on Windows with Docker
+Compose, or in Replit workflows. The student experience stays the same:
+choose a lab, use an isolated sandbox, check the work, and keep the progress.
 
 ---
 
