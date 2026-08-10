@@ -69,3 +69,11 @@ NODE_ENV = "development"
 
 [userenv.production]
 SECURE_COOKIES = "true"
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 21398
+externalPort = 80
