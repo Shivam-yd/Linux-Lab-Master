@@ -247,13 +247,14 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
        const isHtml = contentType.includes("text/html");
        const isCss  = contentType.includes("text/css");
        const isJs   = contentType.includes("javascript");
+       const isJson = contentType.includes("application/json");
 
-       if (isHtml || isCss || isJs) {
+       if (isHtml || isCss || isJs || isJson) {
          // Buffer and rewrite text: replace every /jenkins occurrence with the
          // proxied path so in-page links and rootURL JS variable resolve correctly.
-         // CSS also needs rewriting because Jenkins stylesheets contain root-relative
-         // image/font URLs. Without this, the browser requests those assets outside
-         // the lab proxy and the UI renders unstyled with broken images.
+          // CSS also needs rewriting because Jenkins stylesheets contain root-relative
+          // image/font URLs. Stapler's JSON responses can contain generated HTML
+          // fragments with the same URLs, so they need the same treatment.
          // Because we stripped Accept-Encoding above, this is plain UTF-8 text.
         const chunks: Buffer[] = [];
         proxyRes.on("data", (c: Buffer) => chunks.push(c));
