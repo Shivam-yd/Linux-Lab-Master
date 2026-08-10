@@ -116,6 +116,10 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     // turns /api/labs/<id>/ui/jenkins into nested proxy paths.
     const marker = "__DEVLAB_JENKINS_PROXY_PATH__";
     const protectedText = text.split(proxyJenkinsPrefix).join(marker);
+    const proxyRelative = (value: string): string =>
+      value && !value.startsWith("/") && !value.startsWith("#") && !/^[a-z][a-z\d+.-]*:/i.test(value)
+        ? `${proxyJenkinsPrefix}/${value}`
+        : value;
     const rewritten = protectedText
       // Rewrite Jenkins-prefixed URLs only when they are used as URL values.
       // A global replacement corrupts visible breadcrumbs and inline page data
@@ -123,6 +127,16 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
       .replace(
         /(["'`(=])\/jenkins(?=\/|["'`)\s?#]|$)/g,
         `$1${proxyJenkinsPrefix}`,
+      )
+      .replace(
+        /\b(action|href|src)=(["'])([^"']+)\2/g,
+        (_match, attribute: string, quote: string, value: string) =>
+          `${attribute}=${quote}${proxyRelative(value)}${quote}`,
+      )
+      .replace(
+        /(\bfetch\(\s*)(["'`])([^"'`]*?)\2/g,
+        (_match, prefix: string, quote: string, value: string) =>
+          `${prefix}${quote}${proxyRelative(value)}${quote}`,
       )
       // Keep root-relative Jenkins links inside the lab proxy too.
       .replace(
