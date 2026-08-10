@@ -115,18 +115,24 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     // Jenkins' own /jenkins references. Without this guard, a second pass
     // turns /api/labs/<id>/ui/jenkins into nested proxy paths.
     const marker = "__DEVLAB_JENKINS_PROXY_PATH__";
-    const protectedText = text.split(proxyJenkinsPrefix).join(marker);
+    const concatenatedSlashMarker = "__DEVLAB_CONCATENATED_ROOT_SLASH__";
+    const protectedText = text
+      .split(proxyJenkinsPrefix).join(marker)
+      // Jenkins' JavaScript sometimes builds a relative URL in pieces:
+      // `"job/" + parentName + "/api/json"`. The final slash is not a
+      // root-relative URL and must not be rewritten into the outer proxy.
+      .replace(/(\+\s*["'])\//g, `$1${concatenatedSlashMarker}`);
     const rewritten = protectedText
       // Rewrite Jenkins-prefixed URLs only when they are used as URL values.
       // A global replacement corrupts visible breadcrumbs and inline page data
       // on dynamic pages such as New Item.
       .replace(
-        /(["'`(=])\/jenkins(?=\/|["'`)\s?#]|$)/g,
+        /(["'`=])\/jenkins(?=\/|["'`)\s?#]|$)/g,
         `$1${proxyJenkinsPrefix}`,
       )
       // Keep root-relative Jenkins links inside the lab proxy too.
       .replace(
-        /([("'=])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
+        /(["'=])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
         `$1${proxyPrefix}${upstreamPrefix}/`,
       )
       // CSS url(/static/...) has no quote or equals sign before the slash.
@@ -134,7 +140,9 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
         /url\(\s*\/(?!jenkins(?=\/|["')]|$)|api\/labs\/)/g,
         `url(${proxyPrefix}${upstreamPrefix}/`,
       );
-    return rewritten.split(marker).join(proxyJenkinsPrefix);
+    return rewritten
+      .split(marker).join(proxyJenkinsPrefix)
+      .split(concatenatedSlashMarker).join("/");
   };
 
   type ProxyTarget = { hostname: string; port: number; label: string };
