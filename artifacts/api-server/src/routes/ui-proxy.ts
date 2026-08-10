@@ -130,6 +130,12 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
         /(["'`=])\/jenkins(?=\/|["'`)\s?#]|$)/g,
         `$1${proxyJenkinsPrefix}`,
       )
+      // Jenkins' dynamic configuration markup uses URL-valued attributes such
+      // as data-proxy-url and helpURL. Keep those requests inside this proxy.
+      .replace(
+        /((?:data-proxy-url|helpURL)=["'`])\/jenkins(?=\/|["'`)\s?#]|$)/gi,
+        `$1${proxyJenkinsPrefix}`,
+      )
       // Keep root-relative Jenkins links inside the lab proxy too.
       .replace(
         /(["'=])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
@@ -168,6 +174,7 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
   headers["host"] = `localhost:${containerPort}`;
   headers["accept-encoding"] = "identity";
   delete (headers as Record<string, unknown>)["content-length"];
+  delete (headers as Record<string, unknown>)["transfer-encoding"];
 
   const sendRequest = (
     targetIndex: number,
@@ -279,11 +286,16 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     // preserved exactly.
     const method = req.method.toUpperCase();
     if (method !== "GET" && method !== "HEAD") {
-      const rawBody = (req as Request & { rawBody?: string }).rawBody;
-      const ct = (req.headers["content-type"] ?? "").split(";")[0].trim();
+      const rawBody = (req as Request & { rawBody?: string | Buffer }).rawBody;
+      const ct = (req.headers["content-type"] ?? "").split(";")[0].trim().toLowerCase();
       if (rawBody !== undefined) {
-        proxyReq.setHeader("content-length", Buffer.byteLength(rawBody));
-        proxyReq.write(rawBody);
+        // Jenkins Stapler invocations are JSON arrays sent with a custom
+        // content type. Forward the exact bytes; re-encoding the parsed body
+        // drops invocation arguments and leaves widgets such as Execute shell
+        // and Log Rotation with empty placeholder rows.
+        const body = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody, "utf8");
+        proxyReq.setHeader("content-length", body.length);
+        proxyReq.write(body);
       } else if (req.body && ct === "application/json") {
         const json = JSON.stringify(req.body);
         proxyReq.setHeader("content-length", Buffer.byteLength(json));
