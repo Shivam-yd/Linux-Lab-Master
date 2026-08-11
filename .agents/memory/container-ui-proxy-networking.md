@@ -11,6 +11,8 @@ When the API server and a lab container run in separate containers, proxy reques
 
 Jenkins 2.541.3 dynamic configuration controls use `org/kohsuke/stapler/bind.js`: the browser POSTs a JSON method array to a session-bound `/$stapler/bound/<id>/` URL with the custom `application/x-stapler-method-invocation` content type and crumb headers. A UI proxy must capture and forward that raw body unchanged; parsing only JSON or URL-encoded forms makes widgets such as Freestyle “Execute shell” render without their fields.
 
+Stapler bound URLs are also tied to the Jenkins session that rendered the page. Preserve the browser's Jenkins cookie and both `Crumb`/`Jenkins-Crumb` headers when forwarding dynamic widget requests; standalone probes without that session will misleadingly return 404.
+
 Jenkins service containers can return a valid login page before `init.groovy.d` finishes creating the configured account after the setup restart. Service readiness must wait on an initialization marker created at the end of the Groovy script, not only on HTTP 200 from `/jenkins/login`.
 
 The API must keep a service session in `starting` until the initialization marker is ready. Do not require a separate exact HTTP status probe inside the container; Jenkins' startup response can vary while its prefixed proxy route is still usable. The UI proxy should reject non-running session rows before inspecting or forwarding to the container.

@@ -297,6 +297,11 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
         const body = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody, "utf8");
         proxyReq.setHeader("content-length", body.length);
         proxyReq.write(body);
+      } else if (Buffer.isBuffer(req.body)) {
+        // express.raw() normally stores the same payload in rawBody, but keep
+        // the parsed Buffer as a safe fallback for custom media types.
+        proxyReq.setHeader("content-length", req.body.length);
+        proxyReq.write(req.body);
       } else if (req.body && ct === "application/json") {
         const json = JSON.stringify(req.body);
         proxyReq.setHeader("content-length", Buffer.byteLength(json));
