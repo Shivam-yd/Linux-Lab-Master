@@ -142,14 +142,21 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
         /((?:data-proxy-url|helpURL)=["'`])\/jenkins(?=\/|["'`)\s?#]|$)/gi,
         `$1${proxyJenkinsPrefix}`,
       )
+      // Some Jenkins responses already include the service mount used by
+      // this app (/ui/jenkins). Treat it as the Jenkins context path rather
+      // than adding the proxy prefix a second time.
+      .replace(
+        /(["'`=])\/ui\/jenkins(?=\/|["'`)\s?#]|$)/gi,
+        `$1${proxyJenkinsPrefix}`,
+      )
       // Keep root-relative Jenkins links inside the lab proxy too.
       .replace(
-        /(["'`])\/(?!jenkins(?=\/|["']|$)|api\/labs\/)/g,
+        /(["'`])\/(?!(?:jenkins(?=\/|["']|$)|ui\/jenkins(?=\/|["']|$)|api\/labs\/))/g,
         `$1${proxyPrefix}${upstreamPrefix}/`,
       )
       // CSS url(/static/...) has no quote or equals sign before the slash.
       .replace(
-        /url\(\s*\/(?!jenkins(?=\/|["')]|$)|api\/labs\/)/g,
+        /url\(\s*\/(?!(?:jenkins(?=\/|["')]|$)|ui\/jenkins(?=\/|["')]|api\/labs\/))/g,
         `url(${proxyPrefix}${upstreamPrefix}/`,
       );
     return rewritten
