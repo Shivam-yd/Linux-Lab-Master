@@ -122,8 +122,15 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     // turns /api/labs/<id>/ui/jenkins into nested proxy paths.
     const marker = "__DEVLAB_JENKINS_PROXY_PATH__";
     const concatenatedSlashMarker = "__DEVLAB_CONCATENATED_ROOT_SLASH__";
+    const staplerDataUrlMarker = "__DEVLAB_JENKINS_STAPLER_DATA_URL__";
     const protectedText = text
       .split(proxyJenkinsPrefix).join(marker)
+      // bind.js appends data-url to a generated Stapler endpoint. Keep this
+      // Jenkins-relative so it is not concatenated with the outer proxy URL.
+      .replace(
+        /((?:data-url|data-stapler-url)=["'`])\/jenkins(?=\/|["'`)\s?#]|$)/gi,
+        `$1${staplerDataUrlMarker}`,
+      )
       // Jenkins' JavaScript sometimes builds a relative URL in pieces:
       // `"job/" + parentName + "/api/json"`. The final slash is not a
       // root-relative URL and must not be rewritten into the outer proxy.
@@ -161,6 +168,7 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
       );
     return rewritten
       .split(marker).join(proxyJenkinsPrefix)
+      .split(staplerDataUrlMarker).join("/jenkins")
       .split(concatenatedSlashMarker).join("/");
   };
 
