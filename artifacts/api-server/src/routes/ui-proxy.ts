@@ -151,12 +151,12 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
       )
       // Keep root-relative Jenkins links inside the lab proxy too.
       .replace(
-        /(["'`])\/(?!(?:jenkins(?=\/|["']|$)|ui\/jenkins(?=\/|["']|$)|api\/labs\/))/g,
+        /(["'`])\/(?!jenkins(?=\/|["']|$))(?!ui\/jenkins(?=\/|["']|$))(?!api\/labs\/)/g,
         `$1${proxyPrefix}${upstreamPrefix}/`,
       )
       // CSS url(/static/...) has no quote or equals sign before the slash.
       .replace(
-        /url\(\s*\/(?!(?:jenkins(?=\/|["')]|$)|ui\/jenkins(?=\/|["')]|api\/labs\/))/g,
+        /url\(\s*\/(?!jenkins(?=\/|["')]|$))(?!ui\/jenkins(?=\/|["')]|$))(?!api\/labs\/)/g,
         `url(${proxyPrefix}${upstreamPrefix}/`,
       );
     return rewritten

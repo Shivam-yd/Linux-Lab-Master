@@ -30,3 +30,4 @@
 - [Pulled code dependency restore](pulled-code-dependency-restore.md) — after pulling code, restore node_modules from the existing lockfile before diagnosing missing imports.
 - [Pulled dependency restore](pulled-dependency-restore.md) — frozen-lockfile install may be needed after pulls; offline mode can fail when the pnpm store lacks a transitive package.
 - [Jenkins UI metadata normalization](jenkins-ui-metadata-normalization.md) — synced Jenkins records must expose port 8080 and `/jenkins/` or the UI tab stays hidden.
+- [Jenkins proxy context aliases](jenkins-proxy-context-aliases.md) — rewrite `/ui/jenkins` as the existing Jenkins proxy context, never as a generic root-relative URL.
