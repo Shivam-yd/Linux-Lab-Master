@@ -87,15 +87,20 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
     ?? (lab.image.startsWith("jenkins/") ? "/jenkins/" : undefined);
   const upstreamPrefix = configuredUiPath?.replace(/\/+$/, "") || "";
   const rawRequestPath = req.url || "/";
+  // Express normally strips the mounted router path, but some proxy setups
+  // preserve it. Normalize both shapes before forwarding upstream.
+  const normalizedRequestPath = rawRequestPath.startsWith(proxyPrefix)
+    ? rawRequestPath.slice(proxyPrefix.length) || "/"
+    : rawRequestPath;
   // Jenkins may redirect to the prefix without its trailing slash after login.
   // Keep the upstream context path canonical so /jenkins and /jenkins/ do not
   // land on different Jenkins routes.
   const requestPath = configuredUiPath &&
-    (rawRequestPath === upstreamPrefix || rawRequestPath.startsWith(`${upstreamPrefix}?`))
-    ? `${configuredUiPath}${rawRequestPath.slice(upstreamPrefix.length)}`
-    : (!req.url || req.url === "/") && configuredUiPath
+    (normalizedRequestPath === upstreamPrefix || normalizedRequestPath.startsWith(`${upstreamPrefix}?`))
+     ? `${configuredUiPath}${normalizedRequestPath.slice(upstreamPrefix.length)}`
+     : (!normalizedRequestPath || normalizedRequestPath === "/") && configuredUiPath
       ? configuredUiPath
-      : rawRequestPath;
+       : normalizedRequestPath;
   // Jenkins occasionally emits root-relative links such as /job/... even
   // when it is running with --prefix=/jenkins. Normalize those escaped links
   // before forwarding so the upstream server does not return its own 404.

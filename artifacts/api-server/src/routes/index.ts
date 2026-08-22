@@ -21,10 +21,10 @@ router.use(registrationRouter);
 // Mount admin before the auth-gated labs router. Otherwise /admin/check is
 // intercepted by labsRouter's requireAuth middleware.
 router.use("/admin", adminRouter);
-router.use(labsRouter);
 // Keep embedded service UIs out of the lab-session request limiter. Jenkins
 // loads many assets and dynamic fragments while configuring a job.
 router.use(uiProxyRouter);
+router.use(labsRouter);
 router.use(sessionsRouter);
 router.use(passwordResetRouter);
 router.use(accountRouter);
