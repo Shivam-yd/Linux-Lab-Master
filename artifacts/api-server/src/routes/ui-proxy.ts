@@ -211,6 +211,20 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
         return;
       }
 
+       if (proxyRes.statusCode === 404 && (req.method === "GET" || req.method === "POST")) {
+         logger.warn(
+           {
+             labId,
+             method: req.method,
+             browserPath: req.url,
+             upstreamPath: requestTargetPath,
+             rootFallbackPath,
+             target: target.label,
+           },
+           "UI proxy upstream returned 404",
+         );
+       }
+
       // Rewrite redirect Location headers so the browser stays inside our proxy.
       if (proxyRes.headers["location"]) {
         let location = proxyRes.headers["location"]
