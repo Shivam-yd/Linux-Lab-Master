@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request } from "express";
 import http from "node:http";
+import querystring from "node:querystring";
 import { requireAuth } from "../middleware/auth";
 import { getRunningContainer, getSessionRow } from "../lib/docker/manager";
 import { getLabByIdAsync } from "../lib/labs/registry";
@@ -306,6 +307,12 @@ router.use("/labs/:labId/ui", requireAuth, async (req, res): Promise<void> => {
         const json = JSON.stringify(req.body);
         proxyReq.setHeader("content-length", Buffer.byteLength(json));
         proxyReq.write(json);
+      } else if (req.body && typeof req.body === "object") {
+        // Keep Jenkins' form-based dynamic widgets working even when a body
+        // parser did not expose the original bytes.
+        const form = querystring.stringify(req.body as Record<string, unknown>);
+        proxyReq.setHeader("content-length", Buffer.byteLength(form));
+        proxyReq.write(form);
       }
     }
     proxyReq.end();
