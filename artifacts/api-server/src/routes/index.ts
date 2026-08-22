@@ -22,8 +22,10 @@ router.use(registrationRouter);
 // intercepted by labsRouter's requireAuth middleware.
 router.use("/admin", adminRouter);
 router.use(labsRouter);
-router.use(sessionsRouter);
+// Keep embedded service UIs out of the lab-session request limiter. Jenkins
+// loads many assets and dynamic fragments while configuring a job.
 router.use(uiProxyRouter);
+router.use(sessionsRouter);
 router.use(passwordResetRouter);
 router.use(accountRouter);
 
